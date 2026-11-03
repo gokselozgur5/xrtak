@@ -44,6 +44,8 @@ pub struct TacticalEntity {
     pub speed_mps: f64,
     pub remarks: String,
     pub sensor: Option<SensorCone>,
+    /// Optional TAK `<__video url="..."/>` stream endpoint (`VH_COTDetail_Video`)
+    pub video_url: Option<String>,
     /// Parent entity UID when this entity is a linked SPI (`b-m-p-s-p-i` with `<link relation="p-p"/>`)
     pub parent_uid: Option<String>,
     /// Local ENU coordinates relative to sand table center (meters)
@@ -244,6 +246,7 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
     let mut speed_mps = 0.0;
     let mut remarks = String::new();
     let mut sensor: Option<SensorCone> = None;
+    let mut video_url: Option<String> = None;
     let mut parent_uid: Option<String> = None;
     let mut in_remarks = false;
 
@@ -340,6 +343,14 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
                             range_m: range,
                         });
                     }
+                    b"__video" => {
+                        for attr in e.attributes().flatten() {
+                            if attr.key.as_ref() == b"url" {
+                                video_url =
+                                    Some(String::from_utf8_lossy(&attr.value).into_owned());
+                            }
+                        }
+                    }
                     b"remarks" => {
                         in_remarks = true;
                     }
@@ -398,6 +409,7 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
         speed_mps,
         remarks,
         sensor,
+        video_url,
         parent_uid,
         east_m,
         up_m,
@@ -533,6 +545,7 @@ impl TacticalWorld {
                     vfov_deg: 20.0,
                     range_m: slant_range,
                 }),
+                Some("rtsp://10.8.0.11:8554/falcon1-eoir".to_string()),
                 None,
                 now_ms,
             );
@@ -566,6 +579,7 @@ impl TacticalWorld {
                     vfov_deg: 26.0,
                     range_m: 560.0,
                 }),
+                Some("rtsp://10.8.0.12:8554/valkyrie2-sar".to_string()),
                 None,
                 now_ms,
             );
@@ -588,6 +602,7 @@ impl TacticalWorld {
                 "Recon Squad | Visual on ridge",
                 None,
                 None,
+                None,
                 now_ms,
             );
         }
@@ -608,6 +623,7 @@ impl TacticalWorld {
                 0.0,
                 "Forward Observation Post & TAK Gateway",
                 None,
+                Some("rtsp://10.8.0.14:8554/op-bravo-ptz".to_string()),
                 None,
                 now_ms,
             );
@@ -628,6 +644,7 @@ impl TacticalWorld {
                 125.0,
                 8.2,
                 "Tracked thermal signature confirmed by FALCON-1",
+                None,
                 None,
                 None,
                 now_ms,
@@ -651,6 +668,7 @@ impl TacticalWorld {
                 "RF Band-X Jammer Activity Detected",
                 None,
                 None,
+                None,
                 now_ms,
             );
         }
@@ -672,6 +690,7 @@ impl TacticalWorld {
                 "Unidentified low-altitude rotary/UAS track",
                 None,
                 None,
+                None,
                 now_ms,
             );
         }
@@ -690,6 +709,7 @@ impl TacticalWorld {
         speed_mps: f64,
         remarks: &str,
         sensor: Option<SensorCone>,
+        video_url: Option<String>,
         parent_uid: Option<String>,
         now_ms: u64,
     ) {
@@ -710,6 +730,7 @@ impl TacticalWorld {
                 speed_mps,
                 remarks: remarks.to_string(),
                 sensor,
+                video_url,
                 parent_uid,
                 east_m,
                 up_m,

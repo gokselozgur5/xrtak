@@ -295,7 +295,7 @@
       <button class="tac-btn active" id="btn-view-table">3D Sand Table</button>
       <button class="tac-btn" id="btn-view-chase">UAV Chase Cam</button>
       <button class="tac-btn active" id="btn-toggle-fov">FOV Cones: ON</button>
-      <button class="tac-btn active" id="btn-toggle-trails">Trails: ON</button>
+      <button class="tac-btn active" id="btn-toggle-wall">Video Wall: ON</button>
       <button class="tac-btn xr-btn" id="btn-enter-xr">QUEST 3: ENTER MIXED REALITY (WebXR)</button>
     </div>
 
@@ -508,6 +508,214 @@
 
     buildTableFrame();
     buildTerrainMesh();
+
+    // --- 3D Spatial Video Wall (`AGame_TOCBoard` / `VH_COTDetail_Video`) ---
+    const videoWallGroup = new THREE.Group();
+    tableGroup.add(videoWallGroup);
+    let showVideoWall = true;
+
+    const VIDEO_WALL_SLOTS = [
+      {
+        uid: 'UAV-VALKYRIE-02',
+        title: 'CAM-1 // VALKYRIE-2 [SAR RADAR]',
+        stream: 'rtsp://10.8.0.12:8554/valkyrie2-sar',
+        mode: 'sar',
+        pos: new THREE.Vector3(-0.46, 0.54, -0.62),
+        rotY: 0.26,
+      },
+      {
+        uid: 'UAV-FALCON-01',
+        title: 'CAM-2 // FALCON-1 [EO/IR THERMAL]',
+        stream: 'rtsp://10.8.0.11:8554/falcon1-eoir',
+        mode: 'eoir',
+        pos: new THREE.Vector3(0.0, 0.58, -0.70),
+        rotY: 0.0,
+      },
+      {
+        uid: 'GND-OBSERVE-BRAVO',
+        title: 'CAM-3 // OP-BRAVO [PTZ OVERWATCH]',
+        stream: 'rtsp://10.8.0.14:8554/op-bravo-ptz',
+        mode: 'ptz',
+        pos: new THREE.Vector3(0.46, 0.54, -0.62),
+        rotY: -0.26,
+      },
+    ];
+
+    const videoWallPanels = [];
+    function initSpatialVideoWall() {
+      for (const slot of VIDEO_WALL_SLOTS) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 384;
+        canvas.height = 224;
+        const ctx = canvas.getContext('2d');
+        const tex = new THREE.CanvasTexture(canvas);
+
+        const panelGroup = new THREE.Group();
+        panelGroup.position.copy(slot.pos);
+        panelGroup.rotation.y = slot.rotY;
+        videoWallGroup.add(panelGroup);
+
+        const screenGeo = new THREE.PlaneGeometry(0.40, 0.235);
+        const screenMat = new THREE.MeshBasicMaterial({
+          map: tex,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.94,
+        });
+        const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+        screenMesh.userData.uid = slot.uid;
+        panelGroup.add(screenMesh);
+
+        // Glowing cyan/green border frame around floating 3D screen
+        const borderGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.412, 0.247));
+        const borderMat = new THREE.LineBasicMaterial({
+          color: 0x00e5ff,
+          transparent: true,
+          opacity: 0.78,
+        });
+        const borderLine = new THREE.LineSegments(borderGeo, borderMat);
+        panelGroup.add(borderLine);
+
+        // 3D Tether Line from bottom of floating screen down to unit on Sand Table
+        const tetherGeo = new THREE.BufferGeometry().setFromPoints([
+          slot.pos.clone(),
+          new THREE.Vector3(0, 0, 0),
+        ]);
+        const tetherMat = new THREE.LineBasicMaterial({
+          color: 0x00e5ff,
+          transparent: true,
+          opacity: 0.36,
+        });
+        const tetherLine = new THREE.Line(tetherGeo, tetherMat);
+        videoWallGroup.add(tetherLine);
+
+        videoWallPanels.push({
+          slot,
+          canvas,
+          ctx,
+          tex,
+          screenMesh,
+          borderMat,
+          tetherLine,
+        });
+      }
+    }
+    initSpatialVideoWall();
+
+    function updateSpatialVideoWall(timeMs) {
+      videoWallGroup.visible = showVideoWall;
+      if (!showVideoWall) return;
+
+      for (const p of videoWallPanels) {
+        const { slot, canvas, ctx, tex, borderMat, tetherLine } = p;
+        const w = canvas.width;
+        const h = canvas.height;
+        const ent = latestEntities.find(e => e.uid === slot.uid);
+        const isSelected = selectedUid === slot.uid;
+
+        borderMat.color.setHex(isSelected ? 0x00ff88 : 0x00e5ff);
+
+        // Background
+        ctx.fillStyle = '#040b14';
+        ctx.fillRect(0, 0, w, h);
+
+        // Top Header Bar
+        ctx.fillStyle = isSelected ? 'rgba(0, 255, 136, 0.22)' : 'rgba(0, 229, 255, 0.16)';
+        ctx.fillRect(0, 0, w, 28);
+        ctx.font = 'bold 12px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = isSelected ? '#00ff88' : '#00e5ff';
+        ctx.fillText(slot.title, 10, 18);
+
+        // Simulated feed content per sensor modality
+        if (slot.mode === 'eoir') {
+          ctx.strokeStyle = 'rgba(0, 255, 136, 0.14)';
+          for (let y = 34; y < h - 24; y += 14) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+          }
+          const hasSpi = entityNodes.has('UAV-FALCON-01.SPI1');
+          const tx = hasSpi ? w * 0.5 : w * 0.5 + Math.sin(timeMs * 0.0018) * 44;
+          const ty = hasSpi ? h * 0.52 : h * 0.54 + Math.cos(timeMs * 0.0013) * 20;
+          const grad = ctx.createRadialGradient(tx, ty, 3, tx, ty, 24);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.45, '#00ffaa');
+          grad.addColorStop(1, 'rgba(0,255,170,0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(tx, ty, 24, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = hasSpi ? '#00ff88' : '#ff3355';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(tx - 18, ty - 18, 36, 36);
+        } else if (slot.mode === 'sar') {
+          // Synthetic Aperture Radar sweep fan
+          const cx = w * 0.5, cy = h * 0.82;
+          ctx.strokeStyle = 'rgba(0, 229, 255, 0.24)';
+          ctx.lineWidth = 1;
+          for (const r of [45, 85, 125]) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, Math.PI * 1.15, Math.PI * 1.85);
+            ctx.stroke();
+          }
+          const sweepAngle = Math.PI * 1.5 + Math.sin(timeMs * 0.0025) * 0.95;
+          ctx.strokeStyle = '#00ff88';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(sweepAngle) * 135, cy + Math.sin(sweepAngle) * 135);
+          ctx.stroke();
+
+          // Radar blips
+          ctx.fillStyle = '#ffbb00';
+          ctx.fillRect(cx - 34, cy - 78, 6, 6);
+          ctx.fillStyle = '#ff3355';
+          ctx.fillRect(cx + 22, cy - 96, 7, 7);
+        } else {
+          // Ridge PTZ optical horizon + valley watch
+          ctx.strokeStyle = '#1e5078';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, h * 0.55);
+          for (let x = 0; x <= w; x += 24) {
+            const ry = h * 0.52 + Math.sin(x * 0.025 + timeMs * 0.0006) * 18;
+            ctx.lineTo(x, ry);
+          }
+          ctx.stroke();
+
+          const vx = (w * 0.35 + ((timeMs * 0.03) % (w * 0.45)));
+          const vy = h * 0.66;
+          ctx.strokeStyle = '#ff3355';
+          ctx.strokeRect(vx - 12, vy - 8, 24, 16);
+          ctx.fillStyle = '#ff3355';
+          ctx.font = '10px "SF Mono", Menlo, monospace';
+          ctx.fillText('MOVING TRACK', vx - 30, vy - 12);
+        }
+
+        // Crosshair & Footer Telemetry
+        ctx.fillStyle = 'rgba(2, 8, 16, 0.82)';
+        ctx.fillRect(0, h - 24, w, 24);
+        ctx.font = '11px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = '#7aa2c4';
+        const teleText = ent
+          ? `${slot.stream}  |  ALT ${Math.round(ent.hae_m)}m  CRS ${Math.round(ent.course_deg)}°`
+          : slot.stream;
+        ctx.fillText(teleText, 10, h - 8);
+
+        tex.needsUpdate = true;
+
+        // Update 3D Tether Line from bottom edge of floating panel down to unit on table
+        const node = entityNodes.get(slot.uid);
+        if (node) {
+          const anchorTop = new THREE.Vector3(slot.pos.x, slot.pos.y - 0.118, slot.pos.z);
+          tetherLine.geometry.setFromPoints([anchorTop, node.root.position.clone()]);
+          tetherLine.visible = true;
+        } else {
+          tetherLine.visible = false;
+        }
+      }
+    }
 
     // --- 3D Viewshed Point Cloud Layer (`AGame_Actor_Viewshed` / `ViewShedLayer2`) ---
     const viewshedGroup = new THREE.Group();
@@ -954,6 +1162,7 @@
 
       const meshes = [];
       for (const n of entityNodes.values()) meshes.push(n.iconMesh);
+      for (const p of videoWallPanels) meshes.push(p.screenMesh);
       const unitHits = raycaster.intersectObjects(meshes, false);
       if (unitHits.length > 0 && unitHits[0].object.userData.uid) {
         selectedUid = unitHits[0].object.userData.uid;
@@ -1017,10 +1226,10 @@
       e.target.classList.toggle('active', showFovCones);
     };
 
-    document.getElementById('btn-toggle-trails').onclick = (e) => {
-      showTrails = !showTrails;
-      e.target.textContent = `Trails: ${showTrails ? 'ON' : 'OFF'}`;
-      e.target.classList.toggle('active', showTrails);
+    document.getElementById('btn-toggle-wall').onclick = (e) => {
+      showVideoWall = !showVideoWall;
+      e.target.textContent = `Video Wall: ${showVideoWall ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showVideoWall);
     };
 
     document.getElementById('btn-drop-friendly').onclick = () => setInteractionMode('friendly');
@@ -1081,6 +1290,7 @@
         `HDG ${headingDeg.toString().padStart(3, '0')}°`;
 
       renderGimbalPip(timeMs);
+      updateSpatialVideoWall(timeMs);
       renderer.render(scene, camera);
     });
 
