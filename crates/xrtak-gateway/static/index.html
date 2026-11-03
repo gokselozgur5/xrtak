@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XR-TAK // 3D Mixed-Reality Tactical Sand Table & CoT HUD</title>
+  <style>
+    :root {
+      --bg-panel: rgba(6, 14, 24, 0.84);
+      --border-cyan: rgba(0, 229, 255, 0.38);
+      --cyan: #00e5ff;
+      --red: #ff3355;
+      --yellow: #ffbb00;
+      --green: #00ff88;
+      --text-main: #e2f4ff;
+      --text-dim: #7aa2c4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #03070e;
+      color: var(--text-main);
+      font-family: 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* Top Tactical Compass & Status Bar */
+    .top-hud {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+       flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .compass-tape {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      padding: 6px 24px;
+      border-radius: 4px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .status-pill {
+      font-size: 11px;
+      color: var(--text-dim);
+      background: rgba(4, 10, 18, 0.78);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      padding: 3px 12px;
+      border-radius: 3px;
+    }
+    .dot-live {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      margin-right: 6px;
+    }
+
+    /* Left Panel: CoT Unit Roster & Controls */
+    .left-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 310px;
+      z-index: 10;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      border-radius: 6px;
+      padding: 12px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: calc(100vh - 32px);
+    }
+    .panel-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 1.4px;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.22);
+      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .unit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow-y: auto;
+      max-height: 290px;
+      padding-right: 2px;
+    }
+    .unit-item {
+      padding: 7px 9px;
+      border-radius: 4px;
+      background: rgba(12, 26, 44, 0.65);
+      border-left: 3px solid var(--cyan);
+      cursor: pointer;
+      transition: all 0.14s ease;
+      font-size: 11px;
+    }
+    .unit-item:hover, .unit-item.active {
+      background: rgba(0, 229, 255, 0.16);
+      transform: translateX(2px);
+    }
+    .unit-item.hostile { border-left-color: var(--red); }
+    .unit-item.unknown { border-left-color: var(--yellow); }
+    .unit-row-top {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .unit-row-sub {
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Mode & Spawn Buttons */
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .tac-btn {
+      background: rgba(0, 229, 255, 0.1);
+      color: var(--text-main);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 4px;
+      padding: 7px 8px;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .tac-btn:hover {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: var(--cyan);
+    }
+    .tac-btn.active {
+      background: var(--cyan);
+      color: #020810;
+      font-weight: 700;
+    }
+    .tac-btn.xr-btn {
+      grid-column: span 2;
+      background: linear-gradient(90deg, rgba(0,229,255,0.22), rgba(0,255,136,0.22));
+      border-color: var(--green);
+      color: var(--green);
+      font-weight: 700;
+      padding: 9px;
+    }
+
+    /* Right Panel: Selected CoT Detail & Simulated Gimbal EO/IR Feed */
+    .right-panel {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 330px;
+      z-index: 10;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      border-radius: 6px;
+      padding: 12px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      row-gap: 4px;
+      font-size: 11px;
+    }
+    .kv-label { color: var(--text-dim); }
+    .kv-val { color: var(--text-main); font-weight: 600; }
+
+    .gimbal-box {
+      position: relative;
+      width: 100%;
+      height: 175px;
+      background: #040b12;
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #gimbal-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .gimbal-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--green);
+      text-shadow: 0 0 4px #000;
+    }
+
+    .bottom-help {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(4, 10, 18, 0.82);
+      border: 1px solid rgba(0, 229, 255, 0.28);
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div class="top-hud">
+    <div class="compass-tape">
+      <span id="hud-mode-label">MODE: HOLOGRAPHIC SAND TABLE</span>
+      <span>|</span>
+      <span id="hud-heading">HDG 000° N</span>
+      <span>|</span>
+      <span id="hud-origin">SECTOR: 39.9200N 32.8500E (3.0x3.0 km)</span>
+    </div>
+    <div class="status-pill">
+      <span class="dot-live"></span>
+      <span id="hud-status">RUST CoT CORE ACTIVE · 20Hz STREAM · UDP :4242 LISTENING</span>
+    </div>
+  </div>
+
+  <div class="left-panel">
+    <div class="panel-title">
+      <span>XR-TAK // CoT TRACKS</span>
+      <span id="track-count">0 UNITS</span>
+    </div>
+
+    <div class="unit-list" id="unit-list"></div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>VIEW & XR CONTROLS</span>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn active" id="btn-view-table">3D Sand Table</button>
+      <button class="tac-btn" id="btn-view-chase">UAV Chase Cam</button>
+      <button class="tac-btn" id="btn-toggle-fov">FOV Cones: ON</button>
+      <button class="tac-btn" id="btn-toggle-trails">Trails: ON</button>
+      <button class="tac-btn xr-btn" id="btn-enter-xr">QUEST 3: ENTER MIXED REALITY (WebXR)</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>DROP CoT MARKER ON TERRAIN</span>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn" id="btn-drop-friendly">+ Friendly Pin</button>
+      <button class="tac-btn" id="btn-drop-hostile">+ Hostile Target</button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-title">
+      <span>SELECTED CoT ENTITY</span>
+      <span id="sel-affiliation" style="color:var(--cyan);">FRIENDLY</span>
+    </div>
+    <div class="kv-grid">
+      <span class="kv-label">CALLSIGN:</span><span class="kv-val" id="sel-callsign">FALCON-1</span>
+      <span class="kv-label">CoT UID:</span><span class="kv-val" id="sel-uid">UAV-FALCON-01</span>
+      <span class="kv-label">CoT TYPE:</span><span class="kv-val" id="sel-type">a-f-A-M-F-Q</span>
+      <span class="kv-label">WGS84 LLA:</span><span class="kv-val" id="sel-lla">--</span>
+      <span class="kv-label">LOCAL ENU:</span><span class="kv-val" id="sel-enu">--</span>
+      <span class="kv-label">KINEMATICS:</span><span class="kv-val" id="sel-kin">--</span>
+      <span class="kv-label">REMARKS:</span><span class="kv-val" id="sel-remarks">--</span>
+    </div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>EO/IR GIMBAL SENSOR PIP</span>
+      <span id="gimbal-fov-label">FOV 34°</span>
+    </div>
+    <div class="gimbal-box">
+      <canvas id="gimbal-canvas" width="306" height="175"></canvas>
+      <div class="gimbal-overlay">
+        <div style="display:flex;justify-content:space-between;">
+          <span id="pip-source">SRC: FALCON-1</span>
+          <span>IR: WHITE-HOT</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span id="pip-azel">AZ: 000° EL: -38°</span>
+          <span>LOCK: ACTIVE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-help" id="bottom-help">
+    Left-Drag: Orbit Sand Table · Right-Drag: Pan · Scroll: Zoom · Click Unit or Terrain to Interact
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- Shared Scale Constants ---
+    // Real tactical sector is 3000m x 3000m (-1500m to +1500m).
+    // On the holographic sand table, 3000m maps to 1.50 meters (scale = 0.0005).
+    const WORLD_EXTENT_M = 1500.0;
+    const TABLE_RADIUS_UNITS = 0.75; // 1.5m wide tabletop
+    const M_TO_TABLE = TABLE_RADIUS_UNITS / WORLD_EXTENT_M; // 0.0005
+    const ALT_EXAGGERATION = 1.65;
+
+    // Exact deterministic terrain relief function matching `xrtak_core::sample_terrain_relief_m`
+    function sampleTerrainReliefM(eastM, northM) {
+      const nx = eastM * 0.0018;
+      const nz = northM * 0.0018;
+      const ridge1 = (Math.sin(nx * 1.3 + nz * 0.8) * Math.cos(nx * 0.7 - nz * 1.1)) * 115.0;
+      const ridge2 = (Math.sin(nx * 2.7 - nz * 2.1) * 0.5 + Math.cos(nz * 3.1) * 0.5) * 42.0;
+      const detail = Math.sin(nx * 5.5 + nz * 4.8) * 12.0;
+      const valleyDist = Math.min(Math.abs(nx - nz * 0.6), 1.5);
+      const valleyFactor = 0.35 + 0.65 * (valleyDist / 1.5);
+      return (ridge1 + ridge2 + detail + 95.0) * valleyFactor;
+    }
+
+    function enuToTableVec3(eastM, upM, northM) {
+      // In Three.js: +X = East, +Y = Up, -Z = North
+      return new THREE.Vector3(
+        eastM * M_TO_TABLE,
+        upM * M_TO_TABLE * ALT_EXAGGERATION,
+        -northM * M_TO_TABLE
+      );
+    }
+
+    // --- Scene & Renderer Setup ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.05, 50);
+    camera.position.set(0.0, 0.92, 1.25);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.xr.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.08, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.maxDistance = 4.0;
+    controls.minDistance = 0.2;
+
+    // Ambient & Tactical Directional Lighting
+    scene.add(new THREE.AmbientLight(0x88bbff, 0.85));
+    const dirLight = new THREE.DirectionalLight(0xccf0ff, 1.4);
+    dirLight.position.set(1.5, 3.0, 1.2);
+    scene.add(dirLight);
+
+    // Root Sand Table Group (Positioned at y=0 on desktop, or desk height in AR)
+    const tableGroup = new THREE.Group();
+    scene.add(tableGroup);
+
+    // --- Build Holographic Sand Table Pedestal & Compass Ring ---
+    function buildTableFrame() {
+      const ringGeo = new THREE.RingGeometry(TABLE_RADIUS_UNITS * 1.03, TABLE_RADIUS_UNITS * 1.06, 96);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x00e5ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.45
+      });
+      tableGroup.add(new THREE.Mesh(ringGeo, ringMat));
+
+      // Tactical Grid Base
+      const grid = new THREE.GridHelper(TABLE_RADIUS_UNITS * 2.0, 20, 0x00e5ff, 0x0d2b45);
+      grid.position.y = -0.002;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.45;
+      tableGroup.add(grid);
+
+      // Cardinal Direction Labels (N, E, S, W)
+      const cardinals = [
+        { text: 'N 000°', x: 0, z: -TABLE_RADIUS_UNITS * 1.12, color: '#00ff88' },
+        { text: 'E 090°', x: TABLE_RADIUS_UNITS * 1.12, z: 0, color: '#00e5ff' },
+        { text: 'S 180°', x: 0, z: TABLE_RADIUS_UNITS * 1.12, color: '#00e5ff' },
+        { text: 'W 270°', x: -TABLE_RADIUS_UNITS * 1.12, z: 0, color: '#00e5ff' },
+      ];
+      for (const c of cardinals) {
+        const sprite = makeTextSprite(c.text, c.color, 34);
+        sprite.position.set(c.x, 0.02, c.z);
+        sprite.scale.set(0.18, 0.06, 1);
+        tableGroup.add(sprite);
+      }
+    }
+
+    // --- Build 3D Topographic Terrain Mesh ---
+    let terrainMesh = null;
+    function buildTerrainMesh() {
+      const segs = 120;
+      const size = TABLE_RADIUS_UNITS * 2.0;
+      const geo = new THREE.PlaneGeometry(size, size, segs, segs);
+      geo.rotateX(-Math.PI / 2);
+
+      const pos = geo.attributes.position;
+      const colors = new Float32Array(pos.count * 3);
+
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const z = pos.getZ(i);
+        const eastM = x / M_TO_TABLE;
+        const northM = -z / M_TO_TABLE;
+        const reliefM = sampleTerrainReliefM(eastM, northM);
+        const y = reliefM * M_TO_TABLE * ALT_EXAGGERATION;
+        pos.setY(i, y);
+
+        // Hypsometric + contour line coloring
+        const normH = Math.min(Math.max(reliefM / 220.0, 0.0), 1.0);
+        const contourMod = Math.abs((reliefM % 25.0) - 12.5) < 1.1 ? 0.28 : 0.0;
+        const r = 0.04 + normH * 0.14 + contourMod * 0.2;
+        const g = 0.16 + normH * 0.38 + contourMod * 0.65;
+        const b = 0.26 + normH * 0.48 + contourMod * 0.85;
+        colors[i * 3] = r;
+        colors[i * 3 + 1] = g;
+        colors[i * 3 + 2] = b;
+      }
+
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geo.computeVertexNormals();
+
+      const mat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.72,
+        metalness: 0.18,
+        transparent: true,
+        opacity: 0.92,
+      });
+      terrainMesh = new THREE.Mesh(geo, mat);
+      tableGroup.add(terrainMesh);
+
+      // Subtle wireframe overlay for holographic sand table look
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x00e5ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.07,
+      });
+      const wireMesh = new THREE.Mesh(geo, wireMat);
+      wireMesh.position.y = 0.001;
+      tableGroup.add(wireMesh);
+    }
+
+    function makeTextSprite(label, colorHex = '#00e5ff', fontPx = 28) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgba(4, 12, 22, 0.78)';
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 3;
+      ctx.roundRect(8, 18, 496, 92, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = `bold ${fontPx}px "SF Mono", Menlo, monospace`;
+      ctx.fillStyle = colorHex;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 256, 64);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+      return new THREE.Sprite(mat);
+    }
+
+    buildTableFrame();
+    buildTerrainMesh();
+
+    // --- Dynamic CoT Entity Visuals ---
+    const entityNodes = new Map();
+    let latestEntities = [];
+    let selectedUid = 'UAV-FALCON-01';
+    let showFovCones = true;
+    let showTrails = true;
+    let viewMode = 'table'; // 'table' | 'chase'
+    let dropMode = null; // null | 'friendly' | 'hostile'
+
+    function affiliationColor(aff) {
+      if (aff === 'friendly') return 0x00e5ff;
+      if (aff === 'hostile') return 0xff3355;
+      if (aff === 'neutral') return 0x00ff88;
+      return 0xffbb00;
+    }
+
+    function affiliationCss(aff) {
+      if (aff === 'friendly') return '#00e5ff';
+      if (aff === 'hostile') return '#ff3355';
+      if (aff === 'neutral') return '#00ff88';
+      return '#ffbb00';
+    }
+
+    function createOrUpdateEntityNode(ent) {
+      let node = entityNodes.get(ent.uid);
+      const color = affiliationColor(ent.affiliation);
+      const cssColor = affiliationCss(ent.affiliation);
+
+      if (!node) {
+        const root = new THREE.Group();
+        tableGroup.add(root);
+
+        // 3D Icon Mesh (Delta Wing for Air, Octahedron for Ground)
+        let iconGeo;
+        if (ent.dimension === 'air') {
+          iconGeo = new THREE.ConeGeometry(0.016, 0.042, 4);
+          iconGeo.rotateX(Math.PI / 2);
+        } else {
+          iconGeo = new THREE.OctahedronGeometry(0.015, 0);
+        }
+        const iconMat = new THREE.MeshBasicMaterial({ color });
+        const iconMesh = new THREE.Mesh(iconGeo, iconMat);
+        iconMesh.userData.uid = ent.uid;
+        root.add(iconMesh);
+
+        // Selection Halo Ring
+        const haloGeo = new THREE.RingGeometry(0.022, 0.028, 24);
+        haloGeo.rotateX(-Math.PI / 2);
+        const haloMat = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.0,
+        });
+        const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+        root.add(haloMesh);
+
+        // Altitude Drop-Stem to Terrain Surface
+        const stemGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, -0.1, 0),
+        ]);
+        const stemMat = new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.45,
+        });
+        const stemLine = new THREE.Line(stemGeo, stemMat);
+        tableGroup.add(stemLine);
+
+        // Billboard Callsign Sprite
+        const labelSprite = makeTextSprite(ent.callsign, cssColor, 26);
+        labelSprite.scale.set(0.17, 0.042, 1);
+        labelSprite.position.set(0, 0.036, 0);
+        root.add(labelSprite);
+
+        // Trajectory Trail Line
+        const trailGeo = new THREE.BufferGeometry();
+        const trailMat = new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.55,
+        });
+        const trailLine = new THREE.Line(trailGeo, trailMat);
+        tableGroup.add(trailLine);
+
+        // Optional Gimbal Sensor FOV Cone Group
+        const fovGroup = new THREE.Group();
+        tableGroup.add(fovGroup);
+
+        node = {
+          root,
+          iconMesh,
+          haloMat,
+          stemLine,
+          trailLine,
+          trailPoints: [],
+          fovGroup,
+        };
+        entityNodes.set(ent.uid, node);
+      }
+
+      // Position in table coordinates
+      const pos = enuToTableVec3(ent.east_m, ent.up_m, ent.north_m);
+      const groundReliefM = sampleTerrainReliefM(ent.east_m, ent.north_m);
+      const groundPos = enuToTableVec3(ent.east_m, groundReliefM, ent.north_m);
+
+      node.root.position.copy(pos);
+
+      // Rotate heading
+      const headingRad = THREE.MathUtils.degToRad(ent.course_deg);
+      node.iconMesh.rotation.y = -headingRad;
+
+      // Selection highlight
+      node.haloMat.opacity = ent.uid === selectedUid ? 0.95 : 0.0;
+
+      // Update vertical drop-stem from unit down to terrain
+      const stemPts = [pos, groundPos];
+      node.stemLine.geometry.setFromPoints(stemPts);
+
+      // Update breadcrumb trail
+      if (
+        node.trailPoints.length === 0 ||
+        node.trailPoints[node.trailPoints.length - 1].distanceTo(pos) > 0.008
+      ) {
+        node.trailPoints.push(pos.clone());
+        if (node.trailPoints.length > 90) node.trailPoints.shift();
+        node.trailLine.geometry.setFromPoints(node.trailPoints);
+      }
+      node.trailLine.visible = showTrails;
+
+      // Update 3D Gimbal Sensor FOV Cone
+      while (node.fovGroup.children.length > 0) {
+        const child = node.fovGroup.children.pop();
+        if (child.geometry) child.geometry.dispose();
+      }
+      if (ent.sensor && showFovCones) {
+        const s = ent.sensor;
+        const coneLen = s.range_m * M_TO_TABLE;
+        const coneRadius = Math.tan(THREE.MathUtils.degToRad(s.hfov_deg * 0.5)) * coneLen;
+        const coneGeo = new THREE.ConeGeometry(coneRadius, coneLen, 4, 1, true);
+        // Orient cone tip at origin (0,0,0) pointing along +Z
+        coneGeo.translate(0, -coneLen / 2, 0);
+        coneGeo.rotateX(Math.PI / 2);
+
+        const coneMat = new THREE.MeshBasicMaterial({
+          color: 0x00ffaa,
+          transparent: true,
+          opacity: 0.13,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const coneMesh = new THREE.Mesh(coneGeo, coneMat);
+
+        const edgeGeo = new THREE.EdgesGeometry(coneGeo);
+        const edgeMat = new THREE.LineBasicMaterial({
+          color: 0x00ffaa,
+          transparent: true,
+          opacity: 0.48,
+        });
+        coneMesh.add(new THREE.LineSegments(edgeGeo, edgeMat));
+
+        node.fovGroup.position.copy(pos);
+        const azRad = THREE.MathUtils.degToRad(s.azimuth_deg);
+        const elRad = THREE.MathUtils.degToRad(s.elevation_deg);
+        node.fovGroup.rotation.set(elRad, Math.PI - azRad, 0, 'YXZ');
+        node.fovGroup.add(coneMesh);
+      }
+    }
+
+    // --- UI Roster & Telemetry Update ---
+    const unitListEl = document.getElementById('unit-list');
+    function updateHudAndRoster(snap) {
+      latestEntities = snap.entities;
+      document.getElementById('track-count').textContent = `${snap.entities.length} UNITS`;
+
+      unitListEl.innerHTML = '';
+      for (const ent of snap.entities) {
+        createOrUpdateEntityNode(ent);
+
+        const item = document.createElement('div');
+        item.className = `unit-item ${ent.affiliation} ${ent.uid === selectedUid ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="unit-row-top">
+            <span>${ent.callsign}</span>
+            <span>${Math.round(ent.hae_m)}m MSL</span>
+          </div>
+          <div class="unit-row-sub">
+            <span>${ent.cot_type}</span>
+            <span>${ent.speed_mps.toFixed(1)} m/s · ${Math.round(ent.course_deg)}°</span>
+          </div>
+        `;
+        item.onclick = () => {
+          selectedUid = ent.uid;
+        };
+        unitListEl.appendChild(item);
+      }
+
+      const sel = snap.entities.find(e => e.uid === selectedUid) || snap.entities[0];
+      if (sel) {
+        selectedUid = sel.uid;
+        const affEl = document.getElementById('sel-affiliation');
+        affEl.textContent = sel.affiliation.toUpperCase();
+        affEl.style.color = affiliationCss(sel.affiliation);
+        document.getElementById('sel-callsign').textContent = sel.callsign;
+        document.getElementById('sel-uid').textContent = sel.uid;
+        document.getElementById('sel-type').textContent = sel.cot_type;
+        document.getElementById('sel-lla').textContent =
+          `${sel.lat.toFixed(5)}N, ${sel.lon.toFixed(5)}E (${Math.round(sel.hae_m)}m)`;
+        document.getElementById('sel-enu').textContent =
+          `E: ${Math.round(sel.east_m)}m | N: ${Math.round(sel.north_m)}m | U: +${Math.round(sel.up_m)}m`;
+        document.getElementById('sel-kin').textContent =
+          `SPD ${sel.speed_mps.toFixed(1)} m/s | CRS ${Math.round(sel.course_deg)}°`;
+        document.getElementById('sel-remarks').textContent = sel.remarks || '—';
+
+        if (sel.sensor) {
+          document.getElementById('pip-source').textContent = `SRC: ${sel.callsign}`;
+          document.getElementById('gimbal-fov-label').textContent = `FOV ${sel.sensor.hfov_deg.toFixed(0)}°`;
+          document.getElementById('pip-azel').textContent =
+            `AZ: ${Math.round(sel.sensor.azimuth_deg).toString().padStart(3, '0')}° EL: ${Math.round(sel.sensor.elevation_deg)}°`;
+        }
+      }
+    }
+
+    // --- Simulated Thermal EO/IR Gimbal Canvas ---
+    const gimbalCanvas = document.getElementById('gimbal-canvas');
+    const gctx = gimbalCanvas.getContext('2d');
+    function renderGimbalPip(timeMs) {
+      const w = gimbalCanvas.width;
+      const h = gimbalCanvas.height;
+      gctx.fillStyle = '#050d14';
+      gctx.fillRect(0, 0, w, h);
+
+      // Synthetic FLIR scanlines & terrain horizon
+      gctx.strokeStyle = 'rgba(0, 255, 136, 0.14)';
+      gctx.lineWidth = 1;
+      for (let y = 0; y < h; y += 16) {
+        const wave = Math.sin(y * 0.05 + timeMs * 0.002) * 8;
+        gctx.beginPath();
+        gctx.moveTo(0, y + wave);
+        gctx.lineTo(w, y - wave);
+        gctx.stroke();
+      }
+
+      // Render thermal blobs for hostile/ground units relative to gimbal center
+      const tx = w * 0.5 + Math.sin(timeMs * 0.0017) * 28;
+      const ty = h * 0.52 + Math.cos(timeMs * 0.0013) * 16;
+
+      const grad = gctx.createRadialGradient(tx, ty, 2, tx, ty, 18);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.4, '#00ffaa');
+      grad.addColorStop(1, 'rgba(0, 255, 170, 0)');
+      gctx.fillStyle = grad;
+      gctx.beginPath();
+      gctx.arc(tx, ty, 18, 0, Math.PI * 2);
+      gctx.fill();
+
+      // Gimbal Auto-Tracker Bounding Box
+      gctx.strokeStyle = '#ff3355';
+      gctx.lineWidth = 1.5;
+      gctx.strokeRect(tx - 14, ty - 14, 28, 28);
+
+      // Crosshair Reticle
+      gctx.strokeStyle = '#00e5ff';
+      gctx.lineWidth = 1;
+      const cx = w / 2, cy = h / 2;
+      gctx.beginPath();
+      gctx.moveTo(cx - 28, cy); gctx.lineTo(cx - 8, cy);
+      gctx.moveTo(cx + 8, cy);  gctx.lineTo(cx + 28, cy);
+      gctx.moveTo(cx, cy - 28); gctx.lineTo(cx, cy - 8);
+      gctx.moveTo(cx, cy + 8);  gctx.lineTo(cx, cy + 28);
+      gctx.stroke();
+    }
+
+    // --- Raycasting: Click Unit or Click Terrain to Spawn CoT Marker ---
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    window.addEventListener('pointerdown', async (ev) => {
+      if (ev.target !== renderer.domElement) return;
+      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      // If in Drop CoT Mode, intersect terrain
+      if (dropMode && terrainMesh) {
+        const hits = raycaster.intersectObject(terrainMesh, false);
+        if (hits.length > 0) {
+          const pt = hits[0].point;
+          const eastM = pt.x / M_TO_TABLE;
+          const northM = -pt.z / M_TO_TABLE;
+          const isHostile = dropMode === 'hostile';
+          const payload = {
+            callsign: isHostile ? 'TGT-XR-HOSTILE' : 'PIN-XR-ALPHA',
+            cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
+            east_m: eastM,
+            north_m: northM,
+            alt_offset_m: 0.0,
+            remarks: `Pinned via XR Sand Table at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
+          };
+          await fetch('/api/spawn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          dropMode = null;
+          document.getElementById('btn-drop-friendly').classList.remove('active');
+          document.getElementById('btn-drop-hostile').classList.remove('active');
+          return;
+        }
+      }
+
+      // Check unit icon clicks
+      const meshes = [];
+      for (const n of entityNodes.values()) meshes.push(n.iconMesh);
+      const unitHits = raycaster.intersectObjects(meshes, false);
+      if (unitHits.length > 0 && unitHits[0].object.userData.uid) {
+        selectedUid = unitHits[0].object.userData.uid;
+      }
+    });
+
+    // --- UI Controls Wiring ---
+    document.getElementById('btn-view-table').onclick = () => {
+      viewMode = 'table';
+      document.getElementById('btn-view-table').classList.add('active');
+      document.getElementById('btn-view-chase').classList.remove('active');
+      document.getElementById('hud-mode-label').textContent = 'MODE: HOLOGRAPHIC SAND TABLE';
+      camera.position.set(0.0, 0.92, 1.25);
+      controls.target.set(0, 0.08, 0);
+    };
+
+    document.getElementById('btn-view-chase').onclick = () => {
+      viewMode = 'chase';
+      document.getElementById('btn-view-chase').classList.add('active');
+      document.getElementById('btn-view-table').classList.remove('active');
+      document.getElementById('hud-mode-label').textContent = 'MODE: UAV TACTICAL CHASE CAM';
+    };
+
+    document.getElementById('btn-toggle-fov').onclick = (e) => {
+      showFovCones = !showFovCones;
+      e.target.textContent = `FOV Cones: ${showFovCones ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showFovCones);
+    };
+
+    document.getElementById('btn-toggle-trails').onclick = (e) => {
+      showTrails = !showTrails;
+      e.target.textContent = `Trails: ${showTrails ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showTrails);
+    };
+
+    document.getElementById('btn-drop-friendly').onclick = (e) => {
+      dropMode = dropMode === 'friendly' ? null : 'friendly';
+      e.target.classList.toggle('active', dropMode === 'friendly');
+      document.getElementById('btn-drop-hostile').classList.remove('active');
+    };
+
+    document.getElementById('btn-drop-hostile').onclick = (e) => {
+      dropMode = dropMode === 'hostile' ? null : 'hostile';
+      e.target.classList.toggle('active', dropMode === 'hostile');
+      document.getElementById('btn-drop-friendly').classList.remove('active');
+    };
+
+    // Quest 3 WebXR Mixed Reality / VR Session Launcher
+    document.getElementById('btn-enter-xr').onclick = async () => {
+      if (!navigator.xr) {
+        alert('WebXR is not active in this desktop browser. Open this URL inside Meta Quest 3 Browser (or install the Immersive Web Emulator Chrome extension) to enter Mixed Reality Passthrough!');
+        return;
+      }
+      try {
+        const isArSupported = await navigator.xr.isSessionSupported('immersive-ar');
+        const mode = isArSupported ? 'immersive-ar' : 'immersive-vr';
+        const session = await navigator.xr.requestSession(mode, {
+          optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+        });
+        renderer.xr.setSession(session);
+        // Position the sand table at desk height (0.78m above floor, 0.9m in front of user)
+        tableGroup.position.set(0, 0.78, -0.9);
+      } catch (err) {
+        alert('Could not start XR session: ' + err.message);
+      }
+    };
+
+    // --- Connect to Rust 20Hz SSE Telemetry Stream ---
+    function connectTelemetryStream() {
+      const es = new EventSource('/api/stream');
+      es.onmessage = (ev) => {
+        try {
+          const snap = JSON.parse(ev.data);
+          updateHudAndRoster(snap);
+        } catch (err) {
+          console.error('Telemetry parse error:', err);
+        }
+      };
+      es.onerror = () => {
+        document.getElementById('hud-status').textContent = 'RECONNECTING TO RUST CoT GATEWAY...';
+      };
+    }
+    connectTelemetryStream();
+
+    // --- Main Render Loop ---
+    const dirVec = new THREE.Vector3();
+    renderer.setAnimationLoop((timeMs) => {
+      if (viewMode === 'chase') {
+        const selNode = entityNodes.get(selectedUid);
+        if (selNode) {
+          const targetPos = selNode.root.position;
+          camera.position.lerp(
+            new THREE.Vector3(targetPos.x - 0.18, targetPos.y + 0.14, targetPos.z + 0.24),
+            0.05
+          );
+          controls.target.lerp(targetPos, 0.1);
+        }
+      }
+
+      controls.update();
+
+      // Update top compass heading from camera look direction
+      camera.getWorldDirection(dirVec);
+      const headingDeg = (Math.round(THREE.MathUtils.radToDeg(Math.atan2(dirVec.x, -dirVec.z))) + 360) % 360;
+      document.getElementById('hud-heading').textContent =
+        `HDG ${headingDeg.toString().padStart(3, '0')}°`;
+
+      renderGimbalPip(timeMs);
+      renderer.render(scene, camera);
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
