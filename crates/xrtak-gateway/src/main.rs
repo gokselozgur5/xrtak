@@ -5,7 +5,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
-use xrtak_core::{GeoOrigin, TacticalEntity, TacticalWorld};
+use xrtak_core::{compute_viewshed, GeoOrigin, TacticalEntity, TacticalWorld};
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
 
@@ -24,6 +24,22 @@ struct SpawnRequest {
     north_m: f64,
     alt_offset_m: Option<f64>,
     remarks: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SpiSlewRequest {
+    sensor_uid: Option<String>,
+    east_m: Option<f64>,
+    north_m: Option<f64>,
+    clear: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ViewshedRequest {
+    east_m: f64,
+    north_m: f64,
+    height_offset_m: Option<f64>,
+    radius_m: Option<f64>,
 }
 
 fn now_unix_ms() -> u64 {
@@ -94,10 +110,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    // 3. HTTP + SSE + CoT Injection Server on :8090
+    // 3. HTTP + SSE + CoT/SPI/Viewshed Server on :8090
     let listener = TcpListener::bind(http_addr).await?;
     println!("==============================================================");
-    println!("  XR-TAK Stage 1 — Rust CoT Core + WebXR 3D Tactical Table");
+    println!("  XR-TAK — Rust CoT Core + WebXR 3D Tactical Table");
     println!("  WebXR / Browser UI : http://localhost:8090");
     println!("  Raw CoT UDP Input  : udp://0.0.0.0:4242");
     println!("==============================================================");
@@ -204,6 +220,68 @@ async fn handle_http_connection(
         return Ok(());
     }
 
+    if method == "POST" && path == "/api/spi" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(spi_req) = serde_json::from_str::<SpiSlewRequest>(body) {
+            let sensor_uid = spi_req
+                .sensor_uid
+                .unwrap_or_else(|| "UAV-FALCON-01".to_string());
+            if spi_req.clear.unwrap_or(false) {
+                {
+                    let mut guard = world.lock().unwrap();
+                    guard.clear_spi_lock(&sensor_uid);
+                }
+                let json = serde_json::json!({ "status": "cleared", "sensor_uid": sensor_uid }).to_string();
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    json.len()
+                );
+                stream.write_all(header.as_bytes()).await?;
+                stream.write_all(json.as_bytes()).await?;
+                return Ok(());
+            }
+
+            let east_m = spi_req.east_m.unwrap_or(0.0);
+            let north_m = spi_req.north_m.unwrap_or(0.0);
+            let res = {
+                let mut guard = world.lock().unwrap();
+                guard.slew_sensor_to_spi(&sensor_uid, east_m, north_m, now_unix_ms())
+            };
+            if let Ok(entity) = res {
+                let json = serde_json::to_string(&entity)?;
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    json.len()
+                );
+                stream.write_all(header.as_bytes()).await?;
+                stream.write_all(json.as_bytes()).await?;
+                return Ok(());
+            }
+        }
+    }
+
+    if method == "POST" && path == "/api/viewshed" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(vs_req) = serde_json::from_str::<ViewshedRequest>(body) {
+            let vs = compute_viewshed(
+                vs_req.east_m,
+                vs_req.north_m,
+                vs_req.height_offset_m.unwrap_or(18.0),
+                vs_req.radius_m.unwrap_or(680.0),
+                72,
+                28,
+            );
+            let json = serde_json::to_string(&vs)?;
+            let header = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                json.len()
+            );
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(json.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
     if method == "POST" && path == "/api/spawn" {
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
@@ -212,7 +290,11 @@ async fn handle_http_connection(
                 let ground_h = xrtak_core::sample_terrain_relief_m(spawn.east_m, spawn.north_m);
                 let up_m = ground_h + spawn.alt_offset_m.unwrap_or(0.0);
                 let (lat, lon, hae) = guard.origin.enu_to_lla(spawn.east_m, up_m, spawn.north_m);
-                let uid = format!("XR-{}-{}", spawn.callsign.replace(' ', "-"), now_unix_ms() % 10000);
+                let uid = format!(
+                    "XR-{}-{}",
+                    spawn.callsign.replace(' ', "-"),
+                    now_unix_ms() % 10000
+                );
                 let remarks = spawn
                     .remarks
                     .unwrap_or_else(|| "Dropped from XR Tactical Sand Table".to_string());
@@ -236,7 +318,8 @@ async fn handle_http_connection(
         }
     }
 
-    let not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found";
+    let not_found =
+        "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found";
     stream.write_all(not_found.as_bytes()).await?;
     Ok(())
 }

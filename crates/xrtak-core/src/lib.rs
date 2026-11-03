@@ -44,6 +44,8 @@ pub struct TacticalEntity {
     pub speed_mps: f64,
     pub remarks: String,
     pub sensor: Option<SensorCone>,
+    /// Parent entity UID when this entity is a linked SPI (`b-m-p-s-p-i` with `<link relation="p-p"/>`)
+    pub parent_uid: Option<String>,
     /// Local ENU coordinates relative to sand table center (meters)
     pub east_m: f64,
     pub up_m: f64,
@@ -52,17 +54,34 @@ pub struct TacticalEntity {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ViewshedSample {
+    pub east_m: f64,
+    pub up_m: f64,
+    pub north_m: f64,
+    pub visible: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ViewshedResult {
+    pub observer_east_m: f64,
+    pub observer_up_m: f64,
+    pub observer_north_m: f64,
+    pub radius_m: f64,
+    pub visible_ratio: f64,
+    pub samples: Vec<ViewshedSample>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct GeoOrigin {
     pub lat: f64,
     pub lon: f64,
     pub alt_m: f64,
-    /// Radius of the tactical area in meters (e.g., 2000m = 4km x 4km box)
+    /// Radius of the tactical area in meters (e.g., 1500m = 3km x 3km box)
     pub extent_m: f64,
 }
 
 impl Default for GeoOrigin {
     fn default() -> Self {
-        // Default tactical training sector (mountain/valley terrain around 39.92N, 32.85E)
         Self {
             lat: 39.9200,
             lon: 32.8500,
@@ -99,8 +118,6 @@ impl GeoOrigin {
 }
 
 /// Deterministic procedural topographic height function (shared logic with frontend).
-/// Input: `east_m`, `north_m` in [-extent_m, +extent_m].
-/// Output: terrain elevation above `origin.alt_m` in meters.
 pub fn sample_terrain_relief_m(east_m: f64, north_m: f64) -> f64 {
     let nx = east_m * 0.0018;
     let nz = north_m * 0.0018;
@@ -108,14 +125,77 @@ pub fn sample_terrain_relief_m(east_m: f64, north_m: f64) -> f64 {
     let ridge1 = ((nx * 1.3 + nz * 0.8).sin() * (nx * 0.7 - nz * 1.1).cos()) * 115.0;
     let ridge2 = ((nx * 2.7 - nz * 2.1).sin() * 0.5 + (nz * 3.1).cos() * 0.5) * 42.0;
     let detail = (nx * 5.5 + nz * 4.8).sin() * 12.0;
-    // Valley channel running SW to NE
     let valley_dist = ((nx - nz * 0.6).abs()).min(1.5);
     let valley_factor = 0.35 + 0.65 * (valley_dist / 1.5);
 
     (ridge1 + ridge2 + detail + 95.0) * valley_factor
 }
 
+/// Compute 3D Line-of-Sight (Viewshed) point cloud matching VR-TAK `AGame_Actor_Viewshed`.
+/// Casts radial elevation rays across the terrain and marks each sample visible or occluded.
+pub fn compute_viewshed(
+    observer_east_m: f64,
+    observer_north_m: f64,
+    observer_height_offset_m: f64,
+    radius_m: f64,
+    num_azimuth_beams: usize,
+    points_per_beam: usize,
+) -> ViewshedResult {
+    let base_ground_m = sample_terrain_relief_m(observer_east_m, observer_north_m);
+    let observer_up_m = base_ground_m + observer_height_offset_m.max(2.0);
+
+    let mut samples = Vec::with_capacity(num_azimuth_beams * points_per_beam);
+    let mut visible_count = 0usize;
+
+    for b in 0..num_azimuth_beams {
+        let az_rad = (b as f64 / num_azimuth_beams as f64) * std::f64::consts::TAU;
+        let dir_e = az_rad.sin();
+        let dir_n = az_rad.cos();
+
+        // Track maximum elevation angle (slope) encountered along this ray so far
+        let mut max_slope = f64::NEG_INFINITY;
+
+        for s in 1..=points_per_beam {
+            let dist = (s as f64 / points_per_beam as f64) * radius_m;
+            let sample_e = observer_east_m + dir_e * dist;
+            let sample_n = observer_north_m + dir_n * dist;
+            let terrain_up = sample_terrain_relief_m(sample_e, sample_n);
+
+            let delta_h = terrain_up - observer_up_m;
+            let slope = delta_h / dist;
+
+            let visible = slope >= max_slope - 1e-6;
+            if slope > max_slope {
+                max_slope = slope;
+            }
+            if visible {
+                visible_count += 1;
+            }
+
+            samples.push(ViewshedSample {
+                east_m: sample_e,
+                up_m: terrain_up,
+                north_m: sample_n,
+                visible,
+            });
+        }
+    }
+
+    let total = samples.len().max(1);
+    ViewshedResult {
+        observer_east_m,
+        observer_up_m,
+        observer_north_m,
+        radius_m,
+        visible_ratio: visible_count as f64 / total as f64,
+        samples,
+    }
+}
+
 pub fn classify_cot_type(cot_type: &str) -> (Affiliation, Dimension) {
+    if cot_type.starts_with("b-m-p-s-p-i") {
+        return (Affiliation::Neutral, Dimension::Ground);
+    }
     let parts: Vec<&str> = cot_type.split('-').collect();
     let affiliation = match parts.get(1).copied() {
         Some("f") | Some("a") => Affiliation::Friendly,
@@ -130,6 +210,23 @@ pub fn classify_cot_type(cot_type: &str) -> (Affiliation, Dimension) {
         _ => Dimension::Unknown,
     };
     (affiliation, dimension)
+}
+
+/// Build a VR-TAK / ATAK compliant `b-m-p-s-p-i` (Sensor Point of Interest) CoT XML packet.
+/// Matches `AGame_Point_SPI::UpdateCOT()` from `TAK-Product-Center/VR`.
+pub fn build_spi_cot_xml(
+    parent_uid: &str,
+    parent_callsign: &str,
+    parent_type: &str,
+    lat: f64,
+    lon: f64,
+    hae_m: f64,
+) -> String {
+    let spi_uid = format!("{parent_uid}.SPI1");
+    let spi_callsign = format!("{parent_callsign}.SPI1");
+    format!(
+        r#"<event version="2.0" uid="{spi_uid}" type="b-m-p-s-p-i" how="h-e"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="5.0" le="5.0"/><detail><contact callsign="{spi_callsign}"/><link uid="{parent_uid}" relation="p-p" type="{parent_type}"/><remarks>SPI Gimbal Lock Target</remarks></detail></event>"#
+    )
 }
 
 /// Parse a standard Cursor-on-Target (CoT) XML string into a `TacticalEntity`.
@@ -147,6 +244,7 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
     let mut speed_mps = 0.0;
     let mut remarks = String::new();
     let mut sensor: Option<SensorCone> = None;
+    let mut parent_uid: Option<String> = None;
     let mut in_remarks = false;
 
     loop {
@@ -187,6 +285,24 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
                             if attr.key.as_ref() == b"callsign" {
                                 callsign = String::from_utf8_lossy(&attr.value).into_owned();
                             }
+                        }
+                    }
+                    b"link" => {
+                        let mut link_uid = String::new();
+                        let mut relation = String::new();
+                        for attr in e.attributes().flatten() {
+                            match attr.key.as_ref() {
+                                b"uid" => {
+                                    link_uid = String::from_utf8_lossy(&attr.value).into_owned()
+                                }
+                                b"relation" => {
+                                    relation = String::from_utf8_lossy(&attr.value).into_owned()
+                                }
+                                _ => {}
+                            }
+                        }
+                        if relation == "p-p" && !link_uid.is_empty() && link_uid != uid {
+                            parent_uid = Some(link_uid);
                         }
                     }
                     b"track" => {
@@ -259,7 +375,6 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
     let (affiliation, dimension) = classify_cot_type(&cot_type);
     let (east_m, mut up_m, north_m) = origin.lla_to_enu(lat, lon, hae_m);
 
-    // If incoming CoT had hae=0, clamp ground units to terrain surface + 2m
     if (hae_m - 0.0).abs() < 1.0 || (hae_m - origin.alt_m).abs() < 1.0 {
         let ground_relief = sample_terrain_relief_m(east_m, north_m);
         up_m = match dimension {
@@ -283,6 +398,7 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
         speed_mps,
         remarks,
         sensor,
+        parent_uid,
         east_m,
         up_m,
         north_m,
@@ -290,10 +406,12 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
     })
 }
 
-/// State manager holding both simulated tactical units and live external CoT tracks.
+/// State manager holding simulated tactical units, SPI gimbal locks, and live external CoT tracks.
 pub struct TacticalWorld {
     pub origin: GeoOrigin,
     pub entities: HashMap<String, TacticalEntity>,
+    /// Map from UAV UID (e.g. `UAV-FALCON-01`) to locked SPI ENU target `(east_m, up_m, north_m)`
+    pub spi_locks: HashMap<String, (f64, f64, f64)>,
     pub sim_time_sec: f64,
 }
 
@@ -302,14 +420,59 @@ impl TacticalWorld {
         Self {
             origin,
             entities: HashMap::new(),
+            spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
         }
     }
 
     pub fn ingest_cot_xml(&mut self, xml: &str, now_ms: u64) -> Result<TacticalEntity, String> {
         let entity = parse_cot_xml(xml, &self.origin, now_ms)?;
+        // If this incoming CoT is an SPI (`b-m-p-s-p-i`) with a parent UAV link, lock that UAV's gimbal!
+        if entity.cot_type.starts_with("b-m-p-s-p-i") {
+            if let Some(ref parent) = entity.parent_uid {
+                self.spi_locks.insert(
+                    parent.clone(),
+                    (entity.east_m, entity.up_m, entity.north_m),
+                );
+            }
+        }
         self.entities.insert(entity.uid.clone(), entity.clone());
         Ok(entity)
+    }
+
+    /// Lock a UAV's gimbal sensor onto a 3D terrain coordinate and emit a `b-m-p-s-p-i` SPI CoT entity.
+    pub fn slew_sensor_to_spi(
+        &mut self,
+        sensor_uid: &str,
+        east_m: f64,
+        north_m: f64,
+        now_ms: u64,
+    ) -> Result<TacticalEntity, String> {
+        let ground_up_m = sample_terrain_relief_m(east_m, north_m);
+        let (lat, lon, hae_m) = self.origin.enu_to_lla(east_m, ground_up_m, north_m);
+
+        let (parent_callsign, parent_type) = self
+            .entities
+            .get(sensor_uid)
+            .map(|e| (e.callsign.clone(), e.cot_type.clone()))
+            .unwrap_or_else(|| ("FALCON-1".to_string(), "a-f-A-M-F-Q".to_string()));
+
+        let xml = build_spi_cot_xml(
+            sensor_uid,
+            &parent_callsign,
+            &parent_type,
+            lat,
+            lon,
+            hae_m,
+        );
+        self.ingest_cot_xml(&xml, now_ms)
+    }
+
+    /// Clear SPI gimbal lock for a UAV and remove its `.SPI1` marker.
+    pub fn clear_spi_lock(&mut self, sensor_uid: &str) {
+        self.spi_locks.remove(sensor_uid);
+        let spi_uid = format!("{sensor_uid}.SPI1");
+        self.entities.remove(&spi_uid);
     }
 
     /// Advance built-in tactical rehearsal scenario by `dt_sec`.
@@ -317,7 +480,7 @@ impl TacticalWorld {
         self.sim_time_sec += dt_sec;
         let t = self.sim_time_sec;
 
-        // 1. Friendly ISR UAV #1 ("FALCON-1") orbiting North-East sector with sweeping gimbal FOV
+        // 1. Friendly ISR UAV #1 ("FALCON-1") orbiting North-East sector with sweeping or SPI-locked gimbal FOV
         {
             let orbit_r = 520.0;
             let omega = 0.14;
@@ -327,10 +490,31 @@ impl TacticalWorld {
             let ground_h = sample_terrain_relief_m(east_m, north_m);
             let up_m = ground_h + 290.0;
             let course_deg = (90.0 - angle.to_degrees() - 90.0).rem_euclid(360.0);
-            // Gimbal tracks toward the hostile convoy in the valley
-            let target_e = -180.0 + (t * 0.08).sin() * 260.0;
-            let target_n = -120.0 + (t * 0.08).cos() * 190.0;
-            let gimbal_az = (target_e - east_m).atan2(target_n - north_m).to_degrees().rem_euclid(360.0);
+
+            // Check if operator locked FALCON-1's gimbal onto an SPI point (`b-m-p-s-p-i`);
+            // otherwise track the hostile armor in the valley.
+            let (target_e, target_up, target_n, lock_label) =
+                if let Some(&(se, sup, sn)) = self.spi_locks.get("UAV-FALCON-01") {
+                    (
+                        se,
+                        sup,
+                        sn,
+                        format!("SPI LOCK [E:{:.0}m N:{:.0}m]", se, sn),
+                    )
+                } else {
+                    let te = -180.0 + (t * 0.08).sin() * 260.0;
+                    let tn = -120.0 + (t * 0.08).cos() * 190.0;
+                    let tup = sample_terrain_relief_m(te, tn);
+                    (te, tup, tn, "Auto-Track: Valley Sector".to_string())
+                };
+
+            let de = target_e - east_m;
+            let dn = target_n - north_m;
+            let dup = target_up - up_m;
+            let horiz_dist = (de * de + dn * dn).sqrt().max(1.0);
+            let slant_range = (horiz_dist * horiz_dist + dup * dup).sqrt().clamp(150.0, 1400.0);
+            let gimbal_az = de.atan2(dn).to_degrees().rem_euclid(360.0);
+            let gimbal_el = dup.atan2(horiz_dist).to_degrees();
 
             self.upsert_sim_entity(
                 "UAV-FALCON-01",
@@ -341,19 +525,20 @@ impl TacticalWorld {
                 north_m,
                 course_deg,
                 28.5,
-                "Dual EO/IR Gimbal Payload | Lock: Valley Sector",
+                &format!("Dual EO/IR Gimbal Payload | {lock_label}"),
                 Some(SensorCone {
                     azimuth_deg: gimbal_az,
-                    elevation_deg: -38.0,
-                    hfov_deg: 34.0,
+                    elevation_deg: gimbal_el,
+                    hfov_deg: 32.0,
                     vfov_deg: 20.0,
-                    range_m: 680.0,
+                    range_m: slant_range,
                 }),
+                None,
                 now_ms,
             );
         }
 
-        // 2. Friendly Relay / Recon UAV #2 ("VALKIRYE-2") figure-8 patrol over Western ridge
+        // 2. Friendly Relay / Recon UAV #2 ("VALKYRIE-2") figure-8 patrol over Western ridge
         {
             let omega = 0.11;
             let a = t * omega;
@@ -381,6 +566,7 @@ impl TacticalWorld {
                     vfov_deg: 26.0,
                     range_m: 560.0,
                 }),
+                None,
                 now_ms,
             );
         }
@@ -400,6 +586,7 @@ impl TacticalWorld {
                 42.0,
                 2.4,
                 "Recon Squad | Visual on ridge",
+                None,
                 None,
                 now_ms,
             );
@@ -421,6 +608,7 @@ impl TacticalWorld {
                 0.0,
                 "Forward Observation Post & TAK Gateway",
                 None,
+                None,
                 now_ms,
             );
         }
@@ -440,6 +628,7 @@ impl TacticalWorld {
                 125.0,
                 8.2,
                 "Tracked thermal signature confirmed by FALCON-1",
+                None,
                 None,
                 now_ms,
             );
@@ -461,6 +650,7 @@ impl TacticalWorld {
                 0.5,
                 "RF Band-X Jammer Activity Detected",
                 None,
+                None,
                 now_ms,
             );
         }
@@ -481,6 +671,7 @@ impl TacticalWorld {
                 16.5,
                 "Unidentified low-altitude rotary/UAS track",
                 None,
+                None,
                 now_ms,
             );
         }
@@ -499,6 +690,7 @@ impl TacticalWorld {
         speed_mps: f64,
         remarks: &str,
         sensor: Option<SensorCone>,
+        parent_uid: Option<String>,
         now_ms: u64,
     ) {
         let (lat, lon, hae_m) = self.origin.enu_to_lla(east_m, up_m, north_m);
@@ -518,6 +710,7 @@ impl TacticalWorld {
                 speed_mps,
                 remarks: remarks.to_string(),
                 sensor,
+                parent_uid,
                 east_m,
                 up_m,
                 north_m,
@@ -544,5 +737,30 @@ mod tests {
         assert!(entity.north_m > 250.0 && entity.north_m < 300.0);
         assert!(entity.east_m > 300.0 && entity.east_m < 380.0);
         assert_eq!(entity.remarks, "Test unit on ridge");
+    }
+
+    #[test]
+    fn test_spi_gimbal_slew_and_link_parsing() {
+        let mut world = TacticalWorld::new(GeoOrigin::default());
+        world.step_simulation(0.1, 1000);
+
+        let spi = world
+            .slew_sensor_to_spi("UAV-FALCON-01", 320.0, -240.0, 2000)
+            .expect("SPI creation succeeds");
+        assert_eq!(spi.uid, "UAV-FALCON-01.SPI1");
+        assert_eq!(spi.cot_type, "b-m-p-s-p-i");
+        assert_eq!(spi.parent_uid.as_deref(), Some("UAV-FALCON-01"));
+
+        world.step_simulation(0.1, 2100);
+        let uav = world.entities.get("UAV-FALCON-01").expect("UAV exists");
+        assert!(uav.remarks.contains("SPI LOCK"));
+        assert!(uav.sensor.is_some());
+    }
+
+    #[test]
+    fn test_viewshed_computation() {
+        let vs = compute_viewshed(0.0, 0.0, 15.0, 600.0, 36, 15);
+        assert_eq!(vs.samples.len(), 36 * 15);
+        assert!(vs.visible_ratio > 0.05 && vs.visible_ratio <= 1.0);
     }
 }
