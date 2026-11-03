@@ -1,0 +1,548 @@
+use quick_xml::events::Event;
+use quick_xml::Reader;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Affiliation {
+    Friendly,
+    Hostile,
+    Neutral,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Dimension {
+    Air,
+    Ground,
+    Surface,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SensorCone {
+    pub azimuth_deg: f64,
+    pub elevation_deg: f64,
+    pub hfov_deg: f64,
+    pub vfov_deg: f64,
+    pub range_m: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TacticalEntity {
+    pub uid: String,
+    pub callsign: String,
+    pub cot_type: String,
+    pub affiliation: Affiliation,
+    pub dimension: Dimension,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae_m: f64,
+    pub course_deg: f64,
+    pub speed_mps: f64,
+    pub remarks: String,
+    pub sensor: Option<SensorCone>,
+    /// Local ENU coordinates relative to sand table center (meters)
+    pub east_m: f64,
+    pub up_m: f64,
+    pub north_m: f64,
+    pub updated_unix_ms: u64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct GeoOrigin {
+    pub lat: f64,
+    pub lon: f64,
+    pub alt_m: f64,
+    /// Radius of the tactical area in meters (e.g., 2000m = 4km x 4km box)
+    pub extent_m: f64,
+}
+
+impl Default for GeoOrigin {
+    fn default() -> Self {
+        // Default tactical training sector (mountain/valley terrain around 39.92N, 32.85E)
+        Self {
+            lat: 39.9200,
+            lon: 32.8500,
+            alt_m: 850.0,
+            extent_m: 1500.0,
+        }
+    }
+}
+
+impl GeoOrigin {
+    /// Convert WGS84 (lat, lon, hae) into local tangent plane (East, Up, North) in meters.
+    pub fn lla_to_enu(&self, lat: f64, lon: f64, hae_m: f64) -> (f64, f64, f64) {
+        let lat_rad = self.lat.to_radians();
+        let meters_per_deg_lat = 111_132.92 - 559.82 * (2.0 * lat_rad).cos();
+        let meters_per_deg_lon = 111_412.84 * lat_rad.cos();
+
+        let north_m = (lat - self.lat) * meters_per_deg_lat;
+        let east_m = (lon - self.lon) * meters_per_deg_lon;
+        let up_m = hae_m - self.alt_m;
+        (east_m, up_m, north_m)
+    }
+
+    /// Convert local (East, Up, North) meters back to WGS84 (lat, lon, hae).
+    pub fn enu_to_lla(&self, east_m: f64, up_m: f64, north_m: f64) -> (f64, f64, f64) {
+        let lat_rad = self.lat.to_radians();
+        let meters_per_deg_lat = 111_132.92 - 559.82 * (2.0 * lat_rad).cos();
+        let meters_per_deg_lon = 111_412.84 * lat_rad.cos();
+
+        let lat = self.lat + north_m / meters_per_deg_lat;
+        let lon = self.lon + east_m / meters_per_deg_lon;
+        let hae_m = self.alt_m + up_m;
+        (lat, lon, hae_m)
+    }
+}
+
+/// Deterministic procedural topographic height function (shared logic with frontend).
+/// Input: `east_m`, `north_m` in [-extent_m, +extent_m].
+/// Output: terrain elevation above `origin.alt_m` in meters.
+pub fn sample_terrain_relief_m(east_m: f64, north_m: f64) -> f64 {
+    let nx = east_m * 0.0018;
+    let nz = north_m * 0.0018;
+
+    let ridge1 = ((nx * 1.3 + nz * 0.8).sin() * (nx * 0.7 - nz * 1.1).cos()) * 115.0;
+    let ridge2 = ((nx * 2.7 - nz * 2.1).sin() * 0.5 + (nz * 3.1).cos() * 0.5) * 42.0;
+    let detail = (nx * 5.5 + nz * 4.8).sin() * 12.0;
+    // Valley channel running SW to NE
+    let valley_dist = ((nx - nz * 0.6).abs()).min(1.5);
+    let valley_factor = 0.35 + 0.65 * (valley_dist / 1.5);
+
+    (ridge1 + ridge2 + detail + 95.0) * valley_factor
+}
+
+pub fn classify_cot_type(cot_type: &str) -> (Affiliation, Dimension) {
+    let parts: Vec<&str> = cot_type.split('-').collect();
+    let affiliation = match parts.get(1).copied() {
+        Some("f") | Some("a") => Affiliation::Friendly,
+        Some("h") | Some("j") | Some("k") => Affiliation::Hostile,
+        Some("n") => Affiliation::Neutral,
+        _ => Affiliation::Unknown,
+    };
+    let dimension = match parts.get(2).copied() {
+        Some("A") => Dimension::Air,
+        Some("G") => Dimension::Ground,
+        Some("S") => Dimension::Surface,
+        _ => Dimension::Unknown,
+    };
+    (affiliation, dimension)
+}
+
+/// Parse a standard Cursor-on-Target (CoT) XML string into a `TacticalEntity`.
+pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<TacticalEntity, String> {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(true);
+
+    let mut uid = String::new();
+    let mut cot_type = String::from("a-u-G");
+    let mut lat: Option<f64> = None;
+    let mut lon: Option<f64> = None;
+    let mut hae_m: f64 = origin.alt_m;
+    let mut callsign = String::new();
+    let mut course_deg = 0.0;
+    let mut speed_mps = 0.0;
+    let mut remarks = String::new();
+    let mut sensor: Option<SensorCone> = None;
+    let mut in_remarks = false;
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
+                let tag_name = e.name();
+                match tag_name.as_ref() {
+                    b"event" => {
+                        for attr in e.attributes().flatten() {
+                            match attr.key.as_ref() {
+                                b"uid" => uid = String::from_utf8_lossy(&attr.value).into_owned(),
+                                b"type" => {
+                                    cot_type = String::from_utf8_lossy(&attr.value).into_owned()
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    b"point" => {
+                        for attr in e.attributes().flatten() {
+                            let val_str = String::from_utf8_lossy(&attr.value);
+                            match attr.key.as_ref() {
+                                b"lat" => lat = val_str.parse::<f64>().ok(),
+                                b"lon" => lon = val_str.parse::<f64>().ok(),
+                                b"hae" => {
+                                    if let Ok(v) = val_str.parse::<f64>() {
+                                        if v < 900_000.0 {
+                                            hae_m = v;
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    b"contact" => {
+                        for attr in e.attributes().flatten() {
+                            if attr.key.as_ref() == b"callsign" {
+                                callsign = String::from_utf8_lossy(&attr.value).into_owned();
+                            }
+                        }
+                    }
+                    b"track" => {
+                        for attr in e.attributes().flatten() {
+                            let val_str = String::from_utf8_lossy(&attr.value);
+                            match attr.key.as_ref() {
+                                b"course" => course_deg = val_str.parse::<f64>().unwrap_or(0.0),
+                                b"speed" => speed_mps = val_str.parse::<f64>().unwrap_or(0.0),
+                                _ => {}
+                            }
+                        }
+                    }
+                    b"sensor" => {
+                        let mut az = 0.0;
+                        let mut el = -35.0;
+                        let mut hfov = 36.0;
+                        let mut vfov = 22.0;
+                        let mut range = 650.0;
+                        for attr in e.attributes().flatten() {
+                            let val_str = String::from_utf8_lossy(&attr.value);
+                            match attr.key.as_ref() {
+                                b"azimuth" => az = val_str.parse::<f64>().unwrap_or(0.0),
+                                b"elevation" => el = val_str.parse::<f64>().unwrap_or(-35.0),
+                                b"fov" | b"hfov" => hfov = val_str.parse::<f64>().unwrap_or(36.0),
+                                b"vfov" => vfov = val_str.parse::<f64>().unwrap_or(22.0),
+                                b"range" => range = val_str.parse::<f64>().unwrap_or(650.0),
+                                _ => {}
+                            }
+                        }
+                        sensor = Some(SensorCone {
+                            azimuth_deg: az,
+                            elevation_deg: el,
+                            hfov_deg: hfov,
+                            vfov_deg: vfov,
+                            range_m: range,
+                        });
+                    }
+                    b"remarks" => {
+                        in_remarks = true;
+                    }
+                    _ => {}
+                }
+            }
+            Ok(Event::Text(e)) => {
+                if in_remarks {
+                    remarks = e.unescape().unwrap_or_default().into_owned();
+                }
+            }
+            Ok(Event::End(ref e)) => {
+                if e.name().as_ref() == b"remarks" {
+                    in_remarks = false;
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(err) => return Err(format!("XML parse error: {err}")),
+            _ => {}
+        }
+    }
+
+    if uid.is_empty() {
+        return Err("Missing CoT event uid".to_string());
+    }
+    let lat = lat.ok_or_else(|| "Missing point lat".to_string())?;
+    let lon = lon.ok_or_else(|| "Missing point lon".to_string())?;
+
+    if callsign.is_empty() {
+        callsign = uid.clone();
+    }
+
+    let (affiliation, dimension) = classify_cot_type(&cot_type);
+    let (east_m, mut up_m, north_m) = origin.lla_to_enu(lat, lon, hae_m);
+
+    // If incoming CoT had hae=0, clamp ground units to terrain surface + 2m
+    if (hae_m - 0.0).abs() < 1.0 || (hae_m - origin.alt_m).abs() < 1.0 {
+        let ground_relief = sample_terrain_relief_m(east_m, north_m);
+        up_m = match dimension {
+            Dimension::Air => ground_relief + 260.0,
+            _ => ground_relief,
+        };
+    }
+
+    let (_, _, resolved_hae) = origin.enu_to_lla(east_m, up_m, north_m);
+
+    Ok(TacticalEntity {
+        uid,
+        callsign,
+        cot_type,
+        affiliation,
+        dimension,
+        lat,
+        lon,
+        hae_m: resolved_hae,
+        course_deg,
+        speed_mps,
+        remarks,
+        sensor,
+        east_m,
+        up_m,
+        north_m,
+        updated_unix_ms: now_ms,
+    })
+}
+
+/// State manager holding both simulated tactical units and live external CoT tracks.
+pub struct TacticalWorld {
+    pub origin: GeoOrigin,
+    pub entities: HashMap<String, TacticalEntity>,
+    pub sim_time_sec: f64,
+}
+
+impl TacticalWorld {
+    pub fn new(origin: GeoOrigin) -> Self {
+        Self {
+            origin,
+            entities: HashMap::new(),
+            sim_time_sec: 0.0,
+        }
+    }
+
+    pub fn ingest_cot_xml(&mut self, xml: &str, now_ms: u64) -> Result<TacticalEntity, String> {
+        let entity = parse_cot_xml(xml, &self.origin, now_ms)?;
+        self.entities.insert(entity.uid.clone(), entity.clone());
+        Ok(entity)
+    }
+
+    /// Advance built-in tactical rehearsal scenario by `dt_sec`.
+    pub fn step_simulation(&mut self, dt_sec: f64, now_ms: u64) {
+        self.sim_time_sec += dt_sec;
+        let t = self.sim_time_sec;
+
+        // 1. Friendly ISR UAV #1 ("FALCON-1") orbiting North-East sector with sweeping gimbal FOV
+        {
+            let orbit_r = 520.0;
+            let omega = 0.14;
+            let angle = t * omega;
+            let east_m = 220.0 + orbit_r * angle.cos();
+            let north_m = 180.0 + orbit_r * angle.sin();
+            let ground_h = sample_terrain_relief_m(east_m, north_m);
+            let up_m = ground_h + 290.0;
+            let course_deg = (90.0 - angle.to_degrees() - 90.0).rem_euclid(360.0);
+            // Gimbal tracks toward the hostile convoy in the valley
+            let target_e = -180.0 + (t * 0.08).sin() * 260.0;
+            let target_n = -120.0 + (t * 0.08).cos() * 190.0;
+            let gimbal_az = (target_e - east_m).atan2(target_n - north_m).to_degrees().rem_euclid(360.0);
+
+            self.upsert_sim_entity(
+                "UAV-FALCON-01",
+                "FALCON-1 [EO/IR]",
+                "a-f-A-M-F-Q",
+                east_m,
+                up_m,
+                north_m,
+                course_deg,
+                28.5,
+                "Dual EO/IR Gimbal Payload | Lock: Valley Sector",
+                Some(SensorCone {
+                    azimuth_deg: gimbal_az,
+                    elevation_deg: -38.0,
+                    hfov_deg: 34.0,
+                    vfov_deg: 20.0,
+                    range_m: 680.0,
+                }),
+                now_ms,
+            );
+        }
+
+        // 2. Friendly Relay / Recon UAV #2 ("VALKIRYE-2") figure-8 patrol over Western ridge
+        {
+            let omega = 0.11;
+            let a = t * omega;
+            let east_m = -480.0 + 380.0 * a.sin();
+            let north_m = 90.0 + 320.0 * (2.0 * a).sin() * 0.5;
+            let ground_h = sample_terrain_relief_m(east_m, north_m);
+            let up_m = ground_h + 240.0;
+            let course_deg = (a.cos().atan2((2.0 * a).cos())).to_degrees().rem_euclid(360.0);
+            let gimbal_az = (course_deg + (t * 0.6).sin() * 35.0).rem_euclid(360.0);
+
+            self.upsert_sim_entity(
+                "UAV-VALKYRIE-02",
+                "VALKYRIE-2 [SAR/LINK]",
+                "a-f-A-M-F-Q",
+                east_m,
+                up_m,
+                north_m,
+                course_deg,
+                24.0,
+                "Tactical Mesh Relay & Wide-Area Overwatch",
+                Some(SensorCone {
+                    azimuth_deg: gimbal_az,
+                    elevation_deg: -42.0,
+                    hfov_deg: 44.0,
+                    vfov_deg: 26.0,
+                    range_m: 560.0,
+                }),
+                now_ms,
+            );
+        }
+
+        // 3. Friendly Ground Team Alpha ("SPEAR-ALPHA")
+        {
+            let east_m = -120.0 + (t * 0.04).cos() * 140.0;
+            let north_m = -420.0 + (t * 0.04).sin() * 90.0;
+            let up_m = sample_terrain_relief_m(east_m, north_m);
+            self.upsert_sim_entity(
+                "GND-SPEAR-ALPHA",
+                "SPEAR-ALPHA",
+                "a-f-G-U-C-I",
+                east_m,
+                up_m,
+                north_m,
+                42.0,
+                2.4,
+                "Recon Squad | Visual on ridge",
+                None,
+                now_ms,
+            );
+        }
+
+        // 4. Friendly Ground Team Bravo ("OBSERVE-BRAVO") on high peak
+        {
+            let east_m = 460.0;
+            let north_m = -310.0;
+            let up_m = sample_terrain_relief_m(east_m, north_m);
+            self.upsert_sim_entity(
+                "GND-OBSERVE-BRAVO",
+                "OP-BRAVO [TOC]",
+                "a-f-G-U-C",
+                east_m,
+                up_m,
+                north_m,
+                315.0,
+                0.0,
+                "Forward Observation Post & TAK Gateway",
+                None,
+                now_ms,
+            );
+        }
+
+        // 5. Hostile Mobile Track #1 ("RED-ARMOR-01") moving through valley
+        {
+            let east_m = -180.0 + (t * 0.08).sin() * 260.0;
+            let north_m = -120.0 + (t * 0.08).cos() * 190.0;
+            let up_m = sample_terrain_relief_m(east_m, north_m);
+            self.upsert_sim_entity(
+                "HST-ARMOR-01",
+                "CONTACT-RED-1",
+                "a-h-G-E-V-A",
+                east_m,
+                up_m,
+                north_m,
+                125.0,
+                8.2,
+                "Tracked thermal signature confirmed by FALCON-1",
+                None,
+                now_ms,
+            );
+        }
+
+        // 6. Hostile Radar / Jammer Emitter ("RED-EMITTER-02") on Northern ridge
+        {
+            let east_m = 140.0 + (t * 0.025).cos() * 60.0;
+            let north_m = 540.0;
+            let up_m = sample_terrain_relief_m(east_m, north_m);
+            self.upsert_sim_entity(
+                "HST-EMITTER-02",
+                "EMITTER-NORTH",
+                "a-h-G-E-S",
+                east_m,
+                up_m,
+                north_m,
+                180.0,
+                0.5,
+                "RF Band-X Jammer Activity Detected",
+                None,
+                now_ms,
+            );
+        }
+
+        // 7. Unknown Low-Slow Aerial Contact ("BOGEY-07")
+        {
+            let east_m = 580.0 * (t * 0.09).cos();
+            let north_m = 480.0 + 180.0 * (t * 0.18).sin();
+            let up_m = sample_terrain_relief_m(east_m, north_m) + 145.0;
+            self.upsert_sim_entity(
+                "UNK-BOGEY-07",
+                "TRACK-704 [UNK]",
+                "a-u-A-M",
+                east_m,
+                up_m,
+                north_m,
+                260.0,
+                16.5,
+                "Unidentified low-altitude rotary/UAS track",
+                None,
+                now_ms,
+            );
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn upsert_sim_entity(
+        &mut self,
+        uid: &str,
+        callsign: &str,
+        cot_type: &str,
+        east_m: f64,
+        up_m: f64,
+        north_m: f64,
+        course_deg: f64,
+        speed_mps: f64,
+        remarks: &str,
+        sensor: Option<SensorCone>,
+        now_ms: u64,
+    ) {
+        let (lat, lon, hae_m) = self.origin.enu_to_lla(east_m, up_m, north_m);
+        let (affiliation, dimension) = classify_cot_type(cot_type);
+        self.entities.insert(
+            uid.to_string(),
+            TacticalEntity {
+                uid: uid.to_string(),
+                callsign: callsign.to_string(),
+                cot_type: cot_type.to_string(),
+                affiliation,
+                dimension,
+                lat,
+                lon,
+                hae_m,
+                course_deg,
+                speed_mps,
+                remarks: remarks.to_string(),
+                sensor,
+                east_m,
+                up_m,
+                north_m,
+                updated_unix_ms: now_ms,
+            },
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_cot_xml_and_enu_projection() {
+        let origin = GeoOrigin::default();
+        let xml = r#"<event version="2.0" uid="TAK-TEST-01" type="a-f-G-U-C" time="2026-11-03T15:00:00Z" start="2026-11-03T15:00:00Z" stale="2026-11-03T15:05:00Z" how="h-g-i-g-o"><point lat="39.9225" lon="32.8540" hae="980.0" ce="10" le="10"/><detail><contact callsign="GOKSEL-1"/><track course="145.0" speed="12.5"/><remarks>Test unit on ridge</remarks></detail></event>"#;
+
+        let entity = parse_cot_xml(xml, &origin, 1_700_000_000).expect("valid CoT XML");
+        assert_eq!(entity.uid, "TAK-TEST-01");
+        assert_eq!(entity.callsign, "GOKSEL-1");
+        assert_eq!(entity.affiliation, Affiliation::Friendly);
+        assert_eq!(entity.dimension, Dimension::Ground);
+        assert!(entity.north_m > 250.0 && entity.north_m < 300.0);
+        assert!(entity.east_m > 300.0 && entity.east_m < 380.0);
+        assert_eq!(entity.remarks, "Test unit on ridge");
+    }
+}
