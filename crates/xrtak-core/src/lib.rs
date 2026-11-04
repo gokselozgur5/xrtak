@@ -1,34 +1,15 @@
+pub mod domain;
+pub mod geo;
+pub mod viewshed;
+
+pub use domain::{Affiliation, Dimension, SensorCone, ViewshedResult, ViewshedSample};
+pub use geo::{ElevationProvider, ProceduralReliefModel};
+pub use viewshed::compute_viewshed_with_provider;
+
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Affiliation {
-    Friendly,
-    Hostile,
-    Neutral,
-    Unknown,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Dimension {
-    Air,
-    Ground,
-    Surface,
-    Unknown,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SensorCone {
-    pub azimuth_deg: f64,
-    pub elevation_deg: f64,
-    pub hfov_deg: f64,
-    pub vfov_deg: f64,
-    pub range_m: f64,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TacticalEntity {
@@ -53,24 +34,6 @@ pub struct TacticalEntity {
     pub up_m: f64,
     pub north_m: f64,
     pub updated_unix_ms: u64,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct ViewshedSample {
-    pub east_m: f64,
-    pub up_m: f64,
-    pub north_m: f64,
-    pub visible: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ViewshedResult {
-    pub observer_east_m: f64,
-    pub observer_up_m: f64,
-    pub observer_north_m: f64,
-    pub radius_m: f64,
-    pub visible_ratio: f64,
-    pub samples: Vec<ViewshedSample>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -134,7 +97,6 @@ pub fn sample_terrain_relief_m(east_m: f64, north_m: f64) -> f64 {
 }
 
 /// Compute 3D Line-of-Sight (Viewshed) point cloud matching VR-TAK `AGame_Actor_Viewshed`.
-/// Casts radial elevation rays across the terrain and marks each sample visible or occluded.
 pub fn compute_viewshed(
     observer_east_m: f64,
     observer_north_m: f64,
@@ -143,55 +105,15 @@ pub fn compute_viewshed(
     num_azimuth_beams: usize,
     points_per_beam: usize,
 ) -> ViewshedResult {
-    let base_ground_m = sample_terrain_relief_m(observer_east_m, observer_north_m);
-    let observer_up_m = base_ground_m + observer_height_offset_m.max(2.0);
-
-    let mut samples = Vec::with_capacity(num_azimuth_beams * points_per_beam);
-    let mut visible_count = 0usize;
-
-    for b in 0..num_azimuth_beams {
-        let az_rad = (b as f64 / num_azimuth_beams as f64) * std::f64::consts::TAU;
-        let dir_e = az_rad.sin();
-        let dir_n = az_rad.cos();
-
-        // Track maximum elevation angle (slope) encountered along this ray so far
-        let mut max_slope = f64::NEG_INFINITY;
-
-        for s in 1..=points_per_beam {
-            let dist = (s as f64 / points_per_beam as f64) * radius_m;
-            let sample_e = observer_east_m + dir_e * dist;
-            let sample_n = observer_north_m + dir_n * dist;
-            let terrain_up = sample_terrain_relief_m(sample_e, sample_n);
-
-            let delta_h = terrain_up - observer_up_m;
-            let slope = delta_h / dist;
-
-            let visible = slope >= max_slope - 1e-6;
-            if slope > max_slope {
-                max_slope = slope;
-            }
-            if visible {
-                visible_count += 1;
-            }
-
-            samples.push(ViewshedSample {
-                east_m: sample_e,
-                up_m: terrain_up,
-                north_m: sample_n,
-                visible,
-            });
-        }
-    }
-
-    let total = samples.len().max(1);
-    ViewshedResult {
+    compute_viewshed_with_provider(
+        &ProceduralReliefModel,
         observer_east_m,
-        observer_up_m,
         observer_north_m,
+        observer_height_offset_m,
         radius_m,
-        visible_ratio: visible_count as f64 / total as f64,
-        samples,
-    }
+        num_azimuth_beams,
+        points_per_beam,
+    )
 }
 
 pub fn classify_cot_type(cot_type: &str) -> (Affiliation, Dimension) {
@@ -783,5 +705,19 @@ mod tests {
         let vs = compute_viewshed(0.0, 0.0, 15.0, 600.0, 36, 15);
         assert_eq!(vs.samples.len(), 36 * 15);
         assert!(vs.visible_ratio > 0.05 && vs.visible_ratio <= 1.0);
+    }
+
+    #[test]
+    fn test_viewshed_dip_with_custom_elevation_provider() {
+        struct FlatTerrain;
+        impl ElevationProvider for FlatTerrain {
+            fn sample_relief_m(&self, _east_m: f64, _north_m: f64) -> f64 {
+                100.0
+            }
+        }
+        let vs = compute_viewshed_with_provider(&FlatTerrain, 0.0, 0.0, 10.0, 500.0, 16, 10);
+        assert_eq!(vs.samples.len(), 160);
+        // On a perfectly flat plane with observer +10m above ground, 100% of samples are visible
+        assert!((vs.visible_ratio - 1.0).abs() < 1e-9);
     }
 }

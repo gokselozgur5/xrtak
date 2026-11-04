@@ -1,0 +1,49 @@
+use crate::domain::{ViewshedResult, ViewshedSample};
+use crate::geo::ElevationProvider;
+
+/// Compute 3D Line-of-Sight (Viewshed) point cloud over any `ElevationProvider` (DIP).
+pub fn compute_viewshed_with_provider(
+    provider: &dyn ElevationProvider,
+    observer_east_m: f64,
+    observer_north_m: f64,
+    observer_height_offset_m: f64,
+    radius_m: f64,
+    num_azimuth_beams: usize,
+    points_per_beam: usize,
+) -> ViewshedResult {
+    let base_ground_m = provider.sample_relief_m(observer_east_m, observer_north_m);
+    let observer_up_m = base_ground_m + observer_height_offset_m.max(2.0);
+    let mut samples = Vec::with_capacity(num_azimuth_beams * points_per_beam);
+    let mut visible_count = 0usize;
+
+    for b in 0..num_azimuth_beams {
+        let az_rad = (b as f64 / num_azimuth_beams as f64) * std::f64::consts::TAU;
+        let (dir_e, dir_n) = (az_rad.sin(), az_rad.cos());
+        let mut max_slope = f64::NEG_INFINITY;
+
+        for s in 1..=points_per_beam {
+            let dist = (s as f64 / points_per_beam as f64) * radius_m;
+            let (sample_e, sample_n) = (observer_east_m + dir_e * dist, observer_north_m + dir_n * dist);
+            let terrain_up = provider.sample_relief_m(sample_e, sample_n);
+            let slope = (terrain_up - observer_up_m) / dist;
+            let visible = slope >= max_slope - 1e-6;
+            if slope > max_slope {
+                max_slope = slope;
+            }
+            if visible {
+                visible_count += 1;
+            }
+            samples.push(ViewshedSample { east_m: sample_e, up_m: terrain_up, north_m: sample_n, visible });
+        }
+    }
+
+    let total = samples.len().max(1);
+    ViewshedResult {
+        observer_east_m,
+        observer_up_m,
+        observer_north_m,
+        radius_m,
+        visible_ratio: visible_count as f64 / total as f64,
+        samples,
+    }
+}
