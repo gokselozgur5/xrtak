@@ -36,3 +36,22 @@ classDiagram
 | `ICD-02` | `xrtak-gateway :8090` | `WebXR / OpenXR Client` | JSON `WorldSnapshot` over HTTP SSE (`/api/stream`) | 20 Hz (`50 ms`) |
 | `ICD-03` | `WebXR / OpenXR Client` | `xrtak-core` (`CotCodec`) | `POST /api/spi` $\rightarrow$ `b-m-p-s-p-i` (`<link relation="p-p"/>`) | Operator Point-to-Slew |
 | `ICD-04` | `WebXR / OpenXR Client` | `ViewshedEngine` | `POST /api/viewshed` $\rightarrow$ `ViewshedResult` (`72x28` rays) | Operator LOS Query |
+| `ICD-05` | `xrtak-gateway` | `ATAK CotMapComponent` | Inbound CoT XML $\rightarrow$ `CotDispatcher.dispatch(CotEvent)` | Bidirectional XR $\rightarrow$ ATAK |
+
+## 3. Bidirectional ATAK $\leftrightarrow$ XR-TAK Sequence Model
+
+```mermaid
+sequenceDiagram
+    participant TAK as TAK Server / Radio Mesh
+    participant ATAK as ATAK-CIV (XrTakMapComponent)
+    participant GW as xrtak-gateway (Rust Core)
+    participant XR as Meta Quest 3 (3D Sand Table)
+
+    TAK->>ATAK: CoT Event (PointMapItem / SensorFOV)
+    ATAK->>GW: ICD-01 UDP :4242 (AtakItemSerializer XML)
+    GW->>XR: ICD-02 20Hz SSE WorldSnapshot (ENU + FOV)
+    XR->>GW: ICD-03 Operator Point-to-Slew (b-m-p-s-p-i SPI)
+    GW->>ATAK: ICD-05 UDP :4243 CoT XML
+    ATAK->>TAK: CotMapComponent.getInternalDispatcher() & ExternalDispatcher()
+```
+
