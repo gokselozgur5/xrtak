@@ -1,10 +1,12 @@
 pub mod domain;
 pub mod ffi;
 pub mod geo;
+pub mod hud;
 pub mod viewshed;
 
 pub use domain::{Affiliation, Dimension, SensorCone, ViewshedResult, ViewshedSample};
 pub use geo::{ElevationProvider, ProceduralReliefModel};
+pub use hud::{compute_hud_cue, HudCue};
 pub use viewshed::compute_viewshed_with_provider;
 
 use quick_xml::events::Event;
