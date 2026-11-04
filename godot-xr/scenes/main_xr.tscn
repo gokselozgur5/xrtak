@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8xrtakmain01"]
+
+[ext_resource type="Script" path="res://scripts/xr_sand_table.gd" id="1_script"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_table"]
+top_radius = 0.75
+bottom_radius = 0.75
+height = 0.02
+
+[node name="MainXR" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="XROrigin3D" type="XROrigin3D" parent="."]
+
+[node name="XRCamera3D" type="XRCamera3D" parent="XROrigin3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
+
+[node name="LeftHand" type="XRController3D" parent="XROrigin3D"]
+tracker = &"left_hand"
+
+[node name="RightHand" type="XRController3D" parent="XROrigin3D"]
+tracker = &"right_hand"
+
+[node name="SandTableAnchor" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.78, -0.85)
+
+[node name="PedestalDisc" type="MeshInstance3D" parent="SandTableAnchor"]
+mesh = SubResource("CylinderMesh_table")

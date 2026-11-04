@@ -1,0 +1,23 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+config/name="XR-TAK Quest 3 Sand Table"
+run/main_scene="res://scenes/main_xr.tscn"
+config/features=PackedStringArray("4.6", "Mobile")
+
+[display]
+window/per_pixel_transparency/allowed=true
+
+[rendering]
+renderer/rendering_method="mobile"
+viewport/transparent_background=true
+
+[xr]
+openxr/enabled=true
+openxr/default_action_map="res://default_action_map.tres"
+openxr/form_factor=0
+openxr/view_configuration=1
+openxr/reference_space=1
+openxr/environment_blend_mode=2
+shaders/enabled=true
