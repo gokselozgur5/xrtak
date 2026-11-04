@@ -1,8 +1,8 @@
-# XR-TAK — Mixed-Reality 3D Tactical Sand Table & CoT HUD (Meta Quest 3)
+# XR-TAK — Virtual Reality (VR) & Mixed-Reality 3D Tactical Sand Table & CoT HUD
 
 ![XR-TAK 3D Holographic Sand Table Demo](docs/xrtak-demo.gif)
 
-**XR-TAK** is a lightweight, high-performance Mixed-Reality (OpenXR / WebXR) tactical situational awareness system and 3D holographic sand table designed for **Meta Quest 3** and desktop command posts.
+**XR-TAK** is a lightweight, high-performance **Virtual Reality (VR)** and **Mixed-Reality (OpenXR / WebXR)** 3D tactical situational awareness system, holographic sand table, and Cursor-on-Target (CoT) HUD for **ATAK-CIV** and desktop command posts.
 
 It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and projects friendly, hostile, neutral, and unknown air/ground tracks onto a 3D topographic terrain model with volumetric **EO/IR gimbal sensor FOV frustums**.
 
