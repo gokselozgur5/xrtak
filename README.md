@@ -8,13 +8,15 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 
 ---
 
-## Architecture & Roadmap
+## MBSE & SOLID Architecture (`docs/architecture/MBSE_MODEL.md`)
 
-| Stage | Stack | Target | Status |
+| Phase | Subsystem | Stack & SOLID Boundary | Status |
 | :--- | :--- | :--- | :--- |
-| **Stage 1** | `xrtak-core` (Rust) + `xrtak-gateway` + Three.js WebXR | Desktop Browser & Quest 3 Browser (`immersive-ar` / `immersive-vr`) | **Active (`:8090` / UDP `:4242`)** |
-| **Stage 2** | `xrtak-core` (Rust `gdext`) + Godot 4.6 OpenXR | Standalone Quest 3 Native `.apk` (Hand Tracking + Passthrough Table) | Planned next |
-| **Stage 3** | Pure Rust (`openxr` + `wgpu` / Vulkan) | Ultra-low-latency First-Person Tactical Passthrough HUD | Planned |
+| **Phase 1** | [`crates/xrtak-core`](crates/xrtak-core) & [`crates/xrtak-gateway`](crates/xrtak-gateway) | Rust CoT Engine, `ElevationProvider` (DIP), Point-to-Slew SPI (`b-m-p-s-p-i`), 3D Viewshed (`AGame_Actor_Viewshed`), 3D Spatial Video Wall, Three.js WebXR | **Complete (`:8090` / UDP `:4242`)** |
+| **Phase 2** | [`atak-plugin/`](atak-plugin) | Bidirectional ATAK-CIV 5.2 Plugin Bridge (`XrTakMapComponent`, `CotBridgeTransport` DIP, `AtakItemSerializer` SRP) | **Complete (`javac` verified against ATAK 5.2 SDK)** |
+| **Phase 3** | [`godot-xr/`](godot-xr) & [`xrtak-core::ffi`](crates/xrtak-core/src/ffi.rs) | Meta Quest 3 OpenXR Passthrough Sand Table + C-ABI FFI (`xrtak_lla_to_enu`, `xrtak_sample_relief_m`) + First-Person Tactical HUD (`xrtak-core::hud`) | **Complete (Godot 4.6 OpenXR)** |
+
+See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-05`).
 
 ---
 
