@@ -706,4 +706,18 @@ mod tests {
         assert_eq!(vs.samples.len(), 36 * 15);
         assert!(vs.visible_ratio > 0.05 && vs.visible_ratio <= 1.0);
     }
+
+    #[test]
+    fn test_viewshed_dip_with_custom_elevation_provider() {
+        struct FlatTerrain;
+        impl ElevationProvider for FlatTerrain {
+            fn sample_relief_m(&self, _east_m: f64, _north_m: f64) -> f64 {
+                100.0
+            }
+        }
+        let vs = compute_viewshed_with_provider(&FlatTerrain, 0.0, 0.0, 10.0, 500.0, 16, 10);
+        assert_eq!(vs.samples.len(), 160);
+        // On a perfectly flat plane with observer +10m above ground, 100% of samples are visible
+        assert!((vs.visible_ratio - 1.0).abs() < 1e-9);
+    }
 }
