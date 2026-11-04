@@ -294,6 +294,7 @@
     <div class="btn-group">
       <button class="tac-btn active" id="btn-view-table">3D Sand Table</button>
       <button class="tac-btn" id="btn-view-chase">UAV Chase Cam</button>
+      <button class="tac-btn" id="btn-view-visor">HUD Visor Mode</button>
       <button class="tac-btn active" id="btn-toggle-fov">FOV Cones: ON</button>
       <button class="tac-btn active" id="btn-toggle-wall">Video Wall: ON</button>
       <button class="tac-btn xr-btn" id="btn-enter-xr">QUEST 3: ENTER MIXED REALITY (WebXR)</button>
@@ -1234,6 +1235,16 @@
 
     document.getElementById('btn-drop-friendly').onclick = () => setInteractionMode('friendly');
     document.getElementById('btn-drop-hostile').onclick = () => setInteractionMode('hostile');
+
+    document.getElementById('btn-view-visor').onclick = () => {
+      viewMode = 'visor';
+      document.getElementById('btn-view-table').classList.remove('active');
+      document.getElementById('btn-view-chase').classList.remove('active');
+      document.getElementById('btn-view-visor').classList.add('active');
+      document.getElementById('hud-mode-label').textContent = 'MODE: PASSTHROUGH TACTICAL HUD VISOR';
+      camera.position.set(0.0, 0.24, 0.05);
+      controls.target.set(0.0, 0.22, -0.8);
+    };
 
     document.getElementById('btn-enter-xr').onclick = async () => {
       if (!navigator.xr) {
