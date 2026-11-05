@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${XRTAK_URL:-http://127.0.0.1:8090}"
-if ! curl -fsS "${BASE_URL}/api/state" >/dev/null 2>&1; then
-  if curl -fsS "http://127.0.0.1:8091/api/state" >/dev/null 2>&1; then
+BASE_URL="${XRTAK_URL:-}"
+if [ -z "${BASE_URL}" ]; then
+  if curl -fsS "http://127.0.0.1:8090/api/state" 2>/dev/null | grep -q '"terrain_name"'; then
+    BASE_URL="http://127.0.0.1:8090"
+  elif curl -fsS "http://127.0.0.1:8091/api/state" 2>/dev/null | grep -q '"terrain_name"'; then
     BASE_URL="http://127.0.0.1:8091"
   else
     echo "[ERROR] xrtak-gateway is not reachable on :8090 or :8091. Start it with: cargo run -p xrtak-gateway" >&2

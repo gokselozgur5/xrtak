@@ -19,6 +19,10 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 5** | [`xrtak-core::zones`](crates/xrtak-core/src/zones.rs) & [`viewshed`](crates/xrtak-core/src/viewshed.rs) | 3D SAM/Radar Threat Domes (`ThreatDome`), Point-to-Point Link LOS (`compute_link_los`), and 3D Polygonal Geofences (`TacticalZone`) | **Complete (`REQ-TAC-01..03`)** |
 | **Phase 6** | [`xrtak-core::aar`](crates/xrtak-core/src/aar.rs) | 4D After-Action Review (`AarTimeline`) ring-buffer, $\mathcal{O}(\log N)$ temporal interpolation, and interactive WebXR 4D timeline scrubber (`/api/aar`) | **Complete (`REQ-AAR-01..03`)** |
 | **Phase 7** | [`xrtak-gateway`](crates/xrtak-gateway/src/main.rs) | Live TAK Server TCP (`:8087`) & UDP (`:4242`/`:4243`) Bridge, Auto-Recenter on Live CoT, `SIM+LIVE` toggle, and Quest 3 Controller 3D Laser Pointer (`b-m-p-c`) | **Complete (`REQ-COL-01`)** |
+| **Phase 8** | [`xrtak-core::sapient`](crates/xrtak-core/src/sapient.rs) | BSI Flex 335 v2.0 SAPIENT Autonomous AI Threat Fusion (`POST /api/sapient`) and Automatic UAV EO/IR Gimbal SPI Slew (`b-m-p-s-p-i`) | **Complete (`ICD-09`)** |
+| **Phase 9** | [`xrtak-core::zones`](crates/xrtak-core/src/zones.rs) | Dynamic ATAK `u-d-f` Polygon Zone Ingestion, Dynamic Hostile Emitter Threat Domes (`a-h-G-E-S`), and Interactive 3D Link LOS Chord UI (`POST /api/los`) | **Complete (`REQ-TAC-01..03`)** |
+| **Phase 10** | [`xrtak-core::hud`](crates/xrtak-core/src/hud.rs) | 4D AAR Auto-Playback (`Play / Pause / 1x / 2x / 4x`), Replay Threat Dome Evaluation, and Helmet-Mounted First-Person AR Visor HUD Symbology (`GET /api/hud`) | **Complete (`ICD-10`)** |
+| **Phase 11** | [`scripts/run_live_demo.sh`](scripts/run_live_demo.sh) | Turnkey Multi-Domain Live Demo Director exercising ATAK `u-d-f` polygons, SAPIENT AI auto-slew, SAM domes, 3D Link LOS, and Quest 3 laser cues | **Complete** |
 
 See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
@@ -52,13 +56,21 @@ cargo run -p xrtak-gateway
 
 Then open **`http://localhost:8090`** in your browser (or `http://<mac-lan-ip>:8090` inside the Meta Quest 3 browser).
 
-### 2. Inject a Live CoT XML Packet via UDP (`:4242`)
+### 2. Run the Turnkey Multi-Domain Live Demo Showcase
+
+```bash
+./scripts/run_live_demo.sh
+```
+
+This script injects an ATAK `u-d-f` polygonal ROZ (`KILLBOX DELTA`), a **BSI Flex 335 v2.0 SAPIENT** autonomous AI detection (`UAV_ROTARY 97%` with automatic `FALCON-1` EO/IR gimbal SPI lock), a mobile SAM/Radar emitter (`SA-15 GAUNTLET` projecting a 3D Threat Dome), a 3D Point-to-Point Link LOS check, and a Meta Quest 3 spatial laser cue (`b-m-p-c`).
+
+### 3. Inject a Live CoT XML Packet via UDP (`:4242`)
 
 ```bash
 printf '<event version="2.0" uid="COT-UDP-01" type="a-f-G-U-C" how="h-g-i-g-o"><point lat="39.9218" lon="32.8522" hae="990.0" ce="10" le="10"/><detail><contact callsign="PARALLAX-HQ"/><track course="90.0" speed="0.0"/><remarks>Live UDP CoT XML Packet</remarks></detail></event>' | nc -u -w 1 127.0.0.1 4242
 ```
 
-### 3. Connect Meta Quest 3 & Live TAK Server (`:8087` TCP / `:4242` UDP)
+### 4. Connect Meta Quest 3 & Live TAK Server (`:8087` TCP / `:4242` UDP)
 
 1. **Connect to a Live TAK Server (TCP `:8087` or UDP `:4242`):**
    - In the right-hand **LIVE TAK SERVER & QUEST 3 BRIDGE** panel, enter your TAK Server TCP address (e.g., `192.168.1.50:8087`) and click **Connect**, or stream raw CoT XML directly to `udp://<mac-lan-ip>:4242`.
