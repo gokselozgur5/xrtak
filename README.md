@@ -1,4 +1,13 @@
-# XR-TAK — Virtual Reality (VR) & Mixed-Reality 3D Tactical Sand Table & CoT HUD
+# XR-TAK — Free, Open-Source 3D Mixed-Reality Geospatial Sand Table & CoT HUD (`Rust + WebXR`)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-00ff88.svg)](LICENSE)
+[![Live Demo: WebXR & Desktop](https://img.shields.io/badge/🚀_LIVE_DEMO-Launch_in_Browser_or_Quest_3_(Zero_Install)-00e5ff?style=for-the-badge)](https://gokselozgur5.github.io/xrtak/)
+[![Stack: Rust + Three.js WebXR](https://img.shields.io/badge/Stack-Rust_%2B_Three.js_WebXR_%2B_Godot_OpenXR-fbbf24.svg)](crates/xrtak-core)
+
+> **Why pay $50,000/seat for closed-source 3D geospatial & XR command tables?**
+> **XR-TAK** is a 100% **free, open-source (`MIT`)** 3D Mixed-Reality holographic sand table, worldwide 3D city/terrain twin (`Esri Satellite` + `AWS SRTM DEM` + `OpenStreetMap 3D Buildings`), and real-time Cursor-on-Target (CoT) HUD that runs instantaneously in any browser or **Meta Quest 3 Passthrough (`immersive-ar`)** with zero installation.
+>
+> 👉 **[Click Here to Launch XR-TAK Live in Your Browser or Meta Quest 3 (`https://gokselozgur5.github.io/xrtak/`)](https://gokselozgur5.github.io/xrtak/)**
 
 ## 🥽 Live Meta Quest 3 Mixed Reality Passthrough Showcase
 
@@ -35,8 +44,21 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 15** | [`scripts/run_https_tls_proxy.py`](scripts/run_https_tls_proxy.py) & [`index.html`](index.html) | Native HTTPS WebXR TLS Gateway (`:8443`) + GitHub Pages Live Launcher (`https://gokselozgur5.github.io/xrtak/`) unlocking `navigator.xr` in Meta Quest 3 without browser flags | **Complete** |
 | **Phase 16** | [`static/index.html`](crates/xrtak-gateway/static/index.html) | Independent 6DoF Draggable 3D VR Button Dock & 3D Video Wall Screens (`✋ GRAB & MOVE`) + Draggable 2D Desktop HUD Panels (`localStorage` persisted) | **Complete** |
 | **Phase 17** | [`crates/xrtak-gateway`](crates/xrtak-gateway/src/main.rs) | Real-World Satellite (`Esri`) & Topographic (`OpenTopoMap`) Tile Draping, Live **AWS Terrarium SRTM 24-bit DEM** Sync (`POST /api/terrain`), and Persistent Real CoT Pinning (`data/real_pins.json`, GeoJSON & CoT XML export) | **Complete** |
+| **Phase 18–19** | [`static/index.html`](crates/xrtak-gateway/static/index.html) & [`LICENSE`](LICENSE) | **Worldwide City / Landmark Search (`Nominatim`)**, **Real-World 3D Extruded OpenStreetMap Buildings (`Overpass API`)**, **Live Camera / Stream 3D Video Wall**, Meta Quest 3 Passthrough GIF Showcase, and `MIT` Open-Source Release | **Complete (`v1.0`)** |
 
-See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
+See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, and [`docs/LAUNCH_KIT.md`](docs/LAUNCH_KIT.md) for community release notes.
+
+---
+
+## Why XR-TAK vs. Proprietary $50k/Seat Geospatial XR Tables?
+
+| Capability | Legacy Commercial XR / GIS Sand Tables | **XR-TAK (`Open-Source MIT`)** |
+| :--- | :--- | :--- |
+| **License & Cost** | `$25,000 – $50,000+` per seat / proprietary lock-in | **100% Free & Open-Source (`MIT License`)** |
+| **Deployment** | `20+ GB` PCVR installer + tethered workstation | **`<10 MB` Rust binary + Zero-Install WebXR (`Quest 3 Browser` & Desktop)** |
+| **Worldwide Terrain & 3D Cities** | Paid offline GIS packs | **Live Global City Search (`Nominatim`) + `AWS Terrarium 24-bit SRTM DEM` + `Esri Satellite` + `Real 3D OSM Buildings`** |
+| **Spatial UI Ergonomics** | Rigid menu trees | **Free 6DoF `✋ GRAB & MOVE` Floating 3D Video Walls + Upright 3D Holographic VR Dock + 1:1 Walk-In Valley** |
+| **Interoperability** | Closed vendor formats | **Standard Cursor-on-Target (`CoT XML`), `ATAK-CIV 5.2`, `BSI Flex 335 v2.0 SAPIENT`, and `GeoJSON`** |
 
 ---
 
