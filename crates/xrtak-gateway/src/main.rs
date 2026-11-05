@@ -6,7 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
-    compute_link_los, compute_viewshed_with_provider, GeoOrigin, ProceduralReliefModel,
+    compute_link_los, compute_viewshed_with_provider, AarSummary, GeoOrigin, ProceduralReliefModel,
     RasterDemProvider, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
 };
 
@@ -17,6 +17,7 @@ struct WorldSnapshot {
     origin: GeoOrigin,
     terrain_name: String,
     sim_time_sec: f64,
+    aar: AarSummary,
     entities: Vec<TacticalEntity>,
     threat_domes: Vec<ThreatDome>,
     tactical_zones: Vec<TacticalZone>,
@@ -125,6 +126,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         origin: guard.origin,
                         terrain_name: guard.terrain_name.clone(),
                         sim_time_sec: guard.sim_time_sec,
+                        aar: guard.aar.summary(),
                         entities,
                         threat_domes: guard.threat_domes.clone(),
                         tactical_zones: guard.tactical_zones.clone(),
@@ -192,11 +194,38 @@ async fn handle_http_connection(
                 origin: guard.origin,
                 terrain_name: guard.terrain_name.clone(),
                 sim_time_sec: guard.sim_time_sec,
+                aar: guard.aar.summary(),
                 entities,
                 threat_domes: guard.threat_domes.clone(),
                 tactical_zones: guard.tactical_zones.clone(),
             };
             serde_json::to_string(&snap)?
+        };
+        let header = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(body.as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "GET" && path.starts_with("/api/aar") {
+        let target_t: Option<f64> = path
+            .split("t=")
+            .nth(1)
+            .and_then(|s| s.split('&').next())
+            .and_then(|s| s.parse::<f64>().ok());
+        let body = {
+            let guard = world.lock().unwrap();
+            let summary = guard.aar.summary();
+            let t_query = target_t.unwrap_or(summary.max_time_sec);
+            let frame = guard.aar.sample_at(t_query);
+            serde_json::json!({
+                "summary": summary,
+                "frame": frame
+            })
+            .to_string()
         };
         let header = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
