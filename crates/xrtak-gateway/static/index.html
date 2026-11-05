@@ -333,8 +333,10 @@
       <button class="tac-btn active" id="btn-view-table">3D Sand Table</button>
       <button class="tac-btn" id="btn-view-chase">UAV Chase Cam</button>
       <button class="tac-btn" id="btn-view-visor">HUD Visor Mode</button>
+      <button class="tac-btn" id="btn-view-walkin">1:1 Walk-In Valley</button>
+      <button class="tac-btn" id="btn-view-cockpit">UAV Cockpit POV</button>
       <button class="tac-btn active" id="btn-toggle-fov">FOV Cones: ON</button>
-      <button class="tac-btn active" id="btn-toggle-wall">Video Wall: ON</button>
+      <button class="tac-btn active" id="btn-toggle-wall" style="grid-column:span 2;">3D Video Wall: ON</button>
       <button class="tac-btn xr-btn" id="btn-enter-xr">QUEST 3: ENTER MIXED REALITY (WebXR)</button>
     </div>
 
@@ -1342,102 +1344,241 @@
       document.getElementById('btn-drop-hostile').classList.toggle('active', interactionMode === 'hostile');
       const lpBtn = document.getElementById('btn-laser-pointer');
       if (lpBtn) lpBtn.classList.toggle('active', interactionMode === 'laser');
+      refreshVrDockVisuals();
+    }
+
+    // --- Phase 12: 3D Terrain Raycast Reticle & Diegetic 3D Holographic VR Control Dock ---
+    const cursorReticleGroup = new THREE.Group();
+    cursorReticleGroup.visible = false;
+    tableGroup.add(cursorReticleGroup);
+    {
+      const ringGeo = new THREE.RingGeometry(0.014, 0.022, 32);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+      cursorReticleGroup.add(new THREE.Mesh(ringGeo, ringMat));
+      const stemGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0.06, 0)]);
+      cursorReticleGroup.add(new THREE.Line(stemGeo, new THREE.LineBasicMaterial({ color: 0x00ff88 })));
+    }
+    let reticleLabelSprite = makeTextSprite('E:0m N:0m', '#00ff88', 24);
+    reticleLabelSprite.scale.set(0.22, 0.052, 1);
+    reticleLabelSprite.position.set(0, 0.075, 0);
+    cursorReticleGroup.add(reticleLabelSprite);
+    let lastReticleUpdateMs = 0;
+
+    function updateReticleAtLocal(localPt, timeMs) {
+      const eastM = localPt.x / M_TO_TABLE;
+      const northM = -localPt.z / M_TO_TABLE;
+      const reliefM = sampleTerrainReliefM(eastM, northM);
+      const pos = enuToTableVec3(eastM, reliefM + 1.5, northM);
+      cursorReticleGroup.position.copy(pos);
+      cursorReticleGroup.visible = true;
+      if (timeMs - lastReticleUpdateMs > 120) {
+        lastReticleUpdateMs = timeMs;
+        const toolTag = (interactionMode || 'laser').toUpperCase();
+        const canvas = reticleLabelSprite.material.map.image;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(4, 12, 22, 0.85)';
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 3;
+        ctx.roundRect(8, 18, 496, 92, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.font = 'bold 23px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = '#00ff88';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`[${toolTag}] E:${Math.round(eastM)}m N:${Math.round(northM)}m (${Math.round(850 + reliefM)}m)`, 256, 64);
+        reticleLabelSprite.material.map.needsUpdate = true;
+      }
+    }
+
+    const vrDockGroup = new THREE.Group();
+    vrDockGroup.position.set(0, 0.055, TABLE_RADIUS_UNITS * 1.12);
+    vrDockGroup.rotation.x = -0.46;
+    tableGroup.add(vrDockGroup);
+
+    const VR_DOCK_DEFS = [
+      { id: 'dock-spi', label: '🎯 SPI SLEW', row: 0, col: 0 },
+      { id: 'dock-viewshed', label: '👁 VIEWSHED', row: 0, col: 1 },
+      { id: 'dock-los', label: '📡 LINK LOS', row: 0, col: 2 },
+      { id: 'dock-laser', label: '🔦 LASER CUE', row: 0, col: 3 },
+      { id: 'dock-sapient', label: '⚡ SAPIENT AI', row: 1, col: 0 },
+      { id: 'dock-dem', label: '⛰ DEM CYCLE', row: 1, col: 1 },
+      { id: 'dock-walkin', label: '🚶 1:1 WALK-IN', row: 1, col: 2 },
+      { id: 'dock-cockpit', label: '🚁 COCKPIT POV', row: 1, col: 3 },
+    ];
+    const vrDockButtons = [];
+
+    function initVrHolographicDock() {
+      const btnW = 0.20, btnH = 0.058, gapX = 0.215, gapY = 0.068;
+      for (const def of VR_DOCK_DEFS) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 72;
+        const ctx = canvas.getContext('2d');
+        const tex = new THREE.CanvasTexture(canvas);
+
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(btnW, btnH),
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
+        );
+        mesh.position.set((def.col - 1.5) * gapX, (0.5 - def.row) * gapY, 0);
+        mesh.userData.dockId = def.id;
+        vrDockGroup.add(mesh);
+        vrDockButtons.push({ def, canvas, ctx, tex, mesh });
+      }
+      refreshVrDockVisuals();
+    }
+
+    function refreshVrDockVisuals() {
+      for (const b of vrDockButtons) {
+        const { def, canvas, ctx, tex } = b;
+        const isActive =
+          (def.id === 'dock-spi' && interactionMode === 'spi') ||
+          (def.id === 'dock-viewshed' && interactionMode === 'viewshed') ||
+          (def.id === 'dock-los' && interactionMode === 'los') ||
+          (def.id === 'dock-laser' && interactionMode === 'laser') ||
+          (def.id === 'dock-walkin' && viewMode === 'walkin') ||
+          (def.id === 'dock-cockpit' && viewMode === 'cockpit');
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = isActive ? 'rgba(0, 255, 136, 0.88)' : 'rgba(6, 18, 32, 0.88)';
+        ctx.strokeStyle = isActive ? '#00ff88' : '#00e5ff';
+        ctx.lineWidth = 4;
+        ctx.roundRect(4, 4, canvas.width - 8, canvas.height - 8, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 21px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = isActive ? '#020810' : '#e2f4ff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(def.label, canvas.width / 2, canvas.height / 2);
+        tex.needsUpdate = true;
+      }
+    }
+    initVrHolographicDock();
+
+    async function executeTerrainToolAt(eastM, northM, callerLabel = 'QUEST3-CMD') {
+      const mode = interactionMode || 'laser';
+      if (mode === 'spi') {
+        await fetch('/api/spi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sensor_uid: 'UAV-FALCON-01', east_m: eastM, north_m: northM })
+        });
+        return;
+      }
+      if (mode === 'viewshed') {
+        const res = await fetch('/api/viewshed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ east_m: eastM, north_m: northM, height_offset_m: 18.0, radius_m: 680.0 })
+        });
+        renderViewshedCloud(await res.json());
+        return;
+      }
+      if (mode === 'los') {
+        const gndUp = sampleTerrainReliefM(eastM, northM) + 2.5;
+        const res = await fetch('/api/los', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from_uid: selectedUid, to_enu: [eastM, gndUp, northM] })
+        });
+        if (res.ok) renderLinkLosChord(await res.json());
+        return;
+      }
+      if (mode === 'friendly' || mode === 'hostile') {
+        const isHostile = mode === 'hostile';
+        await fetch('/api/spawn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            callsign: isHostile ? 'TGT-XR-HOSTILE' : 'PIN-XR-ALPHA',
+            cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
+            east_m: eastM,
+            north_m: northM,
+            alt_offset_m: 0.0,
+            remarks: `Pinned via XR Sand Table at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
+          })
+        });
+        return;
+      }
+      await fetch('/api/pointer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callsign: callerLabel, east_m: eastM, north_m: northM })
+      });
+    }
+
+    const DEM_PRESET_ORDER = ['valley', 'alpine', 'canyon', 'urban_bowl'];
+    let demPresetIdx = 0;
+
+    async function handleVrDockAction(dockId) {
+      if (dockId === 'dock-spi') setInteractionMode('spi');
+      else if (dockId === 'dock-viewshed') document.getElementById('btn-viewshed').click();
+      else if (dockId === 'dock-los') document.getElementById('btn-link-los').click();
+      else if (dockId === 'dock-laser') setInteractionMode('laser');
+      else if (dockId === 'dock-sapient') document.getElementById('btn-sapient-ai').click();
+      else if (dockId === 'dock-dem') {
+        demPresetIdx = (demPresetIdx + 1) % DEM_PRESET_ORDER.length;
+        await switchTerrainPreset(DEM_PRESET_ORDER[demPresetIdx]);
+      } else if (dockId === 'dock-walkin') {
+        document.getElementById('btn-view-walkin').click();
+      } else if (dockId === 'dock-cockpit') {
+        document.getElementById('btn-view-cockpit').click();
+      }
+      refreshVrDockVisuals();
     }
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    window.addEventListener('pointermove', (ev) => {
+      if (ev.target !== renderer.domElement || !terrainMesh) return;
+      if (!interactionMode) {
+        cursorReticleGroup.visible = false;
+        return;
+      }
+      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObject(terrainMesh, false);
+      if (hits.length > 0) {
+        const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+        updateReticleAtLocal(localPt, performance.now());
+      } else {
+        cursorReticleGroup.visible = false;
+      }
+    });
+
     window.addEventListener('pointerdown', async (ev) => {
       if (ev.target !== renderer.domElement) return;
       pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
 
+      // 1. Check 3D Holographic VR Control Dock buttons first
+      const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
+      if (dockHits.length > 0 && dockHits[0].object.userData.dockId) {
+        await handleVrDockAction(dockHits[0].object.userData.dockId);
+        return;
+      }
+
+      // 2. Check active terrain tool
       if (interactionMode && terrainMesh) {
         const hits = raycaster.intersectObject(terrainMesh, false);
         if (hits.length > 0) {
-          const pt = hits[0].point;
-          const eastM = pt.x / M_TO_TABLE;
-          const northM = -pt.z / M_TO_TABLE;
-
-          if (interactionMode === 'spi') {
-            await fetch('/api/spi', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sensor_uid: 'UAV-FALCON-01',
-                east_m: eastM,
-                north_m: northM
-              })
-            });
-            setInteractionMode(null);
-            return;
-          }
-
-          if (interactionMode === 'viewshed') {
-            const res = await fetch('/api/viewshed', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                east_m: eastM,
-                north_m: northM,
-                height_offset_m: 18.0,
-                radius_m: 680.0
-              })
-            });
-            const vsData = await res.json();
-            renderViewshedCloud(vsData);
-            setInteractionMode(null);
-            return;
-          }
-
-          if (interactionMode === 'los') {
-            const gndUp = sampleTerrainReliefM(eastM, northM) + 2.5;
-            const res = await fetch('/api/los', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                from_uid: selectedUid,
-                to_enu: [eastM, gndUp, northM]
-              })
-            });
-            if (res.ok) renderLinkLosChord(await res.json());
-            setInteractionMode(null);
-            return;
-          }
-
-          if (interactionMode === 'friendly' || interactionMode === 'hostile') {
-            const isHostile = interactionMode === 'hostile';
-            await fetch('/api/spawn', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                callsign: isHostile ? 'TGT-XR-HOSTILE' : 'PIN-XR-ALPHA',
-                cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
-                east_m: eastM,
-                north_m: northM,
-                alt_offset_m: 0.0,
-                remarks: `Pinned via XR Sand Table at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
-              })
-            });
-            setInteractionMode(null);
-            return;
-          }
-
-          if (interactionMode === 'laser') {
-            await fetch('/api/pointer', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                callsign: 'QUEST3-CMD',
-                east_m: eastM,
-                north_m: northM
-              })
-            });
-            return;
-          }
+          const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+          const eastM = localPt.x / M_TO_TABLE;
+          const northM = -localPt.z / M_TO_TABLE;
+          await executeTerrainToolAt(eastM, northM, 'QUEST3-CMD');
+          if (interactionMode !== 'laser') setInteractionMode(null);
+          return;
         }
       }
 
+      // 3. Check 3D unit markers and floating 3D Video Wall screens
       const meshes = [];
       for (const n of entityNodes.values()) meshes.push(n.iconMesh);
       for (const p of videoWallPanels) meshes.push(p.screenMesh);
@@ -1503,25 +1644,55 @@
     visorCanvas.width = window.innerWidth;
     visorCanvas.height = window.innerHeight;
 
-    document.getElementById('btn-view-table').onclick = () => {
-      viewMode = 'table';
-      visorCanvas.style.display = 'none';
-      document.getElementById('btn-view-table').classList.add('active');
-      document.getElementById('btn-view-chase').classList.remove('active');
-      document.getElementById('btn-view-visor').classList.remove('active');
-      document.getElementById('hud-mode-label').textContent = 'MODE: HOLOGRAPHIC SAND TABLE';
-      camera.position.set(0.0, 0.92, 1.25);
-      controls.target.set(0, 0.08, 0);
-    };
+    function setViewMode(mode) {
+      viewMode = mode;
+      visorCanvas.style.display = (mode === 'visor' || mode === 'walkin' || mode === 'cockpit') ? 'block' : 'none';
+      for (const [id, m] of [
+        ['btn-view-table', 'table'],
+        ['btn-view-chase', 'chase'],
+        ['btn-view-visor', 'visor'],
+        ['btn-view-walkin', 'walkin'],
+        ['btn-view-cockpit', 'cockpit']
+      ]) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', mode === m);
+      }
+      if (mode === 'table') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: HOLOGRAPHIC SAND TABLE';
+        camera.position.set(0.0, 0.92, 1.25);
+        controls.target.set(0, 0.08, 0);
+      } else if (mode === 'chase') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: UAV TACTICAL CHASE CAM';
+      } else if (mode === 'visor') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: PASSTHROUGH TACTICAL HUD VISOR';
+        camera.position.set(0.0, 0.24, 0.05);
+        controls.target.set(0.0, 0.22, -0.8);
+      } else if (mode === 'walkin') {
+        tableGroup.scale.setScalar(8.5);
+        const gndY = sampleTerrainReliefM(0, 0) * M_TO_TABLE * ALT_EXAGGERATION * 8.5;
+        tableGroup.position.set(0, -gndY - 0.12, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: 1:1 IMMERSIVE VALLEY WALK-IN (VR)';
+        camera.position.set(0.0, 0.25, 0.35);
+        controls.target.set(0.0, 0.28, -0.8);
+      } else if (mode === 'cockpit') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: FALCON-1 UAV COCKPIT RIDE-ALONG';
+      }
+      refreshVrDockVisuals();
+    }
 
-    document.getElementById('btn-view-chase').onclick = () => {
-      viewMode = 'chase';
-      visorCanvas.style.display = 'none';
-      document.getElementById('btn-view-chase').classList.add('active');
-      document.getElementById('btn-view-table').classList.remove('active');
-      document.getElementById('btn-view-visor').classList.remove('active');
-      document.getElementById('hud-mode-label').textContent = 'MODE: UAV TACTICAL CHASE CAM';
-    };
+    document.getElementById('btn-view-table').onclick = () => setViewMode('table');
+    document.getElementById('btn-view-chase').onclick = () => setViewMode('chase');
+    document.getElementById('btn-view-visor').onclick = () => setViewMode('visor');
+    document.getElementById('btn-view-walkin').onclick = () => setViewMode(viewMode === 'walkin' ? 'table' : 'walkin');
+    document.getElementById('btn-view-cockpit').onclick = () => setViewMode(viewMode === 'cockpit' ? 'table' : 'cockpit');
 
     document.getElementById('btn-toggle-fov').onclick = (e) => {
       showFovCones = !showFovCones;
@@ -1531,7 +1702,7 @@
 
     document.getElementById('btn-toggle-wall').onclick = (e) => {
       showVideoWall = !showVideoWall;
-      e.target.textContent = `Video Wall: ${showVideoWall ? 'ON' : 'OFF'}`;
+      e.target.textContent = `3D Video Wall: ${showVideoWall ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', showVideoWall);
     };
 
@@ -1611,32 +1782,82 @@
       document.getElementById('tak-mode-badge').textContent = `TCP: ${addr}`;
     };
 
-    // Meta Quest 3 WebXR Controller & Hand-Tracking 3D Laser Raycaster
+    // --- Phase 12: Meta Quest 3 WebXR Controllers (3D Dock Click, Active Tool Raycast, Single-Hand Grab, Two-Handed Pinch-to-Scale) ---
+    const xrControllers = [];
+    const gripState = {
+      active: [false, false],
+      grabCtrlIdx: -1,
+      grabOffset: new THREE.Vector3(),
+      initialPinchDist: 0.0,
+      initialScale: 1.0,
+      initialAngle: 0.0,
+      initialRotY: 0.0,
+    };
+
     for (const idx of [0, 1]) {
       const ctrl = renderer.xr.getController(idx);
       const rayGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, -2.5)
+        new THREE.Vector3(0, 0, -3.0)
       ]);
-      ctrl.add(new THREE.Line(rayGeo, new THREE.LineBasicMaterial({ color: 0x00ff88 })));
+      ctrl.add(new THREE.Line(rayGeo, new THREE.LineBasicMaterial({ color: idx === 0 ? 0x00ff88 : 0x00e5ff })));
+
       ctrl.addEventListener('selectstart', async () => {
-        if (!terrainMesh) return;
         const tempMatrix = new THREE.Matrix4().extractRotation(ctrl.matrixWorld);
         raycaster.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
         raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+        // 1. Check 3D Holographic VR Control Dock buttons first!
+        const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
+        if (dockHits.length > 0 && dockHits[0].object.userData.dockId) {
+          await handleVrDockAction(dockHits[0].object.userData.dockId);
+          return;
+        }
+
+        // 2. Check 3D unit icons or floating 3D Video Wall screens
+        const unitMeshes = [];
+        for (const n of entityNodes.values()) unitMeshes.push(n.iconMesh);
+        for (const p of videoWallPanels) unitMeshes.push(p.screenMesh);
+        const uHits = raycaster.intersectObjects(unitMeshes, false);
+        if (uHits.length > 0 && uHits[0].object.userData.uid) {
+          selectedUid = uHits[0].object.userData.uid;
+          return;
+        }
+
+        // 3. Otherwise execute the active VR tool on the 3D terrain!
+        if (!terrainMesh) return;
         const hits = raycaster.intersectObject(terrainMesh, false);
         if (hits.length > 0) {
           const localPt = tableGroup.worldToLocal(hits[0].point.clone());
           const eastM = localPt.x / M_TO_TABLE;
           const northM = -localPt.z / M_TO_TABLE;
-          await fetch('/api/pointer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ callsign: `QUEST3-HAND-${idx}`, east_m: eastM, north_m: northM })
-          });
+          await executeTerrainToolAt(eastM, northM, `QUEST3-HAND-${idx}`);
         }
       });
+
+      ctrl.addEventListener('squeezestart', () => {
+        gripState.active[idx] = true;
+        if (gripState.active[0] && gripState.active[1]) {
+          const p0 = new THREE.Vector3().setFromMatrixPosition(xrControllers[0].matrixWorld);
+          const p1 = new THREE.Vector3().setFromMatrixPosition(xrControllers[1].matrixWorld);
+          gripState.initialPinchDist = Math.max(p0.distanceTo(p1), 0.05);
+          gripState.initialScale = tableGroup.scale.x;
+          gripState.initialAngle = Math.atan2(p1.z - p0.z, p1.x - p0.x);
+          gripState.initialRotY = tableGroup.rotation.y;
+        } else {
+          gripState.grabCtrlIdx = idx;
+          const ctrlPos = new THREE.Vector3().setFromMatrixPosition(ctrl.matrixWorld);
+          gripState.grabOffset.copy(tableGroup.position).sub(ctrlPos);
+        }
+      });
+
+      ctrl.addEventListener('squeezeend', () => {
+        gripState.active[idx] = false;
+        if (gripState.grabCtrlIdx === idx) gripState.grabCtrlIdx = -1;
+      });
+
       scene.add(ctrl);
+      xrControllers.push(ctrl);
     }
 
     async function switchTerrainPreset(presetName) {
@@ -1658,19 +1879,8 @@
     document.getElementById('btn-dem-canyon').onclick = () => switchTerrainPreset('canyon');
     document.getElementById('btn-dem-urban').onclick = () => switchTerrainPreset('urban_bowl');
 
-    document.getElementById('btn-view-visor').onclick = () => {
-      viewMode = 'visor';
-      visorCanvas.style.display = 'block';
-      document.getElementById('btn-view-table').classList.remove('active');
-      document.getElementById('btn-view-chase').classList.remove('active');
-      document.getElementById('btn-view-visor').classList.add('active');
-      document.getElementById('hud-mode-label').textContent = 'MODE: PASSTHROUGH TACTICAL HUD VISOR';
-      camera.position.set(0.0, 0.24, 0.05);
-      controls.target.set(0.0, 0.22, -0.8);
-    };
-
     function renderVisorHudOverlay(headingDeg) {
-      if (viewMode !== 'visor') return;
+      if (viewMode !== 'visor' && viewMode !== 'walkin' && viewMode !== 'cockpit') return;
       const w = visorCanvas.width;
       const h = visorCanvas.height;
       vctx.clearRect(0, 0, w, h);
@@ -1854,6 +2064,55 @@
             0.05
           );
           controls.target.lerp(targetPos, 0.1);
+        }
+      } else if (viewMode === 'cockpit') {
+        const uavNode = entityNodes.get('UAV-FALCON-01');
+        if (uavNode) {
+          const uavPos = uavNode.root.position;
+          camera.position.lerp(new THREE.Vector3(uavPos.x, uavPos.y - 0.015, uavPos.z), 0.15);
+          const spiNode = entityNodes.get('UAV-FALCON-01.SPI1') || entityNodes.get('HST-ARMOR-01');
+          const lookTarget = spiNode ? spiNode.root.position : new THREE.Vector3(0, 0.05, 0);
+          controls.target.lerp(lookTarget, 0.15);
+        }
+      }
+
+      // Phase 12: WebXR Single-Hand Grab, Two-Handed Pinch-to-Scale/Rotate, Ray Reticle & Thumbstick Locomotion
+      if (renderer.xr.isPresenting) {
+        if (gripState.active[0] && gripState.active[1]) {
+          const p0 = new THREE.Vector3().setFromMatrixPosition(xrControllers[0].matrixWorld);
+          const p1 = new THREE.Vector3().setFromMatrixPosition(xrControllers[1].matrixWorld);
+          const dist = Math.max(p0.distanceTo(p1), 0.05);
+          const nextScale = THREE.MathUtils.clamp(gripState.initialScale * (dist / gripState.initialPinchDist), 0.4, 12.0);
+          tableGroup.scale.setScalar(nextScale);
+          const angle = Math.atan2(p1.z - p0.z, p1.x - p0.x);
+          tableGroup.rotation.y = gripState.initialRotY - (angle - gripState.initialAngle);
+        } else if (gripState.grabCtrlIdx >= 0) {
+          const ctrlPos = new THREE.Vector3().setFromMatrixPosition(xrControllers[gripState.grabCtrlIdx].matrixWorld);
+          tableGroup.position.copy(ctrlPos).add(gripState.grabOffset);
+        }
+
+        if (terrainMesh && xrControllers[0]) {
+          const tempMatrix = new THREE.Matrix4().extractRotation(xrControllers[0].matrixWorld);
+          raycaster.ray.origin.setFromMatrixPosition(xrControllers[0].matrixWorld);
+          raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+          const hits = raycaster.intersectObject(terrainMesh, false);
+          if (hits.length > 0) {
+            updateReticleAtLocal(tableGroup.worldToLocal(hits[0].point.clone()), timeMs);
+          }
+        }
+
+        const session = renderer.xr.getSession();
+        if (session && session.inputSources) {
+          for (const src of session.inputSources) {
+            if (src.gamepad && src.gamepad.axes && src.gamepad.axes.length >= 4) {
+              const axX = src.gamepad.axes[2] || 0;
+              const axY = src.gamepad.axes[3] || 0;
+              if (Math.abs(axX) > 0.15 || Math.abs(axY) > 0.15) {
+                tableGroup.position.x -= axX * 0.018;
+                tableGroup.position.z -= axY * 0.018;
+              }
+            }
+          }
         }
       }
 

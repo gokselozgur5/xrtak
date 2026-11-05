@@ -23,6 +23,7 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 9** | [`xrtak-core::zones`](crates/xrtak-core/src/zones.rs) | Dynamic ATAK `u-d-f` Polygon Zone Ingestion, Dynamic Hostile Emitter Threat Domes (`a-h-G-E-S`), and Interactive 3D Link LOS Chord UI (`POST /api/los`) | **Complete (`REQ-TAC-01..03`)** |
 | **Phase 10** | [`xrtak-core::hud`](crates/xrtak-core/src/hud.rs) | 4D AAR Auto-Playback (`Play / Pause / 1x / 2x / 4x`), Replay Threat Dome Evaluation, and Helmet-Mounted First-Person AR Visor HUD Symbology (`GET /api/hud`) | **Complete (`ICD-10`)** |
 | **Phase 11** | [`scripts/run_live_demo.sh`](scripts/run_live_demo.sh) | Turnkey Multi-Domain Live Demo Director exercising ATAK `u-d-f` polygons, SAPIENT AI auto-slew, SAM domes, 3D Link LOS, and Quest 3 laser cues | **Complete** |
+| **Phase 12** | [`static/index.html`](crates/xrtak-gateway/static/index.html) & [`xr_sand_table.gd`](godot-xr/scripts/xr_sand_table.gd) | Diegetic 3D Holographic VR Control Dock, Single-Hand Grip Grab, Two-Handed Pinch-to-Scale & Twist-to-Rotate, 3D Terrain Ray Reticle, **1:1 Valley Walk-In Mode**, and **UAV Cockpit Ride-Along POV** | **Complete** |
 
 See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
