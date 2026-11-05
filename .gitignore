@@ -1,3 +1,4 @@
 target/
 .DS_Store
 godot-xr/.godot/
+data/real_pins.json
