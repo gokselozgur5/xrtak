@@ -12,6 +12,13 @@ use xrtak_core::{
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
+const CORS_HEADERS: &str = "Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nAccess-Control-Allow-Private-Network: true\r\n";
+
+fn json_ok_header(len: usize) -> String {
+    format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {len}\r\nConnection: close\r\n\r\n"
+    )
+}
 
 #[derive(Debug, Clone, Serialize)]
 struct WorldSnapshot {
@@ -201,9 +208,17 @@ async fn handle_http_connection(
     let method = parts[0];
     let path = parts[1];
 
+    if method == "OPTIONS" {
+        let header = format!(
+            "HTTP/1.1 204 No Content\r\n{CORS_HEADERS}Content-Length: 0\r\nConnection: close\r\n\r\n"
+        );
+        stream.write_all(header.as_bytes()).await?;
+        return Ok(());
+    }
+
     if method == "GET" && (path == "/" || path == "/index.html") {
         let header = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n",
+            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n{CORS_HEADERS}Content-Length: {}\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n",
             INDEX_HTML.len()
         );
         stream.write_all(header.as_bytes()).await?;
@@ -228,10 +243,7 @@ async fn handle_http_connection(
             };
             serde_json::to_string(&snap)?
         };
-        let header = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            body.len()
-        );
+        let header = json_ok_header(body.len());
         stream.write_all(header.as_bytes()).await?;
         stream.write_all(body.as_bytes()).await?;
         return Ok(());
@@ -260,10 +272,7 @@ async fn handle_http_connection(
             })
             .to_string()
         };
-        let header = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            body.len()
-        );
+        let header = json_ok_header(body.len());
         stream.write_all(header.as_bytes()).await?;
         stream.write_all(body.as_bytes()).await?;
         return Ok(());
@@ -291,10 +300,7 @@ async fn handle_http_connection(
             })
             .to_string()
         };
-        let header = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            body.len()
-        );
+        let header = json_ok_header(body.len());
         stream.write_all(header.as_bytes()).await?;
         stream.write_all(body.as_bytes()).await?;
         return Ok(());
@@ -313,10 +319,7 @@ async fn handle_http_connection(
             })
             .to_string()
         };
-        let header = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            body.len()
-        );
+        let header = json_ok_header(body.len());
         stream.write_all(header.as_bytes()).await?;
         stream.write_all(body.as_bytes()).await?;
         return Ok(());
@@ -354,10 +357,7 @@ async fn handle_http_connection(
                 })
                 .to_string()
             };
-            let header = format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                resp_json.len()
-            );
+            let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
@@ -365,7 +365,7 @@ async fn handle_http_connection(
     }
 
     if method == "GET" && path == "/api/stream" {
-        let header = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n";
+        let header = format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n{CORS_HEADERS}\r\n");
         stream.write_all(header.as_bytes()).await?;
         let mut rx = tx.subscribe();
         while let Ok(json) = rx.recv().await {
@@ -386,17 +386,14 @@ async fn handle_http_connection(
         match res {
             Ok(ent) => {
                 let json = serde_json::to_string(&ent)?;
-                let header = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    json.len()
-                );
+                let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
             }
             Err(err) => {
                 let msg = serde_json::json!({ "error": err }).to_string();
                 let header = format!(
-                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
                     msg.len()
                 );
                 stream.write_all(header.as_bytes()).await?;
@@ -418,10 +415,7 @@ async fn handle_http_connection(
                     guard.clear_spi_lock(&sensor_uid);
                 }
                 let json = serde_json::json!({ "status": "cleared", "sensor_uid": sensor_uid }).to_string();
-                let header = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    json.len()
-                );
+                let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
@@ -435,10 +429,7 @@ async fn handle_http_connection(
             };
             if let Ok(entity) = res {
                 let json = serde_json::to_string(&entity)?;
-                let header = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    json.len()
-                );
+                let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
@@ -462,10 +453,7 @@ async fn handle_http_connection(
                 )
             };
             let json = serde_json::to_string(&vs)?;
-            let header = format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                json.len()
-            );
+            let header = json_ok_header(json.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(json.as_bytes()).await?;
             return Ok(());
@@ -490,10 +478,7 @@ async fn handle_http_connection(
             };
             if let Some(los_result) = res {
                 let json = serde_json::to_string(&los_result)?;
-                let header = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    json.len()
-                );
+                let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
@@ -526,10 +511,7 @@ async fn handle_http_connection(
             };
             if let Ok(entity) = ent {
                 let json = serde_json::to_string(&entity)?;
-                let header = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    json.len()
-                );
+                let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
@@ -554,10 +536,7 @@ async fn handle_http_connection(
             }
             if let Ok(entity) = res {
                 let json = serde_json::to_string(&entity)?;
-                let header = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    json.len()
-                );
+                let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
@@ -577,10 +556,7 @@ async fn handle_http_connection(
                     let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
                 }
                 let json = serde_json::to_string(&entity)?;
-                let header = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    json.len()
-                );
+                let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
@@ -635,10 +611,7 @@ async fn handle_http_connection(
                 })
                 .to_string()
             };
-            let header = format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                resp.len()
-            );
+            let header = json_ok_header(resp.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp.as_bytes()).await?;
             return Ok(());

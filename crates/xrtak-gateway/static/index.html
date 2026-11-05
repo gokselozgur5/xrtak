@@ -490,6 +490,11 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const API_BASE = (urlParams.get('gateway') || (window.location.hostname.endsWith('github.io') ? 'http://192.168.1.6:8090' : '')).replace(/\/$/, '');
+    const apiUrl = (path) => `${API_BASE}${path}`;
 
     const WORLD_EXTENT_M = 1500.0;
     const TABLE_RADIUS_UNITS = 0.75;
@@ -552,6 +557,29 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.xr.enabled = true;
     container.appendChild(renderer.domElement);
+
+    // Mount Official Three.js ARButton for Meta Quest 3 Passthrough (`immersive-ar`)
+    try {
+      const arBtn = ARButton.createButton(renderer, {
+        requiredFeatures: ['local-floor'],
+        optionalFeatures: ['dom-overlay', 'hand-tracking', 'bounded-floor'],
+        domOverlay: { root: document.body }
+      });
+      arBtn.style.bottom = '72px';
+      arBtn.style.zIndex = '25';
+      document.body.appendChild(arBtn);
+    } catch (e) {
+      console.warn('ARButton mount skipped:', e);
+    }
+
+    renderer.xr.addEventListener('sessionstart', () => {
+      document.body.classList.add('vr-headset-active');
+      tableGroup.position.set(0, -0.18, -0.68);
+    });
+    renderer.xr.addEventListener('sessionend', () => {
+      document.body.classList.remove('vr-headset-active');
+      tableGroup.position.set(0, 0, 0);
+    });
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0.08, 0);
@@ -1548,8 +1576,12 @@
 
     async function executeTerrainToolAt(eastM, northM, callerLabel = 'QUEST3-CMD') {
       const mode = interactionMode || 'laser';
+      if (standaloneSimActive) {
+        handleStandaloneTerrainToolAt(mode, eastM, northM, callerLabel);
+        return;
+      }
       if (mode === 'spi') {
-        await fetch('/api/spi', {
+        await fetch(apiUrl('/api/spi'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sensor_uid: 'UAV-FALCON-01', east_m: eastM, north_m: northM })
@@ -1557,7 +1589,7 @@
         return;
       }
       if (mode === 'viewshed') {
-        const res = await fetch('/api/viewshed', {
+        const res = await fetch(apiUrl('/api/viewshed'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ east_m: eastM, north_m: northM, height_offset_m: 18.0, radius_m: 680.0 })
@@ -1567,7 +1599,7 @@
       }
       if (mode === 'los') {
         const gndUp = sampleTerrainReliefM(eastM, northM) + 2.5;
-        const res = await fetch('/api/los', {
+        const res = await fetch(apiUrl('/api/los'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ from_uid: selectedUid, to_enu: [eastM, gndUp, northM] })
@@ -1577,7 +1609,7 @@
       }
       if (mode === 'friendly' || mode === 'hostile') {
         const isHostile = mode === 'hostile';
-        await fetch('/api/spawn', {
+        await fetch(apiUrl('/api/spawn'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1591,7 +1623,7 @@
         });
         return;
       }
-      await fetch('/api/pointer', {
+      await fetch(apiUrl('/api/pointer'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ callsign: callerLabel, east_m: eastM, north_m: northM })
@@ -1810,7 +1842,12 @@
 
     document.getElementById('btn-spi-slew').onclick = () => setInteractionMode('spi');
     document.getElementById('btn-spi-clear').onclick = async () => {
-      await fetch('/api/spi', {
+      if (standaloneSimActive) {
+        standaloneEntities = standaloneEntities.filter(e => e.uid !== 'UAV-FALCON-01.SPI1');
+        setInteractionMode(null);
+        return;
+      }
+      await fetch(apiUrl('/api/spi'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sensor_uid: 'UAV-FALCON-01', clear: true })
@@ -1822,7 +1859,12 @@
       // Immediately compute Viewshed for the currently selected unit AND enable click-terrain mode
       const sel = latestEntities.find(e => e.uid === selectedUid);
       if (sel) {
-        const res = await fetch('/api/viewshed', {
+        if (standaloneSimActive) {
+          renderViewshedCloud(computeClientViewshed(sel.east_m, sel.north_m, 18.0, 680.0));
+          setInteractionMode('viewshed');
+          return;
+        }
+        const res = await fetch(apiUrl('/api/viewshed'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1845,7 +1887,16 @@
 
     document.getElementById('btn-link-los').onclick = async () => {
       const peerUid = selectedUid === 'GND-OBSERVE-BRAVO' ? 'HST-ARMOR-01' : 'GND-OBSERVE-BRAVO';
-      const res = await fetch('/api/los', {
+      if (standaloneSimActive) {
+        const a = latestEntities.find(e => e.uid === selectedUid);
+        const b = latestEntities.find(e => e.uid === peerUid);
+        if (a && b) {
+          renderLinkLosChord(computeClientLos([a.east_m, a.up_m + 3.0, a.north_m], [b.east_m, b.up_m + 3.0, b.north_m]));
+        }
+        setInteractionMode('los');
+        return;
+      }
+      const res = await fetch(apiUrl('/api/los'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from_uid: selectedUid, to_uid: peerUid })
@@ -1970,7 +2021,28 @@
     document.getElementById('btn-sapient-ai').onclick = async () => {
       const p = SAPIENT_PRESETS[sapientSeq % SAPIENT_PRESETS.length];
       sapientSeq += 1;
-      const res = await fetch('/api/sapient', {
+      if (standaloneSimActive) {
+        const uid = `SAPIENT-ASM-EDGE-0${(sapientSeq % 3) + 1}-AI-${100 + sapientSeq}`;
+        const gnd = sampleTerrainReliefM(p.east_m, p.north_m);
+        standaloneEntities.push({
+          uid,
+          callsign: `AI-${p.classification}-${100 + sapientSeq}`,
+          cot_type: p.classification.includes('UAV') ? 'a-h-A-M-F-Q' : 'a-h-G-E-V',
+          affiliation: 'Hostile',
+          lat_deg: 39.925,
+          lon_deg: 32.836,
+          hae_m: 850 + gnd + p.alt_offset_m,
+          east_m: p.east_m,
+          north_m: p.north_m,
+          up_m: gnd + p.alt_offset_m,
+          speed_mps: p.speed_mps,
+          course_deg: p.course_deg,
+          remarks: `SAPIENT BSI Flex 335 v2.0 Detection (${Math.round(p.confidence * 100)}% conf)`
+        });
+        selectedUid = uid;
+        return;
+      }
+      const res = await fetch(apiUrl('/api/sapient'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1988,22 +2060,26 @@
     let simUnitsEnabled = true;
     document.getElementById('btn-sim-toggle').onclick = async (e) => {
       simUnitsEnabled = !simUnitsEnabled;
-      await fetch('/api/tak-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sim_enabled: simUnitsEnabled })
-      });
+      try {
+        await fetch(apiUrl('/api/tak-config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sim_enabled: simUnitsEnabled })
+        });
+      } catch (_) {}
       e.target.textContent = `Sim Units: ${simUnitsEnabled ? 'ON' : 'OFF (LIVE)'}`;
       e.target.classList.toggle('active', simUnitsEnabled);
       document.getElementById('tak-mode-badge').textContent = simUnitsEnabled ? 'SIM+LIVE' : 'LIVE TAK ONLY';
     };
 
     document.getElementById('btn-auto-recenter').onclick = async (e) => {
-      await fetch('/api/tak-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auto_recenter: true })
-      });
+      try {
+        await fetch(apiUrl('/api/tak-config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ auto_recenter: true })
+        });
+      } catch (_) {}
       e.target.classList.add('active');
       e.target.textContent = 'Armed: Waiting CoT...';
     };
@@ -2011,11 +2087,13 @@
     document.getElementById('btn-tak-connect').onclick = async () => {
       const addr = document.getElementById('inp-tak-tcp').value.trim();
       if (!addr) return;
-      await fetch('/api/tak-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tak_tcp_addr: addr, auto_recenter: true })
-      });
+      try {
+        await fetch(apiUrl('/api/tak-config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tak_tcp_addr: addr, auto_recenter: true })
+        });
+      } catch (_) {}
       document.getElementById('tak-mode-badge').textContent = `TCP: ${addr}`;
     };
 
@@ -2097,13 +2175,193 @@
       xrControllers.push(ctrl);
     }
 
-    async function switchTerrainPreset(presetName) {
-      const res = await fetch('/api/terrain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preset: presetName })
+    let standaloneSimActive = false;
+    let standaloneEntities = [];
+    let standaloneSimTimeSec = 0.0;
+    let standaloneSpawnSeq = 1;
+
+    function computeClientPresetTerrain(presetName) {
+      const cols = 49, rows = 49, halfExtent = 1200.0;
+      const samples = new Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        const northM = -halfExtent + (2 * halfExtent * r) / (rows - 1);
+        for (let c = 0; c < cols; c++) {
+          const eastM = -halfExtent + (2 * halfExtent * c) / (cols - 1);
+          const nx = eastM / 450.0, nz = northM / 450.0;
+          let h = 0.0;
+          if (presetName === 'alpine') {
+            h = Math.sin(nx * 1.4) * Math.cos(nz * 1.3) * 145.0
+              + Math.exp(-((nx - 0.8) ** 2 + (nz + 0.6) ** 2) * 0.9) * 235.0
+              + Math.cos((nx + nz) * 2.1) * 48.0;
+          } else if (presetName === 'canyon') {
+            const river = Math.abs(nx - 0.25 * Math.sin(nz * 1.2));
+            h = Math.min(river * 190.0, 180.0) - 70.0 + Math.sin(nx * 2.5) * 22.0;
+          } else if (presetName === 'urban_bowl') {
+            const rad = Math.sqrt(nx * nx + nz * nz);
+            h = Math.max(0.0, (rad - 1.15) * 115.0) + Math.sin(nx * 4.0) * Math.cos(nz * 4.0) * 14.0;
+          } else {
+            const ridge1 = Math.sin(nx * 1.35 + 0.4) * Math.cos(nz * 1.15 - 0.2) * 95.0;
+            const ridge2 = Math.cos((nx - nz) * 0.95) * 58.0;
+            const valley = -Math.exp(-(nx * nx * 0.65 + nz * nz * 0.25)) * 75.0;
+            h = ridge1 + ridge2 + valley + 50.0;
+          }
+          samples[r * cols + c] = h;
+        }
+      }
+      return {
+        name: `SRTM-30M-${presetName.toUpperCase()}`,
+        resolution: cols,
+        extent_m: halfExtent,
+        heights_m: samples
+      };
+    }
+
+    function computeClientViewshed(eastM, northM, heightOffsetM, radiusM) {
+      const obsGround = sampleTerrainReliefM(eastM, northM);
+      const obsUp = obsGround + heightOffsetM;
+      const samples = [];
+      let visCount = 0;
+      const step = 75.0;
+      for (let dz = -radiusM; dz <= radiusM; dz += step) {
+        for (let dx = -radiusM; dx <= radiusM; dx += step) {
+          const dist = Math.hypot(dx, dz);
+          if (dist > radiusM || dist < 15.0) continue;
+          const tx = eastM + dx, tz = northM + dz;
+          const tUp = sampleTerrainReliefM(tx, tz) + 2.0;
+          let visible = true;
+          const steps = Math.max(4, Math.floor(dist / 38.0));
+          for (let s = 1; s < steps; s++) {
+            const frac = s / steps;
+            const ix = eastM + dx * frac;
+            const iz = northM + dz * frac;
+            const rayUp = obsUp + (tUp - obsUp) * frac;
+            if (sampleTerrainReliefM(ix, iz) > rayUp + 1.0) {
+              visible = false;
+              break;
+            }
+          }
+          if (visible) visCount++;
+          samples.push({ east_m: tx, north_m: tz, up_m: tUp, visible });
+        }
+      }
+      return {
+        observer_enu: [eastM, obsUp, northM],
+        radius_m: radiusM,
+        visible_ratio: samples.length ? visCount / samples.length : 1.0,
+        samples
+      };
+    }
+
+    function computeClientLos(fromEnu, toEnu) {
+      const [fx, fy, fz] = fromEnu;
+      const [tx, ty, tz] = toEnu;
+      const steps = 32;
+      let clear = true;
+      let firstOcc = null;
+      let maxClearance = -999;
+      for (let s = 1; s < steps; s++) {
+        const frac = s / steps;
+        const ix = fx + (tx - fx) * frac;
+        const iy = fy + (ty - fy) * frac;
+        const iz = fz + (tz - fz) * frac;
+        const gnd = sampleTerrainReliefM(ix, iz);
+        const diff = gnd - iy;
+        if (diff > maxClearance) maxClearance = diff;
+        if (gnd > iy && !firstOcc) {
+          clear = false;
+          firstOcc = [ix, gnd, iz];
+        }
+      }
+      return {
+        from_enu: fromEnu,
+        to_enu: toEnu,
+        clear,
+        obstruction_enu: firstOcc,
+        min_clearance_m: -maxClearance,
+        slant_range_m: Math.hypot(tx - fx, ty - fy, tz - fz)
+      };
+    }
+
+    function handleStandaloneTerrainToolAt(mode, eastM, northM, callerLabel) {
+      const gnd = sampleTerrainReliefM(eastM, northM);
+      if (mode === 'spi') {
+        standaloneEntities = standaloneEntities.filter(e => e.uid !== 'UAV-FALCON-01.SPI1');
+        standaloneEntities.push({
+          uid: 'UAV-FALCON-01.SPI1',
+          callsign: 'FALCON-1-SPI',
+          cot_type: 'b-m-p-s-p-i',
+          affiliation: 'Unknown',
+          lat_deg: 39.925,
+          lon_deg: 32.836,
+          hae_m: 850.0 + gnd,
+          east_m: eastM,
+          north_m: northM,
+          up_m: gnd,
+          speed_mps: 0.0,
+          course_deg: 0.0,
+          remarks: `Gimbal SPI Slaved via ${callerLabel}`
+        });
+        return;
+      }
+      if (mode === 'viewshed') {
+        renderViewshedCloud(computeClientViewshed(eastM, northM, 18.0, 680.0));
+        return;
+      }
+      if (mode === 'los') {
+        const sel = latestEntities.find(e => e.uid === selectedUid) || { east_m: 0, up_m: 90, north_m: 0 };
+        renderLinkLosChord(computeClientLos([sel.east_m, sel.up_m + 3.0, sel.north_m], [eastM, gnd + 2.5, northM]));
+        return;
+      }
+      if (mode === 'friendly' || mode === 'hostile') {
+        const isHostile = mode === 'hostile';
+        const uid = `XR-PIN-${standaloneSpawnSeq++}`;
+        standaloneEntities.push({
+          uid,
+          callsign: isHostile ? `TGT-XR-${standaloneSpawnSeq}` : `PIN-XR-${standaloneSpawnSeq}`,
+          cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
+          affiliation: isHostile ? 'Hostile' : 'Friendly',
+          lat_deg: 39.925,
+          lon_deg: 32.836,
+          hae_m: 850.0 + gnd,
+          east_m: eastM,
+          north_m: northM,
+          up_m: gnd,
+          speed_mps: 0.0,
+          course_deg: 0.0,
+          remarks: `Pinned via Quest 3 WebXR at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
+        });
+        selectedUid = uid;
+        return;
+      }
+      standaloneEntities = standaloneEntities.filter(e => e.uid !== 'XR-LASER-PTR');
+      standaloneEntities.push({
+        uid: 'XR-LASER-PTR',
+        callsign: `${callerLabel}-PTR`,
+        cot_type: 'b-m-p-s-p-i',
+        affiliation: 'Friendly',
+        lat_deg: 39.925,
+        lon_deg: 32.836,
+        hae_m: 850.0 + gnd,
+        east_m: eastM,
+        north_m: northM,
+        up_m: gnd,
+        speed_mps: 0.0,
+        course_deg: 0.0,
+        remarks: `3D Laser Ray Designator (${callerLabel})`
       });
-      activeDemGrid = await res.json();
+    }
+
+    async function switchTerrainPreset(presetName) {
+      if (standaloneSimActive) {
+        activeDemGrid = computeClientPresetTerrain(presetName);
+      } else {
+        const res = await fetch(apiUrl('/api/terrain'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preset: presetName })
+        });
+        activeDemGrid = await res.json();
+      }
       buildTerrainMesh();
       document.getElementById('terrain-label').textContent = (activeDemGrid.name || presetName).toUpperCase();
       document.getElementById('btn-dem-valley').classList.toggle('active', presetName === 'valley');
@@ -2276,6 +2534,104 @@
       e.target.classList.toggle('active', sc > 1.0);
     };
 
+    function startStandaloneClientSim(aarSlider, aarLabel, isReplayRef) {
+      if (standaloneSimActive) return;
+      standaloneSimActive = true;
+      activeDemGrid = computeClientPresetTerrain('valley');
+      buildTerrainMesh();
+
+      const threatDomes = [
+        { uid: 'SAM-SA15-TOR', label: 'SA-15 GAUNTLET SHORAD', east_m: 380.0, north_m: -320.0, up_m: sampleTerrainReliefM(380, -320), radius_m: 310.0, color_hex: '#ff3355' },
+        { uid: 'EW-KRASUKHA-01', label: 'EW GPS JAMMER DOME', east_m: -420.0, north_m: -240.0, up_m: sampleTerrainReliefM(-420, -240), radius_m: 250.0, color_hex: '#ffaa00' }
+      ];
+      const tacticalZones = [
+        {
+          uid: 'ROZ-ALPHA-CORRIDOR',
+          label: 'ROZ-ALPHA UAV CORRIDOR',
+          kind: 'roz',
+          color_hex: '#00e5ff',
+          floor_m: 120.0,
+          ceiling_m: 380.0,
+          vertices_enu: [[-520.0, 120.0], [-140.0, 440.0], [220.0, 390.0], [-120.0, -40.0]]
+        },
+        {
+          uid: 'NFZ-RED-VALLEY',
+          label: 'NFZ HOSTILE SHORAD BOX',
+          kind: 'nfz',
+          color_hex: '#ff3355',
+          floor_m: 0.0,
+          ceiling_m: 320.0,
+          vertices_enu: [[180.0, -520.0], [560.0, -520.0], [560.0, -120.0], [180.0, -120.0]]
+        }
+      ];
+
+      setInterval(() => {
+        if (isReplayRef()) return;
+        standaloneSimTimeSec += 0.05;
+        const t = standaloneSimTimeSec;
+        const f1E = Math.cos(t * 0.22) * 390.0, f1N = Math.sin(t * 0.22) * 320.0;
+        const f2E = Math.sin(t * 0.16) * 460.0, f2N = Math.cos(t * 0.16) * 290.0;
+        const h1E = 240.0 + Math.sin(t * 0.11) * 140.0, h1N = -210.0 + Math.cos(t * 0.11) * 110.0;
+        const g1Gnd = sampleTerrainReliefM(-180, 140);
+        const g2Gnd = sampleTerrainReliefM(110, 260);
+        const h1Gnd = sampleTerrainReliefM(h1E, h1N);
+        const h2Gnd = sampleTerrainReliefM(380, -320);
+
+        const baseTracks = [
+          {
+            uid: 'UAV-FALCON-01', callsign: 'FALCON-1 (ISR UAV)', cot_type: 'a-f-A-M-F-Q', affiliation: 'Friendly',
+            lat_deg: 39.925 + f1N / 111111, lon_deg: 32.836 + f1E / 85000, hae_m: 1170.0,
+            east_m: f1E, north_m: f1N, up_m: 320.0, speed_mps: 28.5, course_deg: ((t * 0.22 * 180 / Math.PI) + 90) % 360,
+            remarks: 'EO/IR Thermal Overwatch · RTSP Active'
+          },
+          {
+            uid: 'UAV-VALKYRIE-02', callsign: 'VALKYRIE-2 (SAR)', cot_type: 'a-f-A-M-F-Q', affiliation: 'Friendly',
+            lat_deg: 39.925 + f2N / 111111, lon_deg: 32.836 + f2E / 85000, hae_m: 1230.0,
+            east_m: f2E, north_m: f2N, up_m: 380.0, speed_mps: 34.0, course_deg: ((t * 0.16 * 180 / Math.PI) + 180) % 360,
+            remarks: 'Synthetic Aperture Radar Strip-Map'
+          },
+          {
+            uid: 'GND-SPEAR-ALPHA', callsign: 'SPEAR-ALPHA (JTAC)', cot_type: 'a-f-G-U-C', affiliation: 'Friendly',
+            lat_deg: 39.9262, lon_deg: 32.8342, hae_m: 850.0 + g1Gnd,
+            east_m: -180.0, north_m: 140.0, up_m: g1Gnd, speed_mps: 1.4, course_deg: 45.0,
+            remarks: 'Quest 3 WebXR Command Post'
+          },
+          {
+            uid: 'GND-OBSERVE-BRAVO', callsign: 'OP-BRAVO (RECON)', cot_type: 'a-f-G-U-C-I', affiliation: 'Friendly',
+            lat_deg: 39.9273, lon_deg: 32.8371, hae_m: 850.0 + g2Gnd,
+            east_m: 110.0, north_m: 260.0, up_m: g2Gnd, speed_mps: 0.0, course_deg: 135.0,
+            remarks: 'Ridge Overwatch PTZ + Laser Designator'
+          },
+          {
+            uid: 'HST-ARMOR-01', callsign: 'T-72B3 CONVOY', cot_type: 'a-h-G-E-V-A', affiliation: 'Hostile',
+            lat_deg: 39.9231, lon_deg: 32.8388, hae_m: 850.0 + h1Gnd,
+            east_m: h1E, north_m: h1N, up_m: h1Gnd, speed_mps: 8.4, course_deg: 295.0,
+            remarks: 'Moving Armor Column in Southern Valley'
+          },
+          {
+            uid: 'HST-RADAR-02', callsign: 'SA-15 TELAR', cot_type: 'a-h-G-E-S', affiliation: 'Hostile',
+            lat_deg: 39.9221, lon_deg: 32.8402, hae_m: 850.0 + h2Gnd,
+            east_m: 380.0, north_m: -320.0, up_m: h2Gnd, speed_mps: 0.0, course_deg: 315.0,
+            remarks: 'Active SHORAD Engagement Radar'
+          }
+        ];
+
+        const merged = baseTracks.concat(standaloneEntities);
+        aarSlider.min = '0.0';
+        aarSlider.max = Math.max(t, 10.0).toFixed(1);
+        aarSlider.value = t;
+        aarLabel.textContent = `T+${t.toFixed(1)}s (HTTPS XR)`;
+
+        updateHudAndRoster({
+          sim_time_sec: t,
+          udp_cot_packets_rx: Math.floor(t * 12),
+          entities: merged,
+          threat_domes: threatDomes,
+          tactical_zones: tacticalZones
+        });
+      }, 50);
+    }
+
     function connectTelemetryStream() {
       let aarReplayActive = false;
       let aarPlaying = false;
@@ -2287,7 +2643,8 @@
       const speedBtn = document.getElementById('btn-aar-speed');
 
       async function loadAarFrameAt(t) {
-        const res = await fetch(`/api/aar?t=${t.toFixed(2)}`);
+        if (standaloneSimActive) return;
+        const res = await fetch(apiUrl(`/api/aar?t=${t.toFixed(2)}`));
         const data = await res.json();
         if (data.frame) {
           aarLabel.textContent = `REPLAY T+${data.frame.sim_time_sec.toFixed(1)}s (${aarSpeed}x)`;
@@ -2342,28 +2699,33 @@
         aarBadge.classList.remove('replay');
       };
 
-      const es = new EventSource('/api/stream');
-      es.onmessage = (ev) => {
-        try {
-          const snap = JSON.parse(ev.data);
-          if (snap.aar) {
-            aarSlider.min = snap.aar.min_time_sec.toFixed(1);
-            aarSlider.max = Math.max(snap.aar.max_time_sec, 1.0).toFixed(1);
-            if (!aarReplayActive) {
-              aarSlider.value = snap.sim_time_sec;
-              aarLabel.textContent = `T+${snap.sim_time_sec.toFixed(1)}s (${snap.aar.frame_count}f)`;
+      try {
+        const es = new EventSource(apiUrl('/api/stream'));
+        es.onmessage = (ev) => {
+          try {
+            const snap = JSON.parse(ev.data);
+            if (snap.aar) {
+              aarSlider.min = snap.aar.min_time_sec.toFixed(1);
+              aarSlider.max = Math.max(snap.aar.max_time_sec, 1.0).toFixed(1);
+              if (!aarReplayActive) {
+                aarSlider.value = snap.sim_time_sec;
+                aarLabel.textContent = `T+${snap.sim_time_sec.toFixed(1)}s (${snap.aar.frame_count}f)`;
+              }
             }
+            if (!aarReplayActive) {
+              updateHudAndRoster(snap);
+            }
+          } catch (err) {
+            console.error('Telemetry parse error:', err);
           }
-          if (!aarReplayActive) {
-            updateHudAndRoster(snap);
-          }
-        } catch (err) {
-          console.error('Telemetry parse error:', err);
-        }
-      };
-      es.onerror = () => {
-        document.getElementById('hud-status').textContent = 'RECONNECTING TO RUST CoT GATEWAY...';
-      };
+        };
+        es.onerror = () => {
+          es.close();
+          startStandaloneClientSim(aarSlider, aarLabel, () => aarReplayActive);
+        };
+      } catch (_) {
+        startStandaloneClientSim(aarSlider, aarLabel, () => aarReplayActive);
+      }
     }
     connectTelemetryStream();
 
