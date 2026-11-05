@@ -368,19 +368,19 @@
       <span id="hud-origin">SECTOR: 39.9200N 32.8500E (3.0x3.0 km)</span>
     </div>
     <div class="vr-command-bar" id="vr-command-bar-win">
-      <span class="drag-grip-badge drag-handle-2d" data-drag-target="vr-command-bar-win" title="Drag to move VR Command Bar">✋ MOVE</span>
-      <button class="vr-pill-btn primary" id="btn-top-vr-mode">🥽 ENTER VR HEADSET MODE (3D HANDS)</button>
-      <button class="vr-pill-btn" id="btn-top-real-map" style="border-color:var(--green);color:var(--green);">🛰 REAL SATELLITE + SRTM</button>
-      <button class="vr-pill-btn active" id="btn-top-buildings" style="border-color:#38bdf8;color:#38bdf8;">🏢 3D OSM BUILDINGS: ON</button>
-      <button class="vr-pill-btn" id="btn-top-real-pin" style="border-color:#fbbf24;color:#fbbf24;">📍 DROP REAL PIN</button>
-      <button class="vr-pill-btn" id="btn-top-spectate">🦅 FREE SPECTATE 6DoF</button>
-      <button class="vr-pill-btn" id="btn-top-summon">🧲 SUMMON TABLE HERE</button>
-      <button class="vr-pill-btn" id="btn-top-reset-panels">🔄 RESET PANELS</button>
-      <button class="vr-pill-btn" id="btn-top-stereo">👁 STEREO 3D SBS: OFF</button>
-      <button class="vr-pill-btn" id="btn-top-walkin">🚶 1:1 WALK-IN VALLEY</button>
-      <button class="vr-pill-btn" id="btn-top-cockpit">🚁 UAV COCKPIT POV</button>
-      <button class="vr-pill-btn" id="btn-top-visor">🎯 AR VISOR HUD</button>
-      <button class="vr-pill-btn" id="btn-top-scale">🔍 PINCH SCALE: 1.0x</button>
+      <span class="drag-grip-badge drag-handle-2d" data-drag-target="vr-command-bar-win" title="Drag to move VR Command Bar">MOVE</span>
+      <button class="vr-pill-btn primary" id="btn-top-vr-mode">ENTER VR HEADSET MODE (3D HANDS)</button>
+      <button class="vr-pill-btn" id="btn-top-real-map" style="border-color:var(--green);color:var(--green);">REAL SATELLITE + SRTM</button>
+      <button class="vr-pill-btn active" id="btn-top-buildings" style="border-color:#38bdf8;color:#38bdf8;">3D OSM BUILDINGS: ON</button>
+      <button class="vr-pill-btn" id="btn-top-real-pin" style="border-color:#fbbf24;color:#fbbf24;">DROP REAL PIN</button>
+      <button class="vr-pill-btn" id="btn-top-spectate">FREE SPECTATE 6DoF</button>
+      <button class="vr-pill-btn" id="btn-top-summon">SUMMON TABLE HERE</button>
+      <button class="vr-pill-btn" id="btn-top-reset-panels">RESET PANELS</button>
+      <button class="vr-pill-btn" id="btn-top-stereo">STEREO 3D SBS: OFF</button>
+      <button class="vr-pill-btn" id="btn-top-walkin">1:1 WALK-IN VALLEY</button>
+      <button class="vr-pill-btn" id="btn-top-cockpit">UAV COCKPIT POV</button>
+      <button class="vr-pill-btn" id="btn-top-visor">AR VISOR HUD</button>
+      <button class="vr-pill-btn" id="btn-top-scale">PINCH SCALE: 1.0x</button>
     </div>
     <div class="status-pill">
       <span class="dot-live"></span>
@@ -390,7 +390,7 @@
 
   <div class="left-panel" id="left-panel-win">
     <div class="panel-title drag-handle-2d" data-drag-target="left-panel-win" title="Drag to move Left Panel">
-      <span>✋ XR-TAK // CoT TRACKS</span>
+      <span>XR-TAK // CoT TRACKS</span>
       <span id="track-count">0 UNITS</span>
     </div>
 
@@ -415,7 +415,7 @@
     </div>
     <div class="btn-group">
       <button class="tac-btn active" id="btn-view-table">3D Sand Table</button>
-      <button class="tac-btn" id="btn-view-spectate">🦅 Free Spectate 6DoF</button>
+      <button class="tac-btn" id="btn-view-spectate">Free Spectate 6DoF</button>
       <button class="tac-btn" id="btn-view-chase">UAV Chase Cam</button>
       <button class="tac-btn" id="btn-view-visor">HUD Visor Mode</button>
       <button class="tac-btn" id="btn-view-walkin">1:1 Walk-In Valley</button>
@@ -441,13 +441,13 @@
     </div>
     <input id="inp-pin-remarks" placeholder="Pin Remarks / Mission Note (saved to CoT & GeoJSON)" value="Real-World Tactical Pin" style="background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
     <div class="btn-group">
-      <button class="tac-btn spi-btn" id="btn-drop-custom-pin" style="grid-column:span 2;border-color:var(--green);color:var(--green);font-weight:700;">📍 Arm Real Pin Drop (Click 3D Map / VR Trigger)</button>
+      <button class="tac-btn spi-btn" id="btn-drop-custom-pin" style="grid-column:span 2;border-color:var(--green);color:var(--green);font-weight:700;">Arm Real Pin Drop (Click 3D Map / VR Trigger)</button>
       <button class="tac-btn" id="btn-drop-friendly">+ Quick Friendly</button>
       <button class="tac-btn" id="btn-drop-hostile">+ Quick Hostile</button>
-      <button class="tac-btn" id="btn-delete-selected-pin" style="border-color:var(--red);color:#ff7788;">🗑 Delete Selected Pin</button>
-      <button class="tac-btn" id="btn-export-geojson">⬇ Export GeoJSON</button>
-      <button class="tac-btn" id="btn-export-cot" style="grid-column:span 2;">⬇ Export Real ATAK CoT XML Bundle</button>
-      <button class="tac-btn spi-btn" id="btn-sapient-ai" style="grid-column:span 2;border-color:var(--red);color:#ff7788;">⚡ SAPIENT AI Detection (Auto-Slew)</button>
+      <button class="tac-btn" id="btn-delete-selected-pin" style="border-color:var(--red);color:#ff7788;">Delete Selected Pin</button>
+      <button class="tac-btn" id="btn-export-geojson">Export GeoJSON</button>
+      <button class="tac-btn" id="btn-export-cot" style="grid-column:span 2;">Export Real ATAK CoT XML Bundle</button>
+      <button class="tac-btn spi-btn" id="btn-sapient-ai" style="grid-column:span 2;border-color:var(--red);color:#ff7788;">SAPIENT AI Detection (Auto-Slew)</button>
     </div>
 
     <div class="panel-title" style="margin-top:2px;">
@@ -455,20 +455,20 @@
       <span id="terrain-label" style="color:var(--green);">VALLEY</span>
     </div>
     <div style="display:flex;gap:5px;">
-      <input id="inp-city-search" placeholder="🌍 Search Any City / Place (e.g. Istanbul, Manhattan, Paris)" style="flex:1;background:#040b14;color:#00ff88;border:1px solid rgba(0,255,136,0.45);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
-      <button class="tac-btn spi-btn" id="btn-search-city" style="padding:5px 9px;font-weight:700;border-color:var(--green);color:var(--green);">🔍 Fly To</button>
+      <input id="inp-city-search" placeholder="Search Any City / Place (e.g. Istanbul, Manhattan, Paris)" style="flex:1;background:#040b14;color:#00ff88;border:1px solid rgba(0,255,136,0.45);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
+      <button class="tac-btn spi-btn" id="btn-search-city" style="padding:5px 9px;font-weight:700;border-color:var(--green);color:var(--green);">Fly To</button>
     </div>
     <div style="display:flex;gap:5px;">
       <input id="inp-real-coords" placeholder="Lat, Lon (e.g. 39.9200, 32.8500)" value="39.9200, 32.8500" style="flex:1;background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
-      <button class="tac-btn spi-btn" id="btn-load-real-map" style="padding:5px 8px;font-weight:700;">🛰 Load Map</button>
-      <button class="tac-btn" id="btn-my-real-gps" title="Use Browser / Device Real GPS Coordinates" style="padding:5px 7px;">📍 GPS</button>
+      <button class="tac-btn spi-btn" id="btn-load-real-map" style="padding:5px 8px;font-weight:700;">Load Map</button>
+      <button class="tac-btn" id="btn-my-real-gps" title="Use Browser / Device Real GPS Coordinates" style="padding:5px 7px;">GPS</button>
     </div>
     <div class="btn-group">
-      <button class="tac-btn" id="btn-real-istanbul">🏙 Istanbul 3D</button>
-      <button class="tac-btn" id="btn-real-manhattan">🗽 Manhattan 3D</button>
-      <button class="tac-btn" id="btn-real-ankara">🏛 Ankara 3D</button>
-      <button class="tac-btn" id="btn-real-matterhorn">🏔 Matterhorn Alps</button>
-      <button class="tac-btn active" id="btn-toggle-buildings" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">🏢 Real 3D OSM Buildings: ON (<span id="osm-bldg-count">0</span>)</button>
+      <button class="tac-btn" id="btn-real-istanbul">Istanbul 3D</button>
+      <button class="tac-btn" id="btn-real-manhattan">Manhattan 3D</button>
+      <button class="tac-btn" id="btn-real-ankara">Ankara 3D</button>
+      <button class="tac-btn" id="btn-real-matterhorn">Matterhorn Alps</button>
+      <button class="tac-btn active" id="btn-toggle-buildings" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">Real 3D OSM Buildings: ON (<span id="osm-bldg-count">0</span>)</button>
       <button class="tac-btn" id="btn-map-sat">Imagery: Satellite</button>
       <button class="tac-btn" id="btn-map-topo">Imagery: OpenTopo</button>
       <button class="tac-btn active" id="btn-dem-valley">Valley Relief</button>
@@ -480,7 +480,7 @@
 
   <div class="right-panel" id="right-panel-win">
     <div class="panel-title drag-handle-2d" data-drag-target="right-panel-win" title="Drag to move Right Panel">
-      <span>✋ SELECTED CoT ENTITY</span>
+      <span>SELECTED CoT ENTITY</span>
       <span id="sel-affiliation" style="color:var(--cyan);">FRIENDLY</span>
     </div>
     <div class="kv-grid">
@@ -513,7 +513,7 @@
       </div>
     </div>
     <div style="display:flex;gap:5px;">
-      <button class="tac-btn" id="btn-live-webcam" style="flex:1;border-color:#00ff88;color:#00ff88;">📹 Bind Live Camera to 3D Wall</button>
+      <button class="tac-btn" id="btn-live-webcam" style="flex:1;border-color:#00ff88;color:#00ff88;">Bind Live Camera to 3D Wall</button>
     </div>
 
     <div class="panel-title" style="margin-top:4px;">
@@ -532,13 +532,13 @@
   </div>
 
   <div class="bottom-help" id="bottom-help">
-    ✋ Drag Any 3D Screen / 3D VR Dock / 2D Window Handle to Move Anywhere · Left-Drag: Orbit · Right-Drag: Free Pan · Double-Click: Fly To
+    Drag Any 3D Screen / 3D VR Dock / 2D Window Handle to Move Anywhere · Left-Drag: Orbit · Right-Drag: Free Pan · Double-Click: Fly To
   </div>
 
   <div class="aar-bar" id="aar-bar-win">
-    <span class="drag-grip-badge drag-handle-2d" data-drag-target="aar-bar-win" title="Drag to move 4D AAR Timeline Bar">✋ MOVE</span>
+    <span class="drag-grip-badge drag-handle-2d" data-drag-target="aar-bar-win" title="Drag to move 4D AAR Timeline Bar">MOVE</span>
     <span class="aar-badge" id="aar-mode-badge">LIVE 20Hz</span>
-    <button class="tac-btn" id="btn-aar-play" style="padding:4px 9px;">▶ Play</button>
+    <button class="tac-btn" id="btn-aar-play" style="padding:4px 9px;">Play</button>
     <button class="tac-btn" id="btn-aar-speed" style="padding:4px 8px;">1x</button>
     <button class="tac-btn" id="btn-aar-live" style="padding:4px 9px;">Return LIVE</button>
     <input type="range" class="aar-slider" id="aar-slider" min="0" max="60" step="0.2" value="60" />
@@ -874,7 +874,7 @@
         hctx.fillStyle = '#020810';
         hctx.textAlign = 'center';
         hctx.textBaseline = 'middle';
-        hctx.fillText(`✋ GRAB & MOVE ${slot.title.split('//')[0].trim()}`, 160, 22);
+        hctx.fillText(`GRAB & MOVE ${slot.title.split('//')[0].trim()}`, 160, 22);
         const handleTex = new THREE.CanvasTexture(handleCanvas);
         const handleMesh = new THREE.Mesh(
           new THREE.PlaneGeometry(0.28, 0.038),
@@ -1620,7 +1620,7 @@
     vrDockGroup.userData.customLocalPos = null;
     tableGroup.add(vrDockGroup);
     {
-      const dockHeader = makeTextSprite('🥽 3D HOLOGRAPHIC VR COMMAND DOCK (AUTO-FACING · CLICK OR POKE)', '#00ff88', 22);
+      const dockHeader = makeTextSprite('3D HOLOGRAPHIC VR COMMAND DOCK (AUTO-FACING · CLICK OR POKE)', '#00ff88', 22);
       dockHeader.scale.set(0.62, 0.052, 1);
       dockHeader.position.set(0, 0.168, 0);
       vrDockGroup.add(dockHeader);
@@ -1640,7 +1640,7 @@
       dhCtx.fillStyle = '#020810';
       dhCtx.textAlign = 'center';
       dhCtx.textBaseline = 'middle';
-      dhCtx.fillText('✋ GRAB & DRAG TO MOVE 3D BUTTON DOCK', 210, 24);
+      dhCtx.fillText('GRAB & DRAG TO MOVE 3D BUTTON DOCK', 210, 24);
       const dockHandleTex = new THREE.CanvasTexture(dockHandleCanvas);
       const dockHandleMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(0.46, 0.048),
@@ -1657,16 +1657,16 @@
     let showOsmBuildings = true;
 
     const VR_DOCK_DEFS = [
-      { id: 'dock-spi', label: '🎯 SPI SLEW', row: 0, col: 0 },
-      { id: 'dock-viewshed', label: '👁 VIEWSHED', row: 0, col: 1 },
-      { id: 'dock-los', label: '📡 LINK LOS', row: 0, col: 2 },
-      { id: 'dock-buildings', label: '🏢 3D BLDGS', row: 0, col: 3 },
-      { id: 'dock-spectate', label: '🦅 FREE 6DoF', row: 0, col: 4 },
-      { id: 'dock-real-pin', label: '📍 REAL PIN', row: 1, col: 0 },
-      { id: 'dock-real-map', label: '🛰 REAL MAP', row: 1, col: 1 },
-      { id: 'dock-city', label: '🏙 3D CITIES', row: 1, col: 2 },
-      { id: 'dock-walkin', label: '🚶 1:1 WALK-IN', row: 1, col: 3 },
-      { id: 'dock-cockpit', label: '🚁 COCKPIT POV', row: 1, col: 4 },
+      { id: 'dock-spi', label: 'SPI SLEW', row: 0, col: 0 },
+      { id: 'dock-viewshed', label: 'VIEWSHED', row: 0, col: 1 },
+      { id: 'dock-los', label: 'LINK LOS', row: 0, col: 2 },
+      { id: 'dock-buildings', label: '3D BLDGS', row: 0, col: 3 },
+      { id: 'dock-spectate', label: 'FREE 6DoF', row: 0, col: 4 },
+      { id: 'dock-real-pin', label: 'REAL PIN', row: 1, col: 0 },
+      { id: 'dock-real-map', label: 'REAL MAP', row: 1, col: 1 },
+      { id: 'dock-city', label: '3D CITIES', row: 1, col: 2 },
+      { id: 'dock-walkin', label: '1:1 WALK-IN', row: 1, col: 3 },
+      { id: 'dock-cockpit', label: 'COCKPIT POV', row: 1, col: 4 },
     ];
     const vrDockButtons = [];
 
@@ -2283,7 +2283,7 @@
         camera.getWorldDirection(fwd);
         controls.target.copy(camera.position).addScaledVector(fwd, 0.35);
         document.getElementById('bottom-help').textContent =
-          '🦅 FREE SPECTATE 6DoF: Left-Drag Look · Right-Drag / Two-Finger Pan Anywhere · WASD + Q/E + Shift Fly · Double-Click Any Unit/Ridge to Fly There';
+          'FREE SPECTATE 6DoF: Left-Drag Look · Right-Drag / Two-Finger Pan Anywhere · WASD + Q/E + Shift Fly · Double-Click Any Unit/Ridge to Fly There';
       } else if (mode === 'chase') {
         tableGroup.scale.setScalar(1.0);
         tableGroup.position.set(0, 0, 0);
@@ -2307,7 +2307,7 @@
         document.getElementById('hud-mode-label').textContent = 'MODE: FALCON-1 UAV COCKPIT RIDE-ALONG';
       }
       const scaleBtn = document.getElementById('btn-top-scale');
-      if (scaleBtn) scaleBtn.textContent = `🔍 PINCH SCALE: ${tableGroup.scale.x.toFixed(1)}x`;
+      if (scaleBtn) scaleBtn.textContent = `PINCH SCALE: ${tableGroup.scale.x.toFixed(1)}x`;
       refreshVrDockVisuals();
     }
 
@@ -3112,11 +3112,11 @@
       const btnTop = document.getElementById('btn-top-buildings');
       const cnt = document.getElementById('osm-bldg-count')?.textContent || '0';
       if (btnLeft) {
-        btnLeft.innerHTML = `🏢 Real 3D OSM Buildings: ${showOsmBuildings ? 'ON' : 'OFF'} (<span id="osm-bldg-count">${cnt}</span>)`;
+        btnLeft.innerHTML = `Real 3D OSM Buildings: ${showOsmBuildings ? 'ON' : 'OFF'} (<span id="osm-bldg-count">${cnt}</span>)`;
         btnLeft.classList.toggle('active', showOsmBuildings);
       }
       if (btnTop) {
-        btnTop.textContent = `🏢 3D OSM BUILDINGS: ${showOsmBuildings ? 'ON' : 'OFF'}`;
+        btnTop.textContent = `3D OSM BUILDINGS: ${showOsmBuildings ? 'ON' : 'OFF'}`;
         btnTop.classList.toggle('active', showOsmBuildings);
       }
       if (showOsmBuildings && osmBuildingsGroup.children.length === 0) {
@@ -3212,7 +3212,7 @@
         if (liveWebcamVideo && liveWebcamVideo.srcObject) {
           liveWebcamVideo.srcObject.getTracks().forEach(t => t.stop());
         }
-        btn.textContent = '📹 Bind Live Camera to 3D Wall';
+        btn.textContent = 'Bind Live Camera to 3D Wall';
         btn.classList.remove('active');
         return;
       }
@@ -3226,11 +3226,11 @@
         liveWebcamVideo.srcObject = stream;
         await liveWebcamVideo.play();
         liveWebcamActive = true;
-        btn.textContent = '📹 Live Camera Bound to CAM-1 (ON)';
+        btn.textContent = 'Live Camera Bound to CAM-1 (ON)';
         btn.classList.add('active');
       } catch (err) {
         console.warn('Live camera access declined or unavailable:', err);
-        btn.textContent = '📹 Camera Permission Needed (HTTPS)';
+        btn.textContent = 'Camera Permission Needed (HTTPS)';
       }
     };
 
@@ -3350,14 +3350,14 @@
       const topVrBtn = document.getElementById('btn-top-vr-mode');
       const sideVrBtn = document.getElementById('btn-enter-xr');
       if (vrHeadsetActive) {
-        topVrBtn.textContent = '🥽 EXIT VR HEADSET MODE (SHOW 2D PANELS)';
+        topVrBtn.textContent = 'EXIT VR HEADSET MODE (SHOW 2D PANELS)';
         topVrBtn.classList.add('active');
         if (sideVrBtn) sideVrBtn.textContent = 'VR HEADSET MODE: ACTIVE';
         if (!interactionMode) setInteractionMode('spi');
         document.getElementById('bottom-help').textContent =
-          '🥽 VR HEADSET MODE ACTIVE: Move cursor to aim 3D Quest 3 Right Hand Laser · Click 3D Holographic Dock or Terrain · WASD / Q-E to fly in 6DoF';
+          'VR HEADSET MODE ACTIVE: Move cursor to aim 3D Quest 3 Right Hand Laser · Click 3D Holographic Dock or Terrain · WASD / Q-E to fly in 6DoF';
       } else {
-        topVrBtn.textContent = '🥽 ENTER VR HEADSET MODE (3D HANDS)';
+        topVrBtn.textContent = 'ENTER VR HEADSET MODE (3D HANDS)';
         topVrBtn.classList.remove('active');
         if (sideVrBtn) sideVrBtn.textContent = 'QUEST 3: ENTER MIXED REALITY (WebXR)';
         document.getElementById('bottom-help').textContent =
@@ -3391,7 +3391,7 @@
 
     document.getElementById('btn-top-stereo').onclick = (e) => {
       stereoSbsActive = !stereoSbsActive;
-      e.target.textContent = `👁 STEREO 3D SBS: ${stereoSbsActive ? 'ON' : 'OFF'}`;
+      e.target.textContent = `STEREO 3D SBS: ${stereoSbsActive ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', stereoSbsActive);
       if (stereoSbsActive && !vrHeadsetActive) toggleBrowserVrHeadsetMode(true);
     };
@@ -3434,7 +3434,7 @@
       } else {
         tableGroup.position.set(0, 0, 0);
       }
-      e.target.textContent = `🔍 PINCH SCALE: ${sc.toFixed(1)}x`;
+      e.target.textContent = `PINCH SCALE: ${sc.toFixed(1)}x`;
       e.target.classList.toggle('active', sc > 1.0);
     };
 
@@ -3575,7 +3575,7 @@
           aarBadge.classList.add('replay');
           aarSlider.value = aarSlider.min;
         }
-        playBtn.textContent = aarPlaying ? '⏸ Pause' : '▶ Play';
+        playBtn.textContent = aarPlaying ? 'Pause' : 'Play';
         playBtn.classList.toggle('active', aarPlaying);
       };
 
@@ -3597,7 +3597,7 @@
       document.getElementById('btn-aar-live').onclick = () => {
         aarReplayActive = false;
         aarPlaying = false;
-        playBtn.textContent = '▶ Play';
+        playBtn.textContent = 'Play';
         playBtn.classList.remove('active');
         aarBadge.textContent = 'LIVE 20Hz';
         aarBadge.classList.remove('replay');
