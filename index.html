@@ -1,0 +1,2937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XR-TAK // 3D Mixed-Reality Tactical Sand Table & CoT HUD</title>
+  <style>
+    :root {
+      --bg-panel: rgba(6, 14, 24, 0.86);
+      --border-cyan: rgba(0, 229, 255, 0.38);
+      --cyan: #00e5ff;
+      --red: #ff3355;
+      --yellow: #ffbb00;
+      --green: #00ff88;
+      --text-main: #e2f4ff;
+      --text-dim: #7aa2c4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #03070e;
+      color: var(--text-main);
+      font-family: 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .top-hud {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .compass-tape {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      padding: 6px 24px;
+      border-radius: 4px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .status-pill {
+      font-size: 11px;
+      color: var(--text-dim);
+      background: rgba(4, 10, 18, 0.78);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      padding: 3px 12px;
+      border-radius: 3px;
+    }
+    .dot-live {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      margin-right: 6px;
+    }
+
+    .left-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 318px;
+      z-index: 10;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      border-radius: 6px;
+      padding: 12px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    body.vr-headset-active .left-panel,
+    body.vr-headset-active .right-panel {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+    }
+    .vr-command-bar {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(3, 12, 22, 0.94);
+      border: 1.5px solid var(--green);
+      box-shadow: 0 0 24px rgba(0, 255, 136, 0.28);
+      padding: 5px 10px;
+      border-radius: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .vr-pill-btn {
+      background: rgba(0, 229, 255, 0.14);
+      color: var(--text-main);
+      border: 1px solid rgba(0, 229, 255, 0.45);
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .vr-pill-btn:hover {
+      background: rgba(0, 255, 136, 0.28);
+      border-color: var(--green);
+      color: #ffffff;
+    }
+    .vr-pill-btn.primary {
+      background: linear-gradient(90deg, #00ff88, #00e5ff);
+      color: #020810;
+      border-color: #00ff88;
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.45);
+    }
+    .vr-pill-btn.active {
+      background: var(--green);
+      color: #020810;
+      border-color: var(--green);
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 1.4px;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.22);
+      padding-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .unit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow-y: auto;
+      max-height: 235px;
+      padding-right: 2px;
+    }
+    .unit-item {
+      padding: 6px 9px;
+      border-radius: 4px;
+      background: rgba(12, 26, 44, 0.65);
+      border-left: 3px solid var(--cyan);
+      cursor: pointer;
+      transition: all 0.14s ease;
+      font-size: 11px;
+    }
+    .unit-item:hover, .unit-item.active {
+      background: rgba(0, 229, 255, 0.16);
+      transform: translateX(2px);
+    }
+    .unit-item.hostile { border-left-color: var(--red); }
+    .unit-item.unknown { border-left-color: var(--yellow); }
+    .unit-item.neutral { border-left-color: var(--green); }
+    .unit-row-top {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .unit-row-sub {
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .tac-btn {
+      background: rgba(0, 229, 255, 0.1);
+      color: var(--text-main);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 4px;
+      padding: 7px 8px;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .tac-btn:hover {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: var(--cyan);
+    }
+    .tac-btn.active {
+      background: var(--cyan);
+      color: #020810;
+      font-weight: 700;
+    }
+    .tac-btn.spi-btn.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #020810;
+    }
+    .tac-btn.xr-btn {
+      grid-column: span 2;
+      background: linear-gradient(90deg, rgba(0,229,255,0.22), rgba(0,255,136,0.22));
+      border-color: var(--green);
+      color: var(--green);
+      font-weight: 700;
+      padding: 8px;
+    }
+
+    .right-panel {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 334px;
+      z-index: 10;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      border-radius: 6px;
+      padding: 12px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      row-gap: 4px;
+      font-size: 11px;
+    }
+    .kv-label { color: var(--text-dim); }
+    .kv-val { color: var(--text-main); font-weight: 600; }
+
+    .gimbal-box {
+      position: relative;
+      width: 100%;
+      height: 175px;
+      background: #040b12;
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #gimbal-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .gimbal-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--green);
+      text-shadow: 0 0 4px #000;
+    }
+
+    .bottom-help {
+      position: absolute;
+      bottom: 62px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(4, 10, 18, 0.86);
+      border: 1px solid rgba(0, 229, 255, 0.28);
+      padding: 5px 14px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+    .aar-bar {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 680px;
+      z-index: 12;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      border-radius: 6px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(10px);
+      font-size: 11px;
+    }
+    .aar-slider {
+      flex: 1;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .aar-badge {
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 10px;
+      background: var(--green);
+      color: #020810;
+    }
+    .aar-badge.replay {
+      background: var(--yellow);
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <canvas id="visor-hud-canvas" style="position:absolute;inset:0;z-index:6;pointer-events:none;display:none;"></canvas>
+
+  <div class="top-hud">
+    <div class="compass-tape">
+      <span id="hud-mode-label">MODE: HOLOGRAPHIC SAND TABLE</span>
+      <span>|</span>
+      <span id="hud-heading">HDG 000° N</span>
+      <span>|</span>
+      <span id="hud-origin">SECTOR: 39.9200N 32.8500E (3.0x3.0 km)</span>
+    </div>
+    <div class="vr-command-bar">
+      <button class="vr-pill-btn primary" id="btn-top-vr-mode">🥽 ENTER VR HEADSET MODE (3D HANDS)</button>
+      <button class="vr-pill-btn" id="btn-top-spectate">🦅 FREE SPECTATE 6DoF</button>
+      <button class="vr-pill-btn" id="btn-top-summon">🧲 SUMMON TABLE HERE</button>
+      <button class="vr-pill-btn" id="btn-top-stereo">👁 STEREO 3D SBS: OFF</button>
+      <button class="vr-pill-btn" id="btn-top-walkin">🚶 1:1 WALK-IN VALLEY</button>
+      <button class="vr-pill-btn" id="btn-top-cockpit">🚁 UAV COCKPIT POV</button>
+      <button class="vr-pill-btn" id="btn-top-visor">🎯 AR VISOR HUD</button>
+      <button class="vr-pill-btn" id="btn-top-scale">🔍 PINCH SCALE: 1.0x</button>
+    </div>
+    <div class="status-pill">
+      <span class="dot-live"></span>
+      <span id="hud-status">RUST CoT CORE ACTIVE · SPI SLEW & 3D VIEWSHED READY</span>
+    </div>
+  </div>
+
+  <div class="left-panel">
+    <div class="panel-title">
+      <span>XR-TAK // CoT TRACKS</span>
+      <span id="track-count">0 UNITS</span>
+    </div>
+
+    <div class="unit-list" id="unit-list"></div>
+
+    <div class="panel-title" style="margin-top:2px;">
+      <span>TACTICAL SENSOR & LOS TOOLS (VR-TAK)</span>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn spi-btn" id="btn-spi-slew">Point-to-Slew (SPI)</button>
+      <button class="tac-btn" id="btn-spi-clear">Clear SPI Lock</button>
+      <button class="tac-btn spi-btn" id="btn-viewshed">3D Viewshed (LOS)</button>
+      <button class="tac-btn" id="btn-viewshed-clear">Clear Viewshed</button>
+      <button class="tac-btn spi-btn" id="btn-link-los">3D Link LOS Chord</button>
+      <button class="tac-btn" id="btn-los-clear">Clear Link LOS</button>
+      <button class="tac-btn active" id="btn-toggle-domes">Threat Domes: ON</button>
+      <button class="tac-btn active" id="btn-toggle-zones">3D Zones/ROZ: ON</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:2px;">
+      <span>VIEW & XR CONTROLS</span>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn active" id="btn-view-table">3D Sand Table</button>
+      <button class="tac-btn" id="btn-view-spectate">🦅 Free Spectate 6DoF</button>
+      <button class="tac-btn" id="btn-view-chase">UAV Chase Cam</button>
+      <button class="tac-btn" id="btn-view-visor">HUD Visor Mode</button>
+      <button class="tac-btn" id="btn-view-walkin">1:1 Walk-In Valley</button>
+      <button class="tac-btn" id="btn-view-cockpit">UAV Cockpit POV</button>
+      <button class="tac-btn active" id="btn-toggle-fov">FOV Cones: ON</button>
+      <button class="tac-btn active" id="btn-toggle-wall">3D Video Wall: ON</button>
+      <button class="tac-btn xr-btn" id="btn-enter-xr">QUEST 3: ENTER MIXED REALITY (WebXR)</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:2px;">
+      <span>DROP CoT & SAPIENT AI THREAT</span>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn" id="btn-drop-friendly">+ Friendly Pin</button>
+      <button class="tac-btn" id="btn-drop-hostile">+ Hostile Target</button>
+      <button class="tac-btn spi-btn" id="btn-sapient-ai" style="grid-column:span 2;border-color:var(--red);color:#ff7788;">⚡ SAPIENT AI Detection (Auto-Slew)</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:2px;">
+      <span>DEM TERRAIN ENGINE (REQ-DEM)</span>
+      <span id="terrain-label" style="color:var(--green);">VALLEY</span>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn active" id="btn-dem-valley">Valley Relief</button>
+      <button class="tac-btn" id="btn-dem-alpine">Alpine Ridge</button>
+      <button class="tac-btn" id="btn-dem-canyon">Deep Canyon</button>
+      <button class="tac-btn" id="btn-dem-urban">Urban Bowl</button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-title">
+      <span>SELECTED CoT ENTITY</span>
+      <span id="sel-affiliation" style="color:var(--cyan);">FRIENDLY</span>
+    </div>
+    <div class="kv-grid">
+      <span class="kv-label">CALLSIGN:</span><span class="kv-val" id="sel-callsign">FALCON-1</span>
+      <span class="kv-label">CoT UID:</span><span class="kv-val" id="sel-uid">UAV-FALCON-01</span>
+      <span class="kv-label">CoT TYPE:</span><span class="kv-val" id="sel-type">a-f-A-M-F-Q</span>
+      <span class="kv-label">WGS84 LLA:</span><span class="kv-val" id="sel-lla">--</span>
+      <span class="kv-label">LOCAL ENU:</span><span class="kv-val" id="sel-enu">--</span>
+      <span class="kv-label">KINEMATICS:</span><span class="kv-val" id="sel-kin">--</span>
+      <span class="kv-label">REMARKS:</span><span class="kv-val" id="sel-remarks">--</span>
+      <span class="kv-label">VIEWSHED:</span><span class="kv-val" id="sel-viewshed">Inactive</span>
+      <span class="kv-label">LINK LOS:</span><span class="kv-val" id="sel-link-los">Inactive</span>
+    </div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>EO/IR GIMBAL SENSOR PIP</span>
+      <span id="gimbal-fov-label">FOV 32°</span>
+    </div>
+    <div class="gimbal-box">
+      <canvas id="gimbal-canvas" width="306" height="175"></canvas>
+      <div class="gimbal-overlay">
+        <div style="display:flex;justify-content:space-between;">
+          <span id="pip-source">SRC: FALCON-1</span>
+          <span>IR: WHITE-HOT</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span id="pip-azel">AZ: 000° EL: -38°</span>
+          <span id="pip-lock-mode">LOCK: AUTO-VALLEY</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>LIVE TAK SERVER & QUEST 3 BRIDGE</span>
+      <span id="tak-mode-badge" style="color:var(--green);">SIM+LIVE</span>
+    </div>
+    <div style="display:flex;gap:5px;">
+      <input id="inp-tak-tcp" placeholder="TAK Server TCP (e.g. 192.168.1.50:8087)" style="flex:1;background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
+      <button class="tac-btn" id="btn-tak-connect" style="padding:5px 9px;">Connect</button>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn active" id="btn-sim-toggle">Sim Units: ON</button>
+      <button class="tac-btn" id="btn-auto-recenter">Auto-Center CoT</button>
+      <button class="tac-btn spi-btn" id="btn-laser-pointer" style="grid-column:span 2;">3D XR Laser Pointer (b-m-p-c)</button>
+    </div>
+  </div>
+
+  <div class="bottom-help" id="bottom-help">
+    Left-Drag: Orbit · Right-Drag / Two-Finger: Free Pan (Unlocked) · Double-Click Unit/Ridge: Fly To · Click "🦅 FREE SPECTATE 6DoF" for WASD + Q/E Flight
+  </div>
+
+  <div class="aar-bar">
+    <span class="aar-badge" id="aar-mode-badge">LIVE 20Hz</span>
+    <button class="tac-btn" id="btn-aar-play" style="padding:4px 9px;">▶ Play</button>
+    <button class="tac-btn" id="btn-aar-speed" style="padding:4px 8px;">1x</button>
+    <button class="tac-btn" id="btn-aar-live" style="padding:4px 9px;">Return LIVE</button>
+    <input type="range" class="aar-slider" id="aar-slider" min="0" max="60" step="0.2" value="60" />
+    <span id="aar-time-label" style="min-width:118px;text-align:right;color:var(--cyan);">T+000.0s (0 f)</span>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const API_BASE = (urlParams.get('gateway') || (window.location.hostname.endsWith('github.io') ? 'http://192.168.1.6:8090' : '')).replace(/\/$/, '');
+    const apiUrl = (path) => `${API_BASE}${path}`;
+
+    const WORLD_EXTENT_M = 1500.0;
+    const TABLE_RADIUS_UNITS = 0.75;
+    const M_TO_TABLE = TABLE_RADIUS_UNITS / WORLD_EXTENT_M; // 0.0005
+    const ALT_EXAGGERATION = 1.65;
+
+    let activeDemGrid = null; // { name, resolution, extent_m, heights_m }
+
+    function sampleTerrainReliefM(eastM, northM) {
+      if (activeDemGrid && activeDemGrid.heights_m && activeDemGrid.resolution >= 2) {
+        const res = activeDemGrid.resolution;
+        const ext = activeDemGrid.extent_m || WORLD_EXTENT_M;
+        const span = Math.max(2.0 * ext, 1e-6);
+        const uNorm = Math.min(Math.max((eastM + ext) / span, 0.0), 1.0);
+        const vNorm = Math.min(Math.max((northM + ext) / span, 0.0), 1.0);
+        const u = uNorm * (res - 1);
+        const v = vNorm * (res - 1);
+        const i0 = Math.min(Math.floor(u), res - 1);
+        const j0 = Math.min(Math.floor(v), res - 1);
+        const i1 = Math.min(i0 + 1, res - 1);
+        const j1 = Math.min(j0 + 1, res - 1);
+        const alpha = u - i0;
+        const beta = v - j0;
+        const h = activeDemGrid.heights_m;
+        const z00 = h[j0 * res + i0];
+        const z10 = h[j0 * res + i1];
+        const z01 = h[j1 * res + i0];
+        const z11 = h[j1 * res + i1];
+        return (1 - alpha) * (1 - beta) * z00
+             + alpha * (1 - beta) * z10
+             + (1 - alpha) * beta * z01
+             + alpha * beta * z11;
+      }
+      const nx = eastM * 0.0018;
+      const nz = northM * 0.0018;
+      const ridge1 = (Math.sin(nx * 1.3 + nz * 0.8) * Math.cos(nx * 0.7 - nz * 1.1)) * 115.0;
+      const ridge2 = (Math.sin(nx * 2.7 - nz * 2.1) * 0.5 + Math.cos(nz * 3.1) * 0.5) * 42.0;
+      const detail = Math.sin(nx * 5.5 + nz * 4.8) * 12.0;
+      const valleyDist = Math.min(Math.abs(nx - nz * 0.6), 1.5);
+      const valleyFactor = 0.35 + 0.65 * (valleyDist / 1.5);
+      return (ridge1 + ridge2 + detail + 95.0) * valleyFactor;
+    }
+
+    function enuToTableVec3(eastM, upM, northM) {
+      return new THREE.Vector3(
+        eastM * M_TO_TABLE,
+        upM * M_TO_TABLE * ALT_EXAGGERATION,
+        -northM * M_TO_TABLE
+      );
+    }
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.05, 50);
+    camera.position.set(0.0, 0.92, 1.25);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.xr.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    // Mount Official Three.js ARButton for Meta Quest 3 Passthrough (`immersive-ar`)
+    try {
+      const arBtn = ARButton.createButton(renderer, {
+        requiredFeatures: ['local-floor'],
+        optionalFeatures: ['dom-overlay', 'hand-tracking', 'bounded-floor'],
+        domOverlay: { root: document.body }
+      });
+      arBtn.style.bottom = '72px';
+      arBtn.style.zIndex = '25';
+      document.body.appendChild(arBtn);
+    } catch (e) {
+      console.warn('ARButton mount skipped:', e);
+    }
+
+    renderer.xr.addEventListener('sessionstart', () => {
+      document.body.classList.add('vr-headset-active');
+      tableGroup.position.set(0, -0.18, -0.68);
+    });
+    renderer.xr.addEventListener('sessionend', () => {
+      document.body.classList.remove('vr-headset-active');
+      tableGroup.position.set(0, 0, 0);
+    });
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.08, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    controls.keyPanSpeed = 18.0;
+    controls.maxDistance = 12.0;
+    controls.minDistance = 0.04;
+
+    scene.add(new THREE.AmbientLight(0x88bbff, 0.85));
+    const dirLight = new THREE.DirectionalLight(0xccf0ff, 1.4);
+    dirLight.position.set(1.5, 3.0, 1.2);
+    scene.add(dirLight);
+
+    const tableGroup = new THREE.Group();
+    scene.add(tableGroup);
+
+    let spatialGrabRing = null;
+    function buildTableFrame() {
+      const ringGeo = new THREE.RingGeometry(TABLE_RADIUS_UNITS * 1.03, TABLE_RADIUS_UNITS * 1.06, 96);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x00e5ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.45
+      });
+      tableGroup.add(new THREE.Mesh(ringGeo, ringMat));
+
+      // Glowing Amber/Cyan Quest 3 Spatial Grab & Place Pedestal Ring (Jimmy AR style)
+      const grabGeo = new THREE.RingGeometry(TABLE_RADIUS_UNITS * 1.08, TABLE_RADIUS_UNITS * 1.135, 64);
+      grabGeo.rotateX(-Math.PI / 2);
+      const grabMat = new THREE.MeshBasicMaterial({
+        color: 0xf59e0b,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.82
+      });
+      spatialGrabRing = new THREE.Mesh(grabGeo, grabMat);
+      spatialGrabRing.position.y = -0.004;
+      tableGroup.add(spatialGrabRing);
+
+      const grid = new THREE.GridHelper(TABLE_RADIUS_UNITS * 2.0, 20, 0x00e5ff, 0x0d2b45);
+      grid.position.y = -0.002;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.45;
+      tableGroup.add(grid);
+
+      const cardinals = [
+        { text: 'N 000°', x: 0, z: -TABLE_RADIUS_UNITS * 1.12, color: '#00ff88' },
+        { text: 'E 090°', x: TABLE_RADIUS_UNITS * 1.12, z: 0, color: '#00e5ff' },
+        { text: 'S 180°', x: 0, z: TABLE_RADIUS_UNITS * 1.12, color: '#00e5ff' },
+        { text: 'W 270°', x: -TABLE_RADIUS_UNITS * 1.12, z: 0, color: '#00e5ff' },
+      ];
+      for (const c of cardinals) {
+        const sprite = makeTextSprite(c.text, c.color, 34);
+        sprite.position.set(c.x, 0.02, c.z);
+        sprite.scale.set(0.18, 0.06, 1);
+        tableGroup.add(sprite);
+      }
+    }
+
+    let terrainMesh = null;
+    let terrainWireMesh = null;
+    function buildTerrainMesh() {
+      if (terrainMesh) {
+        tableGroup.remove(terrainMesh);
+        terrainMesh.geometry.dispose();
+      }
+      if (terrainWireMesh) {
+        tableGroup.remove(terrainWireMesh);
+      }
+      const segs = 120;
+      const size = TABLE_RADIUS_UNITS * 2.0;
+      const geo = new THREE.PlaneGeometry(size, size, segs, segs);
+      geo.rotateX(-Math.PI / 2);
+
+      const pos = geo.attributes.position;
+      const colors = new Float32Array(pos.count * 3);
+
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const z = pos.getZ(i);
+        const eastM = x / M_TO_TABLE;
+        const northM = -z / M_TO_TABLE;
+        const reliefM = sampleTerrainReliefM(eastM, northM);
+        const y = reliefM * M_TO_TABLE * ALT_EXAGGERATION;
+        pos.setY(i, y);
+
+        const normH = Math.min(Math.max(reliefM / 220.0, 0.0), 1.0);
+        const contourMod = Math.abs((reliefM % 25.0) - 12.5) < 1.1 ? 0.28 : 0.0;
+        colors[i * 3] = 0.04 + normH * 0.14 + contourMod * 0.2;
+        colors[i * 3 + 1] = 0.16 + normH * 0.38 + contourMod * 0.65;
+        colors[i * 3 + 2] = 0.26 + normH * 0.48 + contourMod * 0.85;
+      }
+
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geo.computeVertexNormals();
+
+      const mat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.72,
+        metalness: 0.18,
+        transparent: true,
+        opacity: 0.92,
+      });
+      terrainMesh = new THREE.Mesh(geo, mat);
+      tableGroup.add(terrainMesh);
+
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x00e5ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.07,
+      });
+      terrainWireMesh = new THREE.Mesh(geo, wireMat);
+      terrainWireMesh.position.y = 0.001;
+      tableGroup.add(terrainWireMesh);
+    }
+
+    function makeTextSprite(label, colorHex = '#00e5ff', fontPx = 28) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgba(4, 12, 22, 0.78)';
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 3;
+      ctx.roundRect(8, 18, 496, 92, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = `bold ${fontPx}px "SF Mono", Menlo, monospace`;
+      ctx.fillStyle = colorHex;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 256, 64);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+      return new THREE.Sprite(mat);
+    }
+
+    buildTableFrame();
+    buildTerrainMesh();
+
+    // --- 3D Spatial Video Wall (`AGame_TOCBoard` / `VH_COTDetail_Video`) ---
+    const videoWallGroup = new THREE.Group();
+    tableGroup.add(videoWallGroup);
+    let showVideoWall = true;
+
+    const VIDEO_WALL_SLOTS = [
+      {
+        uid: 'UAV-VALKYRIE-02',
+        title: 'CAM-1 // VALKYRIE-2 [SAR RADAR]',
+        stream: 'rtsp://10.8.0.12:8554/valkyrie2-sar',
+        mode: 'sar',
+        pos: new THREE.Vector3(-0.46, 0.54, -0.62),
+        rotY: 0.26,
+      },
+      {
+        uid: 'UAV-FALCON-01',
+        title: 'CAM-2 // FALCON-1 [EO/IR THERMAL]',
+        stream: 'rtsp://10.8.0.11:8554/falcon1-eoir',
+        mode: 'eoir',
+        pos: new THREE.Vector3(0.0, 0.58, -0.70),
+        rotY: 0.0,
+      },
+      {
+        uid: 'GND-OBSERVE-BRAVO',
+        title: 'CAM-3 // OP-BRAVO [PTZ OVERWATCH]',
+        stream: 'rtsp://10.8.0.14:8554/op-bravo-ptz',
+        mode: 'ptz',
+        pos: new THREE.Vector3(0.46, 0.54, -0.62),
+        rotY: -0.26,
+      },
+    ];
+
+    const videoWallPanels = [];
+    function initSpatialVideoWall() {
+      for (const slot of VIDEO_WALL_SLOTS) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 384;
+        canvas.height = 224;
+        const ctx = canvas.getContext('2d');
+        const tex = new THREE.CanvasTexture(canvas);
+
+        const panelGroup = new THREE.Group();
+        panelGroup.position.copy(slot.pos);
+        panelGroup.rotation.y = slot.rotY;
+        videoWallGroup.add(panelGroup);
+
+        const screenGeo = new THREE.PlaneGeometry(0.40, 0.235);
+        const screenMat = new THREE.MeshBasicMaterial({
+          map: tex,
+          side: THREE.FrontSide,
+          transparent: true,
+          opacity: 0.94,
+        });
+        const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+        screenMesh.userData.uid = slot.uid;
+        panelGroup.add(screenMesh);
+
+        // Glowing cyan/green border frame around floating 3D screen
+        const borderGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.412, 0.247));
+        const borderMat = new THREE.LineBasicMaterial({
+          color: 0x00e5ff,
+          transparent: true,
+          opacity: 0.78,
+        });
+        const borderLine = new THREE.LineSegments(borderGeo, borderMat);
+        panelGroup.add(borderLine);
+
+        // 3D Tether Line from bottom of floating screen down to unit on Sand Table
+        const tetherGeo = new THREE.BufferGeometry().setFromPoints([
+          slot.pos.clone(),
+          new THREE.Vector3(0, 0, 0),
+        ]);
+        const tetherMat = new THREE.LineBasicMaterial({
+          color: 0x00e5ff,
+          transparent: true,
+          opacity: 0.36,
+        });
+        const tetherLine = new THREE.Line(tetherGeo, tetherMat);
+        videoWallGroup.add(tetherLine);
+
+        videoWallPanels.push({
+          slot,
+          panelGroup,
+          canvas,
+          ctx,
+          tex,
+          screenMesh,
+          borderMat,
+          tetherLine,
+        });
+      }
+    }
+    initSpatialVideoWall();
+
+    function updateSpatialVideoWall(timeMs) {
+      videoWallGroup.visible = showVideoWall;
+      if (!showVideoWall) return;
+
+      for (const p of videoWallPanels) {
+        const { slot, canvas, ctx, tex, borderMat, tetherLine } = p;
+        const w = canvas.width;
+        const h = canvas.height;
+        const ent = latestEntities.find(e => e.uid === slot.uid);
+        const isSelected = selectedUid === slot.uid;
+
+        borderMat.color.setHex(isSelected ? 0x00ff88 : 0x00e5ff);
+
+        // Background
+        ctx.fillStyle = '#040b14';
+        ctx.fillRect(0, 0, w, h);
+
+        // Top Header Bar
+        ctx.fillStyle = isSelected ? 'rgba(0, 255, 136, 0.22)' : 'rgba(0, 229, 255, 0.16)';
+        ctx.fillRect(0, 0, w, 28);
+        ctx.font = 'bold 12px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = isSelected ? '#00ff88' : '#00e5ff';
+        ctx.fillText(slot.title, 10, 18);
+
+        // Simulated feed content per sensor modality
+        if (slot.mode === 'eoir') {
+          ctx.strokeStyle = 'rgba(0, 255, 136, 0.14)';
+          for (let y = 34; y < h - 24; y += 14) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+          }
+          const hasSpi = entityNodes.has('UAV-FALCON-01.SPI1');
+          const tx = hasSpi ? w * 0.5 : w * 0.5 + Math.sin(timeMs * 0.0018) * 44;
+          const ty = hasSpi ? h * 0.52 : h * 0.54 + Math.cos(timeMs * 0.0013) * 20;
+          const grad = ctx.createRadialGradient(tx, ty, 3, tx, ty, 24);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.45, '#00ffaa');
+          grad.addColorStop(1, 'rgba(0,255,170,0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(tx, ty, 24, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = hasSpi ? '#00ff88' : '#ff3355';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(tx - 18, ty - 18, 36, 36);
+        } else if (slot.mode === 'sar') {
+          // Synthetic Aperture Radar sweep fan
+          const cx = w * 0.5, cy = h * 0.82;
+          ctx.strokeStyle = 'rgba(0, 229, 255, 0.24)';
+          ctx.lineWidth = 1;
+          for (const r of [45, 85, 125]) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, Math.PI * 1.15, Math.PI * 1.85);
+            ctx.stroke();
+          }
+          const sweepAngle = Math.PI * 1.5 + Math.sin(timeMs * 0.0025) * 0.95;
+          ctx.strokeStyle = '#00ff88';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(sweepAngle) * 135, cy + Math.sin(sweepAngle) * 135);
+          ctx.stroke();
+
+          // Radar blips
+          ctx.fillStyle = '#ffbb00';
+          ctx.fillRect(cx - 34, cy - 78, 6, 6);
+          ctx.fillStyle = '#ff3355';
+          ctx.fillRect(cx + 22, cy - 96, 7, 7);
+        } else {
+          // Ridge PTZ optical horizon + valley watch
+          ctx.strokeStyle = '#1e5078';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, h * 0.55);
+          for (let x = 0; x <= w; x += 24) {
+            const ry = h * 0.52 + Math.sin(x * 0.025 + timeMs * 0.0006) * 18;
+            ctx.lineTo(x, ry);
+          }
+          ctx.stroke();
+
+          const vx = (w * 0.35 + ((timeMs * 0.03) % (w * 0.45)));
+          const vy = h * 0.66;
+          ctx.strokeStyle = '#ff3355';
+          ctx.strokeRect(vx - 12, vy - 8, 24, 16);
+          ctx.fillStyle = '#ff3355';
+          ctx.font = '10px "SF Mono", Menlo, monospace';
+          ctx.fillText('MOVING TRACK', vx - 30, vy - 12);
+        }
+
+        // Crosshair & Footer Telemetry
+        ctx.fillStyle = 'rgba(2, 8, 16, 0.82)';
+        ctx.fillRect(0, h - 24, w, 24);
+        ctx.font = '11px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = '#7aa2c4';
+        const teleText = ent
+          ? `${slot.stream}  |  ALT ${Math.round(ent.hae_m)}m  CRS ${Math.round(ent.course_deg)}°`
+          : slot.stream;
+        ctx.fillText(teleText, 10, h - 8);
+
+        tex.needsUpdate = true;
+
+        // Update 3D Tether Line from bottom edge of floating panel down to unit on table
+        const node = entityNodes.get(slot.uid);
+        if (node) {
+          const anchorTop = p.panelGroup.position.clone().add(new THREE.Vector3(0, -0.118, 0));
+          tetherLine.geometry.setFromPoints([anchorTop, node.root.position.clone()]);
+          tetherLine.visible = true;
+        } else {
+          tetherLine.visible = false;
+        }
+      }
+    }
+
+    // --- 3D Viewshed Point Cloud Layer (`AGame_Actor_Viewshed` / `ViewShedLayer2`) ---
+    const viewshedGroup = new THREE.Group();
+    tableGroup.add(viewshedGroup);
+    const linkLosGroup = new THREE.Group();
+    tableGroup.add(linkLosGroup);
+
+    function renderLinkLosChord(losData) {
+      while (linkLosGroup.children.length > 0) {
+        const ch = linkLosGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      const el = document.getElementById('sel-link-los');
+      if (!losData || !losData.from_enu || !losData.to_enu) {
+        if (el) { el.textContent = 'Inactive'; el.style.color = 'var(--text-main)'; }
+        return;
+      }
+      const pFrom = enuToTableVec3(losData.from_enu[0], losData.from_enu[1], losData.from_enu[2]);
+      const pTo = enuToTableVec3(losData.to_enu[0], losData.to_enu[1], losData.to_enu[2]);
+
+      if (losData.clear || !losData.obstruction_enu) {
+        const geo = new THREE.BufferGeometry().setFromPoints([pFrom, pTo]);
+        linkLosGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x00ff88 })));
+        if (el) {
+          el.textContent = `CLEAR (+${Math.round(losData.min_clearance_m)}m clr, R=${Math.round(losData.slant_range_m)}m)`;
+          el.style.color = 'var(--green)';
+        }
+      } else {
+        const pObs = enuToTableVec3(losData.obstruction_enu[0], losData.obstruction_enu[1], losData.obstruction_enu[2]);
+        linkLosGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([pFrom, pObs]),
+          new THREE.LineBasicMaterial({ color: 0x00ff88 })
+        ));
+        linkLosGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([pObs, pTo]),
+          new THREE.LineBasicMaterial({ color: 0xff2244 })
+        ));
+        const obsMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.014, 14, 14),
+          new THREE.MeshBasicMaterial({ color: 0xff2244 })
+        );
+        obsMesh.position.copy(pObs);
+        linkLosGroup.add(obsMesh);
+        if (el) {
+          el.textContent = `TERRAIN MASKED (${Math.round(losData.min_clearance_m)}m, R=${Math.round(losData.slant_range_m)}m)`;
+          el.style.color = 'var(--red)';
+        }
+      }
+    }
+
+    // --- Phase 5: 3D SAM/Radar Threat Domes & Polygonal Geofence Zones (`REQ-TAC`) ---
+    const threatDomesGroup = new THREE.Group();
+    tableGroup.add(threatDomesGroup);
+    const tacticalZonesGroup = new THREE.Group();
+    tableGroup.add(tacticalZonesGroup);
+    let showThreatDomes = true;
+    let showTacticalZones = true;
+
+    function updateThreatDomesAndZones(domes, zones, entitiesMap) {
+      threatDomesGroup.visible = showThreatDomes;
+      tacticalZonesGroup.visible = showTacticalZones;
+
+      while (threatDomesGroup.children.length > 0) {
+        const ch = threatDomesGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      if (showThreatDomes && Array.isArray(domes)) {
+        for (const d of domes) {
+          const rUnits = d.radius_m * M_TO_TABLE;
+          const domeGeo = new THREE.SphereGeometry(rUnits, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+          const isAlert = d.engaged_uids && d.engaged_uids.length > 0;
+          const domeMat = new THREE.MeshBasicMaterial({
+            color: isAlert ? 0xff2244 : 0xff5533,
+            transparent: true,
+            opacity: isAlert ? 0.16 : 0.09,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          });
+          const domeMesh = new THREE.Mesh(domeGeo, domeMat);
+          const centerPos = enuToTableVec3(d.east_m, d.up_m, d.north_m);
+          domeMesh.position.copy(centerPos);
+          threatDomesGroup.add(domeMesh);
+
+          const wireGeo = new THREE.EdgesGeometry(domeGeo);
+          const wireMat = new THREE.LineBasicMaterial({
+            color: isAlert ? 0xff3355 : 0xff8844,
+            transparent: true,
+            opacity: 0.42,
+          });
+          const wireLines = new THREE.LineSegments(wireGeo, wireMat);
+          wireLines.position.copy(centerPos);
+          threatDomesGroup.add(wireLines);
+
+          // Draw live 3D radar lock beams (`compute_link_los` verified) to engaged tracks
+          if (d.engaged_uids) {
+            for (const targetUid of d.engaged_uids) {
+              const tgt = entitiesMap.get(targetUid);
+              if (tgt) {
+                const tgtPos = enuToTableVec3(tgt.east_m, tgt.up_m, tgt.north_m);
+                const beamGeo = new THREE.BufferGeometry().setFromPoints([centerPos, tgtPos]);
+                const beamMat = new THREE.LineBasicMaterial({ color: 0xff2244, opacity: 0.92, transparent: true });
+                threatDomesGroup.add(new THREE.Line(beamGeo, beamMat));
+              }
+            }
+          }
+        }
+      }
+
+      while (tacticalZonesGroup.children.length > 0) {
+        const ch = tacticalZonesGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      if (showTacticalZones && Array.isArray(zones)) {
+        for (const z of zones) {
+          if (!z.vertices_en || z.vertices_en.length < 3) continue;
+          const isHostile = z.affiliation === 'hostile';
+          const hasInside = z.inside_uids && z.inside_uids.length > 0;
+          const colorHex = isHostile ? (hasInside ? 0xff2244 : 0xff6633) : 0x00ff88;
+
+          const floorPts = [];
+          const ceilPts = [];
+          for (const [eM, nM] of z.vertices_en) {
+            const gnd = sampleTerrainReliefM(eM, nM);
+            floorPts.push(enuToTableVec3(eM, Math.max(gnd, z.floor_m), nM));
+            ceilPts.push(enuToTableVec3(eM, z.ceiling_m, nM));
+          }
+          floorPts.push(floorPts[0].clone());
+          ceilPts.push(ceilPts[0].clone());
+
+          const loopMat = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.78 });
+          tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(floorPts), loopMat));
+          tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ceilPts), loopMat));
+
+          // Vertical corner pillars of the 3D ROZ prism
+          for (let i = 0; i < z.vertices_en.length; i++) {
+            const pillarGeo = new THREE.BufferGeometry().setFromPoints([floorPts[i], ceilPts[i]]);
+            tacticalZonesGroup.add(new THREE.Line(pillarGeo, loopMat));
+          }
+        }
+      }
+    }
+
+    function renderViewshedCloud(vsData) {
+      while (viewshedGroup.children.length > 0) {
+        const ch = viewshedGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      if (!vsData || !vsData.samples) return;
+
+      const count = vsData.samples.length;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      for (let i = 0; i < count; i++) {
+        const s = vsData.samples[i];
+        const v = enuToTableVec3(s.east_m, s.up_m + 3.5, s.north_m);
+        positions[i * 3] = v.x;
+        positions[i * 3 + 1] = v.y;
+        positions[i * 3 + 2] = v.z;
+
+        if (s.visible) {
+          // Seen = vibrant tactical green
+          colors[i * 3] = 0.0;
+          colors[i * 3 + 1] = 1.0;
+          colors[i * 3 + 2] = 0.52;
+        } else {
+          // Occluded dead-zone behind ridge = crimson red
+          colors[i * 3] = 1.0;
+          colors[i * 3 + 1] = 0.16;
+          colors[i * 3 + 2] = 0.30;
+        }
+      }
+
+      const ptGeo = new THREE.BufferGeometry();
+      ptGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      ptGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      const ptMat = new THREE.PointsMaterial({
+        size: 0.009,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.88,
+        depthWrite: false,
+      });
+      viewshedGroup.add(new THREE.Points(ptGeo, ptMat));
+
+      // Observer Beacon Pillar
+      const obsPos = enuToTableVec3(vsData.observer_east_m, vsData.observer_up_m, vsData.observer_north_m);
+      const gndRelief = sampleTerrainReliefM(vsData.observer_east_m, vsData.observer_north_m);
+      const gndPos = enuToTableVec3(vsData.observer_east_m, gndRelief, vsData.observer_north_m);
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([gndPos, obsPos]);
+      viewshedGroup.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x00ff88 })));
+
+      const pct = Math.round(vsData.visible_ratio * 100);
+      document.getElementById('sel-viewshed').textContent =
+        `${pct}% VISIBLE / ${100 - pct}% OCCLUDED (R=${Math.round(vsData.radius_m)}m)`;
+    }
+
+    // --- Dynamic CoT Entity & SPI Visuals ---
+    const entityNodes = new Map();
+    let latestEntities = [];
+    let selectedUid = 'UAV-FALCON-01';
+    let showFovCones = true;
+    let showTrails = true;
+    let viewMode = 'table';
+    let interactionMode = null; // null | 'spi' | 'viewshed' | 'friendly' | 'hostile'
+
+    function affiliationColor(aff, cotType) {
+      if (cotType && cotType.startsWith('b-m-p-s-p-i')) return 0x00ff88;
+      if (aff === 'friendly') return 0x00e5ff;
+      if (aff === 'hostile') return 0xff3355;
+      if (aff === 'neutral') return 0x00ff88;
+      return 0xffbb00;
+    }
+
+    function affiliationCss(aff, cotType) {
+      if (cotType && cotType.startsWith('b-m-p-s-p-i')) return '#00ff88';
+      if (aff === 'friendly') return '#00e5ff';
+      if (aff === 'hostile') return '#ff3355';
+      if (aff === 'neutral') return '#00ff88';
+      return '#ffbb00';
+    }
+
+    function removeEntityNode(uid) {
+      const node = entityNodes.get(uid);
+      if (!node) return;
+      tableGroup.remove(node.root);
+      tableGroup.remove(node.stemLine);
+      tableGroup.remove(node.trailLine);
+      tableGroup.remove(node.fovGroup);
+      tableGroup.remove(node.spiLaserLine);
+      entityNodes.delete(uid);
+    }
+
+    function createOrUpdateEntityNode(ent, allEntitiesMap) {
+      let node = entityNodes.get(ent.uid);
+      const color = affiliationColor(ent.affiliation, ent.cot_type);
+      const cssColor = affiliationCss(ent.affiliation, ent.cot_type);
+      const isSpi = ent.cot_type.startsWith('b-m-p-s-p-i');
+
+      if (!node) {
+        const root = new THREE.Group();
+        tableGroup.add(root);
+
+        let iconGeo;
+        if (isSpi) {
+          iconGeo = new THREE.RingGeometry(0.012, 0.022, 4);
+          iconGeo.rotateX(-Math.PI / 2);
+        } else if (ent.dimension === 'air') {
+          iconGeo = new THREE.ConeGeometry(0.016, 0.042, 4);
+          iconGeo.rotateX(Math.PI / 2);
+        } else {
+          iconGeo = new THREE.OctahedronGeometry(0.015, 0);
+        }
+        const iconMat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
+        const iconMesh = new THREE.Mesh(iconGeo, iconMat);
+        iconMesh.userData.uid = ent.uid;
+        root.add(iconMesh);
+
+        const haloGeo = new THREE.RingGeometry(0.024, 0.030, 24);
+        haloGeo.rotateX(-Math.PI / 2);
+        const haloMat = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.0,
+        });
+        const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+        root.add(haloMesh);
+
+        const stemGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, -0.1, 0),
+        ]);
+        const stemMat = new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.45,
+        });
+        const stemLine = new THREE.Line(stemGeo, stemMat);
+        tableGroup.add(stemLine);
+
+        const labelSprite = makeTextSprite(ent.callsign, cssColor, 26);
+        labelSprite.scale.set(0.17, 0.042, 1);
+        labelSprite.position.set(0, 0.036, 0);
+        root.add(labelSprite);
+
+        const trailGeo = new THREE.BufferGeometry();
+        const trailMat = new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.55,
+        });
+        const trailLine = new THREE.Line(trailGeo, trailMat);
+        tableGroup.add(trailLine);
+
+        const fovGroup = new THREE.Group();
+        tableGroup.add(fovGroup);
+
+        // VR-TAK `AGame_SimpleSegmentedLineActor` laser line from parent UAV to SPI target
+        const spiLaserGeo = new THREE.BufferGeometry();
+        const spiLaserMat = new THREE.LineBasicMaterial({
+          color: 0x00ff88,
+          transparent: true,
+          opacity: 0.9,
+        });
+        const spiLaserLine = new THREE.Line(spiLaserGeo, spiLaserMat);
+        spiLaserLine.visible = false;
+        tableGroup.add(spiLaserLine);
+
+        node = {
+          root,
+          iconMesh,
+          haloMat,
+          stemLine,
+          trailLine,
+          trailPoints: [],
+          fovGroup,
+          spiLaserLine,
+        };
+        entityNodes.set(ent.uid, node);
+      }
+
+      const pos = enuToTableVec3(ent.east_m, ent.up_m, ent.north_m);
+      const groundReliefM = sampleTerrainReliefM(ent.east_m, ent.north_m);
+      const groundPos = enuToTableVec3(ent.east_m, groundReliefM, ent.north_m);
+
+      node.root.position.copy(pos);
+      if (!isSpi) {
+        node.iconMesh.rotation.y = -THREE.MathUtils.degToRad(ent.course_deg);
+      } else {
+        node.iconMesh.rotation.z += 0.04;
+      }
+
+      node.haloMat.opacity = ent.uid === selectedUid ? 0.95 : 0.0;
+      node.stemLine.geometry.setFromPoints([pos, groundPos]);
+
+      if (!isSpi) {
+        if (
+          node.trailPoints.length === 0 ||
+          node.trailPoints[node.trailPoints.length - 1].distanceTo(pos) > 0.008
+        ) {
+          node.trailPoints.push(pos.clone());
+          if (node.trailPoints.length > 90) node.trailPoints.shift();
+          node.trailLine.geometry.setFromPoints(node.trailPoints);
+        }
+        node.trailLine.visible = showTrails;
+      }
+
+      // If this entity is an SPI (`b-m-p-s-p-i`) with `parent_uid`, draw the 3D laser line to parent UAV!
+      if (isSpi && ent.parent_uid && allEntitiesMap.has(ent.parent_uid)) {
+        const parentEnt = allEntitiesMap.get(ent.parent_uid);
+        const parentPos = enuToTableVec3(parentEnt.east_m, parentEnt.up_m, parentEnt.north_m);
+        node.spiLaserLine.geometry.setFromPoints([parentPos, pos]);
+        node.spiLaserLine.visible = true;
+      } else {
+        node.spiLaserLine.visible = false;
+      }
+
+      // Update 3D Gimbal Sensor FOV Frustum
+      while (node.fovGroup.children.length > 0) {
+        const child = node.fovGroup.children.pop();
+        if (child.geometry) child.geometry.dispose();
+      }
+      if (ent.sensor && showFovCones) {
+        const s = ent.sensor;
+        const coneLen = s.range_m * M_TO_TABLE;
+        const coneRadius = Math.tan(THREE.MathUtils.degToRad(s.hfov_deg * 0.5)) * coneLen;
+        const coneGeo = new THREE.ConeGeometry(coneRadius, coneLen, 4, 1, true);
+        coneGeo.translate(0, -coneLen / 2, 0);
+        coneGeo.rotateX(Math.PI / 2);
+
+        const coneMat = new THREE.MeshBasicMaterial({
+          color: 0x00ffaa,
+          transparent: true,
+          opacity: 0.14,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const coneMesh = new THREE.Mesh(coneGeo, coneMat);
+
+        const edgeGeo = new THREE.EdgesGeometry(coneGeo);
+        const edgeMat = new THREE.LineBasicMaterial({
+          color: 0x00ffaa,
+          transparent: true,
+          opacity: 0.52,
+        });
+        coneMesh.add(new THREE.LineSegments(edgeGeo, edgeMat));
+
+        node.fovGroup.position.copy(pos);
+        const azRad = THREE.MathUtils.degToRad(s.azimuth_deg);
+        const elRad = THREE.MathUtils.degToRad(s.elevation_deg);
+        node.fovGroup.rotation.set(elRad, Math.PI - azRad, 0, 'YXZ');
+        node.fovGroup.add(coneMesh);
+      }
+    }
+
+    const unitListEl = document.getElementById('unit-list');
+    function updateHudAndRoster(snap) {
+      latestEntities = snap.entities;
+      document.getElementById('track-count').textContent = `${snap.entities.length} UNITS`;
+
+      const mapById = new Map();
+      for (const e of snap.entities) mapById.set(e.uid, e);
+      updateThreatDomesAndZones(snap.threat_domes || [], snap.tactical_zones || [], mapById);
+
+      // Remove stale nodes
+      for (const uid of Array.from(entityNodes.keys())) {
+        if (!mapById.has(uid)) removeEntityNode(uid);
+      }
+
+      unitListEl.innerHTML = '';
+      for (const ent of snap.entities) {
+        createOrUpdateEntityNode(ent, mapById);
+
+        const item = document.createElement('div');
+        item.className = `unit-item ${ent.affiliation} ${ent.uid === selectedUid ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="unit-row-top">
+            <span>${ent.callsign}</span>
+            <span>${Math.round(ent.hae_m)}m MSL</span>
+          </div>
+          <div class="unit-row-sub">
+            <span>${ent.cot_type}</span>
+            <span>${ent.speed_mps.toFixed(1)} m/s · ${Math.round(ent.course_deg)}°</span>
+          </div>
+        `;
+        item.onclick = () => {
+          selectedUid = ent.uid;
+        };
+        unitListEl.appendChild(item);
+      }
+
+      const sel = snap.entities.find(e => e.uid === selectedUid) || snap.entities[0];
+      if (sel) {
+        selectedUid = sel.uid;
+        const affEl = document.getElementById('sel-affiliation');
+        affEl.textContent = sel.affiliation.toUpperCase();
+        affEl.style.color = affiliationCss(sel.affiliation, sel.cot_type);
+        document.getElementById('sel-callsign').textContent = sel.callsign;
+        document.getElementById('sel-uid').textContent = sel.uid;
+        document.getElementById('sel-type').textContent = sel.cot_type;
+        document.getElementById('sel-lla').textContent =
+          `${sel.lat.toFixed(5)}N, ${sel.lon.toFixed(5)}E (${Math.round(sel.hae_m)}m)`;
+        document.getElementById('sel-enu').textContent =
+          `E: ${Math.round(sel.east_m)}m | N: ${Math.round(sel.north_m)}m | U: +${Math.round(sel.up_m)}m`;
+        document.getElementById('sel-kin').textContent =
+          `SPD ${sel.speed_mps.toFixed(1)} m/s | CRS ${Math.round(sel.course_deg)}°`;
+        document.getElementById('sel-remarks').textContent = sel.remarks || '—';
+
+        const falcon = mapById.get('UAV-FALCON-01');
+        if (falcon && falcon.sensor) {
+          document.getElementById('pip-source').textContent = `SRC: ${falcon.callsign}`;
+          document.getElementById('gimbal-fov-label').textContent = `FOV ${falcon.sensor.hfov_deg.toFixed(0)}°`;
+          document.getElementById('pip-azel').textContent =
+            `AZ: ${Math.round(falcon.sensor.azimuth_deg).toString().padStart(3, '0')}° EL: ${Math.round(falcon.sensor.elevation_deg)}°`;
+          const hasSpi = mapById.has('UAV-FALCON-01.SPI1');
+          document.getElementById('pip-lock-mode').textContent =
+            hasSpi ? 'LOCK: SPI DESIGNATOR' : 'LOCK: AUTO-VALLEY';
+        }
+      }
+    }
+
+    const gimbalCanvas = document.getElementById('gimbal-canvas');
+    const gctx = gimbalCanvas.getContext('2d');
+    function renderGimbalPip(timeMs) {
+      const w = gimbalCanvas.width;
+      const h = gimbalCanvas.height;
+      gctx.fillStyle = '#050d14';
+      gctx.fillRect(0, 0, w, h);
+
+      gctx.strokeStyle = 'rgba(0, 255, 136, 0.14)';
+      gctx.lineWidth = 1;
+      for (let y = 0; y < h; y += 16) {
+        const wave = Math.sin(y * 0.05 + timeMs * 0.002) * 8;
+        gctx.beginPath();
+        gctx.moveTo(0, y + wave);
+        gctx.lineTo(w, y - wave);
+        gctx.stroke();
+      }
+
+      const hasSpi = entityNodes.has('UAV-FALCON-01.SPI1');
+      const tx = hasSpi ? w * 0.5 : w * 0.5 + Math.sin(timeMs * 0.0017) * 28;
+      const ty = hasSpi ? h * 0.5 : h * 0.52 + Math.cos(timeMs * 0.0013) * 16;
+
+      const grad = gctx.createRadialGradient(tx, ty, 2, tx, ty, 20);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.4, '#00ffaa');
+      grad.addColorStop(1, 'rgba(0, 255, 170, 0)');
+      gctx.fillStyle = grad;
+      gctx.beginPath();
+      gctx.arc(tx, ty, 20, 0, Math.PI * 2);
+      gctx.fill();
+
+      gctx.strokeStyle = hasSpi ? '#00ff88' : '#ff3355';
+      gctx.lineWidth = 1.5;
+      gctx.strokeRect(tx - 15, ty - 15, 30, 30);
+
+      gctx.strokeStyle = '#00e5ff';
+      gctx.lineWidth = 1;
+      const cx = w / 2, cy = h / 2;
+      gctx.beginPath();
+      gctx.moveTo(cx - 28, cy); gctx.lineTo(cx - 8, cy);
+      gctx.moveTo(cx + 8, cy);  gctx.lineTo(cx + 28, cy);
+      gctx.moveTo(cx, cy - 28); gctx.lineTo(cx, cy - 8);
+      gctx.moveTo(cx, cy + 8);  gctx.lineTo(cx, cy + 28);
+      gctx.stroke();
+    }
+
+    function setInteractionMode(mode) {
+      interactionMode = interactionMode === mode ? null : mode;
+      document.getElementById('btn-spi-slew').classList.toggle('active', interactionMode === 'spi');
+      document.getElementById('btn-viewshed').classList.toggle('active', interactionMode === 'viewshed');
+      document.getElementById('btn-link-los').classList.toggle('active', interactionMode === 'los');
+      document.getElementById('btn-drop-friendly').classList.toggle('active', interactionMode === 'friendly');
+      document.getElementById('btn-drop-hostile').classList.toggle('active', interactionMode === 'hostile');
+      const lpBtn = document.getElementById('btn-laser-pointer');
+      if (lpBtn) lpBtn.classList.toggle('active', interactionMode === 'laser');
+      refreshVrDockVisuals();
+    }
+
+    // --- Phase 12: 3D Terrain Raycast Reticle & Diegetic 3D Holographic VR Control Dock ---
+    const cursorReticleGroup = new THREE.Group();
+    cursorReticleGroup.visible = false;
+    tableGroup.add(cursorReticleGroup);
+    {
+      const ringGeo = new THREE.RingGeometry(0.014, 0.022, 32);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+      cursorReticleGroup.add(new THREE.Mesh(ringGeo, ringMat));
+      const stemGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0.06, 0)]);
+      cursorReticleGroup.add(new THREE.Line(stemGeo, new THREE.LineBasicMaterial({ color: 0x00ff88 })));
+    }
+    let reticleLabelSprite = makeTextSprite('E:0m N:0m', '#00ff88', 24);
+    reticleLabelSprite.scale.set(0.22, 0.052, 1);
+    reticleLabelSprite.position.set(0, 0.075, 0);
+    cursorReticleGroup.add(reticleLabelSprite);
+    let lastReticleUpdateMs = 0;
+
+    function updateReticleAtLocal(localPt, timeMs) {
+      const eastM = localPt.x / M_TO_TABLE;
+      const northM = -localPt.z / M_TO_TABLE;
+      const reliefM = sampleTerrainReliefM(eastM, northM);
+      const pos = enuToTableVec3(eastM, reliefM + 1.5, northM);
+      cursorReticleGroup.position.copy(pos);
+      cursorReticleGroup.visible = true;
+      if (timeMs - lastReticleUpdateMs > 120) {
+        lastReticleUpdateMs = timeMs;
+        const toolTag = (interactionMode || 'laser').toUpperCase();
+        const canvas = reticleLabelSprite.material.map.image;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(4, 12, 22, 0.85)';
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 3;
+        ctx.roundRect(8, 18, 496, 92, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.font = 'bold 23px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = '#00ff88';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`[${toolTag}] E:${Math.round(eastM)}m N:${Math.round(northM)}m (${Math.round(850 + reliefM)}m)`, 256, 64);
+        reticleLabelSprite.material.map.needsUpdate = true;
+      }
+    }
+
+    const vrDockGroup = new THREE.Group();
+    vrDockGroup.position.set(0, 0.22, 0.56);
+    tableGroup.add(vrDockGroup);
+    {
+      const dockHeader = makeTextSprite('🥽 3D HOLOGRAPHIC VR COMMAND DOCK (AUTO-FACING · CLICK OR POKE)', '#00ff88', 22);
+      dockHeader.scale.set(0.62, 0.052, 1);
+      dockHeader.position.set(0, 0.115, 0);
+      vrDockGroup.add(dockHeader);
+    }
+
+    const VR_DOCK_DEFS = [
+      { id: 'dock-spi', label: '🎯 SPI SLEW', row: 0, col: 0 },
+      { id: 'dock-viewshed', label: '👁 VIEWSHED', row: 0, col: 1 },
+      { id: 'dock-los', label: '📡 LINK LOS', row: 0, col: 2 },
+      { id: 'dock-spectate', label: '🦅 FREE 6DoF', row: 0, col: 3 },
+      { id: 'dock-sapient', label: '⚡ SAPIENT AI', row: 1, col: 0 },
+      { id: 'dock-dem', label: '⛰ DEM CYCLE', row: 1, col: 1 },
+      { id: 'dock-walkin', label: '🚶 1:1 WALK-IN', row: 1, col: 2 },
+      { id: 'dock-cockpit', label: '🚁 COCKPIT POV', row: 1, col: 3 },
+    ];
+    const vrDockButtons = [];
+
+    function initVrHolographicDock() {
+      const btnW = 0.23, btnH = 0.068, gapX = 0.245, gapY = 0.078;
+      for (const def of VR_DOCK_DEFS) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 72;
+        const ctx = canvas.getContext('2d');
+        const tex = new THREE.CanvasTexture(canvas);
+
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(btnW, btnH),
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.FrontSide })
+        );
+        mesh.position.set((def.col - 1.5) * gapX, (0.5 - def.row) * gapY, 0);
+        mesh.userData.dockId = def.id;
+        vrDockGroup.add(mesh);
+        vrDockButtons.push({ def, canvas, ctx, tex, mesh });
+      }
+      refreshVrDockVisuals();
+    }
+
+    function refreshVrDockVisuals() {
+      for (const b of vrDockButtons) {
+        const { def, canvas, ctx, tex } = b;
+        const isActive =
+          (def.id === 'dock-spi' && interactionMode === 'spi') ||
+          (def.id === 'dock-viewshed' && interactionMode === 'viewshed') ||
+          (def.id === 'dock-los' && interactionMode === 'los') ||
+          (def.id === 'dock-spectate' && viewMode === 'spectate') ||
+          (def.id === 'dock-walkin' && viewMode === 'walkin') ||
+          (def.id === 'dock-cockpit' && viewMode === 'cockpit');
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = isActive ? 'rgba(0, 255, 136, 0.88)' : 'rgba(6, 18, 32, 0.88)';
+        ctx.strokeStyle = isActive ? '#00ff88' : '#00e5ff';
+        ctx.lineWidth = 4;
+        ctx.roundRect(4, 4, canvas.width - 8, canvas.height - 8, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 21px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = isActive ? '#020810' : '#e2f4ff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(def.label, canvas.width / 2, canvas.height / 2);
+        tex.needsUpdate = true;
+      }
+    }
+    initVrHolographicDock();
+
+    async function executeTerrainToolAt(eastM, northM, callerLabel = 'QUEST3-CMD') {
+      const mode = interactionMode || 'laser';
+      if (standaloneSimActive) {
+        handleStandaloneTerrainToolAt(mode, eastM, northM, callerLabel);
+        return;
+      }
+      if (mode === 'spi') {
+        await fetch(apiUrl('/api/spi'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sensor_uid: 'UAV-FALCON-01', east_m: eastM, north_m: northM })
+        });
+        return;
+      }
+      if (mode === 'viewshed') {
+        const res = await fetch(apiUrl('/api/viewshed'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ east_m: eastM, north_m: northM, height_offset_m: 18.0, radius_m: 680.0 })
+        });
+        renderViewshedCloud(await res.json());
+        return;
+      }
+      if (mode === 'los') {
+        const gndUp = sampleTerrainReliefM(eastM, northM) + 2.5;
+        const res = await fetch(apiUrl('/api/los'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from_uid: selectedUid, to_enu: [eastM, gndUp, northM] })
+        });
+        if (res.ok) renderLinkLosChord(await res.json());
+        return;
+      }
+      if (mode === 'friendly' || mode === 'hostile') {
+        const isHostile = mode === 'hostile';
+        await fetch(apiUrl('/api/spawn'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            callsign: isHostile ? 'TGT-XR-HOSTILE' : 'PIN-XR-ALPHA',
+            cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
+            east_m: eastM,
+            north_m: northM,
+            alt_offset_m: 0.0,
+            remarks: `Pinned via XR Sand Table at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
+          })
+        });
+        return;
+      }
+      await fetch(apiUrl('/api/pointer'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callsign: callerLabel, east_m: eastM, north_m: northM })
+      });
+    }
+
+    const DEM_PRESET_ORDER = ['valley', 'alpine', 'canyon', 'urban_bowl'];
+    let demPresetIdx = 0;
+
+    async function handleVrDockAction(dockId) {
+      if (dockId === 'dock-spi') setInteractionMode('spi');
+      else if (dockId === 'dock-viewshed') document.getElementById('btn-viewshed').click();
+      else if (dockId === 'dock-los') document.getElementById('btn-link-los').click();
+      else if (dockId === 'dock-spectate') setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
+      else if (dockId === 'dock-laser') setInteractionMode('laser');
+      else if (dockId === 'dock-sapient') document.getElementById('btn-sapient-ai').click();
+      else if (dockId === 'dock-dem') {
+        demPresetIdx = (demPresetIdx + 1) % DEM_PRESET_ORDER.length;
+        await switchTerrainPreset(DEM_PRESET_ORDER[demPresetIdx]);
+      } else if (dockId === 'dock-walkin') {
+        document.getElementById('btn-view-walkin').click();
+      } else if (dockId === 'dock-cockpit') {
+        document.getElementById('btn-view-cockpit').click();
+      }
+      refreshVrDockVisuals();
+    }
+
+    let vrHeadsetActive = false;
+    let stereoSbsActive = false;
+    const SCALE_PRESETS = [1.0, 2.2, 5.0, 8.5];
+    let scalePresetIdx = 0;
+    const activeKeys = new Set();
+
+    // Virtual Quest 3 Left & Right Hand Controllers + 3D Laser Beams for Browser VR Mode
+    const virtualHandsGroup = new THREE.Group();
+    virtualHandsGroup.visible = false;
+    scene.add(virtualHandsGroup);
+
+    const rightHandRig = new THREE.Group();
+    const leftHandRig = new THREE.Group();
+    virtualHandsGroup.add(rightHandRig);
+    virtualHandsGroup.add(leftHandRig);
+    {
+      const gripMatR = new THREE.MeshStandardMaterial({ color: 0x162838, roughness: 0.35, metalness: 0.65 });
+      const ringMatR = new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide });
+      const handleR = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.11, 16), gripMatR);
+      handleR.rotation.x = Math.PI * 0.32;
+      rightHandRig.add(handleR);
+      const haloR = new THREE.Mesh(new THREE.TorusGeometry(0.032, 0.004, 12, 28), ringMatR);
+      haloR.position.set(0, 0.015, -0.025);
+      haloR.rotation.x = Math.PI * 0.45;
+      rightHandRig.add(haloR);
+
+      const handleL = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.11, 16), gripMatR);
+      handleL.rotation.x = Math.PI * 0.32;
+      leftHandRig.add(handleL);
+      const ringMatL = new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide });
+      const haloL = new THREE.Mesh(new THREE.TorusGeometry(0.032, 0.004, 12, 28), ringMatL);
+      haloL.position.set(0, 0.015, -0.025);
+      haloL.rotation.x = Math.PI * 0.45;
+      leftHandRig.add(haloL);
+    }
+    const rightLaserGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1.5)]);
+    const rightLaserLine = new THREE.Line(rightLaserGeo, new THREE.LineBasicMaterial({ color: 0x00ff88 }));
+    virtualHandsGroup.add(rightLaserLine);
+
+    const leftLaserGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -0.65)]);
+    const leftLaserLine = new THREE.Line(leftLaserGeo, new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.6 }));
+    virtualHandsGroup.add(leftLaserLine);
+
+    let lastPointerNdc = new THREE.Vector2(0, -0.1);
+
+    function updateVirtualHandsPose(timeMs) {
+      if (!vrHeadsetActive && !renderer.xr.isPresenting) {
+        virtualHandsGroup.visible = false;
+        return;
+      }
+      if (renderer.xr.isPresenting) {
+        virtualHandsGroup.visible = false;
+        return;
+      }
+      virtualHandsGroup.visible = true;
+      const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+      const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+      const camFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+
+      const rPos = camera.position.clone()
+        .addScaledVector(camRight, 0.22 + lastPointerNdc.x * 0.14)
+        .addScaledVector(camUp, -0.19 + lastPointerNdc.y * 0.10)
+        .addScaledVector(camFwd, 0.36);
+      rightHandRig.position.copy(rPos);
+      rightHandRig.quaternion.copy(camera.quaternion);
+
+      const lPos = camera.position.clone()
+        .addScaledVector(camRight, -0.24)
+        .addScaledVector(camUp, -0.20)
+        .addScaledVector(camFwd, 0.34);
+      leftHandRig.position.copy(lPos);
+      leftHandRig.quaternion.copy(camera.quaternion);
+
+      raycaster.setFromCamera(lastPointerNdc, camera);
+      let beamEnd = rPos.clone().addScaledVector(raycaster.ray.direction, 1.8);
+      if (terrainMesh) {
+        const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
+        if (dockHits.length > 0) {
+          beamEnd.copy(dockHits[0].point);
+        } else {
+          const hits = raycaster.intersectObject(terrainMesh, false);
+          if (hits.length > 0) {
+            beamEnd.copy(hits[0].point);
+            const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+            updateReticleAtLocal(localPt, timeMs);
+          }
+        }
+      }
+      rightLaserGeo.setFromPoints([rPos, beamEnd]);
+      const lEnd = lPos.clone().addScaledVector(camFwd, 0.55).addScaledVector(camRight, 0.08);
+      leftLaserGeo.setFromPoints([lPos, lEnd]);
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    window.addEventListener('pointermove', (ev) => {
+      if (ev.target !== renderer.domElement || !terrainMesh) return;
+      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+      lastPointerNdc.copy(pointer);
+      if (!interactionMode && !vrHeadsetActive) {
+        cursorReticleGroup.visible = false;
+        return;
+      }
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObject(terrainMesh, false);
+      if (hits.length > 0) {
+        const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+        updateReticleAtLocal(localPt, performance.now());
+      } else {
+        cursorReticleGroup.visible = false;
+      }
+    });
+
+    window.addEventListener('keydown', (ev) => {
+      if (ev.target && ev.target.tagName === 'INPUT') return;
+      activeKeys.add(ev.code);
+    });
+    window.addEventListener('keyup', (ev) => {
+      activeKeys.delete(ev.code);
+    });
+
+    window.addEventListener('pointerdown', async (ev) => {
+      if (ev.target !== renderer.domElement) return;
+      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      // 1. Check 3D Holographic VR Control Dock buttons first
+      const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
+      if (dockHits.length > 0 && dockHits[0].object.userData.dockId) {
+        await handleVrDockAction(dockHits[0].object.userData.dockId);
+        return;
+      }
+
+      // 2. Check active terrain tool
+      if (interactionMode && terrainMesh) {
+        const hits = raycaster.intersectObject(terrainMesh, false);
+        if (hits.length > 0) {
+          const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+          const eastM = localPt.x / M_TO_TABLE;
+          const northM = -localPt.z / M_TO_TABLE;
+          await executeTerrainToolAt(eastM, northM, 'QUEST3-CMD');
+          if (interactionMode !== 'laser') setInteractionMode(null);
+          return;
+        }
+      }
+
+      // 3. Check 3D unit markers and floating 3D Video Wall screens
+      const meshes = [];
+      for (const n of entityNodes.values()) meshes.push(n.iconMesh);
+      for (const p of videoWallPanels) meshes.push(p.screenMesh);
+      const unitHits = raycaster.intersectObjects(meshes, false);
+      if (unitHits.length > 0 && unitHits[0].object.userData.uid) {
+        selectedUid = unitHits[0].object.userData.uid;
+      }
+    });
+
+    // Double-Click any 3D Unit or Terrain Point to smoothly fly/focus there (unlocks from origin!)
+    let flyToTargetPos = null;
+    let flyToCameraPos = null;
+    window.addEventListener('dblclick', (ev) => {
+      if (ev.target !== renderer.domElement) return;
+      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      const unitMeshes = [];
+      for (const n of entityNodes.values()) unitMeshes.push(n.iconMesh);
+      const uHits = raycaster.intersectObjects(unitMeshes, false);
+      if (uHits.length > 0 && uHits[0].object.userData.uid) {
+        selectedUid = uHits[0].object.userData.uid;
+        const hitPt = uHits[0].point.clone();
+        const camOffset = camera.position.clone().sub(controls.target).setLength(0.45);
+        flyToTargetPos = hitPt;
+        flyToCameraPos = hitPt.clone().add(camOffset);
+        return;
+      }
+      if (terrainMesh) {
+        const hits = raycaster.intersectObject(terrainMesh, false);
+        if (hits.length > 0) {
+          const hitPt = hits[0].point.clone();
+          const camOffset = camera.position.clone().sub(controls.target).setLength(0.55);
+          flyToTargetPos = hitPt;
+          flyToCameraPos = hitPt.clone().add(camOffset);
+        }
+      }
+    });
+
+    document.getElementById('btn-spi-slew').onclick = () => setInteractionMode('spi');
+    document.getElementById('btn-spi-clear').onclick = async () => {
+      if (standaloneSimActive) {
+        standaloneEntities = standaloneEntities.filter(e => e.uid !== 'UAV-FALCON-01.SPI1');
+        setInteractionMode(null);
+        return;
+      }
+      await fetch(apiUrl('/api/spi'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sensor_uid: 'UAV-FALCON-01', clear: true })
+      });
+      setInteractionMode(null);
+    };
+
+    document.getElementById('btn-viewshed').onclick = async () => {
+      // Immediately compute Viewshed for the currently selected unit AND enable click-terrain mode
+      const sel = latestEntities.find(e => e.uid === selectedUid);
+      if (sel) {
+        if (standaloneSimActive) {
+          renderViewshedCloud(computeClientViewshed(sel.east_m, sel.north_m, 18.0, 680.0));
+          setInteractionMode('viewshed');
+          return;
+        }
+        const res = await fetch(apiUrl('/api/viewshed'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            east_m: sel.east_m,
+            north_m: sel.north_m,
+            height_offset_m: 18.0,
+            radius_m: 680.0
+          })
+        });
+        renderViewshedCloud(await res.json());
+      }
+      setInteractionMode('viewshed');
+    };
+
+    document.getElementById('btn-viewshed-clear').onclick = () => {
+      renderViewshedCloud(null);
+      document.getElementById('sel-viewshed').textContent = 'Inactive';
+      setInteractionMode(null);
+    };
+
+    document.getElementById('btn-link-los').onclick = async () => {
+      const peerUid = selectedUid === 'GND-OBSERVE-BRAVO' ? 'HST-ARMOR-01' : 'GND-OBSERVE-BRAVO';
+      if (standaloneSimActive) {
+        const a = latestEntities.find(e => e.uid === selectedUid);
+        const b = latestEntities.find(e => e.uid === peerUid);
+        if (a && b) {
+          renderLinkLosChord(computeClientLos([a.east_m, a.up_m + 3.0, a.north_m], [b.east_m, b.up_m + 3.0, b.north_m]));
+        }
+        setInteractionMode('los');
+        return;
+      }
+      const res = await fetch(apiUrl('/api/los'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_uid: selectedUid, to_uid: peerUid })
+      });
+      if (res.ok) renderLinkLosChord(await res.json());
+      setInteractionMode('los');
+    };
+
+    document.getElementById('btn-los-clear').onclick = () => {
+      renderLinkLosChord(null);
+      setInteractionMode(null);
+    };
+
+    const visorCanvas = document.getElementById('visor-hud-canvas');
+    const vctx = visorCanvas.getContext('2d');
+    visorCanvas.width = window.innerWidth;
+    visorCanvas.height = window.innerHeight;
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      flyToTargetPos = null;
+      flyToCameraPos = null;
+      visorCanvas.style.display = (mode === 'visor' || mode === 'walkin' || mode === 'cockpit' || mode === 'spectate' || vrHeadsetActive) ? 'block' : 'none';
+      for (const [id, m] of [
+        ['btn-view-table', 'table'],
+        ['btn-view-spectate', 'spectate'],
+        ['btn-view-chase', 'chase'],
+        ['btn-view-visor', 'visor'],
+        ['btn-view-walkin', 'walkin'],
+        ['btn-view-cockpit', 'cockpit'],
+        ['btn-top-spectate', 'spectate'],
+        ['btn-top-walkin', 'walkin'],
+        ['btn-top-cockpit', 'cockpit'],
+        ['btn-top-visor', 'visor']
+      ]) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', mode === m);
+      }
+      if (mode === 'table') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: HOLOGRAPHIC SAND TABLE';
+        camera.position.set(0.0, 0.92, 1.25);
+        controls.target.set(0, 0.08, 0);
+      } else if (mode === 'spectate') {
+        document.getElementById('hud-mode-label').textContent = 'MODE: FREE SPECTATING 6DoF FLIGHT (UNLOCKED)';
+        const fwd = new THREE.Vector3();
+        camera.getWorldDirection(fwd);
+        controls.target.copy(camera.position).addScaledVector(fwd, 0.35);
+        document.getElementById('bottom-help').textContent =
+          '🦅 FREE SPECTATE 6DoF: Left-Drag Look · Right-Drag / Two-Finger Pan Anywhere · WASD + Q/E + Shift Fly · Double-Click Any Unit/Ridge to Fly There';
+      } else if (mode === 'chase') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: UAV TACTICAL CHASE CAM';
+      } else if (mode === 'visor') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: PASSTHROUGH TACTICAL HUD VISOR';
+        camera.position.set(0.0, 0.24, 0.05);
+        controls.target.set(0.0, 0.22, -0.8);
+      } else if (mode === 'walkin') {
+        tableGroup.scale.setScalar(8.5);
+        const gndY = sampleTerrainReliefM(0, 0) * M_TO_TABLE * ALT_EXAGGERATION * 8.5;
+        tableGroup.position.set(0, -gndY - 0.12, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: 1:1 IMMERSIVE VALLEY WALK-IN (VR)';
+        camera.position.set(0.0, 0.25, 0.35);
+        controls.target.set(0.0, 0.28, -0.8);
+      } else if (mode === 'cockpit') {
+        tableGroup.scale.setScalar(1.0);
+        tableGroup.position.set(0, 0, 0);
+        document.getElementById('hud-mode-label').textContent = 'MODE: FALCON-1 UAV COCKPIT RIDE-ALONG';
+      }
+      const scaleBtn = document.getElementById('btn-top-scale');
+      if (scaleBtn) scaleBtn.textContent = `🔍 PINCH SCALE: ${tableGroup.scale.x.toFixed(1)}x`;
+      refreshVrDockVisuals();
+    }
+
+    document.getElementById('btn-view-table').onclick = () => setViewMode('table');
+    document.getElementById('btn-view-spectate').onclick = () => setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
+    document.getElementById('btn-view-chase').onclick = () => setViewMode('chase');
+    document.getElementById('btn-view-visor').onclick = () => setViewMode('visor');
+    document.getElementById('btn-view-walkin').onclick = () => setViewMode(viewMode === 'walkin' ? 'table' : 'walkin');
+    document.getElementById('btn-view-cockpit').onclick = () => setViewMode(viewMode === 'cockpit' ? 'table' : 'cockpit');
+
+    document.getElementById('btn-toggle-fov').onclick = (e) => {
+      showFovCones = !showFovCones;
+      e.target.textContent = `FOV Cones: ${showFovCones ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showFovCones);
+    };
+
+    document.getElementById('btn-toggle-wall').onclick = (e) => {
+      showVideoWall = !showVideoWall;
+      e.target.textContent = `3D Video Wall: ${showVideoWall ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showVideoWall);
+    };
+
+    document.getElementById('btn-toggle-domes').onclick = (e) => {
+      showThreatDomes = !showThreatDomes;
+      e.target.textContent = `Threat Domes: ${showThreatDomes ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showThreatDomes);
+      threatDomesGroup.visible = showThreatDomes;
+    };
+
+    document.getElementById('btn-toggle-zones').onclick = (e) => {
+      showTacticalZones = !showTacticalZones;
+      e.target.textContent = `3D Zones/ROZ: ${showTacticalZones ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showTacticalZones);
+      tacticalZonesGroup.visible = showTacticalZones;
+    };
+
+    document.getElementById('btn-drop-friendly').onclick = () => setInteractionMode('friendly');
+    document.getElementById('btn-drop-hostile').onclick = () => setInteractionMode('hostile');
+    document.getElementById('btn-laser-pointer').onclick = () => setInteractionMode('laser');
+
+    let sapientSeq = 0;
+    const SAPIENT_PRESETS = [
+      { classification: 'UAV_ROTARY', confidence: 0.96, east_m: -260, north_m: 240, alt_offset_m: 135, speed_mps: 18.0, course_deg: 140.0 },
+      { classification: 'HOSTILE_ARMOR', confidence: 0.93, east_m: 190, north_m: -195, alt_offset_m: 0, speed_mps: 9.2, course_deg: 310.0 },
+      { classification: 'RF_JAMMER', confidence: 0.98, east_m: -390, north_m: -110, alt_offset_m: 0, speed_mps: 0.0, course_deg: 90.0 },
+    ];
+    document.getElementById('btn-sapient-ai').onclick = async () => {
+      const p = SAPIENT_PRESETS[sapientSeq % SAPIENT_PRESETS.length];
+      sapientSeq += 1;
+      if (standaloneSimActive) {
+        const uid = `SAPIENT-ASM-EDGE-0${(sapientSeq % 3) + 1}-AI-${100 + sapientSeq}`;
+        const gnd = sampleTerrainReliefM(p.east_m, p.north_m);
+        standaloneEntities.push({
+          uid,
+          callsign: `AI-${p.classification}-${100 + sapientSeq}`,
+          cot_type: p.classification.includes('UAV') ? 'a-h-A-M-F-Q' : 'a-h-G-E-V',
+          affiliation: 'Hostile',
+          lat_deg: 39.925,
+          lon_deg: 32.836,
+          hae_m: 850 + gnd + p.alt_offset_m,
+          east_m: p.east_m,
+          north_m: p.north_m,
+          up_m: gnd + p.alt_offset_m,
+          speed_mps: p.speed_mps,
+          course_deg: p.course_deg,
+          remarks: `SAPIENT BSI Flex 335 v2.0 Detection (${Math.round(p.confidence * 100)}% conf)`
+        });
+        selectedUid = uid;
+        return;
+      }
+      const res = await fetch(apiUrl('/api/sapient'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          node_id: `ASM-EDGE-0${(sapientSeq % 3) + 1}`,
+          object_id: `AI-${100 + sapientSeq}`,
+          ...p
+        })
+      });
+      if (res.ok) {
+        const ent = await res.json();
+        selectedUid = ent.uid;
+      }
+    };
+
+    let simUnitsEnabled = true;
+    document.getElementById('btn-sim-toggle').onclick = async (e) => {
+      simUnitsEnabled = !simUnitsEnabled;
+      try {
+        await fetch(apiUrl('/api/tak-config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sim_enabled: simUnitsEnabled })
+        });
+      } catch (_) {}
+      e.target.textContent = `Sim Units: ${simUnitsEnabled ? 'ON' : 'OFF (LIVE)'}`;
+      e.target.classList.toggle('active', simUnitsEnabled);
+      document.getElementById('tak-mode-badge').textContent = simUnitsEnabled ? 'SIM+LIVE' : 'LIVE TAK ONLY';
+    };
+
+    document.getElementById('btn-auto-recenter').onclick = async (e) => {
+      try {
+        await fetch(apiUrl('/api/tak-config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ auto_recenter: true })
+        });
+      } catch (_) {}
+      e.target.classList.add('active');
+      e.target.textContent = 'Armed: Waiting CoT...';
+    };
+
+    document.getElementById('btn-tak-connect').onclick = async () => {
+      const addr = document.getElementById('inp-tak-tcp').value.trim();
+      if (!addr) return;
+      try {
+        await fetch(apiUrl('/api/tak-config'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tak_tcp_addr: addr, auto_recenter: true })
+        });
+      } catch (_) {}
+      document.getElementById('tak-mode-badge').textContent = `TCP: ${addr}`;
+    };
+
+    // --- Phase 12: Meta Quest 3 WebXR Controllers (3D Dock Click, Active Tool Raycast, Single-Hand Grab, Two-Handed Pinch-to-Scale) ---
+    const xrControllers = [];
+    const gripState = {
+      active: [false, false],
+      grabCtrlIdx: -1,
+      grabOffset: new THREE.Vector3(),
+      initialPinchDist: 0.0,
+      initialScale: 1.0,
+      initialAngle: 0.0,
+      initialRotY: 0.0,
+    };
+
+    for (const idx of [0, 1]) {
+      const ctrl = renderer.xr.getController(idx);
+      const rayGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, -3.0)
+      ]);
+      ctrl.add(new THREE.Line(rayGeo, new THREE.LineBasicMaterial({ color: idx === 0 ? 0x00ff88 : 0x00e5ff })));
+
+      ctrl.addEventListener('selectstart', async () => {
+        const tempMatrix = new THREE.Matrix4().extractRotation(ctrl.matrixWorld);
+        raycaster.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+        // 1. Check 3D Holographic VR Control Dock buttons first!
+        const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
+        if (dockHits.length > 0 && dockHits[0].object.userData.dockId) {
+          await handleVrDockAction(dockHits[0].object.userData.dockId);
+          return;
+        }
+
+        // 2. Check 3D unit icons or floating 3D Video Wall screens
+        const unitMeshes = [];
+        for (const n of entityNodes.values()) unitMeshes.push(n.iconMesh);
+        for (const p of videoWallPanels) unitMeshes.push(p.screenMesh);
+        const uHits = raycaster.intersectObjects(unitMeshes, false);
+        if (uHits.length > 0 && uHits[0].object.userData.uid) {
+          selectedUid = uHits[0].object.userData.uid;
+          return;
+        }
+
+        // 3. Otherwise execute the active VR tool on the 3D terrain!
+        if (!terrainMesh) return;
+        const hits = raycaster.intersectObject(terrainMesh, false);
+        if (hits.length > 0) {
+          const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+          const eastM = localPt.x / M_TO_TABLE;
+          const northM = -localPt.z / M_TO_TABLE;
+          await executeTerrainToolAt(eastM, northM, `QUEST3-HAND-${idx}`);
+        }
+      });
+
+      ctrl.addEventListener('squeezestart', () => {
+        gripState.active[idx] = true;
+        if (gripState.active[0] && gripState.active[1]) {
+          const p0 = new THREE.Vector3().setFromMatrixPosition(xrControllers[0].matrixWorld);
+          const p1 = new THREE.Vector3().setFromMatrixPosition(xrControllers[1].matrixWorld);
+          gripState.initialPinchDist = Math.max(p0.distanceTo(p1), 0.05);
+          gripState.initialScale = tableGroup.scale.x;
+          gripState.initialAngle = Math.atan2(p1.z - p0.z, p1.x - p0.x);
+          gripState.initialRotY = tableGroup.rotation.y;
+        } else {
+          gripState.grabCtrlIdx = idx;
+          const ctrlPos = new THREE.Vector3().setFromMatrixPosition(ctrl.matrixWorld);
+          gripState.grabOffset.copy(tableGroup.position).sub(ctrlPos);
+        }
+      });
+
+      ctrl.addEventListener('squeezeend', () => {
+        gripState.active[idx] = false;
+        if (gripState.grabCtrlIdx === idx) gripState.grabCtrlIdx = -1;
+      });
+
+      scene.add(ctrl);
+      xrControllers.push(ctrl);
+    }
+
+    let standaloneSimActive = false;
+    let standaloneEntities = [];
+    let standaloneSimTimeSec = 0.0;
+    let standaloneSpawnSeq = 1;
+
+    function computeClientPresetTerrain(presetName) {
+      const cols = 49, rows = 49, halfExtent = 1200.0;
+      const samples = new Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        const northM = -halfExtent + (2 * halfExtent * r) / (rows - 1);
+        for (let c = 0; c < cols; c++) {
+          const eastM = -halfExtent + (2 * halfExtent * c) / (cols - 1);
+          const nx = eastM / 450.0, nz = northM / 450.0;
+          let h = 0.0;
+          if (presetName === 'alpine') {
+            h = Math.sin(nx * 1.4) * Math.cos(nz * 1.3) * 145.0
+              + Math.exp(-((nx - 0.8) ** 2 + (nz + 0.6) ** 2) * 0.9) * 235.0
+              + Math.cos((nx + nz) * 2.1) * 48.0;
+          } else if (presetName === 'canyon') {
+            const river = Math.abs(nx - 0.25 * Math.sin(nz * 1.2));
+            h = Math.min(river * 190.0, 180.0) - 70.0 + Math.sin(nx * 2.5) * 22.0;
+          } else if (presetName === 'urban_bowl') {
+            const rad = Math.sqrt(nx * nx + nz * nz);
+            h = Math.max(0.0, (rad - 1.15) * 115.0) + Math.sin(nx * 4.0) * Math.cos(nz * 4.0) * 14.0;
+          } else {
+            const ridge1 = Math.sin(nx * 1.35 + 0.4) * Math.cos(nz * 1.15 - 0.2) * 95.0;
+            const ridge2 = Math.cos((nx - nz) * 0.95) * 58.0;
+            const valley = -Math.exp(-(nx * nx * 0.65 + nz * nz * 0.25)) * 75.0;
+            h = ridge1 + ridge2 + valley + 50.0;
+          }
+          samples[r * cols + c] = h;
+        }
+      }
+      return {
+        name: `SRTM-30M-${presetName.toUpperCase()}`,
+        resolution: cols,
+        extent_m: halfExtent,
+        heights_m: samples
+      };
+    }
+
+    function computeClientViewshed(eastM, northM, heightOffsetM, radiusM) {
+      const obsGround = sampleTerrainReliefM(eastM, northM);
+      const obsUp = obsGround + heightOffsetM;
+      const samples = [];
+      let visCount = 0;
+      const step = 75.0;
+      for (let dz = -radiusM; dz <= radiusM; dz += step) {
+        for (let dx = -radiusM; dx <= radiusM; dx += step) {
+          const dist = Math.hypot(dx, dz);
+          if (dist > radiusM || dist < 15.0) continue;
+          const tx = eastM + dx, tz = northM + dz;
+          const tUp = sampleTerrainReliefM(tx, tz) + 2.0;
+          let visible = true;
+          const steps = Math.max(4, Math.floor(dist / 38.0));
+          for (let s = 1; s < steps; s++) {
+            const frac = s / steps;
+            const ix = eastM + dx * frac;
+            const iz = northM + dz * frac;
+            const rayUp = obsUp + (tUp - obsUp) * frac;
+            if (sampleTerrainReliefM(ix, iz) > rayUp + 1.0) {
+              visible = false;
+              break;
+            }
+          }
+          if (visible) visCount++;
+          samples.push({ east_m: tx, north_m: tz, up_m: tUp, visible });
+        }
+      }
+      return {
+        observer_enu: [eastM, obsUp, northM],
+        radius_m: radiusM,
+        visible_ratio: samples.length ? visCount / samples.length : 1.0,
+        samples
+      };
+    }
+
+    function computeClientLos(fromEnu, toEnu) {
+      const [fx, fy, fz] = fromEnu;
+      const [tx, ty, tz] = toEnu;
+      const steps = 32;
+      let clear = true;
+      let firstOcc = null;
+      let maxClearance = -999;
+      for (let s = 1; s < steps; s++) {
+        const frac = s / steps;
+        const ix = fx + (tx - fx) * frac;
+        const iy = fy + (ty - fy) * frac;
+        const iz = fz + (tz - fz) * frac;
+        const gnd = sampleTerrainReliefM(ix, iz);
+        const diff = gnd - iy;
+        if (diff > maxClearance) maxClearance = diff;
+        if (gnd > iy && !firstOcc) {
+          clear = false;
+          firstOcc = [ix, gnd, iz];
+        }
+      }
+      return {
+        from_enu: fromEnu,
+        to_enu: toEnu,
+        clear,
+        obstruction_enu: firstOcc,
+        min_clearance_m: -maxClearance,
+        slant_range_m: Math.hypot(tx - fx, ty - fy, tz - fz)
+      };
+    }
+
+    function handleStandaloneTerrainToolAt(mode, eastM, northM, callerLabel) {
+      const gnd = sampleTerrainReliefM(eastM, northM);
+      if (mode === 'spi') {
+        standaloneEntities = standaloneEntities.filter(e => e.uid !== 'UAV-FALCON-01.SPI1');
+        standaloneEntities.push({
+          uid: 'UAV-FALCON-01.SPI1',
+          callsign: 'FALCON-1-SPI',
+          cot_type: 'b-m-p-s-p-i',
+          affiliation: 'Unknown',
+          lat_deg: 39.925,
+          lon_deg: 32.836,
+          hae_m: 850.0 + gnd,
+          east_m: eastM,
+          north_m: northM,
+          up_m: gnd,
+          speed_mps: 0.0,
+          course_deg: 0.0,
+          remarks: `Gimbal SPI Slaved via ${callerLabel}`
+        });
+        return;
+      }
+      if (mode === 'viewshed') {
+        renderViewshedCloud(computeClientViewshed(eastM, northM, 18.0, 680.0));
+        return;
+      }
+      if (mode === 'los') {
+        const sel = latestEntities.find(e => e.uid === selectedUid) || { east_m: 0, up_m: 90, north_m: 0 };
+        renderLinkLosChord(computeClientLos([sel.east_m, sel.up_m + 3.0, sel.north_m], [eastM, gnd + 2.5, northM]));
+        return;
+      }
+      if (mode === 'friendly' || mode === 'hostile') {
+        const isHostile = mode === 'hostile';
+        const uid = `XR-PIN-${standaloneSpawnSeq++}`;
+        standaloneEntities.push({
+          uid,
+          callsign: isHostile ? `TGT-XR-${standaloneSpawnSeq}` : `PIN-XR-${standaloneSpawnSeq}`,
+          cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
+          affiliation: isHostile ? 'Hostile' : 'Friendly',
+          lat_deg: 39.925,
+          lon_deg: 32.836,
+          hae_m: 850.0 + gnd,
+          east_m: eastM,
+          north_m: northM,
+          up_m: gnd,
+          speed_mps: 0.0,
+          course_deg: 0.0,
+          remarks: `Pinned via Quest 3 WebXR at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
+        });
+        selectedUid = uid;
+        return;
+      }
+      standaloneEntities = standaloneEntities.filter(e => e.uid !== 'XR-LASER-PTR');
+      standaloneEntities.push({
+        uid: 'XR-LASER-PTR',
+        callsign: `${callerLabel}-PTR`,
+        cot_type: 'b-m-p-s-p-i',
+        affiliation: 'Friendly',
+        lat_deg: 39.925,
+        lon_deg: 32.836,
+        hae_m: 850.0 + gnd,
+        east_m: eastM,
+        north_m: northM,
+        up_m: gnd,
+        speed_mps: 0.0,
+        course_deg: 0.0,
+        remarks: `3D Laser Ray Designator (${callerLabel})`
+      });
+    }
+
+    async function switchTerrainPreset(presetName) {
+      if (standaloneSimActive) {
+        activeDemGrid = computeClientPresetTerrain(presetName);
+      } else {
+        const res = await fetch(apiUrl('/api/terrain'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preset: presetName })
+        });
+        activeDemGrid = await res.json();
+      }
+      buildTerrainMesh();
+      document.getElementById('terrain-label').textContent = (activeDemGrid.name || presetName).toUpperCase();
+      document.getElementById('btn-dem-valley').classList.toggle('active', presetName === 'valley');
+      document.getElementById('btn-dem-alpine').classList.toggle('active', presetName === 'alpine');
+      document.getElementById('btn-dem-canyon').classList.toggle('active', presetName === 'canyon');
+      document.getElementById('btn-dem-urban').classList.toggle('active', presetName === 'urban_bowl');
+    }
+    document.getElementById('btn-dem-valley').onclick = () => switchTerrainPreset('valley');
+    document.getElementById('btn-dem-alpine').onclick = () => switchTerrainPreset('alpine');
+    document.getElementById('btn-dem-canyon').onclick = () => switchTerrainPreset('canyon');
+    document.getElementById('btn-dem-urban').onclick = () => switchTerrainPreset('urban_bowl');
+
+    function renderVisorHudOverlay(headingDeg) {
+      if (viewMode !== 'visor' && viewMode !== 'walkin' && viewMode !== 'cockpit' && !vrHeadsetActive) return;
+      const w = visorCanvas.width;
+      const h = visorCanvas.height;
+      vctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+
+      // Boresight cross & pitch ladder
+      vctx.strokeStyle = 'rgba(0, 255, 136, 0.72)';
+      vctx.lineWidth = 1.5;
+      vctx.beginPath();
+      vctx.arc(cx, cy, 26, 0, Math.PI * 2);
+      vctx.moveTo(cx - 42, cy); vctx.lineTo(cx - 14, cy);
+      vctx.moveTo(cx + 14, cy); vctx.lineTo(cx + 42, cy);
+      vctx.moveTo(cx, cy - 42); vctx.lineTo(cx, cy - 14);
+      vctx.stroke();
+
+      vctx.font = 'bold 11px "SF Mono", Menlo, monospace';
+      vctx.fillStyle = '#00ff88';
+      for (const pitch of [-15, -5, 5, 15]) {
+        const py = cy - pitch * 8;
+        vctx.beginPath();
+        vctx.moveTo(cx - 95, py); vctx.lineTo(cx - 55, py);
+        vctx.moveTo(cx + 55, py); vctx.lineTo(cx + 95, py);
+        vctx.stroke();
+        vctx.fillText(`${pitch > 0 ? '+' : ''}${pitch}°`, cx + 102, py + 4);
+      }
+
+      // Project 3D tracks into Helmet-Mounted AR Target Diamonds with Slant Range & Bearing
+      const obsEnt = latestEntities.find(e => e.uid === 'GND-SPEAR-ALPHA') || { east_m: 0, up_m: 80, north_m: 0 };
+      const projVec = new THREE.Vector3();
+      const marginX = vrHeadsetActive ? 40 : 320;
+      for (const ent of latestEntities) {
+        if (ent.cot_type && ent.cot_type.startsWith('b-m-p-s-p-i')) continue;
+        const node = entityNodes.get(ent.uid);
+        if (!node) continue;
+        node.root.getWorldPosition(projVec).project(camera);
+        if (projVec.z > 1.0) continue;
+        const sx = (projVec.x * 0.5 + 0.5) * w;
+        const sy = (-projVec.y * 0.5 + 0.5) * h;
+        if (sx < marginX || sx > w - marginX || sy < 70 || sy > h - 80) continue;
+
+        const dx = ent.east_m - obsEnt.east_m;
+        const dy = ent.up_m - obsEnt.up_m;
+        const dz = ent.north_m - obsEnt.north_m;
+        const rng = Math.round(Math.sqrt(dx * dx + dy * dy + dz * dz));
+        const brg = (Math.round(Math.atan2(dx, dz) * 180 / Math.PI) + 360) % 360;
+
+        const color = affiliationCss(ent.affiliation, ent.cot_type);
+        vctx.strokeStyle = color;
+        vctx.fillStyle = color;
+        vctx.lineWidth = 2;
+        vctx.beginPath();
+        vctx.moveTo(sx, sy - 16);
+        vctx.lineTo(sx + 16, sy);
+        vctx.lineTo(sx, sy + 16);
+        vctx.lineTo(sx - 16, sy);
+        vctx.closePath();
+        vctx.stroke();
+
+        vctx.fillText(`${ent.callsign} [${rng}m | ${brg.toString().padStart(3, '0')}°]`, sx + 20, sy + 4);
+      }
+    }
+
+    function toggleBrowserVrHeadsetMode(forceState) {
+      vrHeadsetActive = typeof forceState === 'boolean' ? forceState : !vrHeadsetActive;
+      document.body.classList.toggle('vr-headset-active', vrHeadsetActive);
+      visorCanvas.style.display = (vrHeadsetActive || viewMode === 'visor' || viewMode === 'walkin' || viewMode === 'cockpit') ? 'block' : 'none';
+      const topVrBtn = document.getElementById('btn-top-vr-mode');
+      const sideVrBtn = document.getElementById('btn-enter-xr');
+      if (vrHeadsetActive) {
+        topVrBtn.textContent = '🥽 EXIT VR HEADSET MODE (SHOW 2D PANELS)';
+        topVrBtn.classList.add('active');
+        if (sideVrBtn) sideVrBtn.textContent = 'VR HEADSET MODE: ACTIVE';
+        if (!interactionMode) setInteractionMode('spi');
+        document.getElementById('bottom-help').textContent =
+          '🥽 VR HEADSET MODE ACTIVE: Move cursor to aim 3D Quest 3 Right Hand Laser · Click 3D Holographic Dock or Terrain · WASD / Q-E to fly in 6DoF';
+      } else {
+        topVrBtn.textContent = '🥽 ENTER VR HEADSET MODE (3D HANDS)';
+        topVrBtn.classList.remove('active');
+        if (sideVrBtn) sideVrBtn.textContent = 'QUEST 3: ENTER MIXED REALITY (WebXR)';
+        document.getElementById('bottom-help').textContent =
+          'Left-Drag: Orbit Sand Table · Click "Point-to-Slew (SPI)" or "3D Viewshed (LOS)" then click any ridge/valley on the 3D terrain';
+      }
+    }
+
+    async function launchVrOrBrowserHeadset() {
+      if (navigator.xr) {
+        try {
+          const isArSupported = await navigator.xr.isSessionSupported('immersive-ar');
+          const isVrSupported = !isArSupported && await navigator.xr.isSessionSupported('immersive-vr');
+          if (isArSupported || isVrSupported) {
+            const mode = isArSupported ? 'immersive-ar' : 'immersive-vr';
+            const session = await navigator.xr.requestSession(mode, {
+              optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+            });
+            renderer.xr.setSession(session);
+            tableGroup.position.set(0, 0.78, -0.9);
+            return;
+          }
+        } catch (err) {
+          console.warn('WebXR session fallback to In-Browser 6DoF VR Headset Mode:', err);
+        }
+      }
+      toggleBrowserVrHeadsetMode();
+    }
+
+    document.getElementById('btn-enter-xr').onclick = launchVrOrBrowserHeadset;
+    document.getElementById('btn-top-vr-mode').onclick = launchVrOrBrowserHeadset;
+
+    document.getElementById('btn-top-stereo').onclick = (e) => {
+      stereoSbsActive = !stereoSbsActive;
+      e.target.textContent = `👁 STEREO 3D SBS: ${stereoSbsActive ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', stereoSbsActive);
+      if (stereoSbsActive && !vrHeadsetActive) toggleBrowserVrHeadsetMode(true);
+    };
+
+    document.getElementById('btn-top-spectate').onclick = () => {
+      setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
+    };
+    document.getElementById('btn-top-summon').onclick = () => {
+      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      const camWorldPos = new THREE.Vector3().setFromMatrixPosition(activeCam.matrixWorld);
+      const camFwd = new THREE.Vector3();
+      activeCam.getWorldDirection(camFwd);
+      camFwd.y = 0;
+      if (camFwd.lengthSq() > 1e-6) camFwd.normalize();
+      if (renderer.xr.isPresenting) {
+        tableGroup.position.copy(camWorldPos).addScaledVector(camFwd, 0.85);
+        tableGroup.position.y = camWorldPos.y - 0.32;
+      } else {
+        flyToTargetPos = new THREE.Vector3(0, 0.08, 0);
+        flyToCameraPos = new THREE.Vector3(0, 0.72, 1.05);
+      }
+    };
+    document.getElementById('btn-top-walkin').onclick = () => {
+      setViewMode(viewMode === 'walkin' ? 'table' : 'walkin');
+    };
+    document.getElementById('btn-top-cockpit').onclick = () => {
+      setViewMode(viewMode === 'cockpit' ? 'table' : 'cockpit');
+    };
+    document.getElementById('btn-top-visor').onclick = () => {
+      setViewMode(viewMode === 'visor' ? 'table' : 'visor');
+    };
+    document.getElementById('btn-top-scale').onclick = (e) => {
+      scalePresetIdx = (scalePresetIdx + 1) % SCALE_PRESETS.length;
+      const sc = SCALE_PRESETS[scalePresetIdx];
+      tableGroup.scale.setScalar(sc);
+      if (sc >= 4.5) {
+        const gndY = sampleTerrainReliefM(0, 0) * M_TO_TABLE * ALT_EXAGGERATION * sc;
+        tableGroup.position.set(0, -gndY - 0.08, 0);
+      } else {
+        tableGroup.position.set(0, 0, 0);
+      }
+      e.target.textContent = `🔍 PINCH SCALE: ${sc.toFixed(1)}x`;
+      e.target.classList.toggle('active', sc > 1.0);
+    };
+
+    function startStandaloneClientSim(aarSlider, aarLabel, isReplayRef) {
+      if (standaloneSimActive) return;
+      standaloneSimActive = true;
+      activeDemGrid = computeClientPresetTerrain('valley');
+      buildTerrainMesh();
+
+      const threatDomes = [
+        { uid: 'SAM-SA15-TOR', label: 'SA-15 GAUNTLET SHORAD', east_m: 380.0, north_m: -320.0, up_m: sampleTerrainReliefM(380, -320), radius_m: 310.0, color_hex: '#ff3355' },
+        { uid: 'EW-KRASUKHA-01', label: 'EW GPS JAMMER DOME', east_m: -420.0, north_m: -240.0, up_m: sampleTerrainReliefM(-420, -240), radius_m: 250.0, color_hex: '#ffaa00' }
+      ];
+      const tacticalZones = [
+        {
+          uid: 'ROZ-ALPHA-CORRIDOR',
+          label: 'ROZ-ALPHA UAV CORRIDOR',
+          kind: 'roz',
+          color_hex: '#00e5ff',
+          floor_m: 120.0,
+          ceiling_m: 380.0,
+          vertices_enu: [[-520.0, 120.0], [-140.0, 440.0], [220.0, 390.0], [-120.0, -40.0]]
+        },
+        {
+          uid: 'NFZ-RED-VALLEY',
+          label: 'NFZ HOSTILE SHORAD BOX',
+          kind: 'nfz',
+          color_hex: '#ff3355',
+          floor_m: 0.0,
+          ceiling_m: 320.0,
+          vertices_enu: [[180.0, -520.0], [560.0, -520.0], [560.0, -120.0], [180.0, -120.0]]
+        }
+      ];
+
+      setInterval(() => {
+        if (isReplayRef()) return;
+        standaloneSimTimeSec += 0.05;
+        const t = standaloneSimTimeSec;
+        const f1E = Math.cos(t * 0.22) * 390.0, f1N = Math.sin(t * 0.22) * 320.0;
+        const f2E = Math.sin(t * 0.16) * 460.0, f2N = Math.cos(t * 0.16) * 290.0;
+        const h1E = 240.0 + Math.sin(t * 0.11) * 140.0, h1N = -210.0 + Math.cos(t * 0.11) * 110.0;
+        const g1Gnd = sampleTerrainReliefM(-180, 140);
+        const g2Gnd = sampleTerrainReliefM(110, 260);
+        const h1Gnd = sampleTerrainReliefM(h1E, h1N);
+        const h2Gnd = sampleTerrainReliefM(380, -320);
+
+        const baseTracks = [
+          {
+            uid: 'UAV-FALCON-01', callsign: 'FALCON-1 (ISR UAV)', cot_type: 'a-f-A-M-F-Q', affiliation: 'Friendly',
+            lat_deg: 39.925 + f1N / 111111, lon_deg: 32.836 + f1E / 85000, hae_m: 1170.0,
+            east_m: f1E, north_m: f1N, up_m: 320.0, speed_mps: 28.5, course_deg: ((t * 0.22 * 180 / Math.PI) + 90) % 360,
+            remarks: 'EO/IR Thermal Overwatch · RTSP Active'
+          },
+          {
+            uid: 'UAV-VALKYRIE-02', callsign: 'VALKYRIE-2 (SAR)', cot_type: 'a-f-A-M-F-Q', affiliation: 'Friendly',
+            lat_deg: 39.925 + f2N / 111111, lon_deg: 32.836 + f2E / 85000, hae_m: 1230.0,
+            east_m: f2E, north_m: f2N, up_m: 380.0, speed_mps: 34.0, course_deg: ((t * 0.16 * 180 / Math.PI) + 180) % 360,
+            remarks: 'Synthetic Aperture Radar Strip-Map'
+          },
+          {
+            uid: 'GND-SPEAR-ALPHA', callsign: 'SPEAR-ALPHA (JTAC)', cot_type: 'a-f-G-U-C', affiliation: 'Friendly',
+            lat_deg: 39.9262, lon_deg: 32.8342, hae_m: 850.0 + g1Gnd,
+            east_m: -180.0, north_m: 140.0, up_m: g1Gnd, speed_mps: 1.4, course_deg: 45.0,
+            remarks: 'Quest 3 WebXR Command Post'
+          },
+          {
+            uid: 'GND-OBSERVE-BRAVO', callsign: 'OP-BRAVO (RECON)', cot_type: 'a-f-G-U-C-I', affiliation: 'Friendly',
+            lat_deg: 39.9273, lon_deg: 32.8371, hae_m: 850.0 + g2Gnd,
+            east_m: 110.0, north_m: 260.0, up_m: g2Gnd, speed_mps: 0.0, course_deg: 135.0,
+            remarks: 'Ridge Overwatch PTZ + Laser Designator'
+          },
+          {
+            uid: 'HST-ARMOR-01', callsign: 'T-72B3 CONVOY', cot_type: 'a-h-G-E-V-A', affiliation: 'Hostile',
+            lat_deg: 39.9231, lon_deg: 32.8388, hae_m: 850.0 + h1Gnd,
+            east_m: h1E, north_m: h1N, up_m: h1Gnd, speed_mps: 8.4, course_deg: 295.0,
+            remarks: 'Moving Armor Column in Southern Valley'
+          },
+          {
+            uid: 'HST-RADAR-02', callsign: 'SA-15 TELAR', cot_type: 'a-h-G-E-S', affiliation: 'Hostile',
+            lat_deg: 39.9221, lon_deg: 32.8402, hae_m: 850.0 + h2Gnd,
+            east_m: 380.0, north_m: -320.0, up_m: h2Gnd, speed_mps: 0.0, course_deg: 315.0,
+            remarks: 'Active SHORAD Engagement Radar'
+          }
+        ];
+
+        const merged = baseTracks.concat(standaloneEntities);
+        aarSlider.min = '0.0';
+        aarSlider.max = Math.max(t, 10.0).toFixed(1);
+        aarSlider.value = t;
+        aarLabel.textContent = `T+${t.toFixed(1)}s (HTTPS XR)`;
+
+        updateHudAndRoster({
+          sim_time_sec: t,
+          udp_cot_packets_rx: Math.floor(t * 12),
+          entities: merged,
+          threat_domes: threatDomes,
+          tactical_zones: tacticalZones
+        });
+      }, 50);
+    }
+
+    function connectTelemetryStream() {
+      let aarReplayActive = false;
+      let aarPlaying = false;
+      let aarSpeed = 1.0;
+      const aarSlider = document.getElementById('aar-slider');
+      const aarBadge = document.getElementById('aar-mode-badge');
+      const aarLabel = document.getElementById('aar-time-label');
+      const playBtn = document.getElementById('btn-aar-play');
+      const speedBtn = document.getElementById('btn-aar-speed');
+
+      async function loadAarFrameAt(t) {
+        if (standaloneSimActive) return;
+        const res = await fetch(apiUrl(`/api/aar?t=${t.toFixed(2)}`));
+        const data = await res.json();
+        if (data.frame) {
+          aarLabel.textContent = `REPLAY T+${data.frame.sim_time_sec.toFixed(1)}s (${aarSpeed}x)`;
+          updateHudAndRoster({
+            entities: data.frame.entities,
+            threat_domes: data.threat_domes || [],
+            tactical_zones: data.tactical_zones || []
+          });
+        }
+      }
+
+      aarSlider.addEventListener('input', async () => {
+        aarReplayActive = true;
+        aarBadge.textContent = '4D REPLAY';
+        aarBadge.classList.add('replay');
+        await loadAarFrameAt(parseFloat(aarSlider.value));
+      });
+
+      playBtn.onclick = () => {
+        aarPlaying = !aarPlaying;
+        if (aarPlaying && !aarReplayActive) {
+          aarReplayActive = true;
+          aarBadge.textContent = '4D REPLAY';
+          aarBadge.classList.add('replay');
+          aarSlider.value = aarSlider.min;
+        }
+        playBtn.textContent = aarPlaying ? '⏸ Pause' : '▶ Play';
+        playBtn.classList.toggle('active', aarPlaying);
+      };
+
+      speedBtn.onclick = () => {
+        aarSpeed = aarSpeed === 1.0 ? 2.0 : (aarSpeed === 2.0 ? 4.0 : 1.0);
+        speedBtn.textContent = `${aarSpeed}x`;
+      };
+
+      setInterval(async () => {
+        if (!aarPlaying || !aarReplayActive) return;
+        const maxT = parseFloat(aarSlider.max) || 60.0;
+        const minT = parseFloat(aarSlider.min) || 0.0;
+        let nextT = parseFloat(aarSlider.value) + 0.1 * aarSpeed;
+        if (nextT > maxT) nextT = minT;
+        aarSlider.value = nextT;
+        await loadAarFrameAt(nextT);
+      }, 100);
+
+      document.getElementById('btn-aar-live').onclick = () => {
+        aarReplayActive = false;
+        aarPlaying = false;
+        playBtn.textContent = '▶ Play';
+        playBtn.classList.remove('active');
+        aarBadge.textContent = 'LIVE 20Hz';
+        aarBadge.classList.remove('replay');
+      };
+
+      try {
+        const es = new EventSource(apiUrl('/api/stream'));
+        es.onmessage = (ev) => {
+          try {
+            const snap = JSON.parse(ev.data);
+            if (snap.aar) {
+              aarSlider.min = snap.aar.min_time_sec.toFixed(1);
+              aarSlider.max = Math.max(snap.aar.max_time_sec, 1.0).toFixed(1);
+              if (!aarReplayActive) {
+                aarSlider.value = snap.sim_time_sec;
+                aarLabel.textContent = `T+${snap.sim_time_sec.toFixed(1)}s (${snap.aar.frame_count}f)`;
+              }
+            }
+            if (!aarReplayActive) {
+              updateHudAndRoster(snap);
+            }
+          } catch (err) {
+            console.error('Telemetry parse error:', err);
+          }
+        };
+        es.onerror = () => {
+          es.close();
+          startStandaloneClientSim(aarSlider, aarLabel, () => aarReplayActive);
+        };
+      } catch (_) {
+        startStandaloneClientSim(aarSlider, aarLabel, () => aarReplayActive);
+      }
+    }
+    connectTelemetryStream();
+
+    const dirVec = new THREE.Vector3();
+    let lastFingerPokeMs = 0;
+
+    function updateCameraFacingPanels(timeMs) {
+      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      const camWorldPos = new THREE.Vector3().setFromMatrixPosition(activeCam.matrixWorld);
+      const camLocal = tableGroup.worldToLocal(camWorldPos.clone());
+      const radial = new THREE.Vector3(camLocal.x, 0, camLocal.z);
+      if (radial.lengthSq() < 1e-6) radial.set(0, 0, 1);
+      else radial.normalize();
+      const rightLocal = new THREE.Vector3(-radial.z, 0, radial.x);
+
+      // 1. Place 3D Holographic VR Control Dock on the operator-facing near side & tilt upright toward operator
+      const dockRadius = Math.min(Math.max(new THREE.Vector2(camLocal.x, camLocal.z).length() * 0.45, 0.34), 0.54);
+      vrDockGroup.position.set(radial.x * dockRadius, 0.21, radial.z * dockRadius);
+      vrDockGroup.lookAt(camWorldPos);
+
+      // 2. Place the 3 Floating 3D Video Wall Screens in a semi-circular arc behind the center, always facing operator upright
+      const arcFront = radial.clone().negate();
+      const slotAngles = [-0.48, 0.0, 0.48];
+      for (let i = 0; i < videoWallPanels.length; i++) {
+        const p = videoWallPanels[i];
+        const ang = slotAngles[i] || 0.0;
+        const dir = arcFront.clone().multiplyScalar(Math.cos(ang)).addScaledVector(rightLocal, Math.sin(ang));
+        const r = 0.56;
+        const h = i === 1 ? 0.52 : 0.48;
+        p.panelGroup.position.set(dir.x * r, h, dir.z * r);
+        p.panelGroup.lookAt(camWorldPos);
+      }
+
+      // 3. Rotate the glowing Quest 3 Spatial Grab Pedestal Ring (Jimmy AR style)
+      if (spatialGrabRing) {
+        spatialGrabRing.rotation.z = timeMs * 0.0012;
+        const isGrabbing = gripState.grabCtrlIdx >= 0 || (gripState.active[0] && gripState.active[1]);
+        spatialGrabRing.material.color.setHex(isGrabbing ? 0x00ff88 : 0xf59e0b);
+      }
+    }
+
+    renderer.setAnimationLoop((timeMs) => {
+      if (flyToTargetPos && flyToCameraPos) {
+        controls.target.lerp(flyToTargetPos, 0.12);
+        camera.position.lerp(flyToCameraPos, 0.12);
+        if (camera.position.distanceTo(flyToCameraPos) < 0.015) {
+          flyToTargetPos = null;
+          flyToCameraPos = null;
+        }
+      } else if (viewMode === 'chase') {
+        const selNode = entityNodes.get(selectedUid);
+        if (selNode) {
+          const targetPos = selNode.root.position;
+          camera.position.lerp(
+            new THREE.Vector3(targetPos.x - 0.18, targetPos.y + 0.14, targetPos.z + 0.24),
+            0.05
+          );
+          controls.target.lerp(targetPos, 0.1);
+        }
+      } else if (viewMode === 'cockpit') {
+        const uavNode = entityNodes.get('UAV-FALCON-01');
+        if (uavNode) {
+          const uavPos = uavNode.root.position;
+          camera.position.lerp(new THREE.Vector3(uavPos.x, uavPos.y - 0.015, uavPos.z), 0.15);
+          const spiNode = entityNodes.get('UAV-FALCON-01.SPI1') || entityNodes.get('HST-ARMOR-01');
+          const lookTarget = spiNode ? spiNode.root.position : new THREE.Vector3(0, 0.05, 0);
+          controls.target.lerp(lookTarget, 0.15);
+        }
+      }
+
+      // Phase 12 & 14: WebXR Single-Hand Grab, Two-Handed Pinch-to-Scale/Rotate, Direct Finger Poke & Thumbstick Locomotion
+      if (renderer.xr.isPresenting) {
+        if (gripState.active[0] && gripState.active[1]) {
+          const p0 = new THREE.Vector3().setFromMatrixPosition(xrControllers[0].matrixWorld);
+          const p1 = new THREE.Vector3().setFromMatrixPosition(xrControllers[1].matrixWorld);
+          const dist = Math.max(p0.distanceTo(p1), 0.05);
+          const nextScale = THREE.MathUtils.clamp(gripState.initialScale * (dist / gripState.initialPinchDist), 0.4, 12.0);
+          tableGroup.scale.setScalar(nextScale);
+          const angle = Math.atan2(p1.z - p0.z, p1.x - p0.x);
+          tableGroup.rotation.y = gripState.initialRotY - (angle - gripState.initialAngle);
+        } else if (gripState.grabCtrlIdx >= 0) {
+          const ctrlPos = new THREE.Vector3().setFromMatrixPosition(xrControllers[gripState.grabCtrlIdx].matrixWorld);
+          tableGroup.position.copy(ctrlPos).add(gripState.grabOffset);
+        }
+
+        // Direct Controller/Hand Proximity Poke on 3D Holographic Dock Buttons (Jimmy AR style)
+        if (timeMs - lastFingerPokeMs > 450) {
+          for (const ctrl of xrControllers) {
+            const p = new THREE.Vector3().setFromMatrixPosition(ctrl.matrixWorld);
+            if (p.lengthSq() < 1e-5) continue;
+            for (const b of vrDockButtons) {
+              const bp = new THREE.Vector3().setFromMatrixPosition(b.mesh.matrixWorld);
+              if (p.distanceTo(bp) < 0.068) {
+                lastFingerPokeMs = timeMs;
+                handleVrDockAction(b.def.id);
+                break;
+              }
+            }
+          }
+        }
+
+        if (terrainMesh && xrControllers[0]) {
+          const tempMatrix = new THREE.Matrix4().extractRotation(xrControllers[0].matrixWorld);
+          raycaster.ray.origin.setFromMatrixPosition(xrControllers[0].matrixWorld);
+          raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+          const hits = raycaster.intersectObject(terrainMesh, false);
+          if (hits.length > 0) {
+            updateReticleAtLocal(tableGroup.worldToLocal(hits[0].point.clone()), timeMs);
+          }
+        }
+
+        const session = renderer.xr.getSession();
+        if (session && session.inputSources) {
+          for (const src of session.inputSources) {
+            if (src.gamepad && src.gamepad.axes && src.gamepad.axes.length >= 4) {
+              const axX = src.gamepad.axes[2] || 0;
+              const axY = src.gamepad.axes[3] || 0;
+              if (Math.abs(axX) > 0.15 || Math.abs(axY) > 0.15) {
+                tableGroup.position.x -= axX * 0.018;
+                tableGroup.position.z -= axY * 0.018;
+              }
+            }
+          }
+        }
+      }
+
+      // 6DoF WASD / Arrow / Q-E + Shift Boost Keyboard Flight (Free Spectate, VR Headset & Walk-In)
+      if (activeKeys.size > 0 && !renderer.xr.isPresenting) {
+        const boost = (activeKeys.has('ShiftLeft') || activeKeys.has('ShiftRight')) ? 2.6 : 1.0;
+        const baseStep = viewMode === 'walkin' ? 0.024 : (viewMode === 'spectate' ? 0.018 : 0.014);
+        const moveStep = baseStep * boost;
+        const fwd = new THREE.Vector3();
+        camera.getWorldDirection(fwd);
+        if (viewMode !== 'spectate') {
+          fwd.y = 0;
+          if (fwd.lengthSq() > 1e-6) fwd.normalize();
+        }
+        const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+        const delta = new THREE.Vector3();
+        if (activeKeys.has('KeyW') || activeKeys.has('ArrowUp')) delta.addScaledVector(fwd, moveStep);
+        if (activeKeys.has('KeyS') || activeKeys.has('ArrowDown')) delta.addScaledVector(fwd, -moveStep);
+        if (activeKeys.has('KeyD') || activeKeys.has('ArrowRight')) delta.addScaledVector(right, moveStep);
+        if (activeKeys.has('KeyA') || activeKeys.has('ArrowLeft')) delta.addScaledVector(right, -moveStep);
+        if (activeKeys.has('KeyE') || activeKeys.has('Space')) delta.y += moveStep * 0.85;
+        if (activeKeys.has('KeyQ') || activeKeys.has('KeyC')) delta.y -= moveStep * 0.85;
+        if (delta.lengthSq() > 0) {
+          flyToTargetPos = null;
+          flyToCameraPos = null;
+          camera.position.add(delta);
+          controls.target.add(delta);
+        }
+      }
+
+      controls.update();
+      updateCameraFacingPanels(timeMs);
+      updateVirtualHandsPose(timeMs);
+      camera.getWorldDirection(dirVec);
+      const headingDeg = (Math.round(THREE.MathUtils.radToDeg(Math.atan2(dirVec.x, -dirVec.z))) + 360) % 360;
+      document.getElementById('hud-heading').textContent =
+        `HDG ${headingDeg.toString().padStart(3, '0')}°`;
+
+      renderGimbalPip(timeMs);
+      updateSpatialVideoWall(timeMs);
+      renderVisorHudOverlay(headingDeg);
+
+      if (stereoSbsActive && !renderer.xr.isPresenting) {
+        const fullW = window.innerWidth;
+        const fullH = window.innerHeight;
+        const halfW = Math.floor(fullW * 0.5);
+        renderer.setScissorTest(true);
+        const origPos = camera.position.clone();
+        const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        camera.aspect = halfW / fullH;
+        camera.updateProjectionMatrix();
+
+        // Left Eye Lens
+        camera.position.copy(origPos).addScaledVector(camRight, -0.028);
+        renderer.setViewport(0, 0, halfW, fullH);
+        renderer.setScissor(0, 0, halfW, fullH);
+        renderer.render(scene, camera);
+
+        // Right Eye Lens
+        camera.position.copy(origPos).addScaledVector(camRight, 0.028);
+        renderer.setViewport(halfW, 0, fullW - halfW, fullH);
+        renderer.setScissor(halfW, 0, fullW - halfW, fullH);
+        renderer.render(scene, camera);
+
+        camera.position.copy(origPos);
+        camera.aspect = fullW / fullH;
+        camera.updateProjectionMatrix();
+        renderer.setScissorTest(false);
+        renderer.setViewport(0, 0, fullW, fullH);
+      } else {
+        renderer.setScissorTest(false);
+        renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+        renderer.render(scene, camera);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      visorCanvas.width = window.innerWidth;
+      visorCanvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
