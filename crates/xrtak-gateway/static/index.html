@@ -388,6 +388,20 @@
         </div>
       </div>
     </div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>LIVE TAK SERVER & QUEST 3 BRIDGE</span>
+      <span id="tak-mode-badge" style="color:var(--green);">SIM+LIVE</span>
+    </div>
+    <div style="display:flex;gap:5px;">
+      <input id="inp-tak-tcp" placeholder="TAK Server TCP (e.g. 192.168.1.50:8087)" style="flex:1;background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
+      <button class="tac-btn" id="btn-tak-connect" style="padding:5px 9px;">Connect</button>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn active" id="btn-sim-toggle">Sim Units: ON</button>
+      <button class="tac-btn" id="btn-auto-recenter">Auto-Center CoT</button>
+      <button class="tac-btn spi-btn" id="btn-laser-pointer" style="grid-column:span 2;">3D XR Laser Pointer (b-m-p-c)</button>
+    </div>
   </div>
 
   <div class="bottom-help" id="bottom-help">
@@ -1273,6 +1287,8 @@
       document.getElementById('btn-viewshed').classList.toggle('active', interactionMode === 'viewshed');
       document.getElementById('btn-drop-friendly').classList.toggle('active', interactionMode === 'friendly');
       document.getElementById('btn-drop-hostile').classList.toggle('active', interactionMode === 'hostile');
+      const lpBtn = document.getElementById('btn-laser-pointer');
+      if (lpBtn) lpBtn.classList.toggle('active', interactionMode === 'laser');
     }
 
     const raycaster = new THREE.Raycaster();
@@ -1336,6 +1352,19 @@
               })
             });
             setInteractionMode(null);
+            return;
+          }
+
+          if (interactionMode === 'laser') {
+            await fetch('/api/pointer', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                callsign: 'QUEST3-CMD',
+                east_m: eastM,
+                north_m: northM
+              })
+            });
             return;
           }
         }
@@ -1429,6 +1458,69 @@
 
     document.getElementById('btn-drop-friendly').onclick = () => setInteractionMode('friendly');
     document.getElementById('btn-drop-hostile').onclick = () => setInteractionMode('hostile');
+    document.getElementById('btn-laser-pointer').onclick = () => setInteractionMode('laser');
+
+    let simUnitsEnabled = true;
+    document.getElementById('btn-sim-toggle').onclick = async (e) => {
+      simUnitsEnabled = !simUnitsEnabled;
+      await fetch('/api/tak-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sim_enabled: simUnitsEnabled })
+      });
+      e.target.textContent = `Sim Units: ${simUnitsEnabled ? 'ON' : 'OFF (LIVE)'}`;
+      e.target.classList.toggle('active', simUnitsEnabled);
+      document.getElementById('tak-mode-badge').textContent = simUnitsEnabled ? 'SIM+LIVE' : 'LIVE TAK ONLY';
+    };
+
+    document.getElementById('btn-auto-recenter').onclick = async (e) => {
+      await fetch('/api/tak-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auto_recenter: true })
+      });
+      e.target.classList.add('active');
+      e.target.textContent = 'Armed: Waiting CoT...';
+    };
+
+    document.getElementById('btn-tak-connect').onclick = async () => {
+      const addr = document.getElementById('inp-tak-tcp').value.trim();
+      if (!addr) return;
+      await fetch('/api/tak-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tak_tcp_addr: addr, auto_recenter: true })
+      });
+      document.getElementById('tak-mode-badge').textContent = `TCP: ${addr}`;
+    };
+
+    // Meta Quest 3 WebXR Controller & Hand-Tracking 3D Laser Raycaster
+    for (const idx of [0, 1]) {
+      const ctrl = renderer.xr.getController(idx);
+      const rayGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, -2.5)
+      ]);
+      ctrl.add(new THREE.Line(rayGeo, new THREE.LineBasicMaterial({ color: 0x00ff88 })));
+      ctrl.addEventListener('selectstart', async () => {
+        if (!terrainMesh) return;
+        const tempMatrix = new THREE.Matrix4().extractRotation(ctrl.matrixWorld);
+        raycaster.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+        const hits = raycaster.intersectObject(terrainMesh, false);
+        if (hits.length > 0) {
+          const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+          const eastM = localPt.x / M_TO_TABLE;
+          const northM = -localPt.z / M_TO_TABLE;
+          await fetch('/api/pointer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ callsign: `QUEST3-HAND-${idx}`, east_m: eastM, north_m: northM })
+          });
+        }
+      });
+      scene.add(ctrl);
+    }
 
     async function switchTerrainPreset(presetName) {
       const res = await fetch('/api/terrain', {
