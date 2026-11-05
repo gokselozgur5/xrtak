@@ -89,6 +89,55 @@
       flex-direction: column;
       gap: 9px;
       max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    body.vr-headset-active .left-panel,
+    body.vr-headset-active .right-panel {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+    }
+    .vr-command-bar {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(3, 12, 22, 0.94);
+      border: 1.5px solid var(--green);
+      box-shadow: 0 0 24px rgba(0, 255, 136, 0.28);
+      padding: 5px 10px;
+      border-radius: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .vr-pill-btn {
+      background: rgba(0, 229, 255, 0.14);
+      color: var(--text-main);
+      border: 1px solid rgba(0, 229, 255, 0.45);
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .vr-pill-btn:hover {
+      background: rgba(0, 255, 136, 0.28);
+      border-color: var(--green);
+      color: #ffffff;
+    }
+    .vr-pill-btn.primary {
+      background: linear-gradient(90deg, #00ff88, #00e5ff);
+      color: #020810;
+      border-color: #00ff88;
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.45);
+    }
+    .vr-pill-btn.active {
+      background: var(--green);
+      color: #020810;
+      border-color: var(--green);
     }
     .panel-title {
       font-size: 11px;
@@ -192,6 +241,9 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .kv-grid {
       display: grid;
@@ -297,6 +349,14 @@
       <span id="hud-heading">HDG 000° N</span>
       <span>|</span>
       <span id="hud-origin">SECTOR: 39.9200N 32.8500E (3.0x3.0 km)</span>
+    </div>
+    <div class="vr-command-bar">
+      <button class="vr-pill-btn primary" id="btn-top-vr-mode">🥽 ENTER VR HEADSET MODE (3D HANDS)</button>
+      <button class="vr-pill-btn" id="btn-top-stereo">👁 STEREO 3D SBS: OFF</button>
+      <button class="vr-pill-btn" id="btn-top-walkin">🚶 1:1 WALK-IN VALLEY</button>
+      <button class="vr-pill-btn" id="btn-top-cockpit">🚁 UAV COCKPIT POV</button>
+      <button class="vr-pill-btn" id="btn-top-visor">🎯 AR VISOR HUD</button>
+      <button class="vr-pill-btn" id="btn-top-scale">🔍 PINCH SCALE: 1.0x</button>
     </div>
     <div class="status-pill">
       <span class="dot-live"></span>
@@ -1394,9 +1454,15 @@
     }
 
     const vrDockGroup = new THREE.Group();
-    vrDockGroup.position.set(0, 0.055, TABLE_RADIUS_UNITS * 1.12);
-    vrDockGroup.rotation.x = -0.46;
+    vrDockGroup.position.set(0, 0.30, -0.58);
+    vrDockGroup.rotation.x = 0.24;
     tableGroup.add(vrDockGroup);
+    {
+      const dockHeader = makeTextSprite('🥽 3D HOLOGRAPHIC VR COMMAND DOCK (CLICK OR RAYCAST)', '#00ff88', 22);
+      dockHeader.scale.set(0.56, 0.048, 1);
+      dockHeader.position.set(0, 0.105, 0);
+      vrDockGroup.add(dockHeader);
+    }
 
     const VR_DOCK_DEFS = [
       { id: 'dock-spi', label: '🎯 SPI SLEW', row: 0, col: 0 },
@@ -1411,7 +1477,7 @@
     const vrDockButtons = [];
 
     function initVrHolographicDock() {
-      const btnW = 0.20, btnH = 0.058, gapX = 0.215, gapY = 0.068;
+      const btnW = 0.23, btnH = 0.068, gapX = 0.245, gapY = 0.078;
       for (const def of VR_DOCK_DEFS) {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
@@ -1532,16 +1598,110 @@
       refreshVrDockVisuals();
     }
 
+    let vrHeadsetActive = false;
+    let stereoSbsActive = false;
+    const SCALE_PRESETS = [1.0, 2.2, 5.0, 8.5];
+    let scalePresetIdx = 0;
+    const activeKeys = new Set();
+
+    // Virtual Quest 3 Left & Right Hand Controllers + 3D Laser Beams for Browser VR Mode
+    const virtualHandsGroup = new THREE.Group();
+    virtualHandsGroup.visible = false;
+    scene.add(virtualHandsGroup);
+
+    const rightHandRig = new THREE.Group();
+    const leftHandRig = new THREE.Group();
+    virtualHandsGroup.add(rightHandRig);
+    virtualHandsGroup.add(leftHandRig);
+    {
+      const gripMatR = new THREE.MeshStandardMaterial({ color: 0x162838, roughness: 0.35, metalness: 0.65 });
+      const ringMatR = new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide });
+      const handleR = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.11, 16), gripMatR);
+      handleR.rotation.x = Math.PI * 0.32;
+      rightHandRig.add(handleR);
+      const haloR = new THREE.Mesh(new THREE.TorusGeometry(0.032, 0.004, 12, 28), ringMatR);
+      haloR.position.set(0, 0.015, -0.025);
+      haloR.rotation.x = Math.PI * 0.45;
+      rightHandRig.add(haloR);
+
+      const handleL = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.11, 16), gripMatR);
+      handleL.rotation.x = Math.PI * 0.32;
+      leftHandRig.add(handleL);
+      const ringMatL = new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide });
+      const haloL = new THREE.Mesh(new THREE.TorusGeometry(0.032, 0.004, 12, 28), ringMatL);
+      haloL.position.set(0, 0.015, -0.025);
+      haloL.rotation.x = Math.PI * 0.45;
+      leftHandRig.add(haloL);
+    }
+    const rightLaserGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1.5)]);
+    const rightLaserLine = new THREE.Line(rightLaserGeo, new THREE.LineBasicMaterial({ color: 0x00ff88 }));
+    virtualHandsGroup.add(rightLaserLine);
+
+    const leftLaserGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -0.65)]);
+    const leftLaserLine = new THREE.Line(leftLaserGeo, new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.6 }));
+    virtualHandsGroup.add(leftLaserLine);
+
+    let lastPointerNdc = new THREE.Vector2(0, -0.1);
+
+    function updateVirtualHandsPose(timeMs) {
+      if (!vrHeadsetActive && !renderer.xr.isPresenting) {
+        virtualHandsGroup.visible = false;
+        return;
+      }
+      if (renderer.xr.isPresenting) {
+        virtualHandsGroup.visible = false;
+        return;
+      }
+      virtualHandsGroup.visible = true;
+      const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+      const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+      const camFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+
+      const rPos = camera.position.clone()
+        .addScaledVector(camRight, 0.22 + lastPointerNdc.x * 0.14)
+        .addScaledVector(camUp, -0.19 + lastPointerNdc.y * 0.10)
+        .addScaledVector(camFwd, 0.36);
+      rightHandRig.position.copy(rPos);
+      rightHandRig.quaternion.copy(camera.quaternion);
+
+      const lPos = camera.position.clone()
+        .addScaledVector(camRight, -0.24)
+        .addScaledVector(camUp, -0.20)
+        .addScaledVector(camFwd, 0.34);
+      leftHandRig.position.copy(lPos);
+      leftHandRig.quaternion.copy(camera.quaternion);
+
+      raycaster.setFromCamera(lastPointerNdc, camera);
+      let beamEnd = rPos.clone().addScaledVector(raycaster.ray.direction, 1.8);
+      if (terrainMesh) {
+        const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
+        if (dockHits.length > 0) {
+          beamEnd.copy(dockHits[0].point);
+        } else {
+          const hits = raycaster.intersectObject(terrainMesh, false);
+          if (hits.length > 0) {
+            beamEnd.copy(hits[0].point);
+            const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+            updateReticleAtLocal(localPt, timeMs);
+          }
+        }
+      }
+      rightLaserGeo.setFromPoints([rPos, beamEnd]);
+      const lEnd = lPos.clone().addScaledVector(camFwd, 0.55).addScaledVector(camRight, 0.08);
+      leftLaserGeo.setFromPoints([lPos, lEnd]);
+    }
+
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     window.addEventListener('pointermove', (ev) => {
       if (ev.target !== renderer.domElement || !terrainMesh) return;
-      if (!interactionMode) {
+      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+      lastPointerNdc.copy(pointer);
+      if (!interactionMode && !vrHeadsetActive) {
         cursorReticleGroup.visible = false;
         return;
       }
-      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObject(terrainMesh, false);
       if (hits.length > 0) {
@@ -1550,6 +1710,14 @@
       } else {
         cursorReticleGroup.visible = false;
       }
+    });
+
+    window.addEventListener('keydown', (ev) => {
+      if (ev.target && ev.target.tagName === 'INPUT') return;
+      activeKeys.add(ev.code);
+    });
+    window.addEventListener('keyup', (ev) => {
+      activeKeys.delete(ev.code);
     });
 
     window.addEventListener('pointerdown', async (ev) => {
@@ -1646,13 +1814,16 @@
 
     function setViewMode(mode) {
       viewMode = mode;
-      visorCanvas.style.display = (mode === 'visor' || mode === 'walkin' || mode === 'cockpit') ? 'block' : 'none';
+      visorCanvas.style.display = (mode === 'visor' || mode === 'walkin' || mode === 'cockpit' || vrHeadsetActive) ? 'block' : 'none';
       for (const [id, m] of [
         ['btn-view-table', 'table'],
         ['btn-view-chase', 'chase'],
         ['btn-view-visor', 'visor'],
         ['btn-view-walkin', 'walkin'],
-        ['btn-view-cockpit', 'cockpit']
+        ['btn-view-cockpit', 'cockpit'],
+        ['btn-top-walkin', 'walkin'],
+        ['btn-top-cockpit', 'cockpit'],
+        ['btn-top-visor', 'visor']
       ]) {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', mode === m);
@@ -1685,6 +1856,8 @@
         tableGroup.position.set(0, 0, 0);
         document.getElementById('hud-mode-label').textContent = 'MODE: FALCON-1 UAV COCKPIT RIDE-ALONG';
       }
+      const scaleBtn = document.getElementById('btn-top-scale');
+      if (scaleBtn) scaleBtn.textContent = `🔍 PINCH SCALE: ${tableGroup.scale.x.toFixed(1)}x`;
       refreshVrDockVisuals();
     }
 
@@ -1880,7 +2053,7 @@
     document.getElementById('btn-dem-urban').onclick = () => switchTerrainPreset('urban_bowl');
 
     function renderVisorHudOverlay(headingDeg) {
-      if (viewMode !== 'visor' && viewMode !== 'walkin' && viewMode !== 'cockpit') return;
+      if (viewMode !== 'visor' && viewMode !== 'walkin' && viewMode !== 'cockpit' && !vrHeadsetActive) return;
       const w = visorCanvas.width;
       const h = visorCanvas.height;
       vctx.clearRect(0, 0, w, h);
@@ -1912,15 +2085,16 @@
       // Project 3D tracks into Helmet-Mounted AR Target Diamonds with Slant Range & Bearing
       const obsEnt = latestEntities.find(e => e.uid === 'GND-SPEAR-ALPHA') || { east_m: 0, up_m: 80, north_m: 0 };
       const projVec = new THREE.Vector3();
+      const marginX = vrHeadsetActive ? 40 : 320;
       for (const ent of latestEntities) {
         if (ent.cot_type && ent.cot_type.startsWith('b-m-p-s-p-i')) continue;
         const node = entityNodes.get(ent.uid);
         if (!node) continue;
-        projVec.copy(node.root.position).project(camera);
+        node.root.getWorldPosition(projVec).project(camera);
         if (projVec.z > 1.0) continue;
         const sx = (projVec.x * 0.5 + 0.5) * w;
         const sy = (-projVec.y * 0.5 + 0.5) * h;
-        if (sx < 320 || sx > w - 340 || sy < 70 || sy > h - 80) continue;
+        if (sx < marginX || sx > w - marginX || sy < 70 || sy > h - 80) continue;
 
         const dx = ent.east_m - obsEnt.east_m;
         const dy = ent.up_m - obsEnt.up_m;
@@ -1944,22 +2118,80 @@
       }
     }
 
-    document.getElementById('btn-enter-xr').onclick = async () => {
-      if (!navigator.xr) {
-        alert('Open this URL inside Meta Quest 3 Browser to enter Mixed Reality Passthrough!');
-        return;
+    function toggleBrowserVrHeadsetMode(forceState) {
+      vrHeadsetActive = typeof forceState === 'boolean' ? forceState : !vrHeadsetActive;
+      document.body.classList.toggle('vr-headset-active', vrHeadsetActive);
+      visorCanvas.style.display = (vrHeadsetActive || viewMode === 'visor' || viewMode === 'walkin' || viewMode === 'cockpit') ? 'block' : 'none';
+      const topVrBtn = document.getElementById('btn-top-vr-mode');
+      const sideVrBtn = document.getElementById('btn-enter-xr');
+      if (vrHeadsetActive) {
+        topVrBtn.textContent = '🥽 EXIT VR HEADSET MODE (SHOW 2D PANELS)';
+        topVrBtn.classList.add('active');
+        if (sideVrBtn) sideVrBtn.textContent = 'VR HEADSET MODE: ACTIVE';
+        if (!interactionMode) setInteractionMode('spi');
+        document.getElementById('bottom-help').textContent =
+          '🥽 VR HEADSET MODE ACTIVE: Move cursor to aim 3D Quest 3 Right Hand Laser · Click 3D Holographic Dock or Terrain · WASD / Q-E to fly in 6DoF';
+      } else {
+        topVrBtn.textContent = '🥽 ENTER VR HEADSET MODE (3D HANDS)';
+        topVrBtn.classList.remove('active');
+        if (sideVrBtn) sideVrBtn.textContent = 'QUEST 3: ENTER MIXED REALITY (WebXR)';
+        document.getElementById('bottom-help').textContent =
+          'Left-Drag: Orbit Sand Table · Click "Point-to-Slew (SPI)" or "3D Viewshed (LOS)" then click any ridge/valley on the 3D terrain';
       }
-      try {
-        const isArSupported = await navigator.xr.isSessionSupported('immersive-ar');
-        const mode = isArSupported ? 'immersive-ar' : 'immersive-vr';
-        const session = await navigator.xr.requestSession(mode, {
-          optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
-        });
-        renderer.xr.setSession(session);
-        tableGroup.position.set(0, 0.78, -0.9);
-      } catch (err) {
-        alert('Could not start XR session: ' + err.message);
+    }
+
+    async function launchVrOrBrowserHeadset() {
+      if (navigator.xr) {
+        try {
+          const isArSupported = await navigator.xr.isSessionSupported('immersive-ar');
+          const isVrSupported = !isArSupported && await navigator.xr.isSessionSupported('immersive-vr');
+          if (isArSupported || isVrSupported) {
+            const mode = isArSupported ? 'immersive-ar' : 'immersive-vr';
+            const session = await navigator.xr.requestSession(mode, {
+              optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+            });
+            renderer.xr.setSession(session);
+            tableGroup.position.set(0, 0.78, -0.9);
+            return;
+          }
+        } catch (err) {
+          console.warn('WebXR session fallback to In-Browser 6DoF VR Headset Mode:', err);
+        }
       }
+      toggleBrowserVrHeadsetMode();
+    }
+
+    document.getElementById('btn-enter-xr').onclick = launchVrOrBrowserHeadset;
+    document.getElementById('btn-top-vr-mode').onclick = launchVrOrBrowserHeadset;
+
+    document.getElementById('btn-top-stereo').onclick = (e) => {
+      stereoSbsActive = !stereoSbsActive;
+      e.target.textContent = `👁 STEREO 3D SBS: ${stereoSbsActive ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', stereoSbsActive);
+      if (stereoSbsActive && !vrHeadsetActive) toggleBrowserVrHeadsetMode(true);
+    };
+
+    document.getElementById('btn-top-walkin').onclick = () => {
+      setViewMode(viewMode === 'walkin' ? 'table' : 'walkin');
+    };
+    document.getElementById('btn-top-cockpit').onclick = () => {
+      setViewMode(viewMode === 'cockpit' ? 'table' : 'cockpit');
+    };
+    document.getElementById('btn-top-visor').onclick = () => {
+      setViewMode(viewMode === 'visor' ? 'table' : 'visor');
+    };
+    document.getElementById('btn-top-scale').onclick = (e) => {
+      scalePresetIdx = (scalePresetIdx + 1) % SCALE_PRESETS.length;
+      const sc = SCALE_PRESETS[scalePresetIdx];
+      tableGroup.scale.setScalar(sc);
+      if (sc >= 4.5) {
+        const gndY = sampleTerrainReliefM(0, 0) * M_TO_TABLE * ALT_EXAGGERATION * sc;
+        tableGroup.position.set(0, -gndY - 0.08, 0);
+      } else {
+        tableGroup.position.set(0, 0, 0);
+      }
+      e.target.textContent = `🔍 PINCH SCALE: ${sc.toFixed(1)}x`;
+      e.target.classList.toggle('active', sc > 1.0);
     };
 
     function connectTelemetryStream() {
@@ -2116,7 +2348,29 @@
         }
       }
 
+      // 6DoF WASD / Arrow / Q-E Keyboard Locomotion for VR Headset Mode & Walk-In Valley
+      if (activeKeys.size > 0 && !renderer.xr.isPresenting) {
+        const moveStep = viewMode === 'walkin' ? 0.022 : 0.012;
+        const fwd = new THREE.Vector3();
+        camera.getWorldDirection(fwd);
+        fwd.y = 0;
+        if (fwd.lengthSq() > 1e-6) fwd.normalize();
+        const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+        const delta = new THREE.Vector3();
+        if (activeKeys.has('KeyW') || activeKeys.has('ArrowUp')) delta.addScaledVector(fwd, moveStep);
+        if (activeKeys.has('KeyS') || activeKeys.has('ArrowDown')) delta.addScaledVector(fwd, -moveStep);
+        if (activeKeys.has('KeyD') || activeKeys.has('ArrowRight')) delta.addScaledVector(right, moveStep);
+        if (activeKeys.has('KeyA') || activeKeys.has('ArrowLeft')) delta.addScaledVector(right, -moveStep);
+        if (activeKeys.has('KeyE')) delta.y += moveStep * 0.8;
+        if (activeKeys.has('KeyQ')) delta.y -= moveStep * 0.8;
+        if (delta.lengthSq() > 0) {
+          camera.position.add(delta);
+          controls.target.add(delta);
+        }
+      }
+
       controls.update();
+      updateVirtualHandsPose(timeMs);
       camera.getWorldDirection(dirVec);
       const headingDeg = (Math.round(THREE.MathUtils.radToDeg(Math.atan2(dirVec.x, -dirVec.z))) + 360) % 360;
       document.getElementById('hud-heading').textContent =
@@ -2125,7 +2379,39 @@
       renderGimbalPip(timeMs);
       updateSpatialVideoWall(timeMs);
       renderVisorHudOverlay(headingDeg);
-      renderer.render(scene, camera);
+
+      if (stereoSbsActive && !renderer.xr.isPresenting) {
+        const fullW = window.innerWidth;
+        const fullH = window.innerHeight;
+        const halfW = Math.floor(fullW * 0.5);
+        renderer.setScissorTest(true);
+        const origPos = camera.position.clone();
+        const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        camera.aspect = halfW / fullH;
+        camera.updateProjectionMatrix();
+
+        // Left Eye Lens
+        camera.position.copy(origPos).addScaledVector(camRight, -0.028);
+        renderer.setViewport(0, 0, halfW, fullH);
+        renderer.setScissor(0, 0, halfW, fullH);
+        renderer.render(scene, camera);
+
+        // Right Eye Lens
+        camera.position.copy(origPos).addScaledVector(camRight, 0.028);
+        renderer.setViewport(halfW, 0, fullW - halfW, fullH);
+        renderer.setScissor(halfW, 0, fullW - halfW, fullH);
+        renderer.render(scene, camera);
+
+        camera.position.copy(origPos);
+        camera.aspect = fullW / fullH;
+        camera.updateProjectionMatrix();
+        renderer.setScissorTest(false);
+        renderer.setViewport(0, 0, fullW, fullH);
+      } else {
+        renderer.setScissorTest(false);
+        renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+        renderer.render(scene, camera);
+      }
     });
 
     window.addEventListener('resize', () => {
