@@ -248,9 +248,46 @@ async fn handle_http_connection(
             let summary = guard.aar.summary();
             let t_query = target_t.unwrap_or(summary.max_time_sec);
             let frame = guard.aar.sample_at(t_query);
+            let (domes, zones) = frame
+                .as_ref()
+                .map(|f| guard.evaluate_overlays_for_entities(&f.entities))
+                .unwrap_or_default();
             serde_json::json!({
                 "summary": summary,
-                "frame": frame
+                "frame": frame,
+                "threat_domes": domes,
+                "tactical_zones": zones
+            })
+            .to_string()
+        };
+        let header = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(body.as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "GET" && path.starts_with("/api/hud") {
+        let obs = path
+            .split("observer=")
+            .nth(1)
+            .and_then(|s| s.split('&').next())
+            .unwrap_or("GND-SPEAR-ALPHA");
+        let body = {
+            let guard = world.lock().unwrap();
+            let cues = guard.compute_visor_hud_cues(obs);
+            serde_json::json!({
+                "observer_uid": obs,
+                "cues": cues.into_iter().map(|(uid, callsign, affiliation, cue)| serde_json::json!({
+                    "uid": uid,
+                    "callsign": callsign,
+                    "affiliation": affiliation,
+                    "bearing_deg": cue.bearing_deg,
+                    "slant_range_m": cue.slant_range_m,
+                    "elevation_deg": cue.elevation_deg
+                })).collect::<Vec<_>>()
             })
             .to_string()
         };
