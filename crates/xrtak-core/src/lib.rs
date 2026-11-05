@@ -3,11 +3,16 @@ pub mod ffi;
 pub mod geo;
 pub mod hud;
 pub mod viewshed;
+pub mod zones;
 
-pub use domain::{Affiliation, Dimension, SensorCone, ViewshedResult, ViewshedSample};
+pub use domain::{
+    Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
+    ViewshedSample,
+};
 pub use geo::{ElevationProvider, ProceduralReliefModel, RasterDemProvider};
 pub use hud::{compute_hud_cue, HudCue};
-pub use viewshed::compute_viewshed_with_provider;
+pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
+pub use zones::{is_engaged_by_threat_dome, is_inside_tactical_zone, point_in_polygon_en};
 
 use quick_xml::events::Event;
 use quick_xml::Reader;
@@ -359,6 +364,8 @@ pub struct TacticalWorld {
     pub terrain_name: String,
     pub terrain: Box<dyn ElevationProvider>,
     pub entities: HashMap<String, TacticalEntity>,
+    pub threat_domes: Vec<ThreatDome>,
+    pub tactical_zones: Vec<TacticalZone>,
     /// Map from UAV UID (e.g. `UAV-FALCON-01`) to locked SPI ENU target `(east_m, up_m, north_m)`
     pub spi_locks: HashMap<String, (f64, f64, f64)>,
     pub sim_time_sec: f64,
@@ -366,11 +373,33 @@ pub struct TacticalWorld {
 
 impl TacticalWorld {
     pub fn new(origin: GeoOrigin) -> Self {
+        let tactical_zones = vec![
+            TacticalZone {
+                uid: "ZONE-ROZ-KILLBOX-1".to_string(),
+                name: "KILLBOX RED-ALPHA [ROZ]".to_string(),
+                affiliation: Affiliation::Hostile,
+                vertices_en: vec![(-380.0, -280.0), (60.0, -280.0), (90.0, 40.0), (-340.0, 60.0)],
+                floor_m: 0.0,
+                ceiling_m: 380.0,
+                inside_uids: Vec::new(),
+            },
+            TacticalZone {
+                uid: "ZONE-FOB-SAFE".to_string(),
+                name: "OP-BRAVO OVERWATCH SECTOR".to_string(),
+                affiliation: Affiliation::Friendly,
+                vertices_en: vec![(280.0, -480.0), (640.0, -480.0), (640.0, -140.0), (280.0, -140.0)],
+                floor_m: 0.0,
+                ceiling_m: 340.0,
+                inside_uids: Vec::new(),
+            },
+        ];
         Self {
             origin,
             terrain_name: "valley".to_string(),
             terrain: Box::new(ProceduralReliefModel),
             entities: HashMap::new(),
+            threat_domes: Vec::new(),
+            tactical_zones,
             spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
         }
@@ -651,6 +680,50 @@ impl TacticalWorld {
                 None,
                 now_ms,
             );
+        }
+
+        self.refresh_threat_domes_and_zones();
+    }
+
+    /// Re-evaluate 3D SAM/Radar threat domes (`REQ-TAC-02`) and polygonal geofences (`REQ-TAC-03`).
+    pub fn refresh_threat_domes_and_zones(&mut self) {
+        let mut domes = Vec::new();
+        if let Some(emitter) = self.entities.get("HST-EMITTER-02") {
+            let mut dome = ThreatDome {
+                uid: emitter.uid.clone(),
+                callsign: "SA-15 SHORAD / JAMMER DOME".to_string(),
+                affiliation: Affiliation::Hostile,
+                east_m: emitter.east_m,
+                up_m: emitter.up_m,
+                north_m: emitter.north_m,
+                radius_m: 620.0,
+                ceiling_m: 440.0,
+                engaged_uids: Vec::new(),
+            };
+            for ent in self.entities.values() {
+                if ent.uid != dome.uid
+                    && ent.affiliation != Affiliation::Hostile
+                    && !ent.cot_type.starts_with("b-m-p-s-p-i")
+                    && is_engaged_by_threat_dome(&dome, (ent.east_m, ent.up_m, ent.north_m), self.terrain.as_ref())
+                {
+                    dome.engaged_uids.push(ent.uid.clone());
+                }
+            }
+            dome.engaged_uids.sort();
+            domes.push(dome);
+        }
+        self.threat_domes = domes;
+
+        for zone in &mut self.tactical_zones {
+            zone.inside_uids.clear();
+            for ent in self.entities.values() {
+                if !ent.cot_type.starts_with("b-m-p-s-p-i")
+                    && is_inside_tactical_zone(zone, (ent.east_m, ent.up_m, ent.north_m))
+                {
+                    zone.inside_uids.push(ent.uid.clone());
+                }
+            }
+            zone.inside_uids.sort();
         }
     }
 
