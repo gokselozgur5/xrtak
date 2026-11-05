@@ -1,3 +1,4 @@
+pub mod aar;
 pub mod domain;
 pub mod ffi;
 pub mod geo;
@@ -5,6 +6,7 @@ pub mod hud;
 pub mod viewshed;
 pub mod zones;
 
+pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
     ViewshedSample,
@@ -366,6 +368,7 @@ pub struct TacticalWorld {
     pub entities: HashMap<String, TacticalEntity>,
     pub threat_domes: Vec<ThreatDome>,
     pub tactical_zones: Vec<TacticalZone>,
+    pub aar: AarTimeline,
     /// Map from UAV UID (e.g. `UAV-FALCON-01`) to locked SPI ENU target `(east_m, up_m, north_m)`
     pub spi_locks: HashMap<String, (f64, f64, f64)>,
     pub sim_time_sec: f64,
@@ -400,6 +403,7 @@ impl TacticalWorld {
             entities: HashMap::new(),
             threat_domes: Vec::new(),
             tactical_zones,
+            aar: AarTimeline::default(),
             spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
         }
@@ -683,6 +687,7 @@ impl TacticalWorld {
         }
 
         self.refresh_threat_domes_and_zones();
+        self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
     }
 
     /// Re-evaluate 3D SAM/Radar threat domes (`REQ-TAC-02`) and polygonal geofences (`REQ-TAC-03`).

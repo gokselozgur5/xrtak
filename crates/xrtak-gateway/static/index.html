@@ -231,17 +231,50 @@
 
     .bottom-help {
       position: absolute;
-      bottom: 14px;
+      bottom: 62px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 10;
       background: rgba(4, 10, 18, 0.86);
       border: 1px solid rgba(0, 229, 255, 0.28);
-      padding: 6px 16px;
+      padding: 5px 14px;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-dim);
       pointer-events: none;
+    }
+    .aar-bar {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 680px;
+      z-index: 12;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      border-radius: 6px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(10px);
+      font-size: 11px;
+    }
+    .aar-slider {
+      flex: 1;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .aar-badge {
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 10px;
+      background: var(--green);
+      color: #020810;
+    }
+    .aar-badge.replay {
+      background: var(--yellow);
     }
   </style>
   <script type="importmap">
@@ -359,6 +392,13 @@
 
   <div class="bottom-help" id="bottom-help">
     Left-Drag: Orbit Sand Table · Click "Point-to-Slew (SPI)" or "3D Viewshed (LOS)" then click any ridge/valley on the 3D terrain
+  </div>
+
+  <div class="aar-bar">
+    <span class="aar-badge" id="aar-mode-badge">LIVE 20Hz</span>
+    <button class="tac-btn" id="btn-aar-live" style="padding:4px 9px;">Return LIVE</button>
+    <input type="range" class="aar-slider" id="aar-slider" min="0" max="60" step="0.2" value="60" />
+    <span id="aar-time-label" style="min-width:118px;text-align:right;color:var(--cyan);">T+000.0s (0 f)</span>
   </div>
 
   <script type="module">
@@ -1438,11 +1478,49 @@
     };
 
     function connectTelemetryStream() {
+      let aarReplayActive = false;
+      const aarSlider = document.getElementById('aar-slider');
+      const aarBadge = document.getElementById('aar-mode-badge');
+      const aarLabel = document.getElementById('aar-time-label');
+
+      aarSlider.addEventListener('input', async () => {
+        aarReplayActive = true;
+        aarBadge.textContent = '4D REPLAY';
+        aarBadge.classList.add('replay');
+        const t = parseFloat(aarSlider.value);
+        const res = await fetch(`/api/aar?t=${t.toFixed(2)}`);
+        const data = await res.json();
+        if (data.frame) {
+          aarLabel.textContent = `REPLAY T+${data.frame.sim_time_sec.toFixed(1)}s`;
+          updateHudAndRoster({
+            entities: data.frame.entities,
+            threat_domes: [],
+            tactical_zones: []
+          });
+        }
+      });
+
+      document.getElementById('btn-aar-live').onclick = () => {
+        aarReplayActive = false;
+        aarBadge.textContent = 'LIVE 20Hz';
+        aarBadge.classList.remove('replay');
+      };
+
       const es = new EventSource('/api/stream');
       es.onmessage = (ev) => {
         try {
           const snap = JSON.parse(ev.data);
-          updateHudAndRoster(snap);
+          if (snap.aar) {
+            aarSlider.min = snap.aar.min_time_sec.toFixed(1);
+            aarSlider.max = Math.max(snap.aar.max_time_sec, 1.0).toFixed(1);
+            if (!aarReplayActive) {
+              aarSlider.value = snap.sim_time_sec;
+              aarLabel.textContent = `T+${snap.sim_time_sec.toFixed(1)}s (${snap.aar.frame_count}f)`;
+            }
+          }
+          if (!aarReplayActive) {
+            updateHudAndRoster(snap);
+          }
         } catch (err) {
           console.error('Telemetry parse error:', err);
         }
