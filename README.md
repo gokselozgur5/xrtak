@@ -1,26 +1,23 @@
-# XR-TAK — Free, Open-Source 3D Mixed-Reality Geospatial Sand Table & CoT HUD (`Rust + WebXR`)
+# XR-TAK — Open-Source 3D Mixed-Reality Geospatial Sand Table & CoT HUD
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-00ff88.svg)](LICENSE)
-[![Live Demo: WebXR & Desktop](https://img.shields.io/badge/🚀_LIVE_DEMO-Launch_in_Browser_or_Quest_3_(Zero_Install)-00e5ff?style=for-the-badge)](https://gokselozgur5.github.io/xrtak/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-WebXR_%26_Desktop-00e5ff.svg)](https://gokselozgur5.github.io/xrtak/)
 [![Stack: Rust + Three.js WebXR](https://img.shields.io/badge/Stack-Rust_%2B_Three.js_WebXR_%2B_Godot_OpenXR-fbbf24.svg)](crates/xrtak-core)
 
-> **Why pay $50,000/seat for closed-source 3D geospatial & XR command tables?**
-> **XR-TAK** is a 100% **free, open-source (`MIT`)** 3D Mixed-Reality holographic sand table, worldwide 3D city/terrain twin (`Esri Satellite` + `AWS SRTM DEM` + `OpenStreetMap 3D Buildings`), and real-time Cursor-on-Target (CoT) HUD that runs instantaneously in any browser or **Meta Quest 3 Passthrough (`immersive-ar`)** with zero installation.
->
-> 👉 **[Click Here to Launch XR-TAK Live in Your Browser or Meta Quest 3 (`https://gokselozgur5.github.io/xrtak/`)](https://gokselozgur5.github.io/xrtak/)**
+**XR-TAK** is an open-source (`MIT`) Virtual Reality (VR) and Mixed-Reality (OpenXR / WebXR) 3D geospatial sand table and Cursor-on-Target (CoT) HUD for **ATAK-CIV** and desktop command posts.
 
-## 🥽 Live Meta Quest 3 Mixed Reality Passthrough Showcase
+Live browser / Meta Quest 3 WebXR build: **[https://gokselozgur5.github.io/xrtak/](https://gokselozgur5.github.io/xrtak/)**
 
-| 1. Real-World Satellite 3D Sand Table & Viewshed | 2. Floating 3D Video Wall & 6DoF Grab Handles | 3. Upright 3D VR Command Dock & Real CoT Pinning |
+## Meta Quest 3 Mixed Reality Passthrough Captures
+
+| 1. Satellite 3D Sand Table & Viewshed | 2. Floating 3D Video Wall & 6DoF Handles | 3. Upright 3D VR Command Dock & CoT Pinning |
 | :---: | :---: | :---: |
 | ![Meta Quest 3 Passthrough Overview](docs/media/quest3_passthrough_overview.gif) | ![Meta Quest 3 Floating 3D Video Wall](docs/media/quest3_3d_video_wall.gif) | ![Meta Quest 3 3D Holographic Command Dock](docs/media/quest3_vr_command_dock.gif) |
-| *Real-world Esri Satellite + AWS Terrarium SRTM DEM terrain floating in Meta Quest 3 Mixed Reality Passthrough with 3D Viewshed LOS & SHORAD domes.* | *3 floating 3D sensor screens (`CAM-1 SAR`, `CAM-2 EO/IR`, `CAM-3 PTZ`) with independent 6DoF `✋ GRAB & MOVE` handles and Quest 3 laser ray.* | *Camera-facing upright 3D VR Command Dock (`🎯 SPI SLEW`, `👁 VIEWSHED`, `📍 REAL PIN`, `🛰 REAL MAP`) and 6DoF spatial pedestal ring.* |
+| *Esri Satellite + AWS Terrarium SRTM DEM terrain in Meta Quest 3 Mixed Reality Passthrough with 3D Viewshed LOS and radar domes.* | *Floating 3D sensor screens (`CAM-1 SAR`, `CAM-2 EO/IR`, `CAM-3 PTZ`) with independent 6DoF `GRAB & MOVE` handles and Quest 3 ray pointer.* | *Camera-facing upright 3D VR Command Dock (`SPI SLEW`, `VIEWSHED`, `REAL PIN`, `REAL MAP`) and 6DoF spatial pedestal ring.* |
 
 ![XR-TAK Desktop & WebXR Overview](docs/xrtak-demo.gif)
 
-**XR-TAK** is a lightweight, high-performance **Virtual Reality (VR)** and **Mixed-Reality (OpenXR / WebXR)** 3D tactical situational awareness system, holographic sand table, and Cursor-on-Target (CoT) HUD for **ATAK-CIV** and desktop command posts.
-
-It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and projects friendly, hostile, neutral, and unknown air/ground tracks onto a real-world 3D topographic & satellite terrain model with volumetric **EO/IR gimbal sensor FOV frustums**.
+It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and projects friendly, hostile, neutral, and unknown air/ground tracks onto a 3D topographic and satellite terrain model with volumetric **EO/IR gimbal sensor FOV frustums**.
 
 ---
 
@@ -42,27 +39,15 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 12** | [`static/index.html`](crates/xrtak-gateway/static/index.html) & [`xr_sand_table.gd`](godot-xr/scripts/xr_sand_table.gd) | Diegetic 3D Holographic VR Control Dock, Single-Hand Grip Grab, Two-Handed Pinch-to-Scale & Twist-to-Rotate, 3D Terrain Ray Reticle, **1:1 Valley Walk-In Mode**, and **UAV Cockpit Ride-Along POV** | **Complete** |
 | **Phase 13–14** | [`static/index.html`](crates/xrtak-gateway/static/index.html) | Universal VR Headset Mode (`Stereo 3D SBS`), Free 6DoF Spectate Locomotion (`WASD` + Thumbstick Fly), Upright Camera-Facing 3D Panels, and Spatial Grab Pedestal Ring | **Complete** |
 | **Phase 15** | [`scripts/run_https_tls_proxy.py`](scripts/run_https_tls_proxy.py) & [`index.html`](index.html) | Native HTTPS WebXR TLS Gateway (`:8443`) + GitHub Pages Live Launcher (`https://gokselozgur5.github.io/xrtak/`) unlocking `navigator.xr` in Meta Quest 3 without browser flags | **Complete** |
-| **Phase 16** | [`static/index.html`](crates/xrtak-gateway/static/index.html) | Independent 6DoF Draggable 3D VR Button Dock & 3D Video Wall Screens (`✋ GRAB & MOVE`) + Draggable 2D Desktop HUD Panels (`localStorage` persisted) | **Complete** |
+| **Phase 16** | [`static/index.html`](crates/xrtak-gateway/static/index.html) | Independent 6DoF Draggable 3D VR Button Dock & 3D Video Wall Screens (`GRAB & MOVE`) + Draggable 2D Desktop HUD Panels (`localStorage` persisted) | **Complete** |
 | **Phase 17** | [`crates/xrtak-gateway`](crates/xrtak-gateway/src/main.rs) | Real-World Satellite (`Esri`) & Topographic (`OpenTopoMap`) Tile Draping, Live **AWS Terrarium SRTM 24-bit DEM** Sync (`POST /api/terrain`), and Persistent Real CoT Pinning (`data/real_pins.json`, GeoJSON & CoT XML export) | **Complete** |
-| **Phase 18–19** | [`static/index.html`](crates/xrtak-gateway/static/index.html) & [`LICENSE`](LICENSE) | **Worldwide City / Landmark Search (`Nominatim`)**, **Real-World 3D Extruded OpenStreetMap Buildings (`Overpass API`)**, **Live Camera / Stream 3D Video Wall**, Meta Quest 3 Passthrough GIF Showcase, and `MIT` Open-Source Release | **Complete (`v1.0`)** |
+| **Phase 18–20** | [`static/index.html`](crates/xrtak-gateway/static/index.html) & [`LICENSE`](LICENSE) | City / Place Search (`Nominatim`), Real-World 3D Extruded OpenStreetMap Buildings (`Overpass API`), Live Camera 3D Video Wall, Meta Quest 3 Passthrough Captures, and `MIT` License | **Complete (`v1.0`)** |
 
-See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, and [`docs/LAUNCH_KIT.md`](docs/LAUNCH_KIT.md) for community release notes.
-
----
-
-## Why XR-TAK vs. Proprietary $50k/Seat Geospatial XR Tables?
-
-| Capability | Legacy Commercial XR / GIS Sand Tables | **XR-TAK (`Open-Source MIT`)** |
-| :--- | :--- | :--- |
-| **License & Cost** | `$25,000 – $50,000+` per seat / proprietary lock-in | **100% Free & Open-Source (`MIT License`)** |
-| **Deployment** | `20+ GB` PCVR installer + tethered workstation | **`<10 MB` Rust binary + Zero-Install WebXR (`Quest 3 Browser` & Desktop)** |
-| **Worldwide Terrain & 3D Cities** | Paid offline GIS packs | **Live Global City Search (`Nominatim`) + `AWS Terrarium 24-bit SRTM DEM` + `Esri Satellite` + `Real 3D OSM Buildings`** |
-| **Spatial UI Ergonomics** | Rigid menu trees | **Free 6DoF `✋ GRAB & MOVE` Floating 3D Video Walls + Upright 3D Holographic VR Dock + 1:1 Walk-In Valley** |
-| **Interoperability** | Closed vendor formats | **Standard Cursor-on-Target (`CoT XML`), `ATAK-CIV 5.2`, `BSI Flex 335 v2.0 SAPIENT`, and `GeoJSON`** |
+See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
 ---
 
-## Key Capabilities (Stage 1)
+## Key Capabilities
 
 - **Shared Rust CoT Core (`crates/xrtak-core`):**
   - Zero-bloat Cursor-on-Target (`<event>`, `<point>`, `<contact>`, `<track>`, `<sensor>`) XML parser and generator.
@@ -71,12 +56,12 @@ See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the
 - **Real-Time Telemetry & UDP CoT Bridge (`crates/xrtak-gateway`):**
   - Listens for raw CoT XML datagrams on `udp://0.0.0.0:4242`.
   - Streams 20 Hz world snapshots over Server-Sent Events (`/api/stream`) to WebXR and desktop clients.
-  - Supports interactive 3D terrain pin-drop (`POST /api/spawn`) and raw CoT XML injection (`POST /api/cot`).
-- **3D Holographic Sand Table & Gimbal PiP UI:**
-  - Hypsometric 3D terrain relief mesh with contour lines and cardinal compass ring.
-  - 3D air/ground tactical markers with altitude drop-stems, breadcrumb trails, and volumetric gimbal FOV cones.
-  - Interactive **UAV Chase Cam** and simulated **EO/IR Thermal Gimbal Targeting PiP**.
-  - One-click **Meta Quest 3 Mixed Reality (`immersive-ar`)** launcher placing the 1.5m sand table directly onto your physical desk.
+  - Supports interactive 3D terrain pin-drop (`POST /api/spawn`), pin relocation (`POST /api/pin/move`), pin deletion (`POST /api/pin/delete`), and raw CoT XML injection (`POST /api/cot`).
+- **3D Holographic Sand Table, Real Terrain & 3D Buildings:**
+  - Live satellite (`Esri World Imagery`) and topographic (`OpenTopoMap`) tile draping paired with **AWS Terrarium 24-bit SRTM DEM** elevation grids.
+  - Live **OpenStreetMap (`Overpass API`) 3D building footprint extrusion** and worldwide place geocoding (`Nominatim`).
+  - 3D air/ground markers with altitude drop-stems, breadcrumb trails, and volumetric gimbal FOV cones.
+  - Interactive **UAV Chase Cam**, **EO/IR Thermal Gimbal Targeting PiP**, and **Meta Quest 3 Mixed Reality (`immersive-ar`)** mode.
 
 ---
 
@@ -88,7 +73,7 @@ See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the
 cargo run -p xrtak-gateway
 ```
 
-Then open **`http://localhost:8090`** in your browser (or `http://<mac-lan-ip>:8090` inside the Meta Quest 3 browser).
+Then open **`http://localhost:8090`** in your browser (or `https://<mac-lan-ip>:8443` via `./scripts/run_https_tls_proxy.py` inside the Meta Quest 3 browser).
 
 ### 2. Run the Turnkey Multi-Domain Live Demo Showcase
 
@@ -113,9 +98,9 @@ printf '<event version="2.0" uid="COT-UDP-01" type="a-f-G-U-C" how="h-g-i-g-o"><
    - **Option A (Native HTTPS on Local LAN — `:8443`):** Run `./scripts/run_https_tls_proxy.py`, open `https://<mac-lan-ip>:8443` in Meta Quest Browser (click *Advanced -> Proceed* once for the self-signed SAN certificate), and click **ENTER AR (QUEST 3 PASSTHROUGH)**.
    - **Option B (GitHub Pages Public HTTPS):** Open **`https://gokselozgur5.github.io/xrtak/`** directly in Meta Quest Browser and click **ENTER AR (QUEST 3 PASSTHROUGH)**.
    - **Option C (USB ADB Reverse — zero Wi-Fi/TLS config):** Connect Quest 3 via USB-C, run `adb reverse tcp:8090 tcp:8090`, open `http://localhost:8090` in Meta Quest Browser, and click **QUEST 3: ENTER MIXED REALITY (WebXR)**.
-   - Pull the Quest 3 trigger (`selectstart`) while pointing at any ridge or valley on the holographic table to drop real persistent CoT pins (`📍 REAL PIN`), slew EO/IR gimbals (`🎯 SPI SLEW`), or grab any `✋ GRAB & MOVE` handle to reposition 3D panels in space.
+   - Pull the Quest 3 trigger (`selectstart`) while pointing at any ridge or valley on the holographic table to drop persistent CoT pins (`REAL PIN`), slew EO/IR gimbals (`SPI SLEW`), or grab any `GRAB & MOVE` handle to reposition 3D panels in space.
 
-### 4. Run Unit Tests
+### 5. Run Unit Tests
 
 ```bash
 cargo test
