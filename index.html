@@ -150,6 +150,23 @@
       justify-content: space-between;
       align-items: center;
     }
+    .drag-handle-2d {
+      cursor: grab;
+      user-select: none;
+    }
+    .drag-handle-2d:active {
+      cursor: grabbing;
+    }
+    .drag-grip-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(245, 158, 11, 0.55);
+      color: #fbbf24;
+      letter-spacing: 0.5px;
+      cursor: grab;
+    }
     .unit-list {
       display: flex;
       flex-direction: column;
@@ -350,10 +367,12 @@
       <span>|</span>
       <span id="hud-origin">SECTOR: 39.9200N 32.8500E (3.0x3.0 km)</span>
     </div>
-    <div class="vr-command-bar">
+    <div class="vr-command-bar" id="vr-command-bar-win">
+      <span class="drag-grip-badge drag-handle-2d" data-drag-target="vr-command-bar-win" title="Drag to move VR Command Bar">✋ MOVE</span>
       <button class="vr-pill-btn primary" id="btn-top-vr-mode">🥽 ENTER VR HEADSET MODE (3D HANDS)</button>
       <button class="vr-pill-btn" id="btn-top-spectate">🦅 FREE SPECTATE 6DoF</button>
       <button class="vr-pill-btn" id="btn-top-summon">🧲 SUMMON TABLE HERE</button>
+      <button class="vr-pill-btn" id="btn-top-reset-panels">🔄 RESET PANELS</button>
       <button class="vr-pill-btn" id="btn-top-stereo">👁 STEREO 3D SBS: OFF</button>
       <button class="vr-pill-btn" id="btn-top-walkin">🚶 1:1 WALK-IN VALLEY</button>
       <button class="vr-pill-btn" id="btn-top-cockpit">🚁 UAV COCKPIT POV</button>
@@ -366,9 +385,9 @@
     </div>
   </div>
 
-  <div class="left-panel">
-    <div class="panel-title">
-      <span>XR-TAK // CoT TRACKS</span>
+  <div class="left-panel" id="left-panel-win">
+    <div class="panel-title drag-handle-2d" data-drag-target="left-panel-win" title="Drag to move Left Panel">
+      <span>✋ XR-TAK // CoT TRACKS</span>
       <span id="track-count">0 UNITS</span>
     </div>
 
@@ -424,9 +443,9 @@
     </div>
   </div>
 
-  <div class="right-panel">
-    <div class="panel-title">
-      <span>SELECTED CoT ENTITY</span>
+  <div class="right-panel" id="right-panel-win">
+    <div class="panel-title drag-handle-2d" data-drag-target="right-panel-win" title="Drag to move Right Panel">
+      <span>✋ SELECTED CoT ENTITY</span>
       <span id="sel-affiliation" style="color:var(--cyan);">FRIENDLY</span>
     </div>
     <div class="kv-grid">
@@ -475,10 +494,11 @@
   </div>
 
   <div class="bottom-help" id="bottom-help">
-    Left-Drag: Orbit · Right-Drag / Two-Finger: Free Pan (Unlocked) · Double-Click Unit/Ridge: Fly To · Click "🦅 FREE SPECTATE 6DoF" for WASD + Q/E Flight
+    ✋ Drag Any 3D Screen / 3D VR Dock / 2D Window Handle to Move Anywhere · Left-Drag: Orbit · Right-Drag: Free Pan · Double-Click: Fly To
   </div>
 
-  <div class="aar-bar">
+  <div class="aar-bar" id="aar-bar-win">
+    <span class="drag-grip-badge drag-handle-2d" data-drag-target="aar-bar-win" title="Drag to move 4D AAR Timeline Bar">✋ MOVE</span>
     <span class="aar-badge" id="aar-mode-badge">LIVE 20Hz</span>
     <button class="tac-btn" id="btn-aar-play" style="padding:4px 9px;">▶ Play</button>
     <button class="tac-btn" id="btn-aar-speed" style="padding:4px 8px;">1x</button>
@@ -761,6 +781,7 @@
     ];
 
     const videoWallPanels = [];
+    const draggable3dHandles = [];
     function initSpatialVideoWall() {
       for (const slot of VIDEO_WALL_SLOTS) {
         const canvas = document.createElement('canvas');
@@ -772,6 +793,7 @@
         const panelGroup = new THREE.Group();
         panelGroup.position.copy(slot.pos);
         panelGroup.rotation.y = slot.rotY;
+        panelGroup.userData.customLocalPos = null;
         videoWallGroup.add(panelGroup);
 
         const screenGeo = new THREE.PlaneGeometry(0.40, 0.235);
@@ -783,7 +805,34 @@
         });
         const screenMesh = new THREE.Mesh(screenGeo, screenMat);
         screenMesh.userData.uid = slot.uid;
+        screenMesh.userData.draggablePanelGroup = panelGroup;
         panelGroup.add(screenMesh);
+
+        // Dedicated 3D Grab Handle Pill above each floating 3D Graphic Screen
+        const handleCanvas = document.createElement('canvas');
+        handleCanvas.width = 320;
+        handleCanvas.height = 44;
+        const hctx = handleCanvas.getContext('2d');
+        hctx.fillStyle = 'rgba(245, 158, 11, 0.92)';
+        hctx.strokeStyle = '#fde68a';
+        hctx.lineWidth = 3;
+        hctx.roundRect(3, 3, 314, 38, 10);
+        hctx.fill();
+        hctx.stroke();
+        hctx.font = 'bold 17px "SF Mono", Menlo, monospace';
+        hctx.fillStyle = '#020810';
+        hctx.textAlign = 'center';
+        hctx.textBaseline = 'middle';
+        hctx.fillText(`✋ GRAB & MOVE ${slot.title.split('//')[0].trim()}`, 160, 22);
+        const handleTex = new THREE.CanvasTexture(handleCanvas);
+        const handleMesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.28, 0.038),
+          new THREE.MeshBasicMaterial({ map: handleTex, transparent: true, side: THREE.FrontSide })
+        );
+        handleMesh.position.set(0, 0.145, 0.004);
+        handleMesh.userData.draggablePanelGroup = panelGroup;
+        panelGroup.add(handleMesh);
+        draggable3dHandles.push(handleMesh, screenMesh);
 
         // Glowing cyan/green border frame around floating 3D screen
         const borderGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.412, 0.247));
@@ -815,6 +864,7 @@
           ctx,
           tex,
           screenMesh,
+          handleMesh,
           borderMat,
           tetherLine,
         });
@@ -1504,12 +1554,39 @@
 
     const vrDockGroup = new THREE.Group();
     vrDockGroup.position.set(0, 0.22, 0.56);
+    vrDockGroup.userData.customLocalPos = null;
     tableGroup.add(vrDockGroup);
     {
       const dockHeader = makeTextSprite('🥽 3D HOLOGRAPHIC VR COMMAND DOCK (AUTO-FACING · CLICK OR POKE)', '#00ff88', 22);
       dockHeader.scale.set(0.62, 0.052, 1);
-      dockHeader.position.set(0, 0.115, 0);
+      dockHeader.position.set(0, 0.168, 0);
       vrDockGroup.add(dockHeader);
+
+      // Dedicated 3D Grab Handle Pill for moving the entire 3D VR Command Dock anywhere
+      const dockHandleCanvas = document.createElement('canvas');
+      dockHandleCanvas.width = 420;
+      dockHandleCanvas.height = 48;
+      const dhCtx = dockHandleCanvas.getContext('2d');
+      dhCtx.fillStyle = 'rgba(245, 158, 11, 0.94)';
+      dhCtx.strokeStyle = '#fde68a';
+      dhCtx.lineWidth = 3;
+      dhCtx.roundRect(3, 3, 414, 42, 12);
+      dhCtx.fill();
+      dhCtx.stroke();
+      dhCtx.font = 'bold 19px "SF Mono", Menlo, monospace';
+      dhCtx.fillStyle = '#020810';
+      dhCtx.textAlign = 'center';
+      dhCtx.textBaseline = 'middle';
+      dhCtx.fillText('✋ GRAB & DRAG TO MOVE 3D BUTTON DOCK', 210, 24);
+      const dockHandleTex = new THREE.CanvasTexture(dockHandleCanvas);
+      const dockHandleMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.46, 0.048),
+        new THREE.MeshBasicMaterial({ map: dockHandleTex, transparent: true, side: THREE.FrontSide })
+      );
+      dockHandleMesh.position.set(0, 0.112, 0.004);
+      dockHandleMesh.userData.draggablePanelGroup = vrDockGroup;
+      vrDockGroup.add(dockHandleMesh);
+      draggable3dHandles.push(dockHandleMesh);
     }
 
     const VR_DOCK_DEFS = [
@@ -1746,7 +1823,77 @@
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    let active3dDrag = null; // { group, distance, offsetWorld }
+    let active2dDrag = null; // { el, startX, startY, origLeft, origTop }
+
+    // 2D HUD Panel Dragging (Left Panel, Right Panel, Top VR Command Bar, Bottom 4D AAR Bar)
+    document.querySelectorAll('.drag-handle-2d').forEach((handleEl) => {
+      handleEl.addEventListener('pointerdown', (ev) => {
+        if (ev.target && ev.target.tagName === 'BUTTON') return;
+        const targetId = handleEl.getAttribute('data-drag-target');
+        const panelEl = document.getElementById(targetId);
+        if (!panelEl) return;
+        ev.stopPropagation();
+        const rect = panelEl.getBoundingClientRect();
+        panelEl.style.position = 'fixed';
+        panelEl.style.left = `${rect.left}px`;
+        panelEl.style.top = `${rect.top}px`;
+        panelEl.style.right = 'auto';
+        panelEl.style.bottom = 'auto';
+        panelEl.style.transform = 'none';
+        panelEl.style.margin = '0';
+        active2dDrag = {
+          el: panelEl,
+          startX: ev.clientX,
+          startY: ev.clientY,
+          origLeft: rect.left,
+          origTop: rect.top
+        };
+      });
+    });
+
+    function resetAllPanelPositions() {
+      vrDockGroup.userData.customLocalPos = null;
+      for (const p of videoWallPanels) {
+        p.panelGroup.userData.customLocalPos = null;
+      }
+      for (const id of ['left-panel-win', 'right-panel-win', 'vr-command-bar-win', 'aar-bar-win']) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.position = '';
+          el.style.left = '';
+          el.style.top = '';
+          el.style.right = '';
+          el.style.bottom = '';
+          el.style.transform = '';
+          el.style.margin = '';
+        }
+      }
+    }
+
     window.addEventListener('pointermove', (ev) => {
+      if (active2dDrag) {
+        const dx = ev.clientX - active2dDrag.startX;
+        const dy = ev.clientY - active2dDrag.startY;
+        const nextL = Math.max(4, Math.min(window.innerWidth - 120, active2dDrag.origLeft + dx));
+        const nextT = Math.max(4, Math.min(window.innerHeight - 60, active2dDrag.origTop + dy));
+        active2dDrag.el.style.left = `${nextL}px`;
+        active2dDrag.el.style.top = `${nextT}px`;
+        return;
+      }
+      if (active3dDrag) {
+        pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        const worldPt = raycaster.ray.origin.clone()
+          .addScaledVector(raycaster.ray.direction, active3dDrag.distance)
+          .add(active3dDrag.offsetWorld);
+        const localPt = tableGroup.worldToLocal(worldPt);
+        localPt.y = Math.max(0.06, Math.min(1.35, localPt.y));
+        active3dDrag.group.userData.customLocalPos = localPt.clone();
+        active3dDrag.group.position.copy(localPt);
+        return;
+      }
       if (ev.target !== renderer.domElement || !terrainMesh) return;
       pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
@@ -1762,6 +1909,14 @@
         updateReticleAtLocal(localPt, performance.now());
       } else {
         cursorReticleGroup.visible = false;
+      }
+    });
+
+    window.addEventListener('pointerup', () => {
+      active2dDrag = null;
+      if (active3dDrag) {
+        active3dDrag = null;
+        controls.enabled = true;
       }
     });
 
@@ -1783,6 +1938,23 @@
       const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
       if (dockHits.length > 0 && dockHits[0].object.userData.dockId) {
         await handleVrDockAction(dockHits[0].object.userData.dockId);
+        return;
+      }
+
+      // 2. Check 3D Grab Handles & Floating 3D Video Screens for Free 6DoF Dragging!
+      const handleHits = raycaster.intersectObjects(draggable3dHandles, false);
+      if (handleHits.length > 0 && handleHits[0].object.userData.draggablePanelGroup) {
+        const grp = handleHits[0].object.userData.draggablePanelGroup;
+        if (handleHits[0].object.userData.uid) {
+          selectedUid = handleHits[0].object.userData.uid;
+        }
+        const grpWorld = new THREE.Vector3().setFromMatrixPosition(grp.matrixWorld);
+        active3dDrag = {
+          group: grp,
+          distance: handleHits[0].distance,
+          offsetWorld: grpWorld.sub(handleHits[0].point)
+        };
+        controls.enabled = false;
         return;
       }
 
@@ -2097,7 +2269,7 @@
       document.getElementById('tak-mode-badge').textContent = `TCP: ${addr}`;
     };
 
-    // --- Phase 12: Meta Quest 3 WebXR Controllers (3D Dock Click, Active Tool Raycast, Single-Hand Grab, Two-Handed Pinch-to-Scale) ---
+    // --- Phase 12 & 16: Meta Quest 3 WebXR Controllers (3D Dock Click, Free 3D Panel Dragging, Active Tool Raycast, Single-Hand Grab, Two-Handed Pinch-to-Scale) ---
     const xrControllers = [];
     const gripState = {
       active: [false, false],
@@ -2107,6 +2279,7 @@
       initialScale: 1.0,
       initialAngle: 0.0,
       initialRotY: 0.0,
+      panelDrag: null, // { ctrlIdx, group, distance, offsetWorld }
     };
 
     for (const idx of [0, 1]) {
@@ -2129,17 +2302,33 @@
           return;
         }
 
-        // 2. Check 3D unit icons or floating 3D Video Wall screens
+        // 2. Check 3D Grab Handles & Floating 3D Video Screens for Free 6DoF Dragging in VR!
+        const handleHits = raycaster.intersectObjects(draggable3dHandles, false);
+        if (handleHits.length > 0 && handleHits[0].object.userData.draggablePanelGroup) {
+          const grp = handleHits[0].object.userData.draggablePanelGroup;
+          if (handleHits[0].object.userData.uid) {
+            selectedUid = handleHits[0].object.userData.uid;
+          }
+          const grpWorld = new THREE.Vector3().setFromMatrixPosition(grp.matrixWorld);
+          gripState.panelDrag = {
+            ctrlIdx: idx,
+            group: grp,
+            distance: handleHits[0].distance,
+            offsetWorld: grpWorld.sub(handleHits[0].point)
+          };
+          return;
+        }
+
+        // 3. Check 3D unit icons
         const unitMeshes = [];
         for (const n of entityNodes.values()) unitMeshes.push(n.iconMesh);
-        for (const p of videoWallPanels) unitMeshes.push(p.screenMesh);
         const uHits = raycaster.intersectObjects(unitMeshes, false);
         if (uHits.length > 0 && uHits[0].object.userData.uid) {
           selectedUid = uHits[0].object.userData.uid;
           return;
         }
 
-        // 3. Otherwise execute the active VR tool on the 3D terrain!
+        // 4. Otherwise execute the active VR tool on the 3D terrain!
         if (!terrainMesh) return;
         const hits = raycaster.intersectObject(terrainMesh, false);
         if (hits.length > 0) {
@@ -2150,7 +2339,29 @@
         }
       });
 
+      ctrl.addEventListener('selectend', () => {
+        if (gripState.panelDrag && gripState.panelDrag.ctrlIdx === idx) {
+          gripState.panelDrag = null;
+        }
+      });
+
       ctrl.addEventListener('squeezestart', () => {
+        const tempMatrix = new THREE.Matrix4().extractRotation(ctrl.matrixWorld);
+        raycaster.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+        const handleHits = raycaster.intersectObjects(draggable3dHandles, false);
+        if (handleHits.length > 0 && handleHits[0].object.userData.draggablePanelGroup) {
+          const grp = handleHits[0].object.userData.draggablePanelGroup;
+          const grpWorld = new THREE.Vector3().setFromMatrixPosition(grp.matrixWorld);
+          gripState.panelDrag = {
+            ctrlIdx: idx,
+            group: grp,
+            distance: handleHits[0].distance,
+            offsetWorld: grpWorld.sub(handleHits[0].point)
+          };
+          return;
+        }
+
         gripState.active[idx] = true;
         if (gripState.active[0] && gripState.active[1]) {
           const p0 = new THREE.Vector3().setFromMatrixPosition(xrControllers[0].matrixWorld);
@@ -2167,6 +2378,9 @@
       });
 
       ctrl.addEventListener('squeezeend', () => {
+        if (gripState.panelDrag && gripState.panelDrag.ctrlIdx === idx) {
+          gripState.panelDrag = null;
+        }
         gripState.active[idx] = false;
         if (gripState.grabCtrlIdx === idx) gripState.grabCtrlIdx = -1;
       });
@@ -2511,6 +2725,7 @@
         flyToCameraPos = new THREE.Vector3(0, 0.72, 1.05);
       }
     };
+    document.getElementById('btn-top-reset-panels').onclick = resetAllPanelPositions;
     document.getElementById('btn-top-walkin').onclick = () => {
       setViewMode(viewMode === 'walkin' ? 'table' : 'walkin');
     };
@@ -2741,28 +2956,36 @@
       else radial.normalize();
       const rightLocal = new THREE.Vector3(-radial.z, 0, radial.x);
 
-      // 1. Place 3D Holographic VR Control Dock on the operator-facing near side & tilt upright toward operator
-      const dockRadius = Math.min(Math.max(new THREE.Vector2(camLocal.x, camLocal.z).length() * 0.45, 0.34), 0.54);
-      vrDockGroup.position.set(radial.x * dockRadius, 0.21, radial.z * dockRadius);
+      // 1. Place 3D Holographic VR Control Dock (custom dragged position or operator-facing near side) & tilt upright
+      if (vrDockGroup.userData.customLocalPos) {
+        vrDockGroup.position.copy(vrDockGroup.userData.customLocalPos);
+      } else {
+        const dockRadius = Math.min(Math.max(new THREE.Vector2(camLocal.x, camLocal.z).length() * 0.45, 0.34), 0.54);
+        vrDockGroup.position.set(radial.x * dockRadius, 0.21, radial.z * dockRadius);
+      }
       vrDockGroup.lookAt(camWorldPos);
 
-      // 2. Place the 3 Floating 3D Video Wall Screens in a semi-circular arc behind the center, always facing operator upright
+      // 2. Place the 3 Floating 3D Video Wall Screens (custom dragged position or semi-circular arc) & face operator upright
       const arcFront = radial.clone().negate();
       const slotAngles = [-0.48, 0.0, 0.48];
       for (let i = 0; i < videoWallPanels.length; i++) {
         const p = videoWallPanels[i];
-        const ang = slotAngles[i] || 0.0;
-        const dir = arcFront.clone().multiplyScalar(Math.cos(ang)).addScaledVector(rightLocal, Math.sin(ang));
-        const r = 0.56;
-        const h = i === 1 ? 0.52 : 0.48;
-        p.panelGroup.position.set(dir.x * r, h, dir.z * r);
+        if (p.panelGroup.userData.customLocalPos) {
+          p.panelGroup.position.copy(p.panelGroup.userData.customLocalPos);
+        } else {
+          const ang = slotAngles[i] || 0.0;
+          const dir = arcFront.clone().multiplyScalar(Math.cos(ang)).addScaledVector(rightLocal, Math.sin(ang));
+          const r = 0.56;
+          const h = i === 1 ? 0.52 : 0.48;
+          p.panelGroup.position.set(dir.x * r, h, dir.z * r);
+        }
         p.panelGroup.lookAt(camWorldPos);
       }
 
       // 3. Rotate the glowing Quest 3 Spatial Grab Pedestal Ring (Jimmy AR style)
       if (spatialGrabRing) {
         spatialGrabRing.rotation.z = timeMs * 0.0012;
-        const isGrabbing = gripState.grabCtrlIdx >= 0 || (gripState.active[0] && gripState.active[1]);
+        const isGrabbing = gripState.grabCtrlIdx >= 0 || (gripState.active[0] && gripState.active[1]) || !!gripState.panelDrag;
         spatialGrabRing.material.color.setHex(isGrabbing ? 0x00ff88 : 0xf59e0b);
       }
     }
@@ -2796,9 +3019,19 @@
         }
       }
 
-      // Phase 12 & 14: WebXR Single-Hand Grab, Two-Handed Pinch-to-Scale/Rotate, Direct Finger Poke & Thumbstick Locomotion
+      // Phase 12, 14 & 16: WebXR Free 3D Panel Dragging, Single-Hand Table Grab, Two-Handed Pinch-to-Scale/Rotate, Finger Poke & Thumbstick
       if (renderer.xr.isPresenting) {
-        if (gripState.active[0] && gripState.active[1]) {
+        if (gripState.panelDrag && xrControllers[gripState.panelDrag.ctrlIdx]) {
+          const ctrl = xrControllers[gripState.panelDrag.ctrlIdx];
+          const tempMatrix = new THREE.Matrix4().extractRotation(ctrl.matrixWorld);
+          const rayOrig = new THREE.Vector3().setFromMatrixPosition(ctrl.matrixWorld);
+          const rayDir = new THREE.Vector3(0, 0, -1).applyMatrix4(tempMatrix);
+          const worldPt = rayOrig.addScaledVector(rayDir, gripState.panelDrag.distance).add(gripState.panelDrag.offsetWorld);
+          const localPt = tableGroup.worldToLocal(worldPt);
+          localPt.y = Math.max(0.06, Math.min(1.45, localPt.y));
+          gripState.panelDrag.group.userData.customLocalPos = localPt.clone();
+          gripState.panelDrag.group.position.copy(localPt);
+        } else if (gripState.active[0] && gripState.active[1]) {
           const p0 = new THREE.Vector3().setFromMatrixPosition(xrControllers[0].matrixWorld);
           const p1 = new THREE.Vector3().setFromMatrixPosition(xrControllers[1].matrixWorld);
           const dist = Math.max(p0.distanceTo(p1), 0.05);
