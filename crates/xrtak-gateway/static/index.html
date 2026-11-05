@@ -352,6 +352,8 @@
     </div>
     <div class="vr-command-bar">
       <button class="vr-pill-btn primary" id="btn-top-vr-mode">🥽 ENTER VR HEADSET MODE (3D HANDS)</button>
+      <button class="vr-pill-btn" id="btn-top-spectate">🦅 FREE SPECTATE 6DoF</button>
+      <button class="vr-pill-btn" id="btn-top-summon">🧲 SUMMON TABLE HERE</button>
       <button class="vr-pill-btn" id="btn-top-stereo">👁 STEREO 3D SBS: OFF</button>
       <button class="vr-pill-btn" id="btn-top-walkin">🚶 1:1 WALK-IN VALLEY</button>
       <button class="vr-pill-btn" id="btn-top-cockpit">🚁 UAV COCKPIT POV</button>
@@ -391,12 +393,13 @@
     </div>
     <div class="btn-group">
       <button class="tac-btn active" id="btn-view-table">3D Sand Table</button>
+      <button class="tac-btn" id="btn-view-spectate">🦅 Free Spectate 6DoF</button>
       <button class="tac-btn" id="btn-view-chase">UAV Chase Cam</button>
       <button class="tac-btn" id="btn-view-visor">HUD Visor Mode</button>
       <button class="tac-btn" id="btn-view-walkin">1:1 Walk-In Valley</button>
       <button class="tac-btn" id="btn-view-cockpit">UAV Cockpit POV</button>
       <button class="tac-btn active" id="btn-toggle-fov">FOV Cones: ON</button>
-      <button class="tac-btn active" id="btn-toggle-wall" style="grid-column:span 2;">3D Video Wall: ON</button>
+      <button class="tac-btn active" id="btn-toggle-wall">3D Video Wall: ON</button>
       <button class="tac-btn xr-btn" id="btn-enter-xr">QUEST 3: ENTER MIXED REALITY (WebXR)</button>
     </div>
 
@@ -472,7 +475,7 @@
   </div>
 
   <div class="bottom-help" id="bottom-help">
-    Left-Drag: Orbit Sand Table · Click "Point-to-Slew (SPI)" or "3D Viewshed (LOS)" then click any ridge/valley on the 3D terrain
+    Left-Drag: Orbit · Right-Drag / Two-Finger: Free Pan (Unlocked) · Double-Click Unit/Ridge: Fly To · Click "🦅 FREE SPECTATE 6DoF" for WASD + Q/E Flight
   </div>
 
   <div class="aar-bar">
@@ -554,8 +557,11 @@
     controls.target.set(0, 0.08, 0);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.maxDistance = 4.0;
-    controls.minDistance = 0.2;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    controls.keyPanSpeed = 18.0;
+    controls.maxDistance = 12.0;
+    controls.minDistance = 0.04;
 
     scene.add(new THREE.AmbientLight(0x88bbff, 0.85));
     const dirLight = new THREE.DirectionalLight(0xccf0ff, 1.4);
@@ -565,6 +571,7 @@
     const tableGroup = new THREE.Group();
     scene.add(tableGroup);
 
+    let spatialGrabRing = null;
     function buildTableFrame() {
       const ringGeo = new THREE.RingGeometry(TABLE_RADIUS_UNITS * 1.03, TABLE_RADIUS_UNITS * 1.06, 96);
       ringGeo.rotateX(-Math.PI / 2);
@@ -575,6 +582,19 @@
         opacity: 0.45
       });
       tableGroup.add(new THREE.Mesh(ringGeo, ringMat));
+
+      // Glowing Amber/Cyan Quest 3 Spatial Grab & Place Pedestal Ring (Jimmy AR style)
+      const grabGeo = new THREE.RingGeometry(TABLE_RADIUS_UNITS * 1.08, TABLE_RADIUS_UNITS * 1.135, 64);
+      grabGeo.rotateX(-Math.PI / 2);
+      const grabMat = new THREE.MeshBasicMaterial({
+        color: 0xf59e0b,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.82
+      });
+      spatialGrabRing = new THREE.Mesh(grabGeo, grabMat);
+      spatialGrabRing.position.y = -0.004;
+      tableGroup.add(spatialGrabRing);
 
       const grid = new THREE.GridHelper(TABLE_RADIUS_UNITS * 2.0, 20, 0x00e5ff, 0x0d2b45);
       grid.position.y = -0.002;
@@ -729,7 +749,7 @@
         const screenGeo = new THREE.PlaneGeometry(0.40, 0.235);
         const screenMat = new THREE.MeshBasicMaterial({
           map: tex,
-          side: THREE.DoubleSide,
+          side: THREE.FrontSide,
           transparent: true,
           opacity: 0.94,
         });
@@ -762,6 +782,7 @@
 
         videoWallPanels.push({
           slot,
+          panelGroup,
           canvas,
           ctx,
           tex,
@@ -879,7 +900,7 @@
         // Update 3D Tether Line from bottom edge of floating panel down to unit on table
         const node = entityNodes.get(slot.uid);
         if (node) {
-          const anchorTop = new THREE.Vector3(slot.pos.x, slot.pos.y - 0.118, slot.pos.z);
+          const anchorTop = p.panelGroup.position.clone().add(new THREE.Vector3(0, -0.118, 0));
           tetherLine.geometry.setFromPoints([anchorTop, node.root.position.clone()]);
           tetherLine.visible = true;
         } else {
@@ -1454,13 +1475,12 @@
     }
 
     const vrDockGroup = new THREE.Group();
-    vrDockGroup.position.set(0, 0.30, -0.58);
-    vrDockGroup.rotation.x = 0.24;
+    vrDockGroup.position.set(0, 0.22, 0.56);
     tableGroup.add(vrDockGroup);
     {
-      const dockHeader = makeTextSprite('🥽 3D HOLOGRAPHIC VR COMMAND DOCK (CLICK OR RAYCAST)', '#00ff88', 22);
-      dockHeader.scale.set(0.56, 0.048, 1);
-      dockHeader.position.set(0, 0.105, 0);
+      const dockHeader = makeTextSprite('🥽 3D HOLOGRAPHIC VR COMMAND DOCK (AUTO-FACING · CLICK OR POKE)', '#00ff88', 22);
+      dockHeader.scale.set(0.62, 0.052, 1);
+      dockHeader.position.set(0, 0.115, 0);
       vrDockGroup.add(dockHeader);
     }
 
@@ -1468,7 +1488,7 @@
       { id: 'dock-spi', label: '🎯 SPI SLEW', row: 0, col: 0 },
       { id: 'dock-viewshed', label: '👁 VIEWSHED', row: 0, col: 1 },
       { id: 'dock-los', label: '📡 LINK LOS', row: 0, col: 2 },
-      { id: 'dock-laser', label: '🔦 LASER CUE', row: 0, col: 3 },
+      { id: 'dock-spectate', label: '🦅 FREE 6DoF', row: 0, col: 3 },
       { id: 'dock-sapient', label: '⚡ SAPIENT AI', row: 1, col: 0 },
       { id: 'dock-dem', label: '⛰ DEM CYCLE', row: 1, col: 1 },
       { id: 'dock-walkin', label: '🚶 1:1 WALK-IN', row: 1, col: 2 },
@@ -1487,7 +1507,7 @@
 
         const mesh = new THREE.Mesh(
           new THREE.PlaneGeometry(btnW, btnH),
-          new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.FrontSide })
         );
         mesh.position.set((def.col - 1.5) * gapX, (0.5 - def.row) * gapY, 0);
         mesh.userData.dockId = def.id;
@@ -1504,7 +1524,7 @@
           (def.id === 'dock-spi' && interactionMode === 'spi') ||
           (def.id === 'dock-viewshed' && interactionMode === 'viewshed') ||
           (def.id === 'dock-los' && interactionMode === 'los') ||
-          (def.id === 'dock-laser' && interactionMode === 'laser') ||
+          (def.id === 'dock-spectate' && viewMode === 'spectate') ||
           (def.id === 'dock-walkin' && viewMode === 'walkin') ||
           (def.id === 'dock-cockpit' && viewMode === 'cockpit');
 
@@ -1585,6 +1605,7 @@
       if (dockId === 'dock-spi') setInteractionMode('spi');
       else if (dockId === 'dock-viewshed') document.getElementById('btn-viewshed').click();
       else if (dockId === 'dock-los') document.getElementById('btn-link-los').click();
+      else if (dockId === 'dock-spectate') setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
       else if (dockId === 'dock-laser') setInteractionMode('laser');
       else if (dockId === 'dock-sapient') document.getElementById('btn-sapient-ai').click();
       else if (dockId === 'dock-dem') {
@@ -1756,6 +1777,37 @@
       }
     });
 
+    // Double-Click any 3D Unit or Terrain Point to smoothly fly/focus there (unlocks from origin!)
+    let flyToTargetPos = null;
+    let flyToCameraPos = null;
+    window.addEventListener('dblclick', (ev) => {
+      if (ev.target !== renderer.domElement) return;
+      pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      const unitMeshes = [];
+      for (const n of entityNodes.values()) unitMeshes.push(n.iconMesh);
+      const uHits = raycaster.intersectObjects(unitMeshes, false);
+      if (uHits.length > 0 && uHits[0].object.userData.uid) {
+        selectedUid = uHits[0].object.userData.uid;
+        const hitPt = uHits[0].point.clone();
+        const camOffset = camera.position.clone().sub(controls.target).setLength(0.45);
+        flyToTargetPos = hitPt;
+        flyToCameraPos = hitPt.clone().add(camOffset);
+        return;
+      }
+      if (terrainMesh) {
+        const hits = raycaster.intersectObject(terrainMesh, false);
+        if (hits.length > 0) {
+          const hitPt = hits[0].point.clone();
+          const camOffset = camera.position.clone().sub(controls.target).setLength(0.55);
+          flyToTargetPos = hitPt;
+          flyToCameraPos = hitPt.clone().add(camOffset);
+        }
+      }
+    });
+
     document.getElementById('btn-spi-slew').onclick = () => setInteractionMode('spi');
     document.getElementById('btn-spi-clear').onclick = async () => {
       await fetch('/api/spi', {
@@ -1814,13 +1866,17 @@
 
     function setViewMode(mode) {
       viewMode = mode;
-      visorCanvas.style.display = (mode === 'visor' || mode === 'walkin' || mode === 'cockpit' || vrHeadsetActive) ? 'block' : 'none';
+      flyToTargetPos = null;
+      flyToCameraPos = null;
+      visorCanvas.style.display = (mode === 'visor' || mode === 'walkin' || mode === 'cockpit' || mode === 'spectate' || vrHeadsetActive) ? 'block' : 'none';
       for (const [id, m] of [
         ['btn-view-table', 'table'],
+        ['btn-view-spectate', 'spectate'],
         ['btn-view-chase', 'chase'],
         ['btn-view-visor', 'visor'],
         ['btn-view-walkin', 'walkin'],
         ['btn-view-cockpit', 'cockpit'],
+        ['btn-top-spectate', 'spectate'],
         ['btn-top-walkin', 'walkin'],
         ['btn-top-cockpit', 'cockpit'],
         ['btn-top-visor', 'visor']
@@ -1834,6 +1890,13 @@
         document.getElementById('hud-mode-label').textContent = 'MODE: HOLOGRAPHIC SAND TABLE';
         camera.position.set(0.0, 0.92, 1.25);
         controls.target.set(0, 0.08, 0);
+      } else if (mode === 'spectate') {
+        document.getElementById('hud-mode-label').textContent = 'MODE: FREE SPECTATING 6DoF FLIGHT (UNLOCKED)';
+        const fwd = new THREE.Vector3();
+        camera.getWorldDirection(fwd);
+        controls.target.copy(camera.position).addScaledVector(fwd, 0.35);
+        document.getElementById('bottom-help').textContent =
+          '🦅 FREE SPECTATE 6DoF: Left-Drag Look · Right-Drag / Two-Finger Pan Anywhere · WASD + Q/E + Shift Fly · Double-Click Any Unit/Ridge to Fly There';
       } else if (mode === 'chase') {
         tableGroup.scale.setScalar(1.0);
         tableGroup.position.set(0, 0, 0);
@@ -1862,6 +1925,7 @@
     }
 
     document.getElementById('btn-view-table').onclick = () => setViewMode('table');
+    document.getElementById('btn-view-spectate').onclick = () => setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
     document.getElementById('btn-view-chase').onclick = () => setViewMode('chase');
     document.getElementById('btn-view-visor').onclick = () => setViewMode('visor');
     document.getElementById('btn-view-walkin').onclick = () => setViewMode(viewMode === 'walkin' ? 'table' : 'walkin');
@@ -2171,6 +2235,24 @@
       if (stereoSbsActive && !vrHeadsetActive) toggleBrowserVrHeadsetMode(true);
     };
 
+    document.getElementById('btn-top-spectate').onclick = () => {
+      setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
+    };
+    document.getElementById('btn-top-summon').onclick = () => {
+      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      const camWorldPos = new THREE.Vector3().setFromMatrixPosition(activeCam.matrixWorld);
+      const camFwd = new THREE.Vector3();
+      activeCam.getWorldDirection(camFwd);
+      camFwd.y = 0;
+      if (camFwd.lengthSq() > 1e-6) camFwd.normalize();
+      if (renderer.xr.isPresenting) {
+        tableGroup.position.copy(camWorldPos).addScaledVector(camFwd, 0.85);
+        tableGroup.position.y = camWorldPos.y - 0.32;
+      } else {
+        flyToTargetPos = new THREE.Vector3(0, 0.08, 0);
+        flyToCameraPos = new THREE.Vector3(0, 0.72, 1.05);
+      }
+    };
     document.getElementById('btn-top-walkin').onclick = () => {
       setViewMode(viewMode === 'walkin' ? 'table' : 'walkin');
     };
@@ -2286,8 +2368,52 @@
     connectTelemetryStream();
 
     const dirVec = new THREE.Vector3();
+    let lastFingerPokeMs = 0;
+
+    function updateCameraFacingPanels(timeMs) {
+      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      const camWorldPos = new THREE.Vector3().setFromMatrixPosition(activeCam.matrixWorld);
+      const camLocal = tableGroup.worldToLocal(camWorldPos.clone());
+      const radial = new THREE.Vector3(camLocal.x, 0, camLocal.z);
+      if (radial.lengthSq() < 1e-6) radial.set(0, 0, 1);
+      else radial.normalize();
+      const rightLocal = new THREE.Vector3(-radial.z, 0, radial.x);
+
+      // 1. Place 3D Holographic VR Control Dock on the operator-facing near side & tilt upright toward operator
+      const dockRadius = Math.min(Math.max(new THREE.Vector2(camLocal.x, camLocal.z).length() * 0.45, 0.34), 0.54);
+      vrDockGroup.position.set(radial.x * dockRadius, 0.21, radial.z * dockRadius);
+      vrDockGroup.lookAt(camWorldPos);
+
+      // 2. Place the 3 Floating 3D Video Wall Screens in a semi-circular arc behind the center, always facing operator upright
+      const arcFront = radial.clone().negate();
+      const slotAngles = [-0.48, 0.0, 0.48];
+      for (let i = 0; i < videoWallPanels.length; i++) {
+        const p = videoWallPanels[i];
+        const ang = slotAngles[i] || 0.0;
+        const dir = arcFront.clone().multiplyScalar(Math.cos(ang)).addScaledVector(rightLocal, Math.sin(ang));
+        const r = 0.56;
+        const h = i === 1 ? 0.52 : 0.48;
+        p.panelGroup.position.set(dir.x * r, h, dir.z * r);
+        p.panelGroup.lookAt(camWorldPos);
+      }
+
+      // 3. Rotate the glowing Quest 3 Spatial Grab Pedestal Ring (Jimmy AR style)
+      if (spatialGrabRing) {
+        spatialGrabRing.rotation.z = timeMs * 0.0012;
+        const isGrabbing = gripState.grabCtrlIdx >= 0 || (gripState.active[0] && gripState.active[1]);
+        spatialGrabRing.material.color.setHex(isGrabbing ? 0x00ff88 : 0xf59e0b);
+      }
+    }
+
     renderer.setAnimationLoop((timeMs) => {
-      if (viewMode === 'chase') {
+      if (flyToTargetPos && flyToCameraPos) {
+        controls.target.lerp(flyToTargetPos, 0.12);
+        camera.position.lerp(flyToCameraPos, 0.12);
+        if (camera.position.distanceTo(flyToCameraPos) < 0.015) {
+          flyToTargetPos = null;
+          flyToCameraPos = null;
+        }
+      } else if (viewMode === 'chase') {
         const selNode = entityNodes.get(selectedUid);
         if (selNode) {
           const targetPos = selNode.root.position;
@@ -2308,7 +2434,7 @@
         }
       }
 
-      // Phase 12: WebXR Single-Hand Grab, Two-Handed Pinch-to-Scale/Rotate, Ray Reticle & Thumbstick Locomotion
+      // Phase 12 & 14: WebXR Single-Hand Grab, Two-Handed Pinch-to-Scale/Rotate, Direct Finger Poke & Thumbstick Locomotion
       if (renderer.xr.isPresenting) {
         if (gripState.active[0] && gripState.active[1]) {
           const p0 = new THREE.Vector3().setFromMatrixPosition(xrControllers[0].matrixWorld);
@@ -2321,6 +2447,22 @@
         } else if (gripState.grabCtrlIdx >= 0) {
           const ctrlPos = new THREE.Vector3().setFromMatrixPosition(xrControllers[gripState.grabCtrlIdx].matrixWorld);
           tableGroup.position.copy(ctrlPos).add(gripState.grabOffset);
+        }
+
+        // Direct Controller/Hand Proximity Poke on 3D Holographic Dock Buttons (Jimmy AR style)
+        if (timeMs - lastFingerPokeMs > 450) {
+          for (const ctrl of xrControllers) {
+            const p = new THREE.Vector3().setFromMatrixPosition(ctrl.matrixWorld);
+            if (p.lengthSq() < 1e-5) continue;
+            for (const b of vrDockButtons) {
+              const bp = new THREE.Vector3().setFromMatrixPosition(b.mesh.matrixWorld);
+              if (p.distanceTo(bp) < 0.068) {
+                lastFingerPokeMs = timeMs;
+                handleVrDockAction(b.def.id);
+                break;
+              }
+            }
+          }
         }
 
         if (terrainMesh && xrControllers[0]) {
@@ -2348,28 +2490,35 @@
         }
       }
 
-      // 6DoF WASD / Arrow / Q-E Keyboard Locomotion for VR Headset Mode & Walk-In Valley
+      // 6DoF WASD / Arrow / Q-E + Shift Boost Keyboard Flight (Free Spectate, VR Headset & Walk-In)
       if (activeKeys.size > 0 && !renderer.xr.isPresenting) {
-        const moveStep = viewMode === 'walkin' ? 0.022 : 0.012;
+        const boost = (activeKeys.has('ShiftLeft') || activeKeys.has('ShiftRight')) ? 2.6 : 1.0;
+        const baseStep = viewMode === 'walkin' ? 0.024 : (viewMode === 'spectate' ? 0.018 : 0.014);
+        const moveStep = baseStep * boost;
         const fwd = new THREE.Vector3();
         camera.getWorldDirection(fwd);
-        fwd.y = 0;
-        if (fwd.lengthSq() > 1e-6) fwd.normalize();
+        if (viewMode !== 'spectate') {
+          fwd.y = 0;
+          if (fwd.lengthSq() > 1e-6) fwd.normalize();
+        }
         const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
         const delta = new THREE.Vector3();
         if (activeKeys.has('KeyW') || activeKeys.has('ArrowUp')) delta.addScaledVector(fwd, moveStep);
         if (activeKeys.has('KeyS') || activeKeys.has('ArrowDown')) delta.addScaledVector(fwd, -moveStep);
         if (activeKeys.has('KeyD') || activeKeys.has('ArrowRight')) delta.addScaledVector(right, moveStep);
         if (activeKeys.has('KeyA') || activeKeys.has('ArrowLeft')) delta.addScaledVector(right, -moveStep);
-        if (activeKeys.has('KeyE')) delta.y += moveStep * 0.8;
-        if (activeKeys.has('KeyQ')) delta.y -= moveStep * 0.8;
+        if (activeKeys.has('KeyE') || activeKeys.has('Space')) delta.y += moveStep * 0.85;
+        if (activeKeys.has('KeyQ') || activeKeys.has('KeyC')) delta.y -= moveStep * 0.85;
         if (delta.lengthSq() > 0) {
+          flyToTargetPos = null;
+          flyToCameraPos = null;
           camera.position.add(delta);
           controls.target.add(delta);
         }
       }
 
       controls.update();
+      updateCameraFacingPanels(timeMs);
       updateVirtualHandsPose(timeMs);
       camera.getWorldDirection(dirVec);
       const headingDeg = (Math.round(THREE.MathUtils.radToDeg(Math.atan2(dirVec.x, -dirVec.z))) + 360) % 360;
