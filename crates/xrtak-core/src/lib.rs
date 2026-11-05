@@ -16,7 +16,9 @@ pub use geo::{ElevationProvider, ProceduralReliefModel, RasterDemProvider};
 pub use hud::{compute_hud_cue, HudCue};
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
-pub use zones::{is_engaged_by_threat_dome, is_inside_tactical_zone, point_in_polygon_en};
+pub use zones::{
+    is_engaged_by_threat_dome, is_inside_tactical_zone, parse_cot_polygon_zone, point_in_polygon_en,
+};
 
 use quick_xml::events::Event;
 use quick_xml::Reader;
@@ -492,6 +494,11 @@ impl TacticalWorld {
             });
             entity = parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
         }
+        // If this CoT defines a polygon zone (`u-d-f` / `<link point="lat,lon"/>`), upsert into `tactical_zones`.
+        if let Some(poly_zone) = parse_cot_polygon_zone(xml, &self.origin) {
+            self.tactical_zones.retain(|z| z.uid != poly_zone.uid);
+            self.tactical_zones.push(poly_zone);
+        }
         // If this incoming CoT is an SPI (`b-m-p-s-p-i`) with a parent UAV link, lock that UAV's gimbal!
         if entity.cot_type.starts_with("b-m-p-s-p-i") {
             if let Some(ref parent) = entity.parent_uid {
@@ -502,6 +509,7 @@ impl TacticalWorld {
             }
         }
         self.entities.insert(entity.uid.clone(), entity.clone());
+        self.refresh_threat_domes_and_zones();
         Ok(entity)
     }
 
@@ -780,11 +788,20 @@ impl TacticalWorld {
 
     /// Re-evaluate 3D SAM/Radar threat domes (`REQ-TAC-02`) and polygonal geofences (`REQ-TAC-03`).
     pub fn refresh_threat_domes_and_zones(&mut self) {
+        let mut emitters: Vec<&TacticalEntity> = self
+            .entities
+            .values()
+            .filter(|e| {
+                e.cot_type.starts_with("a-h-G-E-S") || e.cot_type.starts_with("a-h-G-E-W")
+            })
+            .collect();
+        emitters.sort_by(|a, b| a.uid.cmp(&b.uid));
+
         let mut domes = Vec::new();
-        if let Some(emitter) = self.entities.get("HST-EMITTER-02") {
+        for emitter in emitters {
             let mut dome = ThreatDome {
                 uid: emitter.uid.clone(),
-                callsign: "SA-15 SHORAD / JAMMER DOME".to_string(),
+                callsign: format!("{} [SHORAD/JAMMER]", emitter.callsign),
                 affiliation: Affiliation::Hostile,
                 east_m: emitter.east_m,
                 up_m: emitter.up_m,
@@ -797,7 +814,11 @@ impl TacticalWorld {
                 if ent.uid != dome.uid
                     && ent.affiliation != Affiliation::Hostile
                     && !ent.cot_type.starts_with("b-m-p-s-p-i")
-                    && is_engaged_by_threat_dome(&dome, (ent.east_m, ent.up_m, ent.north_m), self.terrain.as_ref())
+                    && is_engaged_by_threat_dome(
+                        &dome,
+                        (ent.east_m, ent.up_m, ent.north_m),
+                        self.terrain.as_ref(),
+                    )
                 {
                     dome.engaged_uids.push(ent.uid.clone());
                 }
