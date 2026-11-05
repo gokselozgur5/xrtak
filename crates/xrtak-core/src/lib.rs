@@ -786,11 +786,13 @@ impl TacticalWorld {
         self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
     }
 
-    /// Re-evaluate 3D SAM/Radar threat domes (`REQ-TAC-02`) and polygonal geofences (`REQ-TAC-03`).
-    pub fn refresh_threat_domes_and_zones(&mut self) {
-        let mut emitters: Vec<&TacticalEntity> = self
-            .entities
-            .values()
+    /// Evaluate 3D `ThreatDome` engagements and `TacticalZone` memberships for an arbitrary entity slice (live or 4D AAR replay).
+    pub fn evaluate_overlays_for_entities(
+        &self,
+        entities: &[TacticalEntity],
+    ) -> (Vec<ThreatDome>, Vec<TacticalZone>) {
+        let mut emitters: Vec<&TacticalEntity> = entities
+            .iter()
             .filter(|e| {
                 e.cot_type.starts_with("a-h-G-E-S") || e.cot_type.starts_with("a-h-G-E-W")
             })
@@ -810,7 +812,7 @@ impl TacticalWorld {
                 ceiling_m: 440.0,
                 engaged_uids: Vec::new(),
             };
-            for ent in self.entities.values() {
+            for ent in entities {
                 if ent.uid != dome.uid
                     && ent.affiliation != Affiliation::Hostile
                     && !ent.cot_type.starts_with("b-m-p-s-p-i")
@@ -826,11 +828,11 @@ impl TacticalWorld {
             dome.engaged_uids.sort();
             domes.push(dome);
         }
-        self.threat_domes = domes;
 
-        for zone in &mut self.tactical_zones {
+        let mut zones = self.tactical_zones.clone();
+        for zone in &mut zones {
             zone.inside_uids.clear();
-            for ent in self.entities.values() {
+            for ent in entities {
                 if !ent.cot_type.starts_with("b-m-p-s-p-i")
                     && is_inside_tactical_zone(zone, (ent.east_m, ent.up_m, ent.north_m))
                 {
@@ -839,6 +841,34 @@ impl TacticalWorld {
             }
             zone.inside_uids.sort();
         }
+        (domes, zones)
+    }
+
+    /// Re-evaluate 3D SAM/Radar threat domes (`REQ-TAC-02`) and polygonal geofences (`REQ-TAC-03`).
+    pub fn refresh_threat_domes_and_zones(&mut self) {
+        let entities: Vec<TacticalEntity> = self.entities.values().cloned().collect();
+        let (domes, zones) = self.evaluate_overlays_for_entities(&entities);
+        self.threat_domes = domes;
+        self.tactical_zones = zones;
+    }
+
+    /// Compute First-Person AR Visor HUD angular/slant-range cues relative to an observer track (`Phase 3 HUD`).
+    pub fn compute_visor_hud_cues(&self, observer_uid: &str) -> Vec<(String, String, Affiliation, HudCue)> {
+        let obs_enu = self
+            .entities
+            .get(observer_uid)
+            .map(|e| (e.east_m, e.up_m + 1.8, e.north_m))
+            .unwrap_or((0.0, self.terrain.sample_relief_m(0.0, 0.0) + 1.8, 0.0));
+        let mut out = Vec::new();
+        for ent in self.entities.values() {
+            if ent.uid == observer_uid || ent.cot_type.starts_with("b-m-p-s-p-i") {
+                continue;
+            }
+            let cue = compute_hud_cue(obs_enu, (ent.east_m, ent.up_m, ent.north_m));
+            out.push((ent.uid.clone(), ent.callsign.clone(), ent.affiliation, cue));
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -985,5 +1015,19 @@ mod tests {
         assert_eq!(ent.affiliation, Affiliation::Hostile);
         assert!(world.entities.contains_key("UAV-FALCON-01.SPI1"));
         assert!(world.spi_locks.contains_key("UAV-FALCON-01"));
+    }
+
+    #[test]
+    fn test_evaluate_overlays_and_visor_hud_cues() {
+        let mut world = TacticalWorld::new(GeoOrigin::default());
+        world.step_simulation(0.5, 1000);
+        let frame = world.aar.sample_at(0.5).expect("AAR frame exists");
+        let (domes, zones) = world.evaluate_overlays_for_entities(&frame.entities);
+        assert!(!domes.is_empty());
+        assert_eq!(zones.len(), 2);
+
+        let cues = world.compute_visor_hud_cues("GND-SPEAR-ALPHA");
+        assert!(!cues.is_empty());
+        assert!(cues.iter().all(|(_, _, _, c)| c.slant_range_m > 0.0));
     }
 }
