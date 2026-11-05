@@ -899,4 +899,24 @@ mod tests {
         // On a perfectly flat plane with observer +10m above ground, 100% of samples are visible
         assert!((vs.visible_ratio - 1.0).abs() < 1e-9);
     }
+
+    #[test]
+    fn test_auto_recenter_sim_toggle_and_laser_pointer_cot() {
+        let mut world = TacticalWorld::new(GeoOrigin::default());
+        world.step_simulation(0.1, 1000);
+        assert!(world.entities.contains_key("UAV-FALCON-01"));
+
+        world.set_sim_enabled(false);
+        assert!(!world.entities.contains_key("UAV-FALCON-01"));
+
+        world.auto_recenter_on_next_live_cot = true;
+        let live_xml = r#"<event version="2.0" uid="ATAK-LIVE-99" type="a-f-G-U-C"><point lat="41.0082" lon="28.9784" hae="120.0" ce="5" le="5"/><detail><contact callsign="ISTANBUL-1"/></detail></event>"#;
+        let ent = world.ingest_cot_xml(live_xml, 2000).expect("live CoT ingested");
+        assert!((world.origin.lat - 41.0082).abs() < 1e-5);
+        assert!(ent.east_m.abs() < 1.0 && ent.north_m.abs() < 1.0);
+
+        let laser_xml = build_laser_pointer_cot_xml("QUEST-GOKSEL", 41.0085, 28.9790, 85.0);
+        let laser_ent = world.ingest_cot_xml(&laser_xml, 2100).expect("laser CoT valid");
+        assert_eq!(laser_ent.cot_type, "b-m-p-c");
+    }
 }
