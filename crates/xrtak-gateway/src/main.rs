@@ -5,15 +5,28 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
-use xrtak_core::{compute_viewshed, GeoOrigin, TacticalEntity, TacticalWorld};
+use xrtak_core::{
+    compute_viewshed_with_provider, GeoOrigin, ProceduralReliefModel, RasterDemProvider,
+    TacticalEntity, TacticalWorld,
+};
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
 
 #[derive(Debug, Clone, Serialize)]
 struct WorldSnapshot {
     origin: GeoOrigin,
+    terrain_name: String,
     sim_time_sec: f64,
     entities: Vec<TacticalEntity>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TerrainSwitchRequest {
+    preset: Option<String>,
+    width: Option<usize>,
+    height: Option<usize>,
+    extent_m: Option<f64>,
+    heights_m: Option<Vec<f64>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -100,6 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     entities.sort_by(|a, b| a.uid.cmp(&b.uid));
                     let snap = WorldSnapshot {
                         origin: guard.origin,
+                        terrain_name: guard.terrain_name.clone(),
                         sim_time_sec: guard.sim_time_sec,
                         entities,
                     };
@@ -164,6 +178,7 @@ async fn handle_http_connection(
             entities.sort_by(|a, b| a.uid.cmp(&b.uid));
             let snap = WorldSnapshot {
                 origin: guard.origin,
+                terrain_name: guard.terrain_name.clone(),
                 sim_time_sec: guard.sim_time_sec,
                 entities,
             };
@@ -176,6 +191,70 @@ async fn handle_http_connection(
         stream.write_all(header.as_bytes()).await?;
         stream.write_all(body.as_bytes()).await?;
         return Ok(());
+    }
+
+    if method == "GET" && path == "/api/terrain" {
+        let body = {
+            let guard = world.lock().unwrap();
+            let res = 65usize;
+            let grid = guard.terrain.export_grid(guard.origin.extent_m, res);
+            serde_json::json!({
+                "name": guard.terrain_name,
+                "resolution": res,
+                "extent_m": guard.origin.extent_m,
+                "heights_m": grid
+            })
+            .to_string()
+        };
+        let header = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(body.as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "POST" && path == "/api/terrain" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(t_req) = serde_json::from_str::<TerrainSwitchRequest>(body) {
+            let resp_json = {
+                let mut guard = world.lock().unwrap();
+                let extent = t_req.extent_m.unwrap_or(guard.origin.extent_m);
+                if let (Some(w), Some(h), Some(heights)) =
+                    (t_req.width, t_req.height, t_req.heights_m)
+                {
+                    let name = t_req.preset.unwrap_or_else(|| "custom_dem".to_string());
+                    if let Ok(dem) = RasterDemProvider::new(&name, w, h, extent, heights) {
+                        guard.set_terrain_provider(&name, Box::new(dem));
+                    }
+                } else {
+                    let preset = t_req.preset.unwrap_or_else(|| "valley".to_string());
+                    if preset == "valley" {
+                        guard.set_terrain_provider("valley", Box::new(ProceduralReliefModel));
+                    } else {
+                        let dem = RasterDemProvider::from_preset(&preset, extent, 65);
+                        guard.set_terrain_provider(&preset, Box::new(dem));
+                    }
+                }
+                let res = 65usize;
+                let grid = guard.terrain.export_grid(guard.origin.extent_m, res);
+                serde_json::json!({
+                    "name": guard.terrain_name,
+                    "resolution": res,
+                    "extent_m": guard.origin.extent_m,
+                    "heights_m": grid
+                })
+                .to_string()
+            };
+            let header = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                resp_json.len()
+            );
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
     }
 
     if method == "GET" && path == "/api/stream" {
@@ -263,14 +342,18 @@ async fn handle_http_connection(
     if method == "POST" && path == "/api/viewshed" {
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(vs_req) = serde_json::from_str::<ViewshedRequest>(body) {
-            let vs = compute_viewshed(
-                vs_req.east_m,
-                vs_req.north_m,
-                vs_req.height_offset_m.unwrap_or(18.0),
-                vs_req.radius_m.unwrap_or(680.0),
-                72,
-                28,
-            );
+            let vs = {
+                let guard = world.lock().unwrap();
+                compute_viewshed_with_provider(
+                    guard.terrain.as_ref(),
+                    vs_req.east_m,
+                    vs_req.north_m,
+                    vs_req.height_offset_m.unwrap_or(18.0),
+                    vs_req.radius_m.unwrap_or(680.0),
+                    72,
+                    28,
+                )
+            };
             let json = serde_json::to_string(&vs)?;
             let header = format!(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
@@ -287,7 +370,7 @@ async fn handle_http_connection(
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
             let ent = {
                 let mut guard = world.lock().unwrap();
-                let ground_h = xrtak_core::sample_terrain_relief_m(spawn.east_m, spawn.north_m);
+                let ground_h = guard.sample_relief_m(spawn.east_m, spawn.north_m);
                 let up_m = ground_h + spawn.alt_offset_m.unwrap_or(0.0);
                 let (lat, lon, hae) = guard.origin.enu_to_lla(spawn.east_m, up_m, spawn.north_m);
                 let uid = format!(

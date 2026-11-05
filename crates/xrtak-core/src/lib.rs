@@ -5,7 +5,7 @@ pub mod hud;
 pub mod viewshed;
 
 pub use domain::{Affiliation, Dimension, SensorCone, ViewshedResult, ViewshedSample};
-pub use geo::{ElevationProvider, ProceduralReliefModel};
+pub use geo::{ElevationProvider, ProceduralReliefModel, RasterDemProvider};
 pub use hud::{compute_hud_cue, HudCue};
 pub use viewshed::compute_viewshed_with_provider;
 
@@ -158,6 +158,16 @@ pub fn build_spi_cot_xml(
 
 /// Parse a standard Cursor-on-Target (CoT) XML string into a `TacticalEntity`.
 pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<TacticalEntity, String> {
+    parse_cot_xml_with_provider(xml, origin, &ProceduralReliefModel, now_ms)
+}
+
+/// Parse a standard Cursor-on-Target (CoT) XML string using any `ElevationProvider` (DIP).
+pub fn parse_cot_xml_with_provider(
+    xml: &str,
+    origin: &GeoOrigin,
+    terrain: &dyn ElevationProvider,
+    now_ms: u64,
+) -> Result<TacticalEntity, String> {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
 
@@ -312,7 +322,7 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
     let (east_m, mut up_m, north_m) = origin.lla_to_enu(lat, lon, hae_m);
 
     if (hae_m - 0.0).abs() < 1.0 || (hae_m - origin.alt_m).abs() < 1.0 {
-        let ground_relief = sample_terrain_relief_m(east_m, north_m);
+        let ground_relief = terrain.sample_relief_m(east_m, north_m);
         up_m = match dimension {
             Dimension::Air => ground_relief + 260.0,
             _ => ground_relief,
@@ -346,6 +356,8 @@ pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<Tacti
 /// State manager holding simulated tactical units, SPI gimbal locks, and live external CoT tracks.
 pub struct TacticalWorld {
     pub origin: GeoOrigin,
+    pub terrain_name: String,
+    pub terrain: Box<dyn ElevationProvider>,
     pub entities: HashMap<String, TacticalEntity>,
     /// Map from UAV UID (e.g. `UAV-FALCON-01`) to locked SPI ENU target `(east_m, up_m, north_m)`
     pub spi_locks: HashMap<String, (f64, f64, f64)>,
@@ -356,14 +368,35 @@ impl TacticalWorld {
     pub fn new(origin: GeoOrigin) -> Self {
         Self {
             origin,
+            terrain_name: "valley".to_string(),
+            terrain: Box::new(ProceduralReliefModel),
             entities: HashMap::new(),
             spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
         }
     }
 
+    /// Sample active terrain elevation at `(east_m, north_m)` via `ElevationProvider` (DIP).
+    pub fn sample_relief_m(&self, east_m: f64, north_m: f64) -> f64 {
+        self.terrain.sample_relief_m(east_m, north_m)
+    }
+
+    /// Switch the active terrain provider and re-clamp ground entities to the new relief surface (`REQ-DEM-04`).
+    pub fn set_terrain_provider(&mut self, name: impl Into<String>, provider: Box<dyn ElevationProvider>) {
+        self.terrain_name = name.into();
+        self.terrain = provider;
+        for ent in self.entities.values_mut() {
+            let gnd = self.terrain.sample_relief_m(ent.east_m, ent.north_m);
+            if ent.dimension != Dimension::Air {
+                ent.up_m = gnd;
+                let (_, _, hae) = self.origin.enu_to_lla(ent.east_m, ent.up_m, ent.north_m);
+                ent.hae_m = hae;
+            }
+        }
+    }
+
     pub fn ingest_cot_xml(&mut self, xml: &str, now_ms: u64) -> Result<TacticalEntity, String> {
-        let entity = parse_cot_xml(xml, &self.origin, now_ms)?;
+        let entity = parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
         // If this incoming CoT is an SPI (`b-m-p-s-p-i`) with a parent UAV link, lock that UAV's gimbal!
         if entity.cot_type.starts_with("b-m-p-s-p-i") {
             if let Some(ref parent) = entity.parent_uid {
@@ -385,7 +418,7 @@ impl TacticalWorld {
         north_m: f64,
         now_ms: u64,
     ) -> Result<TacticalEntity, String> {
-        let ground_up_m = sample_terrain_relief_m(east_m, north_m);
+        let ground_up_m = self.terrain.sample_relief_m(east_m, north_m);
         let (lat, lon, hae_m) = self.origin.enu_to_lla(east_m, ground_up_m, north_m);
 
         let (parent_callsign, parent_type) = self
@@ -424,7 +457,7 @@ impl TacticalWorld {
             let angle = t * omega;
             let east_m = 220.0 + orbit_r * angle.cos();
             let north_m = 180.0 + orbit_r * angle.sin();
-            let ground_h = sample_terrain_relief_m(east_m, north_m);
+            let ground_h = self.terrain.sample_relief_m(east_m, north_m);
             let up_m = ground_h + 290.0;
             let course_deg = (90.0 - angle.to_degrees() - 90.0).rem_euclid(360.0);
 
@@ -441,7 +474,7 @@ impl TacticalWorld {
                 } else {
                     let te = -180.0 + (t * 0.08).sin() * 260.0;
                     let tn = -120.0 + (t * 0.08).cos() * 190.0;
-                    let tup = sample_terrain_relief_m(te, tn);
+                    let tup = self.terrain.sample_relief_m(te, tn);
                     (te, tup, tn, "Auto-Track: Valley Sector".to_string())
                 };
 
@@ -482,7 +515,7 @@ impl TacticalWorld {
             let a = t * omega;
             let east_m = -480.0 + 380.0 * a.sin();
             let north_m = 90.0 + 320.0 * (2.0 * a).sin() * 0.5;
-            let ground_h = sample_terrain_relief_m(east_m, north_m);
+            let ground_h = self.terrain.sample_relief_m(east_m, north_m);
             let up_m = ground_h + 240.0;
             let course_deg = (a.cos().atan2((2.0 * a).cos())).to_degrees().rem_euclid(360.0);
             let gimbal_az = (course_deg + (t * 0.6).sin() * 35.0).rem_euclid(360.0);
@@ -514,7 +547,7 @@ impl TacticalWorld {
         {
             let east_m = -120.0 + (t * 0.04).cos() * 140.0;
             let north_m = -420.0 + (t * 0.04).sin() * 90.0;
-            let up_m = sample_terrain_relief_m(east_m, north_m);
+            let up_m = self.terrain.sample_relief_m(east_m, north_m);
             self.upsert_sim_entity(
                 "GND-SPEAR-ALPHA",
                 "SPEAR-ALPHA",
@@ -536,7 +569,7 @@ impl TacticalWorld {
         {
             let east_m = 460.0;
             let north_m = -310.0;
-            let up_m = sample_terrain_relief_m(east_m, north_m);
+            let up_m = self.terrain.sample_relief_m(east_m, north_m);
             self.upsert_sim_entity(
                 "GND-OBSERVE-BRAVO",
                 "OP-BRAVO [TOC]",
@@ -558,7 +591,7 @@ impl TacticalWorld {
         {
             let east_m = -180.0 + (t * 0.08).sin() * 260.0;
             let north_m = -120.0 + (t * 0.08).cos() * 190.0;
-            let up_m = sample_terrain_relief_m(east_m, north_m);
+            let up_m = self.terrain.sample_relief_m(east_m, north_m);
             self.upsert_sim_entity(
                 "HST-ARMOR-01",
                 "CONTACT-RED-1",
@@ -580,7 +613,7 @@ impl TacticalWorld {
         {
             let east_m = 140.0 + (t * 0.025).cos() * 60.0;
             let north_m = 540.0;
-            let up_m = sample_terrain_relief_m(east_m, north_m);
+            let up_m = self.terrain.sample_relief_m(east_m, north_m);
             self.upsert_sim_entity(
                 "HST-EMITTER-02",
                 "EMITTER-NORTH",
@@ -602,7 +635,7 @@ impl TacticalWorld {
         {
             let east_m = 580.0 * (t * 0.09).cos();
             let north_m = 480.0 + 180.0 * (t * 0.18).sin();
-            let up_m = sample_terrain_relief_m(east_m, north_m) + 145.0;
+            let up_m = self.terrain.sample_relief_m(east_m, north_m) + 145.0;
             self.upsert_sim_entity(
                 "UNK-BOGEY-07",
                 "TRACK-704 [UNK]",
