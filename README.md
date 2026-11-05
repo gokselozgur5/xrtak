@@ -1,10 +1,17 @@
 # XR-TAK — Virtual Reality (VR) & Mixed-Reality 3D Tactical Sand Table & CoT HUD
 
-![XR-TAK 3D Holographic Sand Table Demo](docs/xrtak-demo.gif)
+## 🥽 Live Meta Quest 3 Mixed Reality Passthrough Showcase
+
+| 1. Real-World Satellite 3D Sand Table & Viewshed | 2. Floating 3D Video Wall & 6DoF Grab Handles | 3. Upright 3D VR Command Dock & Real CoT Pinning |
+| :---: | :---: | :---: |
+| ![Meta Quest 3 Passthrough Overview](docs/media/quest3_passthrough_overview.gif) | ![Meta Quest 3 Floating 3D Video Wall](docs/media/quest3_3d_video_wall.gif) | ![Meta Quest 3 3D Holographic Command Dock](docs/media/quest3_vr_command_dock.gif) |
+| *Real-world Esri Satellite + AWS Terrarium SRTM DEM terrain floating in Meta Quest 3 Mixed Reality Passthrough with 3D Viewshed LOS & SHORAD domes.* | *3 floating 3D sensor screens (`CAM-1 SAR`, `CAM-2 EO/IR`, `CAM-3 PTZ`) with independent 6DoF `✋ GRAB & MOVE` handles and Quest 3 laser ray.* | *Camera-facing upright 3D VR Command Dock (`🎯 SPI SLEW`, `👁 VIEWSHED`, `📍 REAL PIN`, `🛰 REAL MAP`) and 6DoF spatial pedestal ring.* |
+
+![XR-TAK Desktop & WebXR Overview](docs/xrtak-demo.gif)
 
 **XR-TAK** is a lightweight, high-performance **Virtual Reality (VR)** and **Mixed-Reality (OpenXR / WebXR)** 3D tactical situational awareness system, holographic sand table, and Cursor-on-Target (CoT) HUD for **ATAK-CIV** and desktop command posts.
 
-It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and projects friendly, hostile, neutral, and unknown air/ground tracks onto a 3D topographic terrain model with volumetric **EO/IR gimbal sensor FOV frustums**.
+It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and projects friendly, hostile, neutral, and unknown air/ground tracks onto a real-world 3D topographic & satellite terrain model with volumetric **EO/IR gimbal sensor FOV frustums**.
 
 ---
 
@@ -24,6 +31,10 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 10** | [`xrtak-core::hud`](crates/xrtak-core/src/hud.rs) | 4D AAR Auto-Playback (`Play / Pause / 1x / 2x / 4x`), Replay Threat Dome Evaluation, and Helmet-Mounted First-Person AR Visor HUD Symbology (`GET /api/hud`) | **Complete (`ICD-10`)** |
 | **Phase 11** | [`scripts/run_live_demo.sh`](scripts/run_live_demo.sh) | Turnkey Multi-Domain Live Demo Director exercising ATAK `u-d-f` polygons, SAPIENT AI auto-slew, SAM domes, 3D Link LOS, and Quest 3 laser cues | **Complete** |
 | **Phase 12** | [`static/index.html`](crates/xrtak-gateway/static/index.html) & [`xr_sand_table.gd`](godot-xr/scripts/xr_sand_table.gd) | Diegetic 3D Holographic VR Control Dock, Single-Hand Grip Grab, Two-Handed Pinch-to-Scale & Twist-to-Rotate, 3D Terrain Ray Reticle, **1:1 Valley Walk-In Mode**, and **UAV Cockpit Ride-Along POV** | **Complete** |
+| **Phase 13–14** | [`static/index.html`](crates/xrtak-gateway/static/index.html) | Universal VR Headset Mode (`Stereo 3D SBS`), Free 6DoF Spectate Locomotion (`WASD` + Thumbstick Fly), Upright Camera-Facing 3D Panels, and Spatial Grab Pedestal Ring | **Complete** |
+| **Phase 15** | [`scripts/run_https_tls_proxy.py`](scripts/run_https_tls_proxy.py) & [`index.html`](index.html) | Native HTTPS WebXR TLS Gateway (`:8443`) + GitHub Pages Live Launcher (`https://gokselozgur5.github.io/xrtak/`) unlocking `navigator.xr` in Meta Quest 3 without browser flags | **Complete** |
+| **Phase 16** | [`static/index.html`](crates/xrtak-gateway/static/index.html) | Independent 6DoF Draggable 3D VR Button Dock & 3D Video Wall Screens (`✋ GRAB & MOVE`) + Draggable 2D Desktop HUD Panels (`localStorage` persisted) | **Complete** |
+| **Phase 17** | [`crates/xrtak-gateway`](crates/xrtak-gateway/src/main.rs) | Real-World Satellite (`Esri`) & Topographic (`OpenTopoMap`) Tile Draping, Live **AWS Terrarium SRTM 24-bit DEM** Sync (`POST /api/terrain`), and Persistent Real CoT Pinning (`data/real_pins.json`, GeoJSON & CoT XML export) | **Complete** |
 
 See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
@@ -77,9 +88,10 @@ printf '<event version="2.0" uid="COT-UDP-01" type="a-f-G-U-C" how="h-g-i-g-o"><
    - In the right-hand **LIVE TAK SERVER & QUEST 3 BRIDGE** panel, enter your TAK Server TCP address (e.g., `192.168.1.50:8087`) and click **Connect**, or stream raw CoT XML directly to `udp://<mac-lan-ip>:4242`.
    - Click **Sim Units: OFF (LIVE)** to hide built-in rehearsal tracks and view only real TAK Server / ATAK-CIV tracks, or click **Auto-Center CoT** so the 3km x 3km sand table automatically centers on the first incoming live CoT coordinate.
 2. **Meta Quest 3 WebXR (`immersive-ar` Color Passthrough):**
-   - Option A (USB ADB Reverse — zero Wi-Fi/TLS config): Connect Quest 3 via USB-C, run `adb reverse tcp:8090 tcp:8090`, open `http://localhost:8090` in Meta Quest Browser, and click **QUEST 3: ENTER MIXED REALITY (WebXR)**.
-   - Option B (Wi-Fi LAN): Open `http://<mac-lan-ip>:8090` (enable `chrome://flags/#unsafely-treat-insecure-origin-as-secure` for `http://<mac-lan-ip>:8090` in Quest Browser) and press **QUEST 3: ENTER MIXED REALITY (WebXR)**.
-   - Pull the Quest 3 trigger (`selectstart`) while pointing at any ridge or valley on the holographic table to broadcast a live `b-m-p-c` 3D Spatial Laser Pointer cue back to ATAK (`udp://127.0.0.1:4243`).
+   - **Option A (Native HTTPS on Local LAN — `:8443`):** Run `./scripts/run_https_tls_proxy.py`, open `https://<mac-lan-ip>:8443` in Meta Quest Browser (click *Advanced -> Proceed* once for the self-signed SAN certificate), and click **ENTER AR (QUEST 3 PASSTHROUGH)**.
+   - **Option B (GitHub Pages Public HTTPS):** Open **`https://gokselozgur5.github.io/xrtak/`** directly in Meta Quest Browser and click **ENTER AR (QUEST 3 PASSTHROUGH)**.
+   - **Option C (USB ADB Reverse — zero Wi-Fi/TLS config):** Connect Quest 3 via USB-C, run `adb reverse tcp:8090 tcp:8090`, open `http://localhost:8090` in Meta Quest Browser, and click **QUEST 3: ENTER MIXED REALITY (WebXR)**.
+   - Pull the Quest 3 trigger (`selectstart`) while pointing at any ridge or valley on the holographic table to drop real persistent CoT pins (`📍 REAL PIN`), slew EO/IR gimbals (`🎯 SPI SLEW`), or grab any `✋ GRAB & MOVE` handle to reposition 3D panels in space.
 
 ### 4. Run Unit Tests
 
