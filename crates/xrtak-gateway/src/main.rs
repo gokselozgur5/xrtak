@@ -7,8 +7,8 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider, AarSummary,
-    GeoOrigin, ProceduralReliefModel, RasterDemProvider, TacticalEntity, TacticalWorld,
-    TacticalZone, ThreatDome,
+    GeoOrigin, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport, TacticalEntity,
+    TacticalWorld, TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -516,6 +516,29 @@ async fn handle_http_connection(
                 let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
             }
             if let Ok(entity) = res {
+                let json = serde_json::to_string(&entity)?;
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    json.len()
+                );
+                stream.write_all(header.as_bytes()).await?;
+                stream.write_all(json.as_bytes()).await?;
+                return Ok(());
+            }
+        }
+    }
+
+    if method == "POST" && path == "/api/sapient" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(report) = serde_json::from_str::<SapientDetectionReport>(body) {
+            let res = {
+                let mut guard = world.lock().unwrap();
+                guard.ingest_sapient_detection(&report, now_unix_ms())
+            };
+            if let Ok((xml, entity)) = res {
+                if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
+                    let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+                }
                 let json = serde_json::to_string(&entity)?;
                 let header = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
