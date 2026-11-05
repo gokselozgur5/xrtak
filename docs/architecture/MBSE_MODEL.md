@@ -37,6 +37,11 @@ classDiagram
 | `ICD-03` | `WebXR / OpenXR Client` | `xrtak-core` (`CotCodec`) | `POST /api/spi` $\rightarrow$ `b-m-p-s-p-i` (`<link relation="p-p"/>`) | Operator Point-to-Slew |
 | `ICD-04` | `WebXR / OpenXR Client` | `ViewshedEngine` | `POST /api/viewshed` $\rightarrow$ `ViewshedResult` (`72x28` rays) | Operator LOS Query |
 | `ICD-05` | `xrtak-gateway` | `ATAK CotMapComponent` | Inbound CoT XML $\rightarrow$ `CotDispatcher.dispatch(CotEvent)` | Bidirectional XR $\rightarrow$ ATAK |
+| `ICD-06` | `WebXR / OpenXR Client` | `xrtak-gateway` (`ElevationProvider`) | `GET / POST /api/terrain` $\rightarrow$ Bilinear DEM Grid (`RasterDemProvider`) | Phase 4 Terrain Sync |
+| `ICD-07` | `WebXR / OpenXR Client` | `ThreatZoneEngine` & `ViewshedEngine` | `POST /api/los` $\rightarrow$ `LinkLosResult` & 3D `ThreatDome` / `TacticalZone` | Phase 5 Intervisibility & Threat Domes |
+| `ICD-08` | `WebXR / OpenXR Client` | `AarTimeline` (`xrtak-core::aar`) | `GET /api/aar` $\rightarrow$ Interpolated 4D `AarFrame` (`LIVE` $\leftrightarrow$ `REPLAY`) | Phase 6 4D Time-Machine |
+
+See [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](NEXT_GEN_MASTER_PLAN.md) for the complete EARS requirements (`REQ-DEM`, `REQ-TAC`, `REQ-AAR`, `REQ-COL`), mathematical algorithms, and Phases 4–7 execution roadmap.
 
 ## 3. Bidirectional ATAK $\leftrightarrow$ XR-TAK Sequence Model
 
