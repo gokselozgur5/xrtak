@@ -94,8 +94,10 @@ fn now_unix_ms() -> u64 {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let http_addr: SocketAddr = "0.0.0.0:8090".parse()?;
-    let udp_cot_addr: SocketAddr = "0.0.0.0:4242".parse()?;
+    let http_addr_str = std::env::var("XRTAK_HTTP_ADDR").unwrap_or_else(|_| "0.0.0.0:8090".to_string());
+    let udp_addr_str = std::env::var("XRTAK_UDP_ADDR").unwrap_or_else(|_| "0.0.0.0:4242".to_string());
+    let http_addr: SocketAddr = http_addr_str.parse()?;
+    let udp_cot_addr: SocketAddr = udp_addr_str.parse()?;
 
     let world = Arc::new(Mutex::new(TacticalWorld::new(GeoOrigin::default())));
     let (tx, _rx) = broadcast::channel::<String>(64);
@@ -158,12 +160,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    // 3. HTTP + SSE + CoT/SPI/Viewshed Server on :8090
-    let listener = TcpListener::bind(http_addr).await?;
+    // 3. HTTP + SSE + CoT/SPI/Viewshed Server on :8090 (with automatic fallback to :8091)
+    let listener = match TcpListener::bind(http_addr).await {
+        Ok(l) => l,
+        Err(_) => TcpListener::bind("0.0.0.0:8091").await?,
+    };
+    let bound_port = listener.local_addr()?.port();
     println!("==============================================================");
     println!("  XR-TAK — Rust CoT Core + WebXR 3D Tactical Table");
-    println!("  WebXR / Browser UI : http://localhost:8090");
-    println!("  Raw CoT UDP Input  : udp://0.0.0.0:4242");
+    println!("  WebXR / Browser UI : http://localhost:{bound_port}");
+    println!("  Raw CoT UDP Input  : udp://{udp_cot_addr}");
     println!("==============================================================");
 
     loop {
