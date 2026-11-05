@@ -68,12 +68,87 @@ struct TerrainSwitchRequest {
 
 #[derive(Debug, Deserialize)]
 struct SpawnRequest {
+    uid: Option<String>,
     callsign: String,
     cot_type: String,
     east_m: f64,
     north_m: f64,
     alt_offset_m: Option<f64>,
     remarks: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PinMoveRequest {
+    uid: String,
+    east_m: f64,
+    north_m: f64,
+    alt_offset_m: Option<f64>,
+    callsign: Option<String>,
+    remarks: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PinDeleteRequest {
+    uid: String,
+}
+
+const PINS_STORE_PATH: &str = "data/real_pins.json";
+
+fn is_simulated_uid(uid: &str) -> bool {
+    matches!(
+        uid,
+        "UAV-FALCON-01"
+            | "UAV-FALCON-01.SPI1"
+            | "UAV-VALKYRIE-02"
+            | "GND-SPEAR-ALPHA"
+            | "GND-OBSERVE-BRAVO"
+            | "HST-ARMOR-01"
+            | "HST-EMITTER-02"
+            | "UNK-BOGEY-07"
+    )
+}
+
+fn save_persistent_pins(world: &TacticalWorld) {
+    let _ = std::fs::create_dir_all("data");
+    let mut pins: Vec<&TacticalEntity> = world
+        .entities
+        .values()
+        .filter(|e| !is_simulated_uid(&e.uid) && !e.cot_type.starts_with("b-m-p-c"))
+        .collect();
+    pins.sort_by(|a, b| a.uid.cmp(&b.uid));
+    if let Ok(json) = serde_json::to_string_pretty(&pins) {
+        let _ = std::fs::write(PINS_STORE_PATH, json);
+    }
+}
+
+fn load_persistent_pins(world: &mut TacticalWorld) {
+    if let Ok(raw) = std::fs::read_to_string(PINS_STORE_PATH) {
+        if let Ok(pins) = serde_json::from_str::<Vec<TacticalEntity>>(&raw) {
+            for mut p in pins {
+                let (e, u, n) = world.origin.lla_to_enu(p.lat, p.lon, p.hae_m);
+                p.east_m = e;
+                p.up_m = u.max(world.sample_relief_m(e, n));
+                p.north_m = n;
+                world.entities.insert(p.uid.clone(), p);
+            }
+            world.refresh_threat_domes_and_zones();
+        }
+    }
+}
+
+fn entity_to_cot_xml(ent: &TacticalEntity) -> String {
+    format!(
+        r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="5.0" le="5.0"/><detail><contact callsign="{callsign}"/><track course="{course:.1}" speed="{speed:.1}"/><remarks>{remarks}</remarks></detail></event>"#,
+        uid = ent.uid,
+        cot_type = ent.cot_type,
+        lat = ent.lat,
+        lon = ent.lon,
+        hae = ent.hae_m,
+        callsign = ent.callsign,
+        course = ent.course_deg,
+        speed = ent.speed_mps,
+        remarks = ent.remarks
+    )
 }
 
 #[derive(Debug, Deserialize)]
@@ -106,7 +181,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let http_addr: SocketAddr = http_addr_str.parse()?;
     let udp_cot_addr: SocketAddr = udp_addr_str.parse()?;
 
-    let world = Arc::new(Mutex::new(TacticalWorld::new(GeoOrigin::default())));
+    let world = Arc::new(Mutex::new({
+        let mut w = TacticalWorld::new(GeoOrigin::default());
+        load_persistent_pins(&mut w);
+        w
+    }));
     let (tx, _rx) = broadcast::channel::<String>(64);
 
     // 1. Background UDP CoT XML Listener on :4242
@@ -381,7 +460,11 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         let res = {
             let mut guard = world.lock().unwrap();
-            guard.ingest_cot_xml(body, now_unix_ms())
+            let r = guard.ingest_cot_xml(body, now_unix_ms());
+            if r.is_ok() {
+                save_persistent_pins(&guard);
+            }
+            r
         };
         match res {
             Ok(ent) => {
@@ -489,26 +572,38 @@ async fn handle_http_connection(
     if method == "POST" && path == "/api/spawn" {
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
-            let ent = {
+            let (xml, ent) = {
                 let mut guard = world.lock().unwrap();
                 let ground_h = guard.sample_relief_m(spawn.east_m, spawn.north_m);
                 let up_m = ground_h + spawn.alt_offset_m.unwrap_or(0.0);
                 let (lat, lon, hae) = guard.origin.enu_to_lla(spawn.east_m, up_m, spawn.north_m);
-                let uid = format!(
-                    "XR-{}-{}",
-                    spawn.callsign.replace(' ', "-"),
-                    now_unix_ms() % 10000
-                );
-                let remarks = spawn
-                    .remarks
-                    .unwrap_or_else(|| "Dropped from XR Tactical Sand Table".to_string());
+                let uid = spawn.uid.unwrap_or_else(|| {
+                    format!(
+                        "PIN-{}-{}",
+                        spawn.callsign.replace(' ', "-"),
+                        now_unix_ms() % 100000
+                    )
+                });
+                let remarks = spawn.remarks.unwrap_or_else(|| {
+                    format!(
+                        "Pinned via XR-TAK at {:.5}N {:.5}E ({:.0}m ASL)",
+                        lat, lon, hae
+                    )
+                });
                 let xml = format!(
-                    r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="10" le="10"/><detail><contact callsign="{callsign}"/><track course="0.0" speed="0.0"/><remarks>{remarks}</remarks></detail></event>"#,
+                    r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="5" le="5"/><detail><contact callsign="{callsign}"/><track course="0.0" speed="0.0"/><remarks>{remarks}</remarks></detail></event>"#,
                     cot_type = spawn.cot_type,
                     callsign = spawn.callsign
                 );
-                guard.ingest_cot_xml(&xml, now_unix_ms())
+                let r = guard.ingest_cot_xml(&xml, now_unix_ms());
+                if r.is_ok() {
+                    save_persistent_pins(&guard);
+                }
+                (xml, r)
             };
+            if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
+                let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+            }
             if let Ok(entity) = ent {
                 let json = serde_json::to_string(&entity)?;
                 let header = json_ok_header(json.len());
@@ -517,6 +612,136 @@ async fn handle_http_connection(
                 return Ok(());
             }
         }
+    }
+
+    if method == "POST" && path == "/api/pin/move" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(mv) = serde_json::from_str::<PinMoveRequest>(body) {
+            let updated = {
+                let mut guard = world.lock().unwrap();
+                let ground_h = guard.sample_relief_m(mv.east_m, mv.north_m);
+                let up_m = ground_h + mv.alt_offset_m.unwrap_or(0.0);
+                let (lat, lon, hae) = guard.origin.enu_to_lla(mv.east_m, up_m, mv.north_m);
+                let mut out_ent: Option<(String, TacticalEntity)> = None;
+                if let Some(ent) = guard.entities.get_mut(&mv.uid) {
+                    ent.east_m = mv.east_m;
+                    ent.north_m = mv.north_m;
+                    ent.up_m = up_m;
+                    ent.lat = lat;
+                    ent.lon = lon;
+                    ent.hae_m = hae;
+                    if let Some(cs) = mv.callsign {
+                        if !cs.trim().is_empty() {
+                            ent.callsign = cs;
+                        }
+                    }
+                    if let Some(rmk) = mv.remarks {
+                        ent.remarks = rmk;
+                    }
+                    ent.updated_unix_ms = now_unix_ms();
+                    let cloned = ent.clone();
+                    let xml = entity_to_cot_xml(&cloned);
+                    out_ent = Some((xml, cloned));
+                }
+                if out_ent.is_some() {
+                    guard.refresh_threat_domes_and_zones();
+                    save_persistent_pins(&guard);
+                }
+                out_ent
+            };
+            if let Some((xml, entity)) = updated {
+                if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
+                    let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+                }
+                let json = serde_json::to_string(&entity)?;
+                let header = json_ok_header(json.len());
+                stream.write_all(header.as_bytes()).await?;
+                stream.write_all(json.as_bytes()).await?;
+                return Ok(());
+            }
+        }
+    }
+
+    if method == "POST" && path == "/api/pin/delete" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(del) = serde_json::from_str::<PinDeleteRequest>(body) {
+            let removed = {
+                let mut guard = world.lock().unwrap();
+                let r = guard.entities.remove(&del.uid);
+                guard.refresh_threat_domes_and_zones();
+                save_persistent_pins(&guard);
+                r.is_some()
+            };
+            let json = serde_json::json!({ "deleted": removed, "uid": del.uid }).to_string();
+            let header = json_ok_header(json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(json.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
+    if method == "GET" && path == "/api/export/geojson" {
+        let body = {
+            let guard = world.lock().unwrap();
+            let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
+            ents.sort_by(|a, b| a.uid.cmp(&b.uid));
+            let features: Vec<serde_json::Value> = ents
+                .into_iter()
+                .map(|e| {
+                    serde_json::json!({
+                        "type": "Feature",
+                        "id": e.uid,
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [e.lon, e.lat, e.hae_m]
+                        },
+                        "properties": {
+                            "uid": e.uid,
+                            "callsign": e.callsign,
+                            "cot_type": e.cot_type,
+                            "affiliation": e.affiliation,
+                            "east_m": e.east_m,
+                            "north_m": e.north_m,
+                            "up_m": e.up_m,
+                            "remarks": e.remarks,
+                            "updated_unix_ms": e.updated_unix_ms
+                        }
+                    })
+                })
+                .collect();
+            serde_json::json!({
+                "type": "FeatureCollection",
+                "origin": guard.origin,
+                "features": features
+            })
+            .to_string()
+        };
+        let header = json_ok_header(body.len());
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(body.as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "GET" && path == "/api/export/cot" {
+        let body = {
+            let guard = world.lock().unwrap();
+            let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
+            ents.sort_by(|a, b| a.uid.cmp(&b.uid));
+            let events: Vec<String> = ents.into_iter().map(entity_to_cot_xml).collect();
+            format!(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<events origin_lat=\"{:.6}\" origin_lon=\"{:.6}\">\n  {}\n</events>\n",
+                guard.origin.lat,
+                guard.origin.lon,
+                events.join("\n  ")
+            )
+        };
+        let header = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/xml; charset=utf-8\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(body.as_bytes()).await?;
+        return Ok(());
     }
 
     if method == "POST" && path == "/api/pointer" {
@@ -604,6 +829,7 @@ async fn handle_http_connection(
                     let ext = guard.origin.extent_m;
                     guard.recenter_origin(GeoOrigin { lat, lon, alt_m, extent_m: ext });
                 }
+                save_persistent_pins(&guard);
                 serde_json::json!({
                     "origin": guard.origin,
                     "sim_enabled": guard.sim_enabled,

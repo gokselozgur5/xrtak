@@ -370,6 +370,8 @@
     <div class="vr-command-bar" id="vr-command-bar-win">
       <span class="drag-grip-badge drag-handle-2d" data-drag-target="vr-command-bar-win" title="Drag to move VR Command Bar">✋ MOVE</span>
       <button class="vr-pill-btn primary" id="btn-top-vr-mode">🥽 ENTER VR HEADSET MODE (3D HANDS)</button>
+      <button class="vr-pill-btn" id="btn-top-real-map" style="border-color:var(--green);color:var(--green);">🛰 REAL SATELLITE + SRTM</button>
+      <button class="vr-pill-btn" id="btn-top-real-pin" style="border-color:#fbbf24;color:#fbbf24;">📍 DROP REAL PIN</button>
       <button class="vr-pill-btn" id="btn-top-spectate">🦅 FREE SPECTATE 6DoF</button>
       <button class="vr-pill-btn" id="btn-top-summon">🧲 SUMMON TABLE HERE</button>
       <button class="vr-pill-btn" id="btn-top-reset-panels">🔄 RESET PANELS</button>
@@ -423,19 +425,44 @@
     </div>
 
     <div class="panel-title" style="margin-top:2px;">
-      <span>DROP CoT & SAPIENT AI THREAT</span>
+      <span>REAL-WORLD PINNING & CoT EXPORT</span>
+      <span id="real-pin-status" style="color:var(--green);">PERSISTENT</span>
     </div>
+    <div style="display:flex;gap:5px;">
+      <input id="inp-pin-callsign" placeholder="Pin Callsign (e.g. OP-DELTA-1)" value="PIN-ALPHA-1" style="flex:1;background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
+      <select id="sel-pin-type" style="background:#040b14;color:#00ff88;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:4px 6px;font-family:inherit;font-size:10px;">
+        <option value="a-f-G-U-C">Friendly Unit</option>
+        <option value="a-h-G-E-V">Hostile Contact</option>
+        <option value="a-f-G-U-C-I">Observation Post</option>
+        <option value="a-n-G-I">Waypoint / LZ</option>
+        <option value="a-u-G">Unknown Marker</option>
+      </select>
+    </div>
+    <input id="inp-pin-remarks" placeholder="Pin Remarks / Mission Note (saved to CoT & GeoJSON)" value="Real-World Tactical Pin" style="background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
     <div class="btn-group">
-      <button class="tac-btn" id="btn-drop-friendly">+ Friendly Pin</button>
-      <button class="tac-btn" id="btn-drop-hostile">+ Hostile Target</button>
+      <button class="tac-btn spi-btn" id="btn-drop-custom-pin" style="grid-column:span 2;border-color:var(--green);color:var(--green);font-weight:700;">📍 Arm Real Pin Drop (Click 3D Map / VR Trigger)</button>
+      <button class="tac-btn" id="btn-drop-friendly">+ Quick Friendly</button>
+      <button class="tac-btn" id="btn-drop-hostile">+ Quick Hostile</button>
+      <button class="tac-btn" id="btn-delete-selected-pin" style="border-color:var(--red);color:#ff7788;">🗑 Delete Selected Pin</button>
+      <button class="tac-btn" id="btn-export-geojson">⬇ Export GeoJSON</button>
+      <button class="tac-btn" id="btn-export-cot" style="grid-column:span 2;">⬇ Export Real ATAK CoT XML Bundle</button>
       <button class="tac-btn spi-btn" id="btn-sapient-ai" style="grid-column:span 2;border-color:var(--red);color:#ff7788;">⚡ SAPIENT AI Detection (Auto-Slew)</button>
     </div>
 
     <div class="panel-title" style="margin-top:2px;">
-      <span>DEM TERRAIN ENGINE (REQ-DEM)</span>
+      <span>REAL-WORLD SATELLITE MAP & SRTM DEM</span>
       <span id="terrain-label" style="color:var(--green);">VALLEY</span>
     </div>
+    <div style="display:flex;gap:5px;">
+      <input id="inp-real-coords" placeholder="Lat, Lon (e.g. 39.9200, 32.8500)" value="39.9200, 32.8500" style="flex:1;background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
+      <button class="tac-btn spi-btn" id="btn-load-real-map" style="padding:5px 8px;font-weight:700;">🛰 Load Real Map</button>
+      <button class="tac-btn" id="btn-my-real-gps" title="Use Browser / Device Real GPS Coordinates" style="padding:5px 7px;">📍 GPS</button>
+    </div>
     <div class="btn-group">
+      <button class="tac-btn" id="btn-real-ankara">🛰 Ankara Real SRTM</button>
+      <button class="tac-btn" id="btn-real-istanbul">🛰 Bosphorus SRTM</button>
+      <button class="tac-btn" id="btn-map-sat">Imagery: Satellite</button>
+      <button class="tac-btn" id="btn-map-topo">Imagery: OpenTopo</button>
       <button class="tac-btn active" id="btn-dem-valley">Valley Relief</button>
       <button class="tac-btn" id="btn-dem-alpine">Alpine Ridge</button>
       <button class="tac-btn" id="btn-dem-canyon">Deep Canyon</button>
@@ -666,6 +693,12 @@
 
     let terrainMesh = null;
     let terrainWireMesh = null;
+    let activeSatelliteTexture = null;
+    let currentOriginLat = 39.9200;
+    let currentOriginLon = 32.8500;
+    let currentOriginAltM = 850.0;
+    let currentImageryStyle = 'sat'; // 'sat' | 'topo'
+
     function buildTerrainMesh() {
       if (terrainMesh) {
         tableGroup.remove(terrainMesh);
@@ -693,9 +726,15 @@
 
         const normH = Math.min(Math.max(reliefM / 220.0, 0.0), 1.0);
         const contourMod = Math.abs((reliefM % 25.0) - 12.5) < 1.1 ? 0.28 : 0.0;
-        colors[i * 3] = 0.04 + normH * 0.14 + contourMod * 0.2;
-        colors[i * 3 + 1] = 0.16 + normH * 0.38 + contourMod * 0.65;
-        colors[i * 3 + 2] = 0.26 + normH * 0.48 + contourMod * 0.85;
+        if (activeSatelliteTexture) {
+          colors[i * 3] = 0.88 + contourMod * 0.12;
+          colors[i * 3 + 1] = 0.92 + contourMod * 0.08;
+          colors[i * 3 + 2] = 0.92 + contourMod * 0.08;
+        } else {
+          colors[i * 3] = 0.04 + normH * 0.14 + contourMod * 0.2;
+          colors[i * 3 + 1] = 0.16 + normH * 0.38 + contourMod * 0.65;
+          colors[i * 3 + 2] = 0.26 + normH * 0.48 + contourMod * 0.85;
+        }
       }
 
       geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -703,10 +742,11 @@
 
       const mat = new THREE.MeshStandardMaterial({
         vertexColors: true,
-        roughness: 0.72,
-        metalness: 0.18,
+        map: activeSatelliteTexture || null,
+        roughness: activeSatelliteTexture ? 0.85 : 0.72,
+        metalness: activeSatelliteTexture ? 0.08 : 0.18,
         transparent: true,
-        opacity: 0.92,
+        opacity: 0.96,
       });
       terrainMesh = new THREE.Mesh(geo, mat);
       tableGroup.add(terrainMesh);
@@ -715,7 +755,7 @@
         color: 0x00e5ff,
         wireframe: true,
         transparent: true,
-        opacity: 0.07,
+        opacity: activeSatelliteTexture ? 0.04 : 0.07,
       });
       terrainWireMesh = new THREE.Mesh(geo, wireMat);
       terrainWireMesh.position.y = 0.001;
@@ -1501,6 +1541,10 @@
       document.getElementById('btn-link-los').classList.toggle('active', interactionMode === 'los');
       document.getElementById('btn-drop-friendly').classList.toggle('active', interactionMode === 'friendly');
       document.getElementById('btn-drop-hostile').classList.toggle('active', interactionMode === 'hostile');
+      const customPinBtn = document.getElementById('btn-drop-custom-pin');
+      if (customPinBtn) customPinBtn.classList.toggle('active', interactionMode === 'custom_pin');
+      const topPinBtn = document.getElementById('btn-top-real-pin');
+      if (topPinBtn) topPinBtn.classList.toggle('active', interactionMode === 'custom_pin');
       const lpBtn = document.getElementById('btn-laser-pointer');
       if (lpBtn) lpBtn.classList.toggle('active', interactionMode === 'laser');
       refreshVrDockVisuals();
@@ -1594,8 +1638,8 @@
       { id: 'dock-viewshed', label: '👁 VIEWSHED', row: 0, col: 1 },
       { id: 'dock-los', label: '📡 LINK LOS', row: 0, col: 2 },
       { id: 'dock-spectate', label: '🦅 FREE 6DoF', row: 0, col: 3 },
-      { id: 'dock-sapient', label: '⚡ SAPIENT AI', row: 1, col: 0 },
-      { id: 'dock-dem', label: '⛰ DEM CYCLE', row: 1, col: 1 },
+      { id: 'dock-real-pin', label: '📍 REAL PIN', row: 1, col: 0 },
+      { id: 'dock-real-map', label: '🛰 REAL MAP', row: 1, col: 1 },
       { id: 'dock-walkin', label: '🚶 1:1 WALK-IN', row: 1, col: 2 },
       { id: 'dock-cockpit', label: '🚁 COCKPIT POV', row: 1, col: 3 },
     ];
@@ -1629,6 +1673,8 @@
           (def.id === 'dock-spi' && interactionMode === 'spi') ||
           (def.id === 'dock-viewshed' && interactionMode === 'viewshed') ||
           (def.id === 'dock-los' && interactionMode === 'los') ||
+          (def.id === 'dock-real-pin' && interactionMode === 'custom_pin') ||
+          (def.id === 'dock-real-map' && !!activeSatelliteTexture) ||
           (def.id === 'dock-spectate' && viewMode === 'spectate') ||
           (def.id === 'dock-walkin' && viewMode === 'walkin') ||
           (def.id === 'dock-cockpit' && viewMode === 'cockpit');
@@ -1684,20 +1730,36 @@
         if (res.ok) renderLinkLosChord(await res.json());
         return;
       }
-      if (mode === 'friendly' || mode === 'hostile') {
+      if (mode === 'custom_pin' || mode === 'friendly' || mode === 'hostile') {
+        const isCustom = mode === 'custom_pin';
         const isHostile = mode === 'hostile';
-        await fetch(apiUrl('/api/spawn'), {
+        const csInput = document.getElementById('inp-pin-callsign');
+        const typeInput = document.getElementById('sel-pin-type');
+        const rmkInput = document.getElementById('inp-pin-remarks');
+        const callsign = isCustom && csInput && csInput.value.trim()
+          ? csInput.value.trim()
+          : (isHostile ? `TGT-XR-${Math.floor(Date.now() % 1000)}` : `PIN-XR-${Math.floor(Date.now() % 1000)}`);
+        const cotType = isCustom && typeInput ? typeInput.value : (isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C');
+        const remarks = isCustom && rmkInput && rmkInput.value.trim()
+          ? rmkInput.value.trim()
+          : `Pinned via XR Sand Table at E:${Math.round(eastM)}m N:${Math.round(northM)}m`;
+        const res = await fetch(apiUrl('/api/spawn'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            callsign: isHostile ? 'TGT-XR-HOSTILE' : 'PIN-XR-ALPHA',
-            cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
+            callsign,
+            cot_type: cotType,
             east_m: eastM,
             north_m: northM,
             alt_offset_m: 0.0,
-            remarks: `Pinned via XR Sand Table at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
+            remarks
           })
         });
+        if (res.ok) {
+          const ent = await res.json();
+          selectedUid = ent.uid;
+          document.getElementById('real-pin-status').textContent = `SAVED: ${ent.callsign}`;
+        }
         return;
       }
       await fetch(apiUrl('/api/pointer'), {
@@ -1715,6 +1777,8 @@
       else if (dockId === 'dock-viewshed') document.getElementById('btn-viewshed').click();
       else if (dockId === 'dock-los') document.getElementById('btn-link-los').click();
       else if (dockId === 'dock-spectate') setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
+      else if (dockId === 'dock-real-pin') setInteractionMode('custom_pin');
+      else if (dockId === 'dock-real-map') document.getElementById('btn-load-real-map').click();
       else if (dockId === 'dock-laser') setInteractionMode('laser');
       else if (dockId === 'dock-sapient') document.getElementById('btn-sapient-ai').click();
       else if (dockId === 'dock-dem') {
@@ -1824,6 +1888,7 @@
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let active3dDrag = null; // { group, distance, offsetWorld }
+    let activePinDrag = null; // { uid, node }
     let active2dDrag = null; // { el, startX, startY, origLeft, origTop }
 
     // 2D HUD Panel Dragging (Left Panel, Right Panel, Top VR Command Bar, Bottom 4D AAR Bar)
@@ -1881,6 +1946,25 @@
         active2dDrag.el.style.top = `${nextT}px`;
         return;
       }
+      if (activePinDrag && terrainMesh) {
+        pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        const hits = raycaster.intersectObject(terrainMesh, false);
+        if (hits.length > 0) {
+          const localPt = tableGroup.worldToLocal(hits[0].point.clone());
+          const eastM = localPt.x / M_TO_TABLE;
+          const northM = -localPt.z / M_TO_TABLE;
+          const reliefM = sampleTerrainReliefM(eastM, northM);
+          activePinDrag.lastEastM = eastM;
+          activePinDrag.lastNorthM = northM;
+          if (activePinDrag.node) {
+            activePinDrag.node.root.position.copy(enuToTableVec3(eastM, reliefM, northM));
+          }
+          updateReticleAtLocal(localPt, performance.now());
+        }
+        return;
+      }
       if (active3dDrag) {
         pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
         pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
@@ -1912,8 +1996,39 @@
       }
     });
 
-    window.addEventListener('pointerup', () => {
+    window.addEventListener('pointerup', async () => {
       active2dDrag = null;
+      if (activePinDrag) {
+        const pd = activePinDrag;
+        activePinDrag = null;
+        controls.enabled = true;
+        if (typeof pd.lastEastM === 'number' && typeof pd.lastNorthM === 'number') {
+          if (standaloneSimActive) {
+            const ent = standaloneEntities.find(e => e.uid === pd.uid);
+            if (ent) {
+              ent.east_m = pd.lastEastM;
+              ent.north_m = pd.lastNorthM;
+              ent.up_m = sampleTerrainReliefM(pd.lastEastM, pd.lastNorthM);
+            }
+          } else {
+            try {
+              const res = await fetch(apiUrl('/api/pin/move'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  uid: pd.uid,
+                  east_m: pd.lastEastM,
+                  north_m: pd.lastNorthM
+                })
+              });
+              if (res.ok) {
+                const updated = await res.json();
+                document.getElementById('real-pin-status').textContent = `MOVED: ${updated.callsign}`;
+              }
+            } catch (_) {}
+          }
+        }
+      }
       if (active3dDrag) {
         active3dDrag = null;
         controls.enabled = true;
@@ -1971,13 +2086,23 @@
         }
       }
 
-      // 3. Check 3D unit markers and floating 3D Video Wall screens
+      // 3. Check 3D unit markers and floating 3D Video Wall screens (allow dragging any real pin/unit on terrain!)
       const meshes = [];
       for (const n of entityNodes.values()) meshes.push(n.iconMesh);
       for (const p of videoWallPanels) meshes.push(p.screenMesh);
       const unitHits = raycaster.intersectObjects(meshes, false);
       if (unitHits.length > 0 && unitHits[0].object.userData.uid) {
-        selectedUid = unitHits[0].object.userData.uid;
+        const hitUid = unitHits[0].object.userData.uid;
+        selectedUid = hitUid;
+        if (!hitUid.startsWith('UAV-')) {
+          activePinDrag = {
+            uid: hitUid,
+            node: entityNodes.get(hitUid),
+            lastEastM: null,
+            lastNorthM: null
+          };
+          controls.enabled = false;
+        }
       }
     });
 
@@ -2526,25 +2651,38 @@
         renderLinkLosChord(computeClientLos([sel.east_m, sel.up_m + 3.0, sel.north_m], [eastM, gnd + 2.5, northM]));
         return;
       }
-      if (mode === 'friendly' || mode === 'hostile') {
+      if (mode === 'custom_pin' || mode === 'friendly' || mode === 'hostile') {
+        const isCustom = mode === 'custom_pin';
         const isHostile = mode === 'hostile';
+        const csInput = document.getElementById('inp-pin-callsign');
+        const typeInput = document.getElementById('sel-pin-type');
+        const rmkInput = document.getElementById('inp-pin-remarks');
         const uid = `XR-PIN-${standaloneSpawnSeq++}`;
+        const callsign = isCustom && csInput && csInput.value.trim()
+          ? csInput.value.trim()
+          : (isHostile ? `TGT-XR-${standaloneSpawnSeq}` : `PIN-XR-${standaloneSpawnSeq}`);
+        const cotType = isCustom && typeInput ? typeInput.value : (isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C');
+        const aff = cotType.startsWith('a-h') ? 'Hostile' : (cotType.startsWith('a-n') ? 'Neutral' : (cotType.startsWith('a-u') ? 'Unknown' : 'Friendly'));
+        const remarks = isCustom && rmkInput && rmkInput.value.trim()
+          ? rmkInput.value.trim()
+          : `Pinned via Quest 3 WebXR at E:${Math.round(eastM)}m N:${Math.round(northM)}m`;
         standaloneEntities.push({
           uid,
-          callsign: isHostile ? `TGT-XR-${standaloneSpawnSeq}` : `PIN-XR-${standaloneSpawnSeq}`,
-          cot_type: isHostile ? 'a-h-G-E-V' : 'a-f-G-U-C',
-          affiliation: isHostile ? 'Hostile' : 'Friendly',
-          lat_deg: 39.925,
-          lon_deg: 32.836,
-          hae_m: 850.0 + gnd,
+          callsign,
+          cot_type: cotType,
+          affiliation: aff,
+          lat: currentOriginLat + northM / 111132.0,
+          lon: currentOriginLon + eastM / (111412.0 * Math.cos(currentOriginLat * Math.PI / 180)),
+          hae_m: currentOriginAltM + gnd,
           east_m: eastM,
           north_m: northM,
           up_m: gnd,
           speed_mps: 0.0,
           course_deg: 0.0,
-          remarks: `Pinned via Quest 3 WebXR at E:${Math.round(eastM)}m N:${Math.round(northM)}m`
+          remarks
         });
         selectedUid = uid;
+        document.getElementById('real-pin-status').textContent = `SAVED: ${callsign}`;
         return;
       }
       standaloneEntities = standaloneEntities.filter(e => e.uid !== 'XR-LASER-PTR');
@@ -2566,6 +2704,7 @@
     }
 
     async function switchTerrainPreset(presetName) {
+      activeSatelliteTexture = null;
       if (standaloneSimActive) {
         activeDemGrid = computeClientPresetTerrain(presetName);
       } else {
@@ -2587,6 +2726,293 @@
     document.getElementById('btn-dem-alpine').onclick = () => switchTerrainPreset('alpine');
     document.getElementById('btn-dem-canyon').onclick = () => switchTerrainPreset('canyon');
     document.getElementById('btn-dem-urban').onclick = () => switchTerrainPreset('urban_bowl');
+
+    // --- Phase 17: Real-World Satellite/Topo Mapping + AWS Terrarium SRTM Elevation + Persistent Pinning ---
+    function lonToTileXFloat(lon, z) {
+      return ((lon + 180.0) / 360.0) * Math.pow(2, z);
+    }
+    function latToTileYFloat(lat, z) {
+      const rad = lat * Math.PI / 180.0;
+      return ((1.0 - Math.log(Math.tan(rad) + 1.0 / Math.cos(rad)) / Math.PI) / 2.0) * Math.pow(2, z);
+    }
+    function loadCrossOriginImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+        img.src = url;
+      });
+    }
+
+    async function loadRealWorldSector(lat, lon, labelHint = 'REAL-SRTM') {
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      currentOriginLat = lat;
+      currentOriginLon = lon;
+      document.getElementById('inp-real-coords').value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      document.getElementById('terrain-label').textContent = 'LOADING REAL SRTM...';
+      document.getElementById('hud-origin').textContent =
+        `REAL SECTOR: ${lat.toFixed(4)}N ${lon.toFixed(4)}E (3.0x3.0 km)`;
+
+      const z = 13;
+      const cxFloat = lonToTileXFloat(lon, z);
+      const cyFloat = latToTileYFloat(lat, z);
+      const txCenter = Math.floor(cxFloat);
+      const tyCenter = Math.floor(cyFloat);
+
+      // 1. Fetch 3x3 Real-World AWS Terrarium Elevation Tiles (SRTM/ETOPO1) & 3x3 Satellite/Topo Imagery Tiles
+      const demCanvas = document.createElement('canvas');
+      demCanvas.width = 768;
+      demCanvas.height = 768;
+      const demCtx = demCanvas.getContext('2d');
+
+      const imgCanvas = document.createElement('canvas');
+      imgCanvas.width = 768;
+      imgCanvas.height = 768;
+      const imgCtx = imgCanvas.getContext('2d');
+
+      const tileJobs = [];
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const tx = txCenter + dx;
+          const ty = tyCenter + dy;
+          const px = (dx + 1) * 256;
+          const py = (dy + 1) * 256;
+          const demUrl = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${tx}/${ty}.png`;
+          const satUrl = currentImageryStyle === 'topo'
+            ? `https://tile.opentopomap.org/${z}/${tx}/${ty}.png`
+            : `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${tx}`;
+
+          tileJobs.push(
+            loadCrossOriginImage(demUrl)
+              .then((im) => demCtx.drawImage(im, px, py, 256, 256))
+              .catch(() => {})
+          );
+          tileJobs.push(
+            loadCrossOriginImage(satUrl)
+              .then((im) => imgCtx.drawImage(im, px, py, 256, 256))
+              .catch(() => {})
+          );
+        }
+      }
+      await Promise.all(tileJobs);
+
+      // 2. Sample 65x65 meter grid across [-1500m, +1500m] around (lat, lon)
+      const resGrid = 65;
+      const extM = WORLD_EXTENT_M;
+      const latRad = lat * Math.PI / 180.0;
+      const mPerDegLat = 111132.92 - 559.82 * Math.cos(2.0 * latRad);
+      const mPerDegLon = 111412.84 * Math.cos(latRad);
+
+      const demData = demCtx.getImageData(0, 0, 768, 768).data;
+      const rawElev = new Array(resGrid * resGrid);
+      let minElev = Infinity;
+
+      for (let r = 0; r < resGrid; r++) {
+        const v = r / (resGrid - 1);
+        const northM = -extM + v * (2.0 * extM);
+        const sLat = lat + northM / mPerDegLat;
+        const pyFloat = (latToTileYFloat(sLat, z) - (tyCenter - 1)) * 256.0;
+        const py = Math.max(0, Math.min(767, Math.round(pyFloat)));
+        for (let c = 0; c < resGrid; c++) {
+          const u = c / (resGrid - 1);
+          const eastM = -extM + u * (2.0 * extM);
+          const sLon = lon + eastM / mPerDegLon;
+          const pxFloat = (lonToTileXFloat(sLon, z) - (txCenter - 1)) * 256.0;
+          const px = Math.max(0, Math.min(767, Math.round(pxFloat)));
+          const idx = (py * 768 + px) * 4;
+          const R = demData[idx];
+          const G = demData[idx + 1];
+          const B = demData[idx + 2];
+          const A = demData[idx + 3];
+          let elevM = 850.0;
+          if (A > 0) {
+            elevM = (R * 256.0 + G + B / 256.0) - 32768.0;
+          }
+          if (Number.isFinite(elevM) && elevM > -500 && elevM < 9000) {
+            if (elevM < minElev) minElev = elevM;
+            rawElev[r * resGrid + c] = elevM;
+          } else {
+            rawElev[r * resGrid + c] = 0.0;
+          }
+        }
+      }
+      if (!Number.isFinite(minElev)) minElev = 0.0;
+      currentOriginAltM = Math.round(minElev);
+      const heightsM = rawElev.map((e) => Math.round(Math.max(0.0, e - minElev) * 100.0) / 100.0);
+
+      // 3. Crop exact 3.0x3.0 km satellite/topo texture for the 3D terrain mesh
+      const minLon = lon - extM / mPerDegLon;
+      const maxLon = lon + extM / mPerDegLon;
+      const minLat = lat - extM / mPerDegLat;
+      const maxLat = lat + extM / mPerDegLat;
+      const sx0 = (lonToTileXFloat(minLon, z) - (txCenter - 1)) * 256.0;
+      const sx1 = (lonToTileXFloat(maxLon, z) - (txCenter - 1)) * 256.0;
+      const sy0 = (latToTileYFloat(maxLat, z) - (tyCenter - 1)) * 256.0;
+      const sy1 = (latToTileYFloat(minLat, z) - (tyCenter - 1)) * 256.0;
+
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = 1024;
+      cropCanvas.height = 1024;
+      const cropCtx = cropCanvas.getContext('2d');
+      cropCtx.drawImage(
+        imgCanvas,
+        Math.max(0, sx0),
+        Math.max(0, sy0),
+        Math.max(16, sx1 - sx0),
+        Math.max(16, sy1 - sy0),
+        0,
+        0,
+        1024,
+        1024
+      );
+      const tex = new THREE.CanvasTexture(cropCanvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      activeSatelliteTexture = tex;
+
+      const gridName = `${labelHint}-${lat.toFixed(2)}N-${lon.toFixed(2)}E`;
+      activeDemGrid = {
+        name: gridName,
+        resolution: resGrid,
+        extent_m: extM,
+        heights_m: heightsM
+      };
+      buildTerrainMesh();
+      document.getElementById('terrain-label').textContent = `${gridName} (${currentOriginAltM}m ASL)`;
+
+      // 4. Push Real Origin & Real SRTM DEM Grid into Rust CoT Core so server-side Viewshed/LOS/Pins use real elevation!
+      if (!standaloneSimActive) {
+        try {
+          await fetch(apiUrl('/api/tak-config'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              origin_lat: lat,
+              origin_lon: lon,
+              origin_alt_m: currentOriginAltM
+            })
+          });
+          await fetch(apiUrl('/api/terrain'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              preset: gridName,
+              width: resGrid,
+              height: resGrid,
+              extent_m: extM,
+              heights_m: heightsM
+            })
+          });
+        } catch (err) {
+          console.warn('Gateway sync for real terrain skipped:', err);
+        }
+      }
+    }
+
+    document.getElementById('btn-drop-custom-pin').onclick = () => setInteractionMode('custom_pin');
+    document.getElementById('btn-top-real-pin').onclick = () => setInteractionMode('custom_pin');
+
+    document.getElementById('btn-delete-selected-pin').onclick = async () => {
+      if (!selectedUid) return;
+      if (standaloneSimActive) {
+        standaloneEntities = standaloneEntities.filter(e => e.uid !== selectedUid);
+        removeEntityNode(selectedUid);
+        document.getElementById('real-pin-status').textContent = `DELETED: ${selectedUid}`;
+        return;
+      }
+      const res = await fetch(apiUrl('/api/pin/delete'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: selectedUid })
+      });
+      if (res.ok) {
+        removeEntityNode(selectedUid);
+        document.getElementById('real-pin-status').textContent = `DELETED: ${selectedUid}`;
+      }
+    };
+
+    document.getElementById('btn-export-geojson').onclick = async () => {
+      let dataStr = '';
+      if (standaloneSimActive) {
+        const fc = {
+          type: 'FeatureCollection',
+          origin: { lat: currentOriginLat, lon: currentOriginLon, alt_m: currentOriginAltM },
+          features: latestEntities.map(e => ({
+            type: 'Feature',
+            id: e.uid,
+            geometry: { type: 'Point', coordinates: [e.lon || currentOriginLon, e.lat || currentOriginLat, e.hae_m || currentOriginAltM] },
+            properties: e
+          }))
+        };
+        dataStr = JSON.stringify(fc, null, 2);
+      } else {
+        const res = await fetch(apiUrl('/api/export/geojson'));
+        dataStr = JSON.stringify(await res.json(), null, 2);
+      }
+      const blob = new Blob([dataStr], { type: 'application/geo+json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `xrtak_pins_${Date.now()}.geojson`;
+      a.click();
+      document.getElementById('real-pin-status').textContent = 'GEOJSON EXPORTED';
+    };
+
+    document.getElementById('btn-export-cot').onclick = async () => {
+      let xmlStr = '';
+      if (standaloneSimActive) {
+        const items = latestEntities.map(e =>
+          `<event version="2.0" uid="${e.uid}" type="${e.cot_type}" how="h-g-i-g-o"><point lat="${(e.lat || currentOriginLat).toFixed(6)}" lon="${(e.lon || currentOriginLon).toFixed(6)}" hae="${(e.hae_m || currentOriginAltM).toFixed(1)}" ce="5" le="5"/><detail><contact callsign="${e.callsign}"/><remarks>${e.remarks || ''}</remarks></detail></event>`
+        ).join('\n  ');
+        xmlStr = `<?xml version="1.0" encoding="UTF-8"?>\n<events>\n  ${items}\n</events>\n`;
+      } else {
+        const res = await fetch(apiUrl('/api/export/cot'));
+        xmlStr = await res.text();
+      }
+      const blob = new Blob([xmlStr], { type: 'application/xml' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `xrtak_cot_${Date.now()}.xml`;
+      a.click();
+      document.getElementById('real-pin-status').textContent = 'CoT XML EXPORTED';
+    };
+
+    document.getElementById('btn-load-real-map').onclick = () => {
+      const raw = document.getElementById('inp-real-coords').value.trim();
+      const parts = raw.split(/[,\s]+/).map(Number);
+      if (parts.length >= 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
+        loadRealWorldSector(parts[0], parts[1], 'REAL-SRTM');
+      }
+    };
+    document.getElementById('btn-top-real-map').onclick = () => {
+      document.getElementById('btn-load-real-map').click();
+    };
+    document.getElementById('btn-real-ankara').onclick = () => {
+      loadRealWorldSector(39.9200, 32.8500, 'ANKARA-SRTM');
+    };
+    document.getElementById('btn-real-istanbul').onclick = () => {
+      loadRealWorldSector(41.0422, 29.0083, 'BOSPHORUS-SRTM');
+    };
+    document.getElementById('btn-map-sat').onclick = () => {
+      currentImageryStyle = 'sat';
+      loadRealWorldSector(currentOriginLat, currentOriginLon, 'SAT-SRTM');
+    };
+    document.getElementById('btn-map-topo').onclick = () => {
+      currentImageryStyle = 'topo';
+      loadRealWorldSector(currentOriginLat, currentOriginLon, 'TOPO-SRTM');
+    };
+    document.getElementById('btn-my-real-gps').onclick = () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          loadRealWorldSector(pos.coords.latitude, pos.coords.longitude, 'MY-GPS-SRTM');
+        },
+        () => {
+          loadRealWorldSector(currentOriginLat, currentOriginLon, 'REAL-SRTM');
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    };
 
     function renderVisorHudOverlay(headingDeg) {
       if (viewMode !== 'visor' && viewMode !== 'walkin' && viewMode !== 'cockpit' && !vrHeadsetActive) return;
@@ -2943,6 +3369,10 @@
       }
     }
     connectTelemetryStream();
+    // Auto-load real satellite imagery + real AWS Terrarium SRTM elevation on startup
+    setTimeout(() => {
+      loadRealWorldSector(currentOriginLat, currentOriginLon, 'ANKARA-SRTM');
+    }, 350);
 
     const dirVec = new THREE.Vector3();
     let lastFingerPokeMs = 0;
