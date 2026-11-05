@@ -288,6 +288,7 @@
 </head>
 <body>
   <div id="canvas-container"></div>
+  <canvas id="visor-hud-canvas" style="position:absolute;inset:0;z-index:6;pointer-events:none;display:none;"></canvas>
 
   <div class="top-hud">
     <div class="compass-tape">
@@ -414,6 +415,8 @@
 
   <div class="aar-bar">
     <span class="aar-badge" id="aar-mode-badge">LIVE 20Hz</span>
+    <button class="tac-btn" id="btn-aar-play" style="padding:4px 9px;">▶ Play</button>
+    <button class="tac-btn" id="btn-aar-speed" style="padding:4px 8px;">1x</button>
     <button class="tac-btn" id="btn-aar-live" style="padding:4px 9px;">Return LIVE</button>
     <input type="range" class="aar-slider" id="aar-slider" min="0" max="60" step="0.2" value="60" />
     <span id="aar-time-label" style="min-width:118px;text-align:right;color:var(--cyan);">T+000.0s (0 f)</span>
@@ -1495,10 +1498,17 @@
       setInteractionMode(null);
     };
 
+    const visorCanvas = document.getElementById('visor-hud-canvas');
+    const vctx = visorCanvas.getContext('2d');
+    visorCanvas.width = window.innerWidth;
+    visorCanvas.height = window.innerHeight;
+
     document.getElementById('btn-view-table').onclick = () => {
       viewMode = 'table';
+      visorCanvas.style.display = 'none';
       document.getElementById('btn-view-table').classList.add('active');
       document.getElementById('btn-view-chase').classList.remove('active');
+      document.getElementById('btn-view-visor').classList.remove('active');
       document.getElementById('hud-mode-label').textContent = 'MODE: HOLOGRAPHIC SAND TABLE';
       camera.position.set(0.0, 0.92, 1.25);
       controls.target.set(0, 0.08, 0);
@@ -1506,8 +1516,10 @@
 
     document.getElementById('btn-view-chase').onclick = () => {
       viewMode = 'chase';
+      visorCanvas.style.display = 'none';
       document.getElementById('btn-view-chase').classList.add('active');
       document.getElementById('btn-view-table').classList.remove('active');
+      document.getElementById('btn-view-visor').classList.remove('active');
       document.getElementById('hud-mode-label').textContent = 'MODE: UAV TACTICAL CHASE CAM';
     };
 
@@ -1648,6 +1660,7 @@
 
     document.getElementById('btn-view-visor').onclick = () => {
       viewMode = 'visor';
+      visorCanvas.style.display = 'block';
       document.getElementById('btn-view-table').classList.remove('active');
       document.getElementById('btn-view-chase').classList.remove('active');
       document.getElementById('btn-view-visor').classList.add('active');
@@ -1655,6 +1668,71 @@
       camera.position.set(0.0, 0.24, 0.05);
       controls.target.set(0.0, 0.22, -0.8);
     };
+
+    function renderVisorHudOverlay(headingDeg) {
+      if (viewMode !== 'visor') return;
+      const w = visorCanvas.width;
+      const h = visorCanvas.height;
+      vctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+
+      // Boresight cross & pitch ladder
+      vctx.strokeStyle = 'rgba(0, 255, 136, 0.72)';
+      vctx.lineWidth = 1.5;
+      vctx.beginPath();
+      vctx.arc(cx, cy, 26, 0, Math.PI * 2);
+      vctx.moveTo(cx - 42, cy); vctx.lineTo(cx - 14, cy);
+      vctx.moveTo(cx + 14, cy); vctx.lineTo(cx + 42, cy);
+      vctx.moveTo(cx, cy - 42); vctx.lineTo(cx, cy - 14);
+      vctx.stroke();
+
+      vctx.font = 'bold 11px "SF Mono", Menlo, monospace';
+      vctx.fillStyle = '#00ff88';
+      for (const pitch of [-15, -5, 5, 15]) {
+        const py = cy - pitch * 8;
+        vctx.beginPath();
+        vctx.moveTo(cx - 95, py); vctx.lineTo(cx - 55, py);
+        vctx.moveTo(cx + 55, py); vctx.lineTo(cx + 95, py);
+        vctx.stroke();
+        vctx.fillText(`${pitch > 0 ? '+' : ''}${pitch}°`, cx + 102, py + 4);
+      }
+
+      // Project 3D tracks into Helmet-Mounted AR Target Diamonds with Slant Range & Bearing
+      const obsEnt = latestEntities.find(e => e.uid === 'GND-SPEAR-ALPHA') || { east_m: 0, up_m: 80, north_m: 0 };
+      const projVec = new THREE.Vector3();
+      for (const ent of latestEntities) {
+        if (ent.cot_type && ent.cot_type.startsWith('b-m-p-s-p-i')) continue;
+        const node = entityNodes.get(ent.uid);
+        if (!node) continue;
+        projVec.copy(node.root.position).project(camera);
+        if (projVec.z > 1.0) continue;
+        const sx = (projVec.x * 0.5 + 0.5) * w;
+        const sy = (-projVec.y * 0.5 + 0.5) * h;
+        if (sx < 320 || sx > w - 340 || sy < 70 || sy > h - 80) continue;
+
+        const dx = ent.east_m - obsEnt.east_m;
+        const dy = ent.up_m - obsEnt.up_m;
+        const dz = ent.north_m - obsEnt.north_m;
+        const rng = Math.round(Math.sqrt(dx * dx + dy * dy + dz * dz));
+        const brg = (Math.round(Math.atan2(dx, dz) * 180 / Math.PI) + 360) % 360;
+
+        const color = affiliationCss(ent.affiliation, ent.cot_type);
+        vctx.strokeStyle = color;
+        vctx.fillStyle = color;
+        vctx.lineWidth = 2;
+        vctx.beginPath();
+        vctx.moveTo(sx, sy - 16);
+        vctx.lineTo(sx + 16, sy);
+        vctx.lineTo(sx, sy + 16);
+        vctx.lineTo(sx - 16, sy);
+        vctx.closePath();
+        vctx.stroke();
+
+        vctx.fillText(`${ent.callsign} [${rng}m | ${brg.toString().padStart(3, '0')}°]`, sx + 20, sy + 4);
+      }
+    }
 
     document.getElementById('btn-enter-xr').onclick = async () => {
       if (!navigator.xr) {
@@ -1676,29 +1754,66 @@
 
     function connectTelemetryStream() {
       let aarReplayActive = false;
+      let aarPlaying = false;
+      let aarSpeed = 1.0;
       const aarSlider = document.getElementById('aar-slider');
       const aarBadge = document.getElementById('aar-mode-badge');
       const aarLabel = document.getElementById('aar-time-label');
+      const playBtn = document.getElementById('btn-aar-play');
+      const speedBtn = document.getElementById('btn-aar-speed');
+
+      async function loadAarFrameAt(t) {
+        const res = await fetch(`/api/aar?t=${t.toFixed(2)}`);
+        const data = await res.json();
+        if (data.frame) {
+          aarLabel.textContent = `REPLAY T+${data.frame.sim_time_sec.toFixed(1)}s (${aarSpeed}x)`;
+          updateHudAndRoster({
+            entities: data.frame.entities,
+            threat_domes: data.threat_domes || [],
+            tactical_zones: data.tactical_zones || []
+          });
+        }
+      }
 
       aarSlider.addEventListener('input', async () => {
         aarReplayActive = true;
         aarBadge.textContent = '4D REPLAY';
         aarBadge.classList.add('replay');
-        const t = parseFloat(aarSlider.value);
-        const res = await fetch(`/api/aar?t=${t.toFixed(2)}`);
-        const data = await res.json();
-        if (data.frame) {
-          aarLabel.textContent = `REPLAY T+${data.frame.sim_time_sec.toFixed(1)}s`;
-          updateHudAndRoster({
-            entities: data.frame.entities,
-            threat_domes: [],
-            tactical_zones: []
-          });
-        }
+        await loadAarFrameAt(parseFloat(aarSlider.value));
       });
+
+      playBtn.onclick = () => {
+        aarPlaying = !aarPlaying;
+        if (aarPlaying && !aarReplayActive) {
+          aarReplayActive = true;
+          aarBadge.textContent = '4D REPLAY';
+          aarBadge.classList.add('replay');
+          aarSlider.value = aarSlider.min;
+        }
+        playBtn.textContent = aarPlaying ? '⏸ Pause' : '▶ Play';
+        playBtn.classList.toggle('active', aarPlaying);
+      };
+
+      speedBtn.onclick = () => {
+        aarSpeed = aarSpeed === 1.0 ? 2.0 : (aarSpeed === 2.0 ? 4.0 : 1.0);
+        speedBtn.textContent = `${aarSpeed}x`;
+      };
+
+      setInterval(async () => {
+        if (!aarPlaying || !aarReplayActive) return;
+        const maxT = parseFloat(aarSlider.max) || 60.0;
+        const minT = parseFloat(aarSlider.min) || 0.0;
+        let nextT = parseFloat(aarSlider.value) + 0.1 * aarSpeed;
+        if (nextT > maxT) nextT = minT;
+        aarSlider.value = nextT;
+        await loadAarFrameAt(nextT);
+      }, 100);
 
       document.getElementById('btn-aar-live').onclick = () => {
         aarReplayActive = false;
+        aarPlaying = false;
+        playBtn.textContent = '▶ Play';
+        playBtn.classList.remove('active');
         aarBadge.textContent = 'LIVE 20Hz';
         aarBadge.classList.remove('replay');
       };
@@ -1750,6 +1865,7 @@
 
       renderGimbalPip(timeMs);
       updateSpatialVideoWall(timeMs);
+      renderVisorHudOverlay(headingDeg);
       renderer.render(scene, camera);
     });
 
@@ -1757,6 +1873,8 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      visorCanvas.width = window.innerWidth;
+      visorCanvas.height = window.innerHeight;
     });
   </script>
 </body>
