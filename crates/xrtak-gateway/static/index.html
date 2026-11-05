@@ -286,6 +286,8 @@
       <button class="tac-btn" id="btn-spi-clear">Clear SPI Lock</button>
       <button class="tac-btn spi-btn" id="btn-viewshed">3D Viewshed (LOS)</button>
       <button class="tac-btn" id="btn-viewshed-clear">Clear Viewshed</button>
+      <button class="tac-btn active" id="btn-toggle-domes">Threat Domes: ON</button>
+      <button class="tac-btn active" id="btn-toggle-zones">3D Zones/ROZ: ON</button>
     </div>
 
     <div class="panel-title" style="margin-top:2px;">
@@ -767,6 +769,98 @@
     const viewshedGroup = new THREE.Group();
     tableGroup.add(viewshedGroup);
 
+    // --- Phase 5: 3D SAM/Radar Threat Domes & Polygonal Geofence Zones (`REQ-TAC`) ---
+    const threatDomesGroup = new THREE.Group();
+    tableGroup.add(threatDomesGroup);
+    const tacticalZonesGroup = new THREE.Group();
+    tableGroup.add(tacticalZonesGroup);
+    let showThreatDomes = true;
+    let showTacticalZones = true;
+
+    function updateThreatDomesAndZones(domes, zones, entitiesMap) {
+      threatDomesGroup.visible = showThreatDomes;
+      tacticalZonesGroup.visible = showTacticalZones;
+
+      while (threatDomesGroup.children.length > 0) {
+        const ch = threatDomesGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      if (showThreatDomes && Array.isArray(domes)) {
+        for (const d of domes) {
+          const rUnits = d.radius_m * M_TO_TABLE;
+          const domeGeo = new THREE.SphereGeometry(rUnits, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+          const isAlert = d.engaged_uids && d.engaged_uids.length > 0;
+          const domeMat = new THREE.MeshBasicMaterial({
+            color: isAlert ? 0xff2244 : 0xff5533,
+            transparent: true,
+            opacity: isAlert ? 0.16 : 0.09,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          });
+          const domeMesh = new THREE.Mesh(domeGeo, domeMat);
+          const centerPos = enuToTableVec3(d.east_m, d.up_m, d.north_m);
+          domeMesh.position.copy(centerPos);
+          threatDomesGroup.add(domeMesh);
+
+          const wireGeo = new THREE.EdgesGeometry(domeGeo);
+          const wireMat = new THREE.LineBasicMaterial({
+            color: isAlert ? 0xff3355 : 0xff8844,
+            transparent: true,
+            opacity: 0.42,
+          });
+          const wireLines = new THREE.LineSegments(wireGeo, wireMat);
+          wireLines.position.copy(centerPos);
+          threatDomesGroup.add(wireLines);
+
+          // Draw live 3D radar lock beams (`compute_link_los` verified) to engaged tracks
+          if (d.engaged_uids) {
+            for (const targetUid of d.engaged_uids) {
+              const tgt = entitiesMap.get(targetUid);
+              if (tgt) {
+                const tgtPos = enuToTableVec3(tgt.east_m, tgt.up_m, tgt.north_m);
+                const beamGeo = new THREE.BufferGeometry().setFromPoints([centerPos, tgtPos]);
+                const beamMat = new THREE.LineBasicMaterial({ color: 0xff2244, opacity: 0.92, transparent: true });
+                threatDomesGroup.add(new THREE.Line(beamGeo, beamMat));
+              }
+            }
+          }
+        }
+      }
+
+      while (tacticalZonesGroup.children.length > 0) {
+        const ch = tacticalZonesGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      if (showTacticalZones && Array.isArray(zones)) {
+        for (const z of zones) {
+          if (!z.vertices_en || z.vertices_en.length < 3) continue;
+          const isHostile = z.affiliation === 'hostile';
+          const hasInside = z.inside_uids && z.inside_uids.length > 0;
+          const colorHex = isHostile ? (hasInside ? 0xff2244 : 0xff6633) : 0x00ff88;
+
+          const floorPts = [];
+          const ceilPts = [];
+          for (const [eM, nM] of z.vertices_en) {
+            const gnd = sampleTerrainReliefM(eM, nM);
+            floorPts.push(enuToTableVec3(eM, Math.max(gnd, z.floor_m), nM));
+            ceilPts.push(enuToTableVec3(eM, z.ceiling_m, nM));
+          }
+          floorPts.push(floorPts[0].clone());
+          ceilPts.push(ceilPts[0].clone());
+
+          const loopMat = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.78 });
+          tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(floorPts), loopMat));
+          tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ceilPts), loopMat));
+
+          // Vertical corner pillars of the 3D ROZ prism
+          for (let i = 0; i < z.vertices_en.length; i++) {
+            const pillarGeo = new THREE.BufferGeometry().setFromPoints([floorPts[i], ceilPts[i]]);
+            tacticalZonesGroup.add(new THREE.Line(pillarGeo, loopMat));
+          }
+        }
+      }
+    }
+
     function renderViewshedCloud(vsData) {
       while (viewshedGroup.children.length > 0) {
         const ch = viewshedGroup.children.pop();
@@ -1028,6 +1122,7 @@
 
       const mapById = new Map();
       for (const e of snap.entities) mapById.set(e.uid, e);
+      updateThreatDomesAndZones(snap.threat_domes || [], snap.tactical_zones || [], mapById);
 
       // Remove stale nodes
       for (const uid of Array.from(entityNodes.keys())) {
@@ -1276,6 +1371,20 @@
       showVideoWall = !showVideoWall;
       e.target.textContent = `Video Wall: ${showVideoWall ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', showVideoWall);
+    };
+
+    document.getElementById('btn-toggle-domes').onclick = (e) => {
+      showThreatDomes = !showThreatDomes;
+      e.target.textContent = `Threat Domes: ${showThreatDomes ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showThreatDomes);
+      threatDomesGroup.visible = showThreatDomes;
+    };
+
+    document.getElementById('btn-toggle-zones').onclick = (e) => {
+      showTacticalZones = !showTacticalZones;
+      e.target.textContent = `3D Zones/ROZ: ${showTacticalZones ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', showTacticalZones);
+      tacticalZonesGroup.visible = showTacticalZones;
     };
 
     document.getElementById('btn-drop-friendly').onclick = () => setInteractionMode('friendly');
