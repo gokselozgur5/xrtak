@@ -319,6 +319,8 @@
       <button class="tac-btn" id="btn-spi-clear">Clear SPI Lock</button>
       <button class="tac-btn spi-btn" id="btn-viewshed">3D Viewshed (LOS)</button>
       <button class="tac-btn" id="btn-viewshed-clear">Clear Viewshed</button>
+      <button class="tac-btn spi-btn" id="btn-link-los">3D Link LOS Chord</button>
+      <button class="tac-btn" id="btn-los-clear">Clear Link LOS</button>
       <button class="tac-btn active" id="btn-toggle-domes">Threat Domes: ON</button>
       <button class="tac-btn active" id="btn-toggle-zones">3D Zones/ROZ: ON</button>
     </div>
@@ -370,6 +372,7 @@
       <span class="kv-label">KINEMATICS:</span><span class="kv-val" id="sel-kin">--</span>
       <span class="kv-label">REMARKS:</span><span class="kv-val" id="sel-remarks">--</span>
       <span class="kv-label">VIEWSHED:</span><span class="kv-val" id="sel-viewshed">Inactive</span>
+      <span class="kv-label">LINK LOS:</span><span class="kv-val" id="sel-link-los">Inactive</span>
     </div>
 
     <div class="panel-title" style="margin-top:4px;">
@@ -823,6 +826,51 @@
     // --- 3D Viewshed Point Cloud Layer (`AGame_Actor_Viewshed` / `ViewShedLayer2`) ---
     const viewshedGroup = new THREE.Group();
     tableGroup.add(viewshedGroup);
+    const linkLosGroup = new THREE.Group();
+    tableGroup.add(linkLosGroup);
+
+    function renderLinkLosChord(losData) {
+      while (linkLosGroup.children.length > 0) {
+        const ch = linkLosGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      const el = document.getElementById('sel-link-los');
+      if (!losData || !losData.from_enu || !losData.to_enu) {
+        if (el) { el.textContent = 'Inactive'; el.style.color = 'var(--text-main)'; }
+        return;
+      }
+      const pFrom = enuToTableVec3(losData.from_enu[0], losData.from_enu[1], losData.from_enu[2]);
+      const pTo = enuToTableVec3(losData.to_enu[0], losData.to_enu[1], losData.to_enu[2]);
+
+      if (losData.clear || !losData.obstruction_enu) {
+        const geo = new THREE.BufferGeometry().setFromPoints([pFrom, pTo]);
+        linkLosGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x00ff88 })));
+        if (el) {
+          el.textContent = `CLEAR (+${Math.round(losData.min_clearance_m)}m clr, R=${Math.round(losData.slant_range_m)}m)`;
+          el.style.color = 'var(--green)';
+        }
+      } else {
+        const pObs = enuToTableVec3(losData.obstruction_enu[0], losData.obstruction_enu[1], losData.obstruction_enu[2]);
+        linkLosGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([pFrom, pObs]),
+          new THREE.LineBasicMaterial({ color: 0x00ff88 })
+        ));
+        linkLosGroup.add(new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([pObs, pTo]),
+          new THREE.LineBasicMaterial({ color: 0xff2244 })
+        ));
+        const obsMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.014, 14, 14),
+          new THREE.MeshBasicMaterial({ color: 0xff2244 })
+        );
+        obsMesh.position.copy(pObs);
+        linkLosGroup.add(obsMesh);
+        if (el) {
+          el.textContent = `TERRAIN MASKED (${Math.round(losData.min_clearance_m)}m, R=${Math.round(losData.slant_range_m)}m)`;
+          el.style.color = 'var(--red)';
+        }
+      }
+    }
 
     // --- Phase 5: 3D SAM/Radar Threat Domes & Polygonal Geofence Zones (`REQ-TAC`) ---
     const threatDomesGroup = new THREE.Group();
@@ -1286,6 +1334,7 @@
       interactionMode = interactionMode === mode ? null : mode;
       document.getElementById('btn-spi-slew').classList.toggle('active', interactionMode === 'spi');
       document.getElementById('btn-viewshed').classList.toggle('active', interactionMode === 'viewshed');
+      document.getElementById('btn-link-los').classList.toggle('active', interactionMode === 'los');
       document.getElementById('btn-drop-friendly').classList.toggle('active', interactionMode === 'friendly');
       document.getElementById('btn-drop-hostile').classList.toggle('active', interactionMode === 'hostile');
       const lpBtn = document.getElementById('btn-laser-pointer');
@@ -1334,6 +1383,21 @@
             });
             const vsData = await res.json();
             renderViewshedCloud(vsData);
+            setInteractionMode(null);
+            return;
+          }
+
+          if (interactionMode === 'los') {
+            const gndUp = sampleTerrainReliefM(eastM, northM) + 2.5;
+            const res = await fetch('/api/los', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from_uid: selectedUid,
+                to_enu: [eastM, gndUp, northM]
+              })
+            });
+            if (res.ok) renderLinkLosChord(await res.json());
             setInteractionMode(null);
             return;
           }
@@ -1412,6 +1476,22 @@
     document.getElementById('btn-viewshed-clear').onclick = () => {
       renderViewshedCloud(null);
       document.getElementById('sel-viewshed').textContent = 'Inactive';
+      setInteractionMode(null);
+    };
+
+    document.getElementById('btn-link-los').onclick = async () => {
+      const peerUid = selectedUid === 'GND-OBSERVE-BRAVO' ? 'HST-ARMOR-01' : 'GND-OBSERVE-BRAVO';
+      const res = await fetch('/api/los', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_uid: selectedUid, to_uid: peerUid })
+      });
+      if (res.ok) renderLinkLosChord(await res.json());
+      setInteractionMode('los');
+    };
+
+    document.getElementById('btn-los-clear').onclick = () => {
+      renderLinkLosChord(null);
       setInteractionMode(null);
     };
 
