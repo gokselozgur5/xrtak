@@ -1,4 +1,4 @@
-use crate::domain::{ViewshedResult, ViewshedSample};
+use crate::domain::{LinkLosResult, ViewshedResult, ViewshedSample};
 use crate::geo::ElevationProvider;
 
 /// Compute 3D Line-of-Sight (Viewshed) point cloud over any `ElevationProvider` (DIP).
@@ -45,5 +45,41 @@ pub fn compute_viewshed_with_provider(
         radius_m,
         visible_ratio: visible_count as f64 / total as f64,
         samples,
+    }
+}
+
+/// Compute point-to-point 3D Line-of-Sight (intervisibility) between `from_enu` and `to_enu` (`REQ-TAC-01`).
+pub fn compute_link_los(
+    provider: &dyn ElevationProvider,
+    from_enu: (f64, f64, f64),
+    to_enu: (f64, f64, f64),
+    num_samples: usize,
+) -> LinkLosResult {
+    let steps = num_samples.max(4);
+    let (de, du, dn) = (to_enu.0 - from_enu.0, to_enu.1 - from_enu.1, to_enu.2 - from_enu.2);
+    let slant_range_m = (de * de + du * du + dn * dn).sqrt();
+    let mut min_clearance_m = f64::INFINITY;
+    let mut obstruction_enu: Option<(f64, f64, f64)> = None;
+
+    for k in 1..steps {
+        let t = k as f64 / steps as f64;
+        let (ray_e, ray_u, ray_n) = (from_enu.0 + t * de, from_enu.1 + t * du, from_enu.2 + t * dn);
+        let terrain_u = provider.sample_relief_m(ray_e, ray_n);
+        let clearance = ray_u - terrain_u;
+        if clearance < min_clearance_m {
+            min_clearance_m = clearance;
+        }
+        if clearance < 0.0 && obstruction_enu.is_none() {
+            obstruction_enu = Some((ray_e, terrain_u, ray_n));
+        }
+    }
+
+    LinkLosResult {
+        from_enu,
+        to_enu,
+        slant_range_m,
+        clear: obstruction_enu.is_none(),
+        min_clearance_m: if min_clearance_m.is_finite() { min_clearance_m } else { 0.0 },
+        obstruction_enu,
     }
 }
