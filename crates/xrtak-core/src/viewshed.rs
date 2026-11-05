@@ -83,3 +83,24 @@ pub fn compute_link_los(
         obstruction_enu,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct RidgeTerrain;
+    impl ElevationProvider for RidgeTerrain {
+        fn sample_relief_m(&self, east_m: f64, _north_m: f64) -> f64 {
+            if east_m.abs() < 40.0 { 120.0 } else { 20.0 }
+        }
+    }
+
+    #[test]
+    fn test_compute_link_los_occluded_and_clear() {
+        let blocked = compute_link_los(&RidgeTerrain, (-200.0, 50.0, 0.0), (200.0, 50.0, 0.0), 32);
+        assert!(!blocked.clear && blocked.min_clearance_m < -60.0 && blocked.obstruction_enu.is_some());
+
+        let clear = compute_link_los(&RidgeTerrain, (-200.0, 180.0, 0.0), (200.0, 180.0, 0.0), 32);
+        assert!(clear.clear && (clear.min_clearance_m - 60.0).abs() < 1e-6 && clear.obstruction_enu.is_none());
+    }
+}
