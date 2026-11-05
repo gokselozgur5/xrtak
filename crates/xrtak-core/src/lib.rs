@@ -163,6 +163,21 @@ pub fn build_spi_cot_xml(
     )
 }
 
+/// Build a collaborative 3D Laser Pointer / Spot Map cue (`b-m-p-c`) CoT XML packet (`REQ-COL-01`).
+pub fn build_laser_pointer_cot_xml(
+    operator_callsign: &str,
+    lat: f64,
+    lon: f64,
+    hae_m: f64,
+) -> String {
+    let clean = operator_callsign.replace(' ', "-");
+    let uid = format!("XR-LASER-{clean}");
+    let cs = format!("LASER-{clean}");
+    format!(
+        r#"<event version="2.0" uid="{uid}" type="b-m-p-c" how="h-e"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="3.0" le="3.0"/><detail><contact callsign="{cs}"/><remarks>Quest 3 XR Spatial Laser Pointer</remarks></detail></event>"#
+    )
+}
+
 /// Parse a standard Cursor-on-Target (CoT) XML string into a `TacticalEntity`.
 pub fn parse_cot_xml(xml: &str, origin: &GeoOrigin, now_ms: u64) -> Result<TacticalEntity, String> {
     parse_cot_xml_with_provider(xml, origin, &ProceduralReliefModel, now_ms)
@@ -365,6 +380,8 @@ pub struct TacticalWorld {
     pub origin: GeoOrigin,
     pub terrain_name: String,
     pub terrain: Box<dyn ElevationProvider>,
+    pub sim_enabled: bool,
+    pub auto_recenter_on_next_live_cot: bool,
     pub entities: HashMap<String, TacticalEntity>,
     pub threat_domes: Vec<ThreatDome>,
     pub tactical_zones: Vec<TacticalZone>,
@@ -400,12 +417,45 @@ impl TacticalWorld {
             origin,
             terrain_name: "valley".to_string(),
             terrain: Box::new(ProceduralReliefModel),
+            sim_enabled: true,
+            auto_recenter_on_next_live_cot: false,
             entities: HashMap::new(),
             threat_domes: Vec::new(),
             tactical_zones,
             aar: AarTimeline::default(),
             spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
+        }
+    }
+
+    /// Re-center the sand table's WGS84 `GeoOrigin` and re-project all existing tracks.
+    pub fn recenter_origin(&mut self, new_origin: GeoOrigin) {
+        self.origin = new_origin;
+        for ent in self.entities.values_mut() {
+            let (e, u, n) = self.origin.lla_to_enu(ent.lat, ent.lon, ent.hae_m);
+            ent.east_m = e;
+            ent.up_m = u.max(self.terrain.sample_relief_m(e, n));
+            ent.north_m = n;
+        }
+    }
+
+    /// Enable or disable the built-in synthetic demo units (`LIVE TAK ONLY` vs `SIM + LIVE`).
+    pub fn set_sim_enabled(&mut self, enabled: bool) {
+        self.sim_enabled = enabled;
+        if !enabled {
+            for sim_uid in [
+                "UAV-FALCON-01",
+                "UAV-FALCON-01.SPI1",
+                "UAV-VALKYRIE-02",
+                "GND-SPEAR-ALPHA",
+                "GND-OBSERVE-BRAVO",
+                "HST-ARMOR-01",
+                "HST-EMITTER-02",
+                "UNK-BOGEY-07",
+            ] {
+                self.entities.remove(sim_uid);
+            }
+            self.refresh_threat_domes_and_zones();
         }
     }
 
@@ -429,7 +479,17 @@ impl TacticalWorld {
     }
 
     pub fn ingest_cot_xml(&mut self, xml: &str, now_ms: u64) -> Result<TacticalEntity, String> {
-        let entity = parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
+        let mut entity = parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
+        if self.auto_recenter_on_next_live_cot && !entity.uid.starts_with("XR-") {
+            self.auto_recenter_on_next_live_cot = false;
+            self.recenter_origin(GeoOrigin {
+                lat: entity.lat,
+                lon: entity.lon,
+                alt_m: (entity.hae_m - 120.0).max(0.0),
+                extent_m: self.origin.extent_m,
+            });
+            entity = parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
+        }
         // If this incoming CoT is an SPI (`b-m-p-s-p-i`) with a parent UAV link, lock that UAV's gimbal!
         if entity.cot_type.starts_with("b-m-p-s-p-i") {
             if let Some(ref parent) = entity.parent_uid {
@@ -481,6 +541,11 @@ impl TacticalWorld {
     /// Advance built-in tactical rehearsal scenario by `dt_sec`.
     pub fn step_simulation(&mut self, dt_sec: f64, now_ms: u64) {
         self.sim_time_sec += dt_sec;
+        if !self.sim_enabled {
+            self.refresh_threat_domes_and_zones();
+            self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
+            return;
+        }
         let t = self.sim_time_sec;
 
         // 1. Friendly ISR UAV #1 ("FALCON-1") orbiting North-East sector with sweeping or SPI-locked gimbal FOV
@@ -833,5 +898,25 @@ mod tests {
         assert_eq!(vs.samples.len(), 160);
         // On a perfectly flat plane with observer +10m above ground, 100% of samples are visible
         assert!((vs.visible_ratio - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_auto_recenter_sim_toggle_and_laser_pointer_cot() {
+        let mut world = TacticalWorld::new(GeoOrigin::default());
+        world.step_simulation(0.1, 1000);
+        assert!(world.entities.contains_key("UAV-FALCON-01"));
+
+        world.set_sim_enabled(false);
+        assert!(!world.entities.contains_key("UAV-FALCON-01"));
+
+        world.auto_recenter_on_next_live_cot = true;
+        let live_xml = r#"<event version="2.0" uid="ATAK-LIVE-99" type="a-f-G-U-C"><point lat="41.0082" lon="28.9784" hae="120.0" ce="5" le="5"/><detail><contact callsign="ISTANBUL-1"/></detail></event>"#;
+        let ent = world.ingest_cot_xml(live_xml, 2000).expect("live CoT ingested");
+        assert!((world.origin.lat - 41.0082).abs() < 1e-5);
+        assert!(ent.east_m.abs() < 1.0 && ent.north_m.abs() < 1.0);
+
+        let laser_xml = build_laser_pointer_cot_xml("QUEST-GOKSEL", 41.0085, 28.9790, 85.0);
+        let laser_ent = world.ingest_cot_xml(&laser_xml, 2100).expect("laser CoT valid");
+        assert_eq!(laser_ent.cot_type, "b-m-p-c");
     }
 }

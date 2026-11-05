@@ -6,8 +6,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
-    compute_link_los, compute_viewshed_with_provider, AarSummary, GeoOrigin, ProceduralReliefModel,
-    RasterDemProvider, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
+    build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider, AarSummary,
+    GeoOrigin, ProceduralReliefModel, RasterDemProvider, TacticalEntity, TacticalWorld,
+    TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -16,11 +17,29 @@ const INDEX_HTML: &str = include_str!("../static/index.html");
 struct WorldSnapshot {
     origin: GeoOrigin,
     terrain_name: String,
+    sim_enabled: bool,
     sim_time_sec: f64,
     aar: AarSummary,
     entities: Vec<TacticalEntity>,
     threat_domes: Vec<ThreatDome>,
     tactical_zones: Vec<TacticalZone>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TakConfigRequest {
+    sim_enabled: Option<bool>,
+    auto_recenter: Option<bool>,
+    origin_lat: Option<f64>,
+    origin_lon: Option<f64>,
+    origin_alt_m: Option<f64>,
+    tak_tcp_addr: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LaserPointerRequest {
+    callsign: Option<String>,
+    east_m: f64,
+    north_m: f64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,6 +144,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let snap = WorldSnapshot {
                         origin: guard.origin,
                         terrain_name: guard.terrain_name.clone(),
+                        sim_enabled: guard.sim_enabled,
                         sim_time_sec: guard.sim_time_sec,
                         aar: guard.aar.summary(),
                         entities,
@@ -193,6 +213,7 @@ async fn handle_http_connection(
             let snap = WorldSnapshot {
                 origin: guard.origin,
                 terrain_name: guard.terrain_name.clone(),
+                sim_enabled: guard.sim_enabled,
                 sim_time_sec: guard.sim_time_sec,
                 aar: guard.aar.summary(),
                 entities,
@@ -470,6 +491,91 @@ async fn handle_http_connection(
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
             }
+        }
+    }
+
+    if method == "POST" && path == "/api/pointer" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(ptr_req) = serde_json::from_str::<LaserPointerRequest>(body) {
+            let (xml, res) = {
+                let mut guard = world.lock().unwrap();
+                let up_m = guard.sample_relief_m(ptr_req.east_m, ptr_req.north_m);
+                let (lat, lon, hae) = guard.origin.enu_to_lla(ptr_req.east_m, up_m, ptr_req.north_m);
+                let cs = ptr_req.callsign.unwrap_or_else(|| "QUEST3-OP".to_string());
+                let xml = build_laser_pointer_cot_xml(&cs, lat, lon, hae);
+                let res = guard.ingest_cot_xml(&xml, now_unix_ms());
+                (xml, res)
+            };
+            if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
+                let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+            }
+            if let Ok(entity) = res {
+                let json = serde_json::to_string(&entity)?;
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    json.len()
+                );
+                stream.write_all(header.as_bytes()).await?;
+                stream.write_all(json.as_bytes()).await?;
+                return Ok(());
+            }
+        }
+    }
+
+    if method == "POST" && path == "/api/tak-config" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(cfg) = serde_json::from_str::<TakConfigRequest>(body) {
+            if let Some(addr) = cfg.tak_tcp_addr.clone() {
+                if !addr.trim().is_empty() {
+                    let world_tcp = Arc::clone(&world);
+                    tokio::spawn(async move {
+                        if let Ok(mut tcp) = TcpStream::connect(addr.trim()).await {
+                            println!("[XR-TAK] Connected to Live TAK Server TCP stream at {addr}");
+                            let mut buf = vec![0u8; 65535];
+                            while let Ok(n) = tcp.read(&mut buf).await {
+                                if n == 0 {
+                                    break;
+                                }
+                                let chunk = String::from_utf8_lossy(&buf[..n]);
+                                for part in chunk.split("</event>") {
+                                    if let Some(start) = part.find("<event") {
+                                        let xml = format!("{}</event>", &part[start..]);
+                                        let mut g = world_tcp.lock().unwrap();
+                                        let _ = g.ingest_cot_xml(&xml, now_unix_ms());
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            let resp = {
+                let mut guard = world.lock().unwrap();
+                if let Some(sim) = cfg.sim_enabled {
+                    guard.set_sim_enabled(sim);
+                }
+                if let Some(auto_rc) = cfg.auto_recenter {
+                    guard.auto_recenter_on_next_live_cot = auto_rc;
+                }
+                if let (Some(lat), Some(lon)) = (cfg.origin_lat, cfg.origin_lon) {
+                    let alt_m = cfg.origin_alt_m.unwrap_or(guard.origin.alt_m);
+                    let ext = guard.origin.extent_m;
+                    guard.recenter_origin(GeoOrigin { lat, lon, alt_m, extent_m: ext });
+                }
+                serde_json::json!({
+                    "origin": guard.origin,
+                    "sim_enabled": guard.sim_enabled,
+                    "auto_recenter": guard.auto_recenter_on_next_live_cot
+                })
+                .to_string()
+            };
+            let header = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                resp.len()
+            );
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp.as_bytes()).await?;
+            return Ok(());
         }
     }
 

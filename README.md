@@ -15,7 +15,10 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 1** | [`crates/xrtak-core`](crates/xrtak-core) & [`crates/xrtak-gateway`](crates/xrtak-gateway) | Rust CoT Engine, `ElevationProvider` (DIP), Point-to-Slew SPI (`b-m-p-s-p-i`), 3D Viewshed (`AGame_Actor_Viewshed`), 3D Spatial Video Wall, Three.js WebXR | **Complete (`:8090` / UDP `:4242`)** |
 | **Phase 2** | [`atak-plugin/`](atak-plugin) | Bidirectional ATAK-CIV 5.2 Plugin Bridge (`XrTakMapComponent`, `CotBridgeTransport` DIP, `AtakItemSerializer` SRP) | **Complete (`javac` verified against ATAK 5.2 SDK)** |
 | **Phase 3** | [`godot-xr/`](godot-xr) & [`xrtak-core::ffi`](crates/xrtak-core/src/ffi.rs) | Meta Quest 3 OpenXR Passthrough Sand Table + C-ABI FFI (`xrtak_lla_to_enu`, `xrtak_sample_relief_m`) + First-Person Tactical HUD (`xrtak-core::hud`) | **Complete (Godot 4.6 OpenXR)** |
-| **Phase 4–7** | [`NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) | Bilinear DEM Engine (`RasterDemProvider`), 3D Threat Domes & Link LOS, 4D AAR Time-Machine (`AarTimeline`), Collaborative Laser & SAPIENT AI Fusion | **Spec & EARS Baseline Ready** |
+| **Phase 4** | [`xrtak-core::geo`](crates/xrtak-core/src/geo.rs) | Bilinear DEM Engine (`RasterDemProvider`), SRTM `.hgt` 16-bit big-endian ingestion, and live WebXR terrain preset/DEM switching (`/api/terrain`) | **Complete (`REQ-DEM-01..04`)** |
+| **Phase 5** | [`xrtak-core::zones`](crates/xrtak-core/src/zones.rs) & [`viewshed`](crates/xrtak-core/src/viewshed.rs) | 3D SAM/Radar Threat Domes (`ThreatDome`), Point-to-Point Link LOS (`compute_link_los`), and 3D Polygonal Geofences (`TacticalZone`) | **Complete (`REQ-TAC-01..03`)** |
+| **Phase 6** | [`xrtak-core::aar`](crates/xrtak-core/src/aar.rs) | 4D After-Action Review (`AarTimeline`) ring-buffer, $\mathcal{O}(\log N)$ temporal interpolation, and interactive WebXR 4D timeline scrubber (`/api/aar`) | **Complete (`REQ-AAR-01..03`)** |
+| **Phase 7** | [`xrtak-gateway`](crates/xrtak-gateway/src/main.rs) | Live TAK Server TCP (`:8087`) & UDP (`:4242`/`:4243`) Bridge, Auto-Recenter on Live CoT, `SIM+LIVE` toggle, and Quest 3 Controller 3D Laser Pointer (`b-m-p-c`) | **Complete (`REQ-COL-01`)** |
 
 See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
@@ -55,7 +58,17 @@ Then open **`http://localhost:8090`** in your browser (or `http://<mac-lan-ip>:8
 printf '<event version="2.0" uid="COT-UDP-01" type="a-f-G-U-C" how="h-g-i-g-o"><point lat="39.9218" lon="32.8522" hae="990.0" ce="10" le="10"/><detail><contact callsign="PARALLAX-HQ"/><track course="90.0" speed="0.0"/><remarks>Live UDP CoT XML Packet</remarks></detail></event>' | nc -u -w 1 127.0.0.1 4242
 ```
 
-### 3. Run Unit Tests
+### 3. Connect Meta Quest 3 & Live TAK Server (`:8087` TCP / `:4242` UDP)
+
+1. **Connect to a Live TAK Server (TCP `:8087` or UDP `:4242`):**
+   - In the right-hand **LIVE TAK SERVER & QUEST 3 BRIDGE** panel, enter your TAK Server TCP address (e.g., `192.168.1.50:8087`) and click **Connect**, or stream raw CoT XML directly to `udp://<mac-lan-ip>:4242`.
+   - Click **Sim Units: OFF (LIVE)** to hide built-in rehearsal tracks and view only real TAK Server / ATAK-CIV tracks, or click **Auto-Center CoT** so the 3km x 3km sand table automatically centers on the first incoming live CoT coordinate.
+2. **Meta Quest 3 WebXR (`immersive-ar` Color Passthrough):**
+   - Option A (USB ADB Reverse — zero Wi-Fi/TLS config): Connect Quest 3 via USB-C, run `adb reverse tcp:8090 tcp:8090`, open `http://localhost:8090` in Meta Quest Browser, and click **QUEST 3: ENTER MIXED REALITY (WebXR)**.
+   - Option B (Wi-Fi LAN): Open `http://<mac-lan-ip>:8090` (enable `chrome://flags/#unsafely-treat-insecure-origin-as-secure` for `http://<mac-lan-ip>:8090` in Quest Browser) and press **QUEST 3: ENTER MIXED REALITY (WebXR)**.
+   - Pull the Quest 3 trigger (`selectstart`) while pointing at any ridge or valley on the holographic table to broadcast a live `b-m-p-c` 3D Spatial Laser Pointer cue back to ATAK (`udp://127.0.0.1:4243`).
+
+### 4. Run Unit Tests
 
 ```bash
 cargo test
