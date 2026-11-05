@@ -371,6 +371,7 @@
       <span class="drag-grip-badge drag-handle-2d" data-drag-target="vr-command-bar-win" title="Drag to move VR Command Bar">✋ MOVE</span>
       <button class="vr-pill-btn primary" id="btn-top-vr-mode">🥽 ENTER VR HEADSET MODE (3D HANDS)</button>
       <button class="vr-pill-btn" id="btn-top-real-map" style="border-color:var(--green);color:var(--green);">🛰 REAL SATELLITE + SRTM</button>
+      <button class="vr-pill-btn active" id="btn-top-buildings" style="border-color:#38bdf8;color:#38bdf8;">🏢 3D OSM BUILDINGS: ON</button>
       <button class="vr-pill-btn" id="btn-top-real-pin" style="border-color:#fbbf24;color:#fbbf24;">📍 DROP REAL PIN</button>
       <button class="vr-pill-btn" id="btn-top-spectate">🦅 FREE SPECTATE 6DoF</button>
       <button class="vr-pill-btn" id="btn-top-summon">🧲 SUMMON TABLE HERE</button>
@@ -450,17 +451,24 @@
     </div>
 
     <div class="panel-title" style="margin-top:2px;">
-      <span>REAL-WORLD SATELLITE MAP & SRTM DEM</span>
+      <span>GLOBAL CITY SEARCH, SATELLITE & 3D BUILDINGS</span>
       <span id="terrain-label" style="color:var(--green);">VALLEY</span>
     </div>
     <div style="display:flex;gap:5px;">
+      <input id="inp-city-search" placeholder="🌍 Search Any City / Place (e.g. Istanbul, Manhattan, Paris)" style="flex:1;background:#040b14;color:#00ff88;border:1px solid rgba(0,255,136,0.45);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
+      <button class="tac-btn spi-btn" id="btn-search-city" style="padding:5px 9px;font-weight:700;border-color:var(--green);color:var(--green);">🔍 Fly To</button>
+    </div>
+    <div style="display:flex;gap:5px;">
       <input id="inp-real-coords" placeholder="Lat, Lon (e.g. 39.9200, 32.8500)" value="39.9200, 32.8500" style="flex:1;background:#040b14;color:#e2f4ff;border:1px solid rgba(0,229,255,0.35);border-radius:4px;padding:5px 7px;font-family:inherit;font-size:10px;" />
-      <button class="tac-btn spi-btn" id="btn-load-real-map" style="padding:5px 8px;font-weight:700;">🛰 Load Real Map</button>
+      <button class="tac-btn spi-btn" id="btn-load-real-map" style="padding:5px 8px;font-weight:700;">🛰 Load Map</button>
       <button class="tac-btn" id="btn-my-real-gps" title="Use Browser / Device Real GPS Coordinates" style="padding:5px 7px;">📍 GPS</button>
     </div>
     <div class="btn-group">
-      <button class="tac-btn" id="btn-real-ankara">🛰 Ankara Real SRTM</button>
-      <button class="tac-btn" id="btn-real-istanbul">🛰 Bosphorus SRTM</button>
+      <button class="tac-btn" id="btn-real-istanbul">🏙 Istanbul 3D</button>
+      <button class="tac-btn" id="btn-real-manhattan">🗽 Manhattan 3D</button>
+      <button class="tac-btn" id="btn-real-ankara">🏛 Ankara 3D</button>
+      <button class="tac-btn" id="btn-real-matterhorn">🏔 Matterhorn Alps</button>
+      <button class="tac-btn active" id="btn-toggle-buildings" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">🏢 Real 3D OSM Buildings: ON (<span id="osm-bldg-count">0</span>)</button>
       <button class="tac-btn" id="btn-map-sat">Imagery: Satellite</button>
       <button class="tac-btn" id="btn-map-topo">Imagery: OpenTopo</button>
       <button class="tac-btn active" id="btn-dem-valley">Valley Relief</button>
@@ -488,7 +496,7 @@
     </div>
 
     <div class="panel-title" style="margin-top:4px;">
-      <span>EO/IR GIMBAL SENSOR PIP</span>
+      <span>EO/IR GIMBAL PIP & LIVE 3D VIDEO WALL</span>
       <span id="gimbal-fov-label">FOV 32°</span>
     </div>
     <div class="gimbal-box">
@@ -503,6 +511,9 @@
           <span id="pip-lock-mode">LOCK: AUTO-VALLEY</span>
         </div>
       </div>
+    </div>
+    <div style="display:flex;gap:5px;">
+      <button class="tac-btn" id="btn-live-webcam" style="flex:1;border-color:#00ff88;color:#00ff88;">📹 Bind Live Camera to 3D Wall</button>
     </div>
 
     <div class="panel-title" style="margin-top:4px;">
@@ -912,6 +923,9 @@
     }
     initSpatialVideoWall();
 
+    let liveWebcamVideo = null;
+    let liveWebcamActive = false;
+
     function updateSpatialVideoWall(timeMs) {
       videoWallGroup.visible = showVideoWall;
       if (!showVideoWall) return;
@@ -934,10 +948,15 @@
         ctx.fillRect(0, 0, w, 28);
         ctx.font = 'bold 12px "SF Mono", Menlo, monospace';
         ctx.fillStyle = isSelected ? '#00ff88' : '#00e5ff';
-        ctx.fillText(slot.title, 10, 18);
+        ctx.fillText(liveWebcamActive && slot.mode === 'sar' ? 'CAM-1 // LIVE WEBCAM / XR FEED [REALTIME]' : slot.title, 10, 18);
 
-        // Simulated feed content per sensor modality
-        if (slot.mode === 'eoir') {
+        // Live Webcam / Custom Stream on CAM-1 or Simulated feed content per sensor modality
+        if (liveWebcamActive && slot.mode === 'sar' && liveWebcamVideo && liveWebcamVideo.readyState >= 2) {
+          ctx.drawImage(liveWebcamVideo, 0, 28, w, h - 52);
+          ctx.strokeStyle = '#00ff88';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(w * 0.5 - 24, h * 0.5 - 18, 48, 36);
+        } else if (slot.mode === 'eoir') {
           ctx.strokeStyle = 'rgba(0, 255, 136, 0.14)';
           for (let y = 34; y < h - 24; y += 14) {
             ctx.beginPath();
@@ -1633,20 +1652,26 @@
       draggable3dHandles.push(dockHandleMesh);
     }
 
+    const osmBuildingsGroup = new THREE.Group();
+    tableGroup.add(osmBuildingsGroup);
+    let showOsmBuildings = true;
+
     const VR_DOCK_DEFS = [
       { id: 'dock-spi', label: '🎯 SPI SLEW', row: 0, col: 0 },
       { id: 'dock-viewshed', label: '👁 VIEWSHED', row: 0, col: 1 },
       { id: 'dock-los', label: '📡 LINK LOS', row: 0, col: 2 },
-      { id: 'dock-spectate', label: '🦅 FREE 6DoF', row: 0, col: 3 },
+      { id: 'dock-buildings', label: '🏢 3D BLDGS', row: 0, col: 3 },
+      { id: 'dock-spectate', label: '🦅 FREE 6DoF', row: 0, col: 4 },
       { id: 'dock-real-pin', label: '📍 REAL PIN', row: 1, col: 0 },
       { id: 'dock-real-map', label: '🛰 REAL MAP', row: 1, col: 1 },
-      { id: 'dock-walkin', label: '🚶 1:1 WALK-IN', row: 1, col: 2 },
-      { id: 'dock-cockpit', label: '🚁 COCKPIT POV', row: 1, col: 3 },
+      { id: 'dock-city', label: '🏙 3D CITIES', row: 1, col: 2 },
+      { id: 'dock-walkin', label: '🚶 1:1 WALK-IN', row: 1, col: 3 },
+      { id: 'dock-cockpit', label: '🚁 COCKPIT POV', row: 1, col: 4 },
     ];
     const vrDockButtons = [];
 
     function initVrHolographicDock() {
-      const btnW = 0.23, btnH = 0.068, gapX = 0.245, gapY = 0.078;
+      const btnW = 0.205, btnH = 0.066, gapX = 0.218, gapY = 0.076;
       for (const def of VR_DOCK_DEFS) {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
@@ -1658,7 +1683,7 @@
           new THREE.PlaneGeometry(btnW, btnH),
           new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.FrontSide })
         );
-        mesh.position.set((def.col - 1.5) * gapX, (0.5 - def.row) * gapY, 0);
+        mesh.position.set((def.col - 2.0) * gapX, (0.5 - def.row) * gapY, 0);
         mesh.userData.dockId = def.id;
         vrDockGroup.add(mesh);
         vrDockButtons.push({ def, canvas, ctx, tex, mesh });
@@ -1673,6 +1698,7 @@
           (def.id === 'dock-spi' && interactionMode === 'spi') ||
           (def.id === 'dock-viewshed' && interactionMode === 'viewshed') ||
           (def.id === 'dock-los' && interactionMode === 'los') ||
+          (def.id === 'dock-buildings' && showOsmBuildings) ||
           (def.id === 'dock-real-pin' && interactionMode === 'custom_pin') ||
           (def.id === 'dock-real-map' && !!activeSatelliteTexture) ||
           (def.id === 'dock-spectate' && viewMode === 'spectate') ||
@@ -1772,14 +1798,27 @@
     const DEM_PRESET_ORDER = ['valley', 'alpine', 'canyon', 'urban_bowl'];
     let demPresetIdx = 0;
 
+    const CITY_TOUR_PRESETS = [
+      { lat: 41.0082, lon: 28.9784, label: 'ISTANBUL-3D' },
+      { lat: 40.7580, lon: -73.9855, label: 'MANHATTAN-3D' },
+      { lat: 45.9766, lon: 7.6585, label: 'MATTERHORN-ALPS' },
+      { lat: 39.9200, lon: 32.8500, label: 'ANKARA-3D' },
+    ];
+    let cityTourIdx = 0;
+
     async function handleVrDockAction(dockId) {
       if (dockId === 'dock-spi') setInteractionMode('spi');
       else if (dockId === 'dock-viewshed') document.getElementById('btn-viewshed').click();
       else if (dockId === 'dock-los') document.getElementById('btn-link-los').click();
+      else if (dockId === 'dock-buildings') document.getElementById('btn-toggle-buildings').click();
       else if (dockId === 'dock-spectate') setViewMode(viewMode === 'spectate' ? 'table' : 'spectate');
       else if (dockId === 'dock-real-pin') setInteractionMode('custom_pin');
       else if (dockId === 'dock-real-map') document.getElementById('btn-load-real-map').click();
-      else if (dockId === 'dock-laser') setInteractionMode('laser');
+      else if (dockId === 'dock-city') {
+        const preset = CITY_TOUR_PRESETS[cityTourIdx % CITY_TOUR_PRESETS.length];
+        cityTourIdx += 1;
+        await loadRealWorldSector(preset.lat, preset.lon, preset.label);
+      } else if (dockId === 'dock-laser') setInteractionMode('laser');
       else if (dockId === 'dock-sapient') document.getElementById('btn-sapient-ai').click();
       else if (dockId === 'dock-dem') {
         demPresetIdx = (demPresetIdx + 1) % DEM_PRESET_ORDER.length;
@@ -2908,6 +2947,182 @@
           console.warn('Gateway sync for real terrain skipped:', err);
         }
       }
+
+      // 5. Fetch & Extrude Real-World 3D OpenStreetMap Buildings (`Overpass API`) on top of the SRTM DEM!
+      if (showOsmBuildings) {
+        loadRealOsm3dBuildings(lat, lon);
+      }
+      refreshVrDockVisuals();
+    }
+
+    function clearOsm3dBuildings() {
+      while (osmBuildingsGroup.children.length > 0) {
+        const ch = osmBuildingsGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+        if (ch.material) ch.material.dispose();
+      }
+      const cntEl = document.getElementById('osm-bldg-count');
+      if (cntEl) cntEl.textContent = '0';
+    }
+
+    async function loadRealOsm3dBuildings(lat, lon) {
+      clearOsm3dBuildings();
+      if (!showOsmBuildings) return;
+      const cntEl = document.getElementById('osm-bldg-count');
+      if (cntEl) cntEl.textContent = '...';
+
+      const latRad = lat * Math.PI / 180.0;
+      const mPerDegLat = 111132.92 - 559.82 * Math.cos(2.0 * latRad);
+      const mPerDegLon = 111412.84 * Math.cos(latRad);
+      // Query a 1.8km x 1.8km urban core around (lat, lon) for fast, high-density 3D extrusion
+      const halfSpanM = 900.0;
+      const dLat = halfSpanM / mPerDegLat;
+      const dLon = halfSpanM / mPerDegLon;
+      const south = (lat - dLat).toFixed(5);
+      const north = (lat + dLat).toFixed(5);
+      const west = (lon - dLon).toFixed(5);
+      const east = (lon + dLon).toFixed(5);
+
+      const query = `[out:json][timeout:12];(way["building"](${south},${west},${north},${east}););out body geom qt 550;`;
+      const endpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter'
+      ];
+
+      let data = null;
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: `data=${encodeURIComponent(query)}`
+          });
+          if (res.ok) {
+            data = await res.json();
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (!data || !Array.isArray(data.elements)) {
+        if (cntEl) cntEl.textContent = '0';
+        return;
+      }
+
+      const bldgMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x072a40,
+        roughness: 0.42,
+        metalness: 0.35,
+        transparent: true,
+        opacity: 0.86,
+      });
+      const edgeMat = new THREE.LineBasicMaterial({
+        color: 0x7dd3fc,
+        transparent: true,
+        opacity: 0.55,
+      });
+
+      let count = 0;
+      for (const el of data.elements) {
+        if (el.type !== 'way' || !Array.isArray(el.geometry) || el.geometry.length < 3) continue;
+        const pts2d = [];
+        let sumE = 0.0, sumN = 0.0;
+        for (const pt of el.geometry) {
+          const eastM = (pt.lon - lon) * mPerDegLon;
+          const northM = (pt.lat - lat) * mPerDegLat;
+          if (Math.abs(eastM) > WORLD_EXTENT_M * 0.96 || Math.abs(northM) > WORLD_EXTENT_M * 0.96) continue;
+          sumE += eastM;
+          sumN += northM;
+          // Shape in XY where X = table X (East), Y = table -Z (North)
+          pts2d.push(new THREE.Vector2(eastM * M_TO_TABLE, northM * M_TO_TABLE));
+        }
+        if (pts2d.length < 3) continue;
+
+        const cEastM = sumE / pts2d.length;
+        const cNorthM = sumN / pts2d.length;
+        const gndM = sampleTerrainReliefM(cEastM, cNorthM);
+
+        const tags = el.tags || {};
+        let heightM = 12.0;
+        if (tags.height) {
+          const parsedH = parseFloat(String(tags.height).replace(/[^\d.]/g, ''));
+          if (Number.isFinite(parsedH) && parsedH > 2.0) heightM = parsedH;
+        } else if (tags['building:levels']) {
+          const lvls = parseFloat(tags['building:levels']);
+          if (Number.isFinite(lvls) && lvls > 0) heightM = lvls * 3.8;
+        } else {
+          // Deterministic architectural variation based on OSM way id
+          heightM = 8.5 + ((el.id % 7) * 3.2);
+        }
+        heightM = Math.min(Math.max(heightM, 5.0), 320.0);
+
+        try {
+          const shape = new THREE.Shape(pts2d);
+          const depthUnits = heightM * M_TO_TABLE * ALT_EXAGGERATION;
+          const extrudeGeo = new THREE.ExtrudeGeometry(shape, {
+            depth: depthUnits,
+            bevelEnabled: false
+          });
+          // Rotate so shape XY maps to table XZ (X = East, -Z = North) and extrusion +Z maps to +Y (Up)
+          extrudeGeo.rotateX(-Math.PI / 2);
+
+          const mesh = new THREE.Mesh(extrudeGeo, bldgMat);
+          mesh.position.y = gndM * M_TO_TABLE * ALT_EXAGGERATION;
+          osmBuildingsGroup.add(mesh);
+
+          if (heightM >= 18.0 || count % 3 === 0) {
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(extrudeGeo), edgeMat);
+            edges.position.y = mesh.position.y;
+            osmBuildingsGroup.add(edges);
+          }
+          count++;
+        } catch (_) {}
+      }
+
+      if (cntEl) cntEl.textContent = String(count);
+    }
+
+    async function searchAndFlyToCity(query) {
+      const q = (query || '').trim();
+      if (!q) return;
+      document.getElementById('terrain-label').textContent = `SEARCHING "${q.toUpperCase()}"...`;
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        if (!res.ok) return;
+        const items = await res.json();
+        if (Array.isArray(items) && items.length > 0) {
+          const lat = parseFloat(items[0].lat);
+          const lon = parseFloat(items[0].lon);
+          const shortName = (items[0].display_name || q).split(',')[0].trim().toUpperCase().slice(0, 14);
+          await loadRealWorldSector(lat, lon, shortName);
+        } else {
+          document.getElementById('terrain-label').textContent = 'PLACE NOT FOUND';
+        }
+      } catch (err) {
+        console.warn('Nominatim geocoding error:', err);
+      }
+    }
+
+    function toggleOsm3dBuildings() {
+      showOsmBuildings = !showOsmBuildings;
+      osmBuildingsGroup.visible = showOsmBuildings;
+      const btnLeft = document.getElementById('btn-toggle-buildings');
+      const btnTop = document.getElementById('btn-top-buildings');
+      const cnt = document.getElementById('osm-bldg-count')?.textContent || '0';
+      if (btnLeft) {
+        btnLeft.innerHTML = `🏢 Real 3D OSM Buildings: ${showOsmBuildings ? 'ON' : 'OFF'} (<span id="osm-bldg-count">${cnt}</span>)`;
+        btnLeft.classList.toggle('active', showOsmBuildings);
+      }
+      if (btnTop) {
+        btnTop.textContent = `🏢 3D OSM BUILDINGS: ${showOsmBuildings ? 'ON' : 'OFF'}`;
+        btnTop.classList.toggle('active', showOsmBuildings);
+      }
+      if (showOsmBuildings && osmBuildingsGroup.children.length === 0) {
+        loadRealOsm3dBuildings(currentOriginLat, currentOriginLon);
+      }
+      refreshVrDockVisuals();
     }
 
     document.getElementById('btn-drop-custom-pin').onclick = () => setInteractionMode('custom_pin');
@@ -2977,6 +3192,48 @@
       document.getElementById('real-pin-status').textContent = 'CoT XML EXPORTED';
     };
 
+    document.getElementById('btn-search-city').onclick = () => {
+      const q = document.getElementById('inp-city-search').value;
+      searchAndFlyToCity(q);
+    };
+    document.getElementById('inp-city-search').addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        searchAndFlyToCity(ev.target.value);
+      }
+    });
+    document.getElementById('btn-toggle-buildings').onclick = toggleOsm3dBuildings;
+    document.getElementById('btn-top-buildings').onclick = toggleOsm3dBuildings;
+
+    document.getElementById('btn-live-webcam').onclick = async (ev) => {
+      const btn = ev.currentTarget;
+      if (liveWebcamActive) {
+        liveWebcamActive = false;
+        if (liveWebcamVideo && liveWebcamVideo.srcObject) {
+          liveWebcamVideo.srcObject.getTracks().forEach(t => t.stop());
+        }
+        btn.textContent = '📹 Bind Live Camera to 3D Wall';
+        btn.classList.remove('active');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 }, audio: false });
+        if (!liveWebcamVideo) {
+          liveWebcamVideo = document.createElement('video');
+          liveWebcamVideo.muted = true;
+          liveWebcamVideo.playsInline = true;
+        }
+        liveWebcamVideo.srcObject = stream;
+        await liveWebcamVideo.play();
+        liveWebcamActive = true;
+        btn.textContent = '📹 Live Camera Bound to CAM-1 (ON)';
+        btn.classList.add('active');
+      } catch (err) {
+        console.warn('Live camera access declined or unavailable:', err);
+        btn.textContent = '📹 Camera Permission Needed (HTTPS)';
+      }
+    };
+
     document.getElementById('btn-load-real-map').onclick = () => {
       const raw = document.getElementById('inp-real-coords').value.trim();
       const parts = raw.split(/[,\s]+/).map(Number);
@@ -2988,10 +3245,16 @@
       document.getElementById('btn-load-real-map').click();
     };
     document.getElementById('btn-real-ankara').onclick = () => {
-      loadRealWorldSector(39.9200, 32.8500, 'ANKARA-SRTM');
+      loadRealWorldSector(39.9200, 32.8500, 'ANKARA-3D');
     };
     document.getElementById('btn-real-istanbul').onclick = () => {
-      loadRealWorldSector(41.0422, 29.0083, 'BOSPHORUS-SRTM');
+      loadRealWorldSector(41.0082, 28.9784, 'ISTANBUL-3D');
+    };
+    document.getElementById('btn-real-manhattan').onclick = () => {
+      loadRealWorldSector(40.7580, -73.9855, 'MANHATTAN-3D');
+    };
+    document.getElementById('btn-real-matterhorn').onclick = () => {
+      loadRealWorldSector(45.9766, 7.6585, 'MATTERHORN-ALPS');
     };
     document.getElementById('btn-map-sat').onclick = () => {
       currentImageryStyle = 'sat';
