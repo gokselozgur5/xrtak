@@ -50,3 +50,45 @@ pub fn is_inside_tactical_zone(zone: &TacticalZone, point_enu: (f64, f64, f64)) 
         && point_enu.1 <= zone.ceiling_m
         && point_in_polygon_en(point_enu.0, point_enu.2, &zone.vertices_en)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::Affiliation;
+
+    struct CanyonWallTerrain;
+    impl ElevationProvider for CanyonWallTerrain {
+        fn sample_relief_m(&self, east_m: f64, _north_m: f64) -> f64 {
+            if (80.0..=140.0).contains(&east_m) { 130.0 } else { 30.0 }
+        }
+    }
+
+    #[test]
+    fn test_threat_dome_and_polygonal_geofence() {
+        let dome = ThreatDome {
+            uid: "HST-EMITTER-02".to_string(),
+            callsign: "SA-15".to_string(),
+            affiliation: Affiliation::Hostile,
+            east_m: 0.0,
+            up_m: 30.0,
+            north_m: 0.0,
+            radius_m: 600.0,
+            ceiling_m: 450.0,
+            engaged_uids: Vec::new(),
+        };
+        assert!(is_engaged_by_threat_dome(&dome, (250.0, 320.0, 0.0), &CanyonWallTerrain));
+        assert!(!is_engaged_by_threat_dome(&dome, (250.0, 110.0, 0.0), &CanyonWallTerrain));
+
+        let zone = TacticalZone {
+            uid: "ROZ-1".to_string(),
+            name: "ROZ".to_string(),
+            affiliation: Affiliation::Hostile,
+            vertices_en: vec![(-200.0, -200.0), (200.0, -200.0), (200.0, 200.0), (-200.0, 200.0)],
+            floor_m: 0.0,
+            ceiling_m: 350.0,
+            inside_uids: Vec::new(),
+        };
+        assert!(is_inside_tactical_zone(&zone, (0.0, 180.0, 0.0)));
+        assert!(!is_inside_tactical_zone(&zone, (300.0, 180.0, 0.0)));
+    }
+}
