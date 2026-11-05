@@ -143,3 +143,49 @@ fn interpolate_entity(a: &TacticalEntity, b: &TacticalEntity, t: f64) -> Tactica
         updated_unix_ms: b.updated_unix_ms,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::{Affiliation, Dimension};
+
+    fn dummy_entity(uid: &str, east_m: f64, course_deg: f64) -> TacticalEntity {
+        TacticalEntity {
+            uid: uid.to_string(),
+            callsign: uid.to_string(),
+            cot_type: "a-f-A-M-F-Q".to_string(),
+            affiliation: Affiliation::Friendly,
+            dimension: Dimension::Air,
+            lat: 39.92,
+            lon: 32.85,
+            hae_m: 1100.0,
+            course_deg,
+            speed_mps: 25.0,
+            remarks: String::new(),
+            sensor: None,
+            video_url: None,
+            parent_uid: None,
+            east_m,
+            up_m: 250.0,
+            north_m: 100.0,
+            updated_unix_ms: 1000,
+        }
+    }
+
+    #[test]
+    fn test_aar_timeline_ring_buffer_and_temporal_interpolation() {
+        let mut timeline = AarTimeline::new(8, 1.0);
+        let mut map = HashMap::new();
+        map.insert("UAV-1".to_string(), dummy_entity("UAV-1", 0.0, 350.0));
+        assert!(timeline.maybe_record(0.0, 1000, &map));
+        assert!(!timeline.maybe_record(0.4, 1400, &map));
+
+        map.insert("UAV-1".to_string(), dummy_entity("UAV-1", 100.0, 10.0));
+        assert!(timeline.maybe_record(1.0, 2000, &map));
+
+        let mid = timeline.sample_at(0.5).expect("midpoint frame exists");
+        let e = &mid.entities[0];
+        assert!((e.east_m - 50.0).abs() < 1e-6);
+        assert!(e.course_deg.abs() < 1e-6 || (e.course_deg - 360.0).abs() < 1e-6);
+    }
+}
