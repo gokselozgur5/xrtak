@@ -6,8 +6,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
-    compute_viewshed_with_provider, GeoOrigin, ProceduralReliefModel, RasterDemProvider,
-    TacticalEntity, TacticalWorld,
+    compute_link_los, compute_viewshed_with_provider, GeoOrigin, ProceduralReliefModel,
+    RasterDemProvider, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -18,6 +18,16 @@ struct WorldSnapshot {
     terrain_name: String,
     sim_time_sec: f64,
     entities: Vec<TacticalEntity>,
+    threat_domes: Vec<ThreatDome>,
+    tactical_zones: Vec<TacticalZone>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LinkLosRequest {
+    from_uid: Option<String>,
+    to_uid: Option<String>,
+    from_enu: Option<(f64, f64, f64)>,
+    to_enu: Option<(f64, f64, f64)>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -116,6 +126,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         terrain_name: guard.terrain_name.clone(),
                         sim_time_sec: guard.sim_time_sec,
                         entities,
+                        threat_domes: guard.threat_domes.clone(),
+                        tactical_zones: guard.tactical_zones.clone(),
                     };
                     serde_json::to_string(&snap).unwrap_or_default()
                 };
@@ -181,6 +193,8 @@ async fn handle_http_connection(
                 terrain_name: guard.terrain_name.clone(),
                 sim_time_sec: guard.sim_time_sec,
                 entities,
+                threat_domes: guard.threat_domes.clone(),
+                tactical_zones: guard.tactical_zones.clone(),
             };
             serde_json::to_string(&snap)?
         };
@@ -362,6 +376,35 @@ async fn handle_http_connection(
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(json.as_bytes()).await?;
             return Ok(());
+        }
+    }
+
+    if method == "POST" && path == "/api/los" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(los_req) = serde_json::from_str::<LinkLosRequest>(body) {
+            let res = {
+                let guard = world.lock().unwrap();
+                let from_enu = los_req.from_enu.or_else(|| {
+                    los_req.from_uid.as_ref().and_then(|u| guard.entities.get(u)).map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
+                });
+                let to_enu = los_req.to_enu.or_else(|| {
+                    los_req.to_uid.as_ref().and_then(|u| guard.entities.get(u)).map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
+                });
+                match (from_enu, to_enu) {
+                    (Some(a), Some(b)) => Some(compute_link_los(guard.terrain.as_ref(), a, b, 48)),
+                    _ => None,
+                }
+            };
+            if let Some(los_result) = res {
+                let json = serde_json::to_string(&los_result)?;
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    json.len()
+                );
+                stream.write_all(header.as_bytes()).await?;
+                stream.write_all(json.as_bytes()).await?;
+                return Ok(());
+            }
         }
     }
 
