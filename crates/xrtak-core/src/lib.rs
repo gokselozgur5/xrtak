@@ -3,6 +3,7 @@ pub mod domain;
 pub mod ffi;
 pub mod geo;
 pub mod hud;
+pub mod sapient;
 pub mod viewshed;
 pub mod zones;
 
@@ -13,6 +14,7 @@ pub use domain::{
 };
 pub use geo::{ElevationProvider, ProceduralReliefModel, RasterDemProvider};
 pub use hud::{compute_hud_cue, HudCue};
+pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
 pub use zones::{is_engaged_by_threat_dome, is_inside_tactical_zone, point_in_polygon_en};
 
@@ -538,6 +540,27 @@ impl TacticalWorld {
         self.entities.remove(&spi_uid);
     }
 
+    /// Ingest a BSI Flex 335 SAPIENT AI detection report and auto-slew airborne EO/IR gimbal if configured (`REQ-COL`).
+    pub fn ingest_sapient_detection(
+        &mut self,
+        report: &SapientDetectionReport,
+        now_ms: u64,
+    ) -> Result<(String, TacticalEntity), String> {
+        let xml = build_sapient_cot_xml(report, &self.origin, self.terrain.as_ref());
+        let entity = self.ingest_cot_xml(&xml, now_ms)?;
+        let sensor_uid = report
+            .auto_slew_sensor_uid
+            .clone()
+            .or_else(|| (report.confidence >= 0.85).then(|| "UAV-FALCON-01".to_string()));
+        if let Some(uav_uid) = sensor_uid {
+            let _ = self.slew_sensor_to_spi(&uav_uid, entity.east_m, entity.north_m, now_ms);
+            self.spi_locks
+                .insert(uav_uid, (entity.east_m, entity.up_m, entity.north_m));
+        }
+        self.refresh_threat_domes_and_zones();
+        Ok((xml, entity))
+    }
+
     /// Advance built-in tactical rehearsal scenario by `dt_sec`.
     pub fn step_simulation(&mut self, dt_sec: f64, now_ms: u64) {
         self.sim_time_sec += dt_sec;
@@ -918,5 +941,28 @@ mod tests {
         let laser_xml = build_laser_pointer_cot_xml("QUEST-GOKSEL", 41.0085, 28.9790, 85.0);
         let laser_ent = world.ingest_cot_xml(&laser_xml, 2100).expect("laser CoT valid");
         assert_eq!(laser_ent.cot_type, "b-m-p-c");
+    }
+
+    #[test]
+    fn test_sapient_detection_auto_slews_uav_gimbal() {
+        let mut world = TacticalWorld::new(GeoOrigin::default());
+        world.step_simulation(0.1, 1000);
+        let report = SapientDetectionReport {
+            node_id: "ASM-RADAR-02".to_string(),
+            object_id: "THREAT-42".to_string(),
+            classification: "HOSTILE_ARMOR".to_string(),
+            confidence: 0.96,
+            east_m: -240.0,
+            north_m: 190.0,
+            alt_offset_m: Some(0.0),
+            speed_mps: Some(9.5),
+            course_deg: Some(210.0),
+            auto_slew_sensor_uid: None,
+        };
+        let (_xml, ent) = world.ingest_sapient_detection(&report, 2000).expect("SAPIENT ingested");
+        assert_eq!(ent.uid, "SAPIENT-THREAT-42");
+        assert_eq!(ent.affiliation, Affiliation::Hostile);
+        assert!(world.entities.contains_key("UAV-FALCON-01.SPI1"));
+        assert!(world.spi_locks.contains_key("UAV-FALCON-01"));
     }
 }
