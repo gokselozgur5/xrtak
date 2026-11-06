@@ -92,6 +92,11 @@ struct PinDeleteRequest {
     uid: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct ElevationProfileRequest {
+    waypoints_en: Vec<(f64, f64)>,
+}
+
 const PINS_STORE_PATH: &str = "data/real_pins.json";
 
 fn is_simulated_uid(uid: &str) -> bool {
@@ -273,10 +278,36 @@ async fn handle_http_connection(
     world: Arc<Mutex<TacticalWorld>>,
     tx: broadcast::Sender<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut buf = vec![0u8; 16384];
-    let n = stream.read(&mut buf).await?;
+    let mut buf = vec![0u8; 65536];
+    let mut n = stream.read(&mut buf).await?;
     if n == 0 {
         return Ok(());
+    }
+    if let Some(hdr_end) = buf[..n].windows(4).position(|w| w == b"\r\n\r\n") {
+        let body_start = hdr_end + 4;
+        let hdr_str = String::from_utf8_lossy(&buf[..hdr_end]);
+        let content_len: usize = hdr_str
+            .lines()
+            .find_map(|l| {
+                let lower = l.to_ascii_lowercase();
+                if lower.starts_with("content-length:") {
+                    l.split(':').nth(1)?.trim().parse().ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+        let total_needed = body_start + content_len;
+        if total_needed > buf.len() && total_needed <= 4 * 1024 * 1024 {
+            buf.resize(total_needed, 0);
+        }
+        while n < total_needed && n < buf.len() {
+            let r = stream.read(&mut buf[n..total_needed]).await?;
+            if r == 0 {
+                break;
+            }
+            n += r;
+        }
     }
     let req = String::from_utf8_lossy(&buf[..n]);
     let first_line = req.lines().next().unwrap_or("");
@@ -566,6 +597,21 @@ async fn handle_http_connection(
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
             }
+        }
+    }
+
+    if method == "POST" && path == "/api/elevation-profile" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(prof_req) = serde_json::from_str::<ElevationProfileRequest>(body) {
+            let prof = {
+                let guard = world.lock().unwrap();
+                guard.compute_elevation_profile(&prof_req.waypoints_en)
+            };
+            let json = serde_json::to_string(&prof)?;
+            let header = json_ok_header(json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(json.as_bytes()).await?;
+            return Ok(());
         }
     }
 
