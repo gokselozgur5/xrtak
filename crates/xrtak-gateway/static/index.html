@@ -406,6 +406,8 @@
       <button class="tac-btn" id="btn-viewshed-clear">Clear Viewshed</button>
       <button class="tac-btn spi-btn" id="btn-link-los">3D Link LOS Chord</button>
       <button class="tac-btn" id="btn-los-clear">Clear Link LOS</button>
+      <button class="tac-btn spi-btn" id="btn-elev-profile" style="border-color:#38bdf8;color:#38bdf8;">Elevation Profile (Route)</button>
+      <button class="tac-btn" id="btn-elev-clear">Clear Profile</button>
       <button class="tac-btn active" id="btn-toggle-domes">Threat Domes: ON</button>
       <button class="tac-btn active" id="btn-toggle-zones">3D Zones/ROZ: ON</button>
     </div>
@@ -475,6 +477,8 @@
       <button class="tac-btn" id="btn-dem-alpine">Alpine Ridge</button>
       <button class="tac-btn" id="btn-dem-canyon">Deep Canyon</button>
       <button class="tac-btn" id="btn-dem-urban">Urban Bowl</button>
+      <button class="tac-btn" id="btn-upload-hgt" style="grid-column:span 2;border-color:var(--green);color:var(--green);">Load Offline SRTM .hgt DEM File</button>
+      <input type="file" id="inp-hgt-file" accept=".hgt,.dem,.bin" style="display:none;" />
     </div>
   </div>
 
@@ -493,7 +497,14 @@
       <span class="kv-label">REMARKS:</span><span class="kv-val" id="sel-remarks">--</span>
       <span class="kv-label">VIEWSHED:</span><span class="kv-val" id="sel-viewshed">Inactive</span>
       <span class="kv-label">LINK LOS:</span><span class="kv-val" id="sel-link-los">Inactive</span>
+      <span class="kv-label">CURSOR DEM:</span><span class="kv-val" id="sel-cursor-elev" style="color:var(--green);">850m ASL (+0m | 0.0°)</span>
     </div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>TERRAIN ELEVATION PROFILE (SRTM)</span>
+      <span id="elev-profile-summary" style="color:var(--green);">CLICK ROUTE</span>
+    </div>
+    <canvas id="elev-profile-canvas" width="306" height="106" style="width:100%;height:106px;background:#040b12;border:1px solid rgba(0,229,255,0.35);border-radius:4px;display:block;"></canvas>
 
     <div class="panel-title" style="margin-top:4px;">
       <span>EO/IR GIMBAL PIP & LIVE 3D VIDEO WALL</span>
@@ -594,6 +605,13 @@
       const valleyDist = Math.min(Math.abs(nx - nz * 0.6), 1.5);
       const valleyFactor = 0.35 + 0.65 * (valleyDist / 1.5);
       return (ridge1 + ridge2 + detail + 95.0) * valleyFactor;
+    }
+
+    function sampleTerrainSlopeDeg(eastM, northM) {
+      const stepM = 10.0;
+      const dzDe = (sampleTerrainReliefM(eastM + stepM, northM) - sampleTerrainReliefM(eastM - stepM, northM)) / (2.0 * stepM);
+      const dzDn = (sampleTerrainReliefM(eastM, northM + stepM) - sampleTerrainReliefM(eastM, northM - stepM)) / (2.0 * stepM);
+      return Math.atan(Math.hypot(dzDe, dzDn)) * (180.0 / Math.PI);
     }
 
     function enuToTableVec3(eastM, upM, northM) {
@@ -1558,6 +1576,8 @@
       document.getElementById('btn-spi-slew').classList.toggle('active', interactionMode === 'spi');
       document.getElementById('btn-viewshed').classList.toggle('active', interactionMode === 'viewshed');
       document.getElementById('btn-link-los').classList.toggle('active', interactionMode === 'los');
+      const elevBtn = document.getElementById('btn-elev-profile');
+      if (elevBtn) elevBtn.classList.toggle('active', interactionMode === 'profile');
       document.getElementById('btn-drop-friendly').classList.toggle('active', interactionMode === 'friendly');
       document.getElementById('btn-drop-hostile').classList.toggle('active', interactionMode === 'hostile');
       const customPinBtn = document.getElementById('btn-drop-custom-pin');
@@ -1587,10 +1607,22 @@
     cursorReticleGroup.add(reticleLabelSprite);
     let lastReticleUpdateMs = 0;
 
+    function updateCursorDemReadout(eastM, northM) {
+      const reliefM = sampleTerrainReliefM(eastM, northM);
+      const aslM = Math.round(currentOriginAltM + reliefM);
+      const slopeDeg = sampleTerrainSlopeDeg(eastM, northM);
+      const el = document.getElementById('sel-cursor-elev');
+      if (el) {
+        el.textContent = `${aslM}m ASL (+${Math.round(reliefM)}m | ${slopeDeg.toFixed(1)}°)`;
+        el.style.color = slopeDeg > 25.0 ? 'var(--red)' : (slopeDeg > 12.0 ? 'var(--yellow)' : 'var(--green)');
+      }
+      return { reliefM, aslM, slopeDeg };
+    }
+
     function updateReticleAtLocal(localPt, timeMs) {
       const eastM = localPt.x / M_TO_TABLE;
       const northM = -localPt.z / M_TO_TABLE;
-      const reliefM = sampleTerrainReliefM(eastM, northM);
+      const { reliefM, aslM, slopeDeg } = updateCursorDemReadout(eastM, northM);
       const pos = enuToTableVec3(eastM, reliefM + 1.5, northM);
       cursorReticleGroup.position.copy(pos);
       cursorReticleGroup.visible = true;
@@ -1606,11 +1638,11 @@
         ctx.roundRect(8, 18, 496, 92, 12);
         ctx.fill();
         ctx.stroke();
-        ctx.font = 'bold 23px "SF Mono", Menlo, monospace';
+        ctx.font = 'bold 21px "SF Mono", Menlo, monospace';
         ctx.fillStyle = '#00ff88';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`[${toolTag}] E:${Math.round(eastM)}m N:${Math.round(northM)}m (${Math.round(850 + reliefM)}m)`, 256, 64);
+        ctx.fillText(`[${toolTag}] ${aslM}m ASL (+${Math.round(reliefM)}m | ${slopeDeg.toFixed(1)}°)`, 256, 64);
         reticleLabelSprite.material.map.needsUpdate = true;
       }
     }
@@ -1754,6 +1786,10 @@
           body: JSON.stringify({ from_uid: selectedUid, to_enu: [eastM, gndUp, northM] })
         });
         if (res.ok) renderLinkLosChord(await res.json());
+        return;
+      }
+      if (mode === 'profile') {
+        await addElevationProfileWaypoint(eastM, northM);
         return;
       }
       if (mode === 'custom_pin' || mode === 'friendly' || mode === 'hostile') {
@@ -2021,15 +2057,16 @@
       pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
       lastPointerNdc.copy(pointer);
-      if (!interactionMode && !vrHeadsetActive) {
-        cursorReticleGroup.visible = false;
-        return;
-      }
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObject(terrainMesh, false);
       if (hits.length > 0) {
         const localPt = tableGroup.worldToLocal(hits[0].point.clone());
-        updateReticleAtLocal(localPt, performance.now());
+        if (!interactionMode && !vrHeadsetActive) {
+          updateCursorDemReadout(localPt.x / M_TO_TABLE, -localPt.z / M_TO_TABLE);
+          cursorReticleGroup.visible = false;
+        } else {
+          updateReticleAtLocal(localPt, performance.now());
+        }
       } else {
         cursorReticleGroup.visible = false;
       }
@@ -2120,7 +2157,7 @@
           const eastM = localPt.x / M_TO_TABLE;
           const northM = -localPt.z / M_TO_TABLE;
           await executeTerrainToolAt(eastM, northM, 'QUEST3-CMD');
-          if (interactionMode !== 'laser') setInteractionMode(null);
+          if (interactionMode !== 'laser' && interactionMode !== 'profile') setInteractionMode(null);
           return;
         }
       }
@@ -2245,6 +2282,317 @@
       renderLinkLosChord(null);
       setInteractionMode(null);
     };
+
+    // --- Phase 21: 3D Route Elevation Profile, Slope Analytics & SRTM .hgt Ingestion ---
+    const elevationProfileGroup = new THREE.Group();
+    tableGroup.add(elevationProfileGroup);
+    let profileWaypointsEn = [];
+
+    function computeClientElevationProfile(waypointsEn) {
+      const steps = 28;
+      const samples = [];
+      let cumDistM = 0.0;
+      let totalAscentM = 0.0;
+      let totalDescentM = 0.0;
+      let minAslM = Infinity;
+      let maxAslM = -Infinity;
+      let maxSlopeDeg = 0.0;
+
+      if (!Array.isArray(waypointsEn) || waypointsEn.length === 0) {
+        return {
+          total_distance_m: 0,
+          total_ascent_m: 0,
+          total_descent_m: 0,
+          min_asl_m: currentOriginAltM,
+          max_asl_m: currentOriginAltM,
+          max_slope_deg: 0,
+          samples: []
+        };
+      }
+
+      if (waypointsEn.length === 1) {
+        const [e, n] = waypointsEn[0];
+        const rel = sampleTerrainReliefM(e, n);
+        const asl = currentOriginAltM + rel;
+        const slope = sampleTerrainSlopeDeg(e, n);
+        return {
+          total_distance_m: 0,
+          total_ascent_m: 0,
+          total_descent_m: 0,
+          min_asl_m: asl,
+          max_asl_m: asl,
+          max_slope_deg: slope,
+          samples: [{ dist_m: 0, east_m: e, north_m: n, relief_m: rel, asl_m: asl, slope_deg: slope }]
+        };
+      }
+
+      let prevAsl = null;
+      for (let segIdx = 0; segIdx < waypointsEn.length - 1; segIdx++) {
+        const [e0, n0] = waypointsEn[segIdx];
+        const [e1, n1] = waypointsEn[segIdx + 1];
+        const segLen = Math.hypot(e1 - e0, n1 - n0);
+        const startS = segIdx === 0 ? 0 : 1;
+        for (let s = startS; s <= steps; s++) {
+          const frac = s / steps;
+          const e = e0 + (e1 - e0) * frac;
+          const n = n0 + (n1 - n0) * frac;
+          const d = cumDistM + segLen * frac;
+          const rel = sampleTerrainReliefM(e, n);
+          const asl = currentOriginAltM + rel;
+          const slope = sampleTerrainSlopeDeg(e, n);
+          if (prevAsl !== null) {
+            const dz = asl - prevAsl;
+            if (dz > 0) totalAscentM += dz;
+            else totalDescentM += -dz;
+          }
+          prevAsl = asl;
+          if (asl < minAslM) minAslM = asl;
+          if (asl > maxAslM) maxAslM = asl;
+          if (slope > maxSlopeDeg) maxSlopeDeg = slope;
+          samples.push({
+            dist_m: d,
+            east_m: e,
+            north_m: n,
+            relief_m: rel,
+            asl_m: asl,
+            slope_deg: slope
+          });
+        }
+        cumDistM += segLen;
+      }
+
+      return {
+        total_distance_m: cumDistM,
+        total_ascent_m: totalAscentM,
+        total_descent_m: totalDescentM,
+        min_asl_m: Number.isFinite(minAslM) ? minAslM : currentOriginAltM,
+        max_asl_m: Number.isFinite(maxAslM) ? maxAslM : currentOriginAltM,
+        max_slope_deg: maxSlopeDeg,
+        samples
+      };
+    }
+
+    function renderElevationProfile3dAndChart(prof) {
+      while (elevationProfileGroup.children.length > 0) {
+        const ch = elevationProfileGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      const canvas = document.getElementById('elev-profile-canvas');
+      const sumEl = document.getElementById('elev-profile-summary');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.fillStyle = '#040b12';
+      ctx.fillRect(0, 0, w, h);
+
+      if (!prof || !Array.isArray(prof.samples) || prof.samples.length === 0) {
+        if (sumEl) sumEl.textContent = 'INACTIVE';
+        ctx.font = '10px "SF Mono", Menlo, monospace';
+        ctx.fillStyle = '#7aa2c4';
+        ctx.fillText('Click "Elevation Profile" then click 2+ terrain points', 10, h * 0.52);
+        return;
+      }
+
+      // 1. Render 3D Elevation Curtain & Route Polyline on the Sand Table
+      const topPts = [];
+      for (let i = 0; i < prof.samples.length; i++) {
+        const s = prof.samples[i];
+        const ptTop = enuToTableVec3(s.east_m, s.relief_m + 3.0, s.north_m);
+        const ptBot = enuToTableVec3(s.east_m, 0.0, s.north_m);
+        topPts.push(ptTop);
+        if (i % 2 === 0) {
+          const colHex = s.slope_deg > 25.0 ? 0xff3355 : (s.slope_deg > 12.0 ? 0xfbbf24 : 0x00ff88);
+          const postGeo = new THREE.BufferGeometry().setFromPoints([ptBot, ptTop]);
+          elevationProfileGroup.add(new THREE.Line(postGeo, new THREE.LineBasicMaterial({ color: colHex, transparent: true, opacity: 0.55 })));
+        }
+      }
+      if (topPts.length >= 2) {
+        const lineGeo = new THREE.BufferGeometry().setFromPoints(topPts);
+        elevationProfileGroup.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 })));
+      }
+      for (const [we, wn] of profileWaypointsEn) {
+        const wRel = sampleTerrainReliefM(we, wn);
+        const wpMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.011, 14, 14),
+          new THREE.MeshBasicMaterial({ color: 0x00ff88 })
+        );
+        wpMesh.position.copy(enuToTableVec3(we, wRel + 4.5, wn));
+        elevationProfileGroup.add(wpMesh);
+      }
+
+      // 2. Render 2D Topographic Cross-Section Chart in Right Panel
+      const padL = 38, padR = 8, padT = 16, padB = 18;
+      const cw = w - padL - padR;
+      const ch = h - padT - padB;
+      const minA = prof.min_asl_m;
+      const maxA = Math.max(prof.max_asl_m, minA + 10.0);
+      const maxD = Math.max(prof.total_distance_m, 1.0);
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.16)';
+      ctx.lineWidth = 1;
+      for (let g = 0; g <= 2; g++) {
+        const gy = padT + (ch * g) / 2;
+        ctx.beginPath();
+        ctx.moveTo(padL, gy);
+        ctx.lineTo(w - padR, gy);
+        ctx.stroke();
+      }
+
+      // Filled terrain profile polygon
+      ctx.beginPath();
+      for (let i = 0; i < prof.samples.length; i++) {
+        const s = prof.samples[i];
+        const px = padL + (s.dist_m / maxD) * cw;
+        const py = padT + ch - ((s.asl_m - minA) / (maxA - minA)) * ch;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.lineTo(padL + cw, padT + ch);
+      ctx.lineTo(padL, padT + ch);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
+      grad.addColorStop(0, 'rgba(56, 189, 248, 0.52)');
+      grad.addColorStop(1, 'rgba(0, 255, 136, 0.08)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Top ridge line
+      ctx.beginPath();
+      for (let i = 0; i < prof.samples.length; i++) {
+        const s = prof.samples[i];
+        const px = padL + (s.dist_m / maxD) * cw;
+        const py = padT + ch - ((s.asl_m - minA) / (maxA - minA)) * ch;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Axis & telemetry labels
+      ctx.font = '9px "SF Mono", Menlo, monospace';
+      ctx.fillStyle = '#9cc2df';
+      ctx.fillText(`${Math.round(maxA)}m`, 3, padT + 7);
+      ctx.fillText(`${Math.round(minA)}m`, 3, padT + ch);
+
+      const statsText = `D:${Math.round(prof.total_distance_m)}m  +${Math.round(prof.total_ascent_m)}m / -${Math.round(prof.total_descent_m)}m  MAX SLOPE:${prof.max_slope_deg.toFixed(1)}°`;
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillText(statsText, padL, 11);
+      ctx.fillStyle = '#7aa2c4';
+      ctx.fillText(`0m`, padL, h - 4);
+      ctx.fillText(`${(prof.total_distance_m / 1000.0).toFixed(2)} km`, w - 54, h - 4);
+
+      if (sumEl) {
+        sumEl.textContent = `${Math.round(prof.total_distance_m)}m | +${Math.round(prof.total_ascent_m)}m (${prof.max_slope_deg.toFixed(1)}°)`;
+      }
+    }
+
+    async function refreshElevationProfile() {
+      if (profileWaypointsEn.length === 0) {
+        renderElevationProfile3dAndChart(null);
+        return;
+      }
+      if (standaloneSimActive) {
+        renderElevationProfile3dAndChart(computeClientElevationProfile(profileWaypointsEn));
+        return;
+      }
+      try {
+        const res = await fetch(apiUrl('/api/elevation-profile'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ waypoints_en: profileWaypointsEn })
+        });
+        if (res.ok) {
+          renderElevationProfile3dAndChart(await res.json());
+          return;
+        }
+      } catch (_) {}
+      renderElevationProfile3dAndChart(computeClientElevationProfile(profileWaypointsEn));
+    }
+
+    async function addElevationProfileWaypoint(eastM, northM) {
+      profileWaypointsEn.push([eastM, northM]);
+      if (profileWaypointsEn.length > 8) profileWaypointsEn.shift();
+      await refreshElevationProfile();
+    }
+
+    document.getElementById('btn-elev-profile').onclick = async () => {
+      if (profileWaypointsEn.length < 2) {
+        const sel = latestEntities.find(e => e.uid === selectedUid);
+        const startEn = sel ? [sel.east_m, sel.north_m] : [-420.0, -260.0];
+        profileWaypointsEn = [startEn, [380.0, 290.0]];
+        await refreshElevationProfile();
+      }
+      setInteractionMode('profile');
+    };
+
+    document.getElementById('btn-elev-clear').onclick = () => {
+      profileWaypointsEn = [];
+      renderElevationProfile3dAndChart(null);
+      setInteractionMode(null);
+    };
+
+    // Offline NASA SRTM .hgt (16-bit signed big-endian) file ingestion
+    document.getElementById('btn-upload-hgt').onclick = () => {
+      document.getElementById('inp-hgt-file').click();
+    };
+    document.getElementById('inp-hgt-file').addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const buf = await file.arrayBuffer();
+      const view = new DataView(buf);
+      const totalSamples = Math.floor(buf.byteLength / 2);
+      const side = Math.round(Math.sqrt(totalSamples));
+      if (side < 2) return;
+
+      const resGrid = 65;
+      const rawElev = new Array(resGrid * resGrid);
+      let minElev = Infinity;
+      for (let r = 0; r < resGrid; r++) {
+        const srcR = Math.min(side - 1, Math.floor(((resGrid - 1 - r) / (resGrid - 1)) * (side - 1)));
+        for (let c = 0; c < resGrid; c++) {
+          const srcC = Math.min(side - 1, Math.floor((c / (resGrid - 1)) * (side - 1)));
+          const sampleIdx = (srcR * side + srcC) * 2;
+          const val = view.getInt16(sampleIdx, false); // big-endian i16
+          if (val > -10000) {
+            if (val < minElev) minElev = val;
+            rawElev[r * resGrid + c] = val;
+          } else {
+            rawElev[r * resGrid + c] = NaN;
+          }
+        }
+      }
+      if (!Number.isFinite(minElev)) minElev = 0;
+      currentOriginAltM = Math.round(minElev);
+      const heightsM = rawElev.map(v => Number.isFinite(v) ? Math.max(0.0, v - minElev) : 0.0);
+      const gridName = file.name.replace(/\.[^.]+$/, '').toUpperCase();
+      activeDemGrid = {
+        name: gridName,
+        resolution: resGrid,
+        extent_m: WORLD_EXTENT_M,
+        heights_m: heightsM
+      };
+      buildTerrainMesh();
+      document.getElementById('terrain-label').textContent = `${gridName} (${currentOriginAltM}m ASL)`;
+      if (!standaloneSimActive) {
+        try {
+          await fetch(apiUrl('/api/terrain'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              preset: gridName,
+              width: resGrid,
+              height: resGrid,
+              extent_m: WORLD_EXTENT_M,
+              heights_m: heightsM
+            })
+          });
+        } catch (_) {}
+      }
+      await refreshElevationProfile();
+    });
 
     const visorCanvas = document.getElementById('visor-hud-canvas');
     const vctx = visorCanvas.getContext('2d');
@@ -2690,6 +3038,10 @@
         renderLinkLosChord(computeClientLos([sel.east_m, sel.up_m + 3.0, sel.north_m], [eastM, gnd + 2.5, northM]));
         return;
       }
+      if (mode === 'profile') {
+        addElevationProfileWaypoint(eastM, northM);
+        return;
+      }
       if (mode === 'custom_pin' || mode === 'friendly' || mode === 'hostile') {
         const isCustom = mode === 'custom_pin';
         const isHostile = mode === 'hostile';
@@ -2952,6 +3304,10 @@
       if (showOsmBuildings) {
         loadRealOsm3dBuildings(lat, lon);
       }
+      if (profileWaypointsEn.length === 0) {
+        profileWaypointsEn = [[-520.0, -340.0], [0.0, 40.0], [540.0, 380.0]];
+      }
+      await refreshElevationProfile();
       refreshVrDockVisuals();
     }
 

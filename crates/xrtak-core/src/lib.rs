@@ -12,7 +12,10 @@ pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
     ViewshedSample,
 };
-pub use geo::{ElevationProvider, ProceduralReliefModel, RasterDemProvider};
+pub use geo::{
+    compute_elevation_profile, ElevationProfileResult, ElevationProfileSample, ElevationProvider,
+    ProceduralReliefModel, RasterDemProvider,
+};
 pub use hud::{compute_hud_cue, HudCue};
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
@@ -784,6 +787,11 @@ impl TacticalWorld {
 
         self.refresh_threat_domes_and_zones();
         self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
+    }
+
+    /// Compute a terrain elevation cross-section profile across a polyline of `(east_m, north_m)` waypoints.
+    pub fn compute_elevation_profile(&self, waypoints_en: &[(f64, f64)]) -> ElevationProfileResult {
+        compute_elevation_profile(self.terrain.as_ref(), waypoints_en, self.origin.alt_m, 28)
     }
 
     /// Evaluate 3D `ThreatDome` engagements and `TacticalZone` memberships for an arbitrary entity slice (live or 4D AAR replay).

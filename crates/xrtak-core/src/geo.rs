@@ -21,6 +21,141 @@ pub trait ElevationProvider: Send + Sync {
         }
         out
     }
+
+    /// Compute local terrain slope angle in degrees (`[0.0, 90.0)`) using central finite differences.
+    fn sample_slope_deg(&self, east_m: f64, north_m: f64) -> f64 {
+        let step_m = 10.0;
+        let dz_de = (self.sample_relief_m(east_m + step_m, north_m)
+            - self.sample_relief_m(east_m - step_m, north_m))
+            / (2.0 * step_m);
+        let dz_dn = (self.sample_relief_m(east_m, north_m + step_m)
+            - self.sample_relief_m(east_m, north_m - step_m))
+            / (2.0 * step_m);
+        let grad = (dz_de * dz_de + dz_dn * dz_dn).sqrt();
+        grad.atan().to_degrees()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElevationProfileSample {
+    pub dist_m: f64,
+    pub east_m: f64,
+    pub north_m: f64,
+    pub relief_m: f64,
+    pub asl_m: f64,
+    pub slope_deg: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElevationProfileResult {
+    pub total_distance_m: f64,
+    pub total_ascent_m: f64,
+    pub total_descent_m: f64,
+    pub min_asl_m: f64,
+    pub max_asl_m: f64,
+    pub max_slope_deg: f64,
+    pub samples: Vec<ElevationProfileSample>,
+}
+
+/// Compute a terrain elevation cross-section profile along a sequence of `(east_m, north_m)` waypoints.
+pub fn compute_elevation_profile(
+    provider: &dyn ElevationProvider,
+    waypoints_en: &[(f64, f64)],
+    base_alt_m: f64,
+    samples_per_segment: usize,
+) -> ElevationProfileResult {
+    let steps = samples_per_segment.max(4);
+    let mut samples = Vec::new();
+    let mut cum_dist_m = 0.0;
+    let mut total_ascent_m = 0.0;
+    let mut total_descent_m = 0.0;
+    let mut min_asl_m = f64::INFINITY;
+    let mut max_asl_m = f64::NEG_INFINITY;
+    let mut max_slope_deg = 0.0_f64;
+
+    if waypoints_en.is_empty() {
+        return ElevationProfileResult {
+            total_distance_m: 0.0,
+            total_ascent_m: 0.0,
+            total_descent_m: 0.0,
+            min_asl_m: base_alt_m,
+            max_asl_m: base_alt_m,
+            max_slope_deg: 0.0,
+            samples,
+        };
+    }
+
+    if waypoints_en.len() == 1 {
+        let (e, n) = waypoints_en[0];
+        let rel = provider.sample_relief_m(e, n);
+        let asl = base_alt_m + rel;
+        let slope = provider.sample_slope_deg(e, n);
+        samples.push(ElevationProfileSample {
+            dist_m: 0.0,
+            east_m: e,
+            north_m: n,
+            relief_m: rel,
+            asl_m: asl,
+            slope_deg: slope,
+        });
+        return ElevationProfileResult {
+            total_distance_m: 0.0,
+            total_ascent_m: 0.0,
+            total_descent_m: 0.0,
+            min_asl_m: asl,
+            max_asl_m: asl,
+            max_slope_deg: slope,
+            samples,
+        };
+    }
+
+    let mut prev_asl: Option<f64> = None;
+    for seg_idx in 0..(waypoints_en.len() - 1) {
+        let (e0, n0) = waypoints_en[seg_idx];
+        let (e1, n1) = waypoints_en[seg_idx + 1];
+        let seg_len = ((e1 - e0).powi(2) + (n1 - n0).powi(2)).sqrt();
+        let start_s = if seg_idx == 0 { 0 } else { 1 };
+        for s in start_s..=steps {
+            let frac = s as f64 / steps as f64;
+            let e = e0 + (e1 - e0) * frac;
+            let n = n0 + (n1 - n0) * frac;
+            let d = cum_dist_m + seg_len * frac;
+            let rel = provider.sample_relief_m(e, n);
+            let asl = base_alt_m + rel;
+            let slope = provider.sample_slope_deg(e, n);
+            if let Some(p_asl) = prev_asl {
+                let dz = asl - p_asl;
+                if dz > 0.0 {
+                    total_ascent_m += dz;
+                } else {
+                    total_descent_m += -dz;
+                }
+            }
+            prev_asl = Some(asl);
+            min_asl_m = min_asl_m.min(asl);
+            max_asl_m = max_asl_m.max(asl);
+            max_slope_deg = max_slope_deg.max(slope);
+            samples.push(ElevationProfileSample {
+                dist_m: (d * 10.0).round() / 10.0,
+                east_m: (e * 10.0).round() / 10.0,
+                north_m: (n * 10.0).round() / 10.0,
+                relief_m: (rel * 100.0).round() / 100.0,
+                asl_m: (asl * 100.0).round() / 100.0,
+                slope_deg: (slope * 10.0).round() / 10.0,
+            });
+        }
+        cum_dist_m += seg_len;
+    }
+
+    ElevationProfileResult {
+        total_distance_m: (cum_dist_m * 10.0).round() / 10.0,
+        total_ascent_m: (total_ascent_m * 10.0).round() / 10.0,
+        total_descent_m: (total_descent_m * 10.0).round() / 10.0,
+        min_asl_m: (min_asl_m * 10.0).round() / 10.0,
+        max_asl_m: (max_asl_m * 10.0).round() / 10.0,
+        max_slope_deg: (max_slope_deg * 10.0).round() / 10.0,
+        samples,
+    }
 }
 
 /// Default deterministic procedural topographic relief model.
@@ -271,5 +406,34 @@ mod tests {
 
         let alpine = RasterDemProvider::from_preset("alpine", 1500.0, 32);
         assert!(alpine.sample_relief_m(0.0, 0.0) > 20.0);
+    }
+
+    #[test]
+    fn test_elevation_profile_and_slope() {
+        let dem = RasterDemProvider::new(
+            "ramp-2x2",
+            2,
+            2,
+            100.0,
+            vec![0.0, 100.0, 0.0, 100.0],
+        )
+        .expect("valid ramp DEM");
+
+        // Moving 200m east rises 100m -> grade = 0.5 -> atan(0.5) ~= 26.565 deg
+        let slope = dem.sample_slope_deg(0.0, 0.0);
+        assert!((slope - 26.565).abs() < 0.2);
+
+        let prof = compute_elevation_profile(
+            &dem,
+            &[(-100.0, 0.0), (100.0, 0.0), (-100.0, 0.0)],
+            850.0,
+            10,
+        );
+        assert!((prof.total_distance_m - 400.0).abs() < 1e-6);
+        assert!((prof.total_ascent_m - 100.0).abs() < 1e-6);
+        assert!((prof.total_descent_m - 100.0).abs() < 1e-6);
+        assert!((prof.min_asl_m - 850.0).abs() < 1e-6);
+        assert!((prof.max_asl_m - 950.0).abs() < 1e-6);
+        assert!(prof.samples.len() >= 21);
     }
 }
