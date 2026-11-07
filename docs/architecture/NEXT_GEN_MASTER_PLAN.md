@@ -182,7 +182,7 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 
 ---
 
-## 7. Phase 21–31 Extended EARS Requirements & Strategic Roadmap
+## 7. Phase 21–32 Extended EARS Requirements & Strategic Roadmap
 
 | Req ID | Subsystem | EARS Specification | Verification |
 | :--- | :--- | :--- | :--- |
@@ -205,4 +205,6 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 | `REQ-TRK-02` | `xrtak-core::tracker` | **WHILE** coasting a track without fresh CoT updates, the system **SHALL** compute the time-expanding Circular Error Probable ($\text{CEP}$) uncertainty radius and generate ground confidence circle rings. | `tracker::tests::test_expanding_cep_growth` |
 | `REQ-DEC-01` | `xrtak-core::deconflict` | **WHEN** two moving 3D air tracks are evaluated, the system **SHALL** compute time to Closest Point of Approach ($t_{\text{CPA}}$), horizontal separation, and vertical separation. | `deconflict::tests::test_head_on_critical_cpa` |
 | `REQ-DEC-02` | `xrtak-core::deconflict` | **WHILE** screening theater airspace across all active airborne assets, the system **SHALL** classify pairwise collision risks into `Critical`, `Advisory`, or `Clear` tiers. | `deconflict::tests::test_diverging_and_theater_evaluation` |
+| `REQ-OPO-01` | `xrtak-core::opord` | **WHEN** tactical scene export is requested, the system **SHALL** serialize all friendly, hostile, and neutral entities, SAM threat domes, and ROZ zones into a standard 3D KML document. | `opord::tests::test_kml_tactical_scene_generation` |
+| `REQ-OPO-02` | `xrtak-core::opord` | **WHEN** an operation order is requested, the system **SHALL** synthesize a standard 5-paragraph NATO OPORD (SMEAC) Markdown document capturing situation, mission, execution, logistics, and signal plans. | `opord::tests::test_nato_opord_markdown_structure` |
 
