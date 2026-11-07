@@ -77,3 +77,34 @@ pub fn compute_fresnel_radius_m(d1_m: f64, d2_m: f64, frequency_hz: f64) -> f64 
     let lambda = c / frequency_hz;
     ((lambda * d1_m * d2_m) / total_d).sqrt()
 }
+
+/// Computes Knife-Edge Diffraction Loss J(v) in dB using ITU-R P.526-15 approximation.
+///
+/// v is the dimensionless diffraction parameter.
+/// If v <= -0.7, obstacle is outside 0.6 Fresnel clearance (0 dB loss).
+pub fn compute_knife_edge_diffraction_db(v: f64) -> f64 {
+    if v <= -0.7 {
+        0.0
+    } else {
+        let term = ((v - 0.1).powi(2) + 1.0).sqrt() + (v - 0.1);
+        if term <= 0.0 {
+            0.0
+        } else {
+            6.9 + 20.0 * term.log10()
+        }
+    }
+}
+
+/// Computes dimensionless Fresnel-Kirchhoff diffraction parameter v.
+///
+/// obstacle_penetration_m is obstacle elevation minus LOS ray height at obstacle distance.
+pub fn compute_diffraction_v(obstacle_penetration_m: f64, d1_m: f64, d2_m: f64, frequency_hz: f64) -> f64 {
+    let total_d = d1_m + d2_m;
+    if total_d <= 1e-3 || d1_m <= 1e-3 || d2_m <= 1e-3 {
+        return -1.0;
+    }
+    let c = 299_792_458.0;
+    let lambda = c / frequency_hz;
+    let scale = (2.0 * total_d / (lambda * d1_m * d2_m)).sqrt();
+    obstacle_penetration_m * scale
+}
