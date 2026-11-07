@@ -8,9 +8,10 @@ use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider,
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json,
-    ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission, AarSummary, GeoOrigin,
-    OperatorPeer, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport,
-    SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
+    ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission, resolve_tile_with_fallback,
+    AarSummary, GeoOrigin, ImageryProvider, OperatorPeer, ProceduralReliefModel,
+    RasterDemProvider, SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld,
+    TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -135,6 +136,14 @@ struct MissionExportRequest {
     route_uid: Option<String>,
     route_callsign: Option<String>,
     waypoints_en_agl: Vec<(f64, f64, f64)>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TileResolveRequest {
+    provider: Option<String>,
+    lat: Option<f64>,
+    lon: Option<f64>,
+    zoom: Option<u8>,
 }
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
@@ -827,6 +836,28 @@ async fn handle_http_connection(
                 "atak_bmr_cot_xml": atak_bmr_xml,
             })
             .to_string();
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
+    if method == "POST" && path == "/api/tiles/resolve" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(t_req) = serde_json::from_str::<TileResolveRequest>(body) {
+            let (lat, lon) = {
+                let guard = world.lock().unwrap();
+                (
+                    t_req.lat.unwrap_or(guard.origin.lat),
+                    t_req.lon.unwrap_or(guard.origin.lon),
+                )
+            };
+            let provider =
+                ImageryProvider::from_id(t_req.provider.as_deref().unwrap_or("esri"));
+            let zoom = t_req.zoom.unwrap_or(15);
+            let spec = resolve_tile_with_fallback(provider, lat, lon, zoom);
+            let resp_json = serde_json::to_string(&spec)?;
             let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp_json.as_bytes()).await?;
