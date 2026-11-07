@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use xrtak_core::casevac::{HlzSuitability, MedevacReport, PatientPrecedence};
+use xrtak_core::casevac::{HlzSuitability, MedevacReport};
 
 #[derive(Debug, Deserialize)]
 pub struct MedevacNineLineRequest {

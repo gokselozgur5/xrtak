@@ -17,6 +17,7 @@ use xrtak_core::{
 };
 
 mod ew_dto;
+mod medevac_dto;
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
 const CORS_HEADERS: &str = "Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nAccess-Control-Allow-Private-Network: true\r\n";
@@ -1111,6 +1112,65 @@ async fn handle_http_connection(
             return Ok(());
         }
         let err = r#"{"error":"invalid_ew_jamming_payload"}"#;
+        stream.write_all(format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n{}", err.len(), err).as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "POST" && path == "/api/medevac/nine-line" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(m_req) = serde_json::from_str::<medevac_dto::MedevacNineLineRequest>(body) {
+            let prec = match m_req.precedence.as_deref() {
+                Some("urgent") => xrtak_core::PatientPrecedence::Urgent,
+                Some("urgent_surgical") => xrtak_core::PatientPrecedence::UrgentSurgical,
+                Some("priority") => xrtak_core::PatientPrecedence::Priority,
+                Some("routine") => xrtak_core::PatientPrecedence::Routine,
+                _ => xrtak_core::PatientPrecedence::Urgent,
+            };
+            let (e, u, n) = m_req.enu_center;
+            let radius = m_req.hlz_radius_m.unwrap_or(25.0);
+            let (hlz_suitability, lat, lon) = {
+                let guard = world.lock().unwrap();
+                let elev: &dyn xrtak_core::ElevationProvider = guard.terrain.as_ref();
+                let suit = xrtak_core::evaluate_hlz_suitability(
+                    e,
+                    n,
+                    radius,
+                    elev,
+                    &guard.threat_domes,
+                );
+                let (lat, lon, _) = guard.origin.enu_to_lla(e, n, u);
+                (suit, lat, lon)
+            };
+            let report = xrtak_core::MedevacReport {
+                line1_location: m_req.location,
+                line2_freq_callsign: m_req.freq_callsign,
+                line3_precedence: prec,
+                line4_special_equipment: m_req.special_equipment.unwrap_or_else(|| "None / Standard".to_string()),
+                line5_litter_count: m_req.litter_count.unwrap_or(1),
+                line5_ambulatory_count: m_req.ambulatory_count.unwrap_or(0),
+                line6_security: m_req.security.unwrap_or_else(|| "N - No enemy troops in area".to_string()),
+                line7_hlz_marking: m_req.marking.unwrap_or_else(|| "Panels / Smoke Green".to_string()),
+                line8_patient_nationality: m_req.nationality.unwrap_or_else(|| "Friendly Military".to_string()),
+                line9_nbc_or_terrain: m_req.terrain_remarks.unwrap_or_else(|| "Valley clearing".to_string()),
+                lat,
+                lon,
+                east_m: e,
+                north_m: n,
+                up_m: u,
+            };
+            let formatted = xrtak_core::format_nato_nine_line_text(&report);
+            let resp = medevac_dto::MedevacNineLineResponse {
+                formatted_nine_line: formatted,
+                report,
+                hlz_suitability,
+            };
+            let resp_json = serde_json::to_string(&resp)?;
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
+        let err = r#"{"error":"invalid_medevac_request_payload"}"#;
         stream.write_all(format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n{}", err.len(), err).as_bytes()).await?;
         return Ok(());
     }
