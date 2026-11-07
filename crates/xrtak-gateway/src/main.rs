@@ -6,12 +6,12 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
-    build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider,
-    evaluate_mission_corridor, evaluate_swath_corridor, export_atak_route_cot_xml,
-    export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
-    resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider, OperatorPeer,
-    ProceduralReliefModel, RasterDemProvider, SapientDetectionReport, SharedTablePose,
-    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
+    build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
+    compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_swath_corridor,
+    export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission,
+    parse_qgc_plan_mission, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
+    OperatorPeer, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport,
+    SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -155,6 +155,18 @@ struct CorridorPolygonRequest {
     hfov_deg: Option<f64>,
     focal_px: Option<f64>,
     sensor_width_px: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MapsetPlanRequest {
+    name: Option<String>,
+    provider: Option<String>,
+    south: Option<f64>,
+    west: Option<f64>,
+    north: Option<f64>,
+    east: Option<f64>,
+    min_zoom: Option<u8>,
+    max_zoom: Option<u8>,
 }
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
@@ -894,6 +906,36 @@ async fn handle_http_connection(
                 c_req.sensor_width_px,
             );
             let resp_json = serde_json::to_string(&res)?;
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
+    if method == "POST" && path == "/api/mapset/plan" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(mp_req) = serde_json::from_str::<MapsetPlanRequest>(body) {
+            let origin = {
+                let guard = world.lock().unwrap();
+                guard.origin
+            };
+            // Default to the current tactical sand table bounding box if explicit bounds are omitted
+            let (sw_lat, sw_lon, _) = origin.enu_to_lla(-origin.extent_m, 0.0, -origin.extent_m);
+            let (ne_lat, ne_lon, _) = origin.enu_to_lla(origin.extent_m, 0.0, origin.extent_m);
+            let south = mp_req.south.unwrap_or(sw_lat);
+            let west = mp_req.west.unwrap_or(sw_lon);
+            let north = mp_req.north.unwrap_or(ne_lat);
+            let east = mp_req.east.unwrap_or(ne_lon);
+            let provider =
+                ImageryProvider::from_id(mp_req.provider.as_deref().unwrap_or("bing"));
+            let min_zoom = mp_req.min_zoom.unwrap_or(12);
+            let max_zoom = mp_req.max_zoom.unwrap_or(16);
+            let name = mp_req.name.unwrap_or_default();
+            let manifest = build_mapset_manifest(
+                &name, provider, south, west, north, east, min_zoom, max_zoom,
+            );
+            let resp_json = serde_json::to_string(&manifest)?;
             let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp_json.as_bytes()).await?;
