@@ -27,3 +27,32 @@ impl EwTargetBand {
         }
     }
 }
+
+/// Jammer parameters and operational geometry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JammerProfile {
+    pub callsign: String,
+    pub transmitter_power_w: f64,
+    pub antenna_gain_dbi: f64,
+    pub bandwidth_mhz: f64,
+    pub east_m: f64,
+    pub north_m: f64,
+    pub up_m: f64,
+}
+
+/// Target receiver / transceiver parameters.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TargetLinkProfile {
+    pub callsign: String,
+    pub transmitter_power_w: f64,
+    pub tx_antenna_gain_dbi: f64,
+    pub rx_antenna_gain_dbi: f64,
+    pub signal_bandwidth_mhz: f64,
+    pub receiver_sensitivity_dbm: f64,
+    pub tx_east_m: f64,
+    pub tx_north_m: f64,
+    pub tx_up_m: f64,
+    pub rx_east_m: f64,
+    pub rx_north_m: f64,
+    pub rx_up_m: f64,
+}
