@@ -489,6 +489,7 @@
       <button class="tac-btn" id="btn-export-bmr" style="border-color:#00e5ff;color:#00e5ff;">Export ATAK b-m-r</button>
       <button class="tac-btn spi-btn" id="btn-build-corridor" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">Build 3D Swath Corridor Polygon & KML (ICD-17)</button>
       <button class="tac-btn spi-btn" id="btn-plan-mapset" style="grid-column:span 2;border-color:var(--green);color:var(--green);">Plan Offline Mapset & Export Manifest (ICD-18)</button>
+      <button class="tac-btn spi-btn" id="btn-eval-rf" style="grid-column:span 2;border-color:#ec4899;color:#ec4899;">Evaluate RF Link Budget & Fresnel (ICD-19)</button>
     </div>
   </div>
 
@@ -2921,6 +2922,35 @@
           }
         } catch (_) {}
       }
+    };
+
+    // Phase 29: RF Link Budget, 1st Fresnel Zone & Knife-Edge Diffraction (ICD-19)
+    let rfBeamLine = null;
+    document.getElementById('btn-eval-rf').onclick = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/rf/link-budget'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tx_enu: [-600.0, -400.0, 150.0],
+            rx_enu: [800.0, 600.0, 180.0],
+            band: 'ism2400',
+            steps: 48
+          })
+        });
+        if (res.ok) {
+          const rf = await res.json();
+          alert(`[RF LINK BUDGET - ${rf.status}]\nMargin: ${rf.link_margin_db} dB | RSSI: ${rf.received_power_dbm} dBm\nFSPL: ${rf.fspl_db} dB | Diffraction: ${rf.diffraction_loss_db} dB\nFresnel F1: ${rf.max_fresnel_radius_m}m | Clearance: ${rf.worst_clearance_m}m`);
+          if (rfBeamLine) tableGroup.remove(rfBeamLine);
+          const color = rf.status === 'Solid' ? 0x00ff88 : (rf.status === 'Marginal' ? 0xfbbf24 : 0xef4444);
+          const geom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-0.6 * 0.4, (150 / 3000) * 0.25, -0.4 * 0.4),
+            new THREE.Vector3(0.8 * 0.4, (180 / 3000) * 0.25, 0.6 * 0.4)
+          ]);
+          rfBeamLine = new THREE.Line(geom, new THREE.LineBasicMaterial({ color, linewidth: 3 }));
+          tableGroup.add(rfBeamLine);
+        }
+      } catch (_) {}
     };
 
     const visorCanvas = document.getElementById('visor-hud-canvas');
