@@ -175,3 +175,56 @@ pub fn compute_burn_through_range(
         is_burned_through: current_target_range_m <= r_bt,
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_link_jamming_denial_and_js_ratio() {
+        let jammer = JammerProfile {
+            callsign: "KRASUKHA-4".to_string(),
+            transmitter_power_w: 100.0,
+            antenna_gain_dbi: 15.0,
+            bandwidth_mhz: 20.0,
+            east_m: 1000.0,
+            north_m: 1000.0,
+            up_m: 100.0,
+        };
+        let link = TargetLinkProfile {
+            callsign: "FALCON-1".to_string(),
+            transmitter_power_w: 1.0,
+            tx_antenna_gain_dbi: 2.0,
+            rx_antenna_gain_dbi: 0.0,
+            signal_bandwidth_mhz: 2.0,
+            receiver_sensitivity_dbm: -100.0,
+            tx_east_m: 0.0,
+            tx_north_m: 0.0,
+            tx_up_m: 10.0,
+            rx_east_m: 800.0,
+            rx_north_m: 800.0,
+            rx_up_m: 150.0,
+        };
+        let assessment = evaluate_link_jamming(&jammer, &link, EwTargetBand::TacticalC2, 6.0);
+        assert!(assessment.jammer_to_signal_ratio_db > 0.0);
+        assert!(assessment.is_denied);
+        assert!(assessment.suppression_radius_m > 100.0);
+    }
+
+    #[test]
+    fn test_radar_burn_through_range() {
+        let bt = compute_burn_through_range(
+            "PATRIOT-RADAR",
+            50_000.0,
+            30.0,
+            2.0,
+            "POD-JAMMER",
+            500.0,
+            10.0,
+            50_000.0,
+            12_000.0,
+        );
+        assert!(bt.burn_through_range_m > 1000.0);
+        assert!(bt.target_rcs_dbsm > 0.0);
+    }
+}
