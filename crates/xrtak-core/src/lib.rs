@@ -1,6 +1,7 @@
 pub mod aar;
 pub mod cog;
 pub mod collab;
+pub mod corridor;
 pub mod domain;
 pub mod ffi;
 pub mod geo;
@@ -14,6 +15,10 @@ pub mod zones;
 pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
+pub use corridor::{
+    build_buffered_corridor_polygon, compute_camera_swath_width_m, evaluate_swath_corridor,
+    simplify_polyline_rdp, CorridorPolygonResult,
+};
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
     ViewshedSample,
