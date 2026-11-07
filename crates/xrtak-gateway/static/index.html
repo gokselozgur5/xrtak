@@ -493,6 +493,7 @@
       <button class="tac-btn spi-btn" id="btn-predict-tracks" style="grid-column:span 2;border-color:#a855f7;color:#a855f7;">Predict Dead-Reckoning & CEP Rings (ICD-20)</button>
       <button class="tac-btn spi-btn" id="btn-deconflict" style="grid-column:span 2;border-color:#ef4444;color:#ef4444;">Evaluate Airspace Deconfliction & CPA (ICD-21)</button>
       <button class="tac-btn spi-btn" id="btn-export-opord" style="grid-column:span 2;border-color:#10b981;color:#10b981;">Export 3D KML Scene & NATO OPORD (ICD-22)</button>
+      <button class="tac-btn spi-btn" id="btn-eval-ew" style="grid-column:span 2;border-color:#f97316;color:#f97316;">Assess EW Jamming & Burn-Through (ICD-23)</button>
     </div>
   </div>
 
@@ -3042,6 +3043,83 @@
           aKml.click();
           const hs = document.getElementById('hud-status');
           if (hs) hs.textContent = `OPORD EXPORTED · ${bundle.unit_count} UNITS, ${bundle.zone_count} ZONES, ${bundle.dome_count} DOMES`;
+        }
+      } catch (_) {}
+    };
+
+    // Phase 33: Electronic Warfare Jamming & Burn-Through (ICD-23)
+    let ewJammingGroup = null;
+    document.getElementById('btn-eval-ew').onclick = async () => {
+      try {
+        const payload = {
+          jammer: {
+            callsign: "KRASUKHA-4",
+            transmitter_power_w: 150.0,
+            antenna_gain_dbi: 14.0,
+            bandwidth_mhz: 25.0,
+            east_m: 600.0,
+            north_m: 500.0,
+            up_m: 80.0
+          },
+          link: {
+            callsign: "FALCON-1",
+            transmitter_power_w: 2.0,
+            tx_antenna_gain_dbi: 2.0,
+            rx_antenna_gain_dbi: 0.0,
+            signal_bandwidth_mhz: 2.0,
+            receiver_sensitivity_dbm: -98.0,
+            tx_east_m: -200.0,
+            tx_north_m: -100.0,
+            tx_up_m: 10.0,
+            rx_east_m: 400.0,
+            rx_north_m: 300.0,
+            rx_up_m: 150.0
+          },
+          band: "c2",
+          jamming_margin_threshold_db: 6.0,
+          radar_burn_through: {
+            radar_power_w: 25000.0,
+            radar_gain_dbi: 28.0,
+            target_rcs_m2: 1.5,
+            current_target_range_m: 8000.0
+          }
+        };
+        const res = await fetch(apiUrl('/api/ew/jamming'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const ewData = await res.json();
+          const asm = ewData.assessment;
+          const bt = ewData.burn_through;
+          const statusText = `EW [${asm.is_denied ? 'DENIED' : 'ACTIVE'}] J/S: ${asm.jammer_to_signal_ratio_db}dB | SUPPR: ${asm.suppression_radius_m}m | R_BT: ${bt ? bt.burn_through_range_m + 'm' : 'N/A'}`;
+          const hs = document.getElementById('hud-status');
+          if (hs) hs.textContent = statusText;
+          const sumEl = document.getElementById('elev-profile-summary');
+          if (sumEl) sumEl.textContent = statusText;
+
+          if (ewJammingGroup) tableGroup.remove(ewJammingGroup);
+          ewJammingGroup = new THREE.Group();
+
+          const rTable = (asm.suppression_radius_m * M_TO_TABLE);
+          const circleGeom = new THREE.RingGeometry(Math.max(0.01, rTable - 0.005), rTable + 0.005, 32);
+          circleGeom.rotateX(-Math.PI / 2);
+          const jColor = asm.is_denied ? 0xef4444 : 0xf97316;
+          const ringMesh = new THREE.Mesh(circleGeom, new THREE.MeshBasicMaterial({ color: jColor, side: THREE.DoubleSide, transparent: true, opacity: 0.65 }));
+          const jPos = enuToTableVec3(payload.jammer.east_m, payload.jammer.up_m, payload.jammer.north_m);
+          ringMesh.position.copy(jPos);
+          ewJammingGroup.add(ringMesh);
+
+          const jamLineGeom = new THREE.BufferGeometry().setFromPoints([
+            jPos,
+            enuToTableVec3(payload.link.rx_east_m, payload.link.rx_up_m, payload.link.rx_north_m)
+          ]);
+          const jamLine = new THREE.Line(jamLineGeom, new THREE.LineDashedMaterial({ color: jColor, dashSize: 0.02, gapSize: 0.01 }));
+          jamLine.computeLineDistances();
+          ewJammingGroup.add(jamLine);
+
+          tableGroup.add(ewJammingGroup);
         }
       } catch (_) {}
     };
