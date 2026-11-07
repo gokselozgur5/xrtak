@@ -141,3 +141,37 @@ pub fn evaluate_rf_propagation(
     let fspl = compute_fspl_db(dist, freq);
     (dist, min_clear, worst_v, fspl)
 }
+
+/// Evaluates an RF link budget across terrain with 1st Fresnel clearance and diffraction.
+pub fn evaluate_rf_link(
+    tx: (f64, f64, f64),
+    rx: (f64, f64, f64),
+    band: RfBand,
+    steps: usize,
+    provider: &dyn crate::geo::ElevationProvider,
+) -> RfLinkResult {
+    let freq = band.frequency_hz();
+    let lambda = 299_792_458.0 / freq;
+    let (dist, min_clear, worst_v, fspl) = evaluate_rf_propagation(tx, rx, freq, steps, provider);
+    let diffraction = compute_knife_edge_diffraction_db(worst_v);
+    let f1_max = compute_fresnel_radius_m(dist / 2.0, dist / 2.0, freq);
+
+    let rx_pwr = band.default_tx_power_dbm() + 4.3 - fspl - diffraction; // 2.15 dBi dipoles
+    let margin = rx_pwr - band.default_rx_sensitivity_dbm();
+
+    let status = if margin >= 15.0 { "Solid" } else if margin >= 5.0 { "Marginal" }
+                 else if margin >= 0.0 { "Degraded" } else { "Severed" };
+
+    RfLinkResult {
+        frequency_hz: freq,
+        wavelength_m: lambda,
+        distance_m: dist,
+        fspl_db: (fspl * 100.0).round() / 100.0,
+        max_fresnel_radius_m: (f1_max * 100.0).round() / 100.0,
+        worst_clearance_m: (min_clear * 100.0).round() / 100.0,
+        diffraction_loss_db: (diffraction * 100.0).round() / 100.0,
+        received_power_dbm: (rx_pwr * 100.0).round() / 100.0,
+        link_margin_db: (margin * 100.0).round() / 100.0,
+        status: status.to_string(),
+    }
+}
