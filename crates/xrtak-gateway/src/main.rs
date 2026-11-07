@@ -7,9 +7,9 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider,
-    evaluate_mission_corridor, parse_kml_mission, parse_qgc_plan_mission, AarSummary, GeoOrigin,
-    ProceduralReliefModel, RasterDemProvider, SapientDetectionReport, TacticalEntity,
-    TacticalWorld, TacticalZone, ThreatDome,
+    evaluate_mission_corridor, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
+    AarSummary, GeoOrigin, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport,
+    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -65,6 +65,13 @@ struct TerrainSwitchRequest {
     height: Option<usize>,
     extent_m: Option<f64>,
     heights_m: Option<Vec<f64>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GeoTiffUploadRequest {
+    name: Option<String>,
+    bytes: Vec<u8>,
+    auto_recenter: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -481,6 +488,63 @@ async fn handle_http_connection(
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
+        }
+    }
+
+    if method == "POST" && path == "/api/terrain/geotiff" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(gt_req) = serde_json::from_str::<GeoTiffUploadRequest>(body) {
+            let name = gt_req.name.unwrap_or_else(|| "GEOTIFF-DSM".to_string());
+            let extent = {
+                let guard = world.lock().unwrap();
+                guard.origin.extent_m
+            };
+            match ingest_geotiff_dsm(&name, extent, 65, &gt_req.bytes) {
+                Ok(parsed) => {
+                    let resp_json = {
+                        let mut guard = world.lock().unwrap();
+                        if gt_req.auto_recenter.unwrap_or(true) {
+                            if let Some((clat, clon)) = parsed.center_lat_lon {
+                                guard.recenter_origin(GeoOrigin {
+                                    lat: clat,
+                                    lon: clon,
+                                    alt_m: parsed.min_asl_m.round(),
+                                    extent_m: extent,
+                                });
+                            } else {
+                                guard.origin.alt_m = parsed.min_asl_m.round();
+                            }
+                        }
+                        guard.set_terrain_provider(&name, Box::new(parsed.dem));
+                        let grid = guard.terrain.export_grid(guard.origin.extent_m, 65);
+                        serde_json::json!({
+                            "name": guard.terrain_name,
+                            "origin": guard.origin,
+                            "metadata": parsed.metadata,
+                            "min_asl_m": parsed.min_asl_m,
+                            "max_asl_m": parsed.max_asl_m,
+                            "resolution": 65,
+                            "extent_m": guard.origin.extent_m,
+                            "heights_m": grid
+                        })
+                        .to_string()
+                    };
+                    let header = json_ok_header(resp_json.len());
+                    stream.write_all(header.as_bytes()).await?;
+                    stream.write_all(resp_json.as_bytes()).await?;
+                    return Ok(());
+                }
+                Err(err) => {
+                    let msg = serde_json::json!({ "error": err }).to_string();
+                    let header = format!(
+                        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
+                        msg.len()
+                    );
+                    stream.write_all(header.as_bytes()).await?;
+                    stream.write_all(msg.as_bytes()).await?;
+                    return Ok(());
+                }
+            }
         }
     }
 
