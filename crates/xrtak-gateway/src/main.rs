@@ -6,14 +6,14 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
-    build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
+    build_laser_pointer_cot_xml, build_mapset_manifest, build_opord_bundle, compute_link_los,
     compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
     predict_entity_trajectory, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
-    OperatorPeer, ProceduralReliefModel, RasterDemProvider, RfBand, SapientDetectionReport,
-    SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPrediction,
-    TrackPredictRequest,
+    OperatorPeer, OpordUnitSummary, ProceduralReliefModel, RasterDemProvider, RfBand,
+    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
+    ThreatDome, TrackPrediction, TrackPredictRequest,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -1026,6 +1026,39 @@ async fn handle_http_connection(
             evaluate_theater_deconfliction(&list)
         };
         let resp_json = serde_json::to_string(&deconflict_res)?;
+        let header = json_ok_header(resp_json.len());
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(resp_json.as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "GET" && path == "/api/export/opord" {
+        let bundle = {
+            let guard = world.lock().unwrap();
+            let units: Vec<OpordUnitSummary> = guard
+                .entities
+                .values()
+                .map(|e| OpordUnitSummary {
+                    callsign: e.callsign.clone(),
+                    cot_type: e.cot_type.clone(),
+                    affiliation: format!("{:?}", e.affiliation),
+                    lat: e.lat,
+                    lon: e.lon,
+                    alt_m: e.up_m,
+                })
+                .collect();
+            let origin_lla = (guard.origin.lat, guard.origin.lon, guard.origin.alt_m);
+            let zone_count = guard.tactical_zones.len();
+            let dome_count = guard.threat_domes.len();
+            build_opord_bundle(
+                &format!("XRTAK-{}", guard.terrain_name.to_uppercase()),
+                origin_lla,
+                &units,
+                zone_count,
+                dome_count,
+            )
+        };
+        let resp_json = serde_json::to_string(&bundle)?;
         let header = json_ok_header(resp_json.len());
         stream.write_all(header.as_bytes()).await?;
         stream.write_all(resp_json.as_bytes()).await?;
