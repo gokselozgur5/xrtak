@@ -53,8 +53,9 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 29** | [`xrtak-core::rf`](crates/xrtak-core/src/rf.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Tactical RF Link Budget (900MHz/2.4GHz/5.8GHz), Free-Space Path Loss, 1st Fresnel Radius & ITU-R P.526 Knife-Edge Diffraction (`POST /api/rf/link-budget`) | **Complete (`ICD-19` / `REQ-RF-01..02`)** |
 | **Phase 30** | [`xrtak-core::tracker`](crates/xrtak-core/src/tracker.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Dead-Reckoning Kinematic Track Extrapolation, Expanding CEP Uncertainty Rings & Stale Track Coasting (`POST /api/tracks/predict`) | **Complete (`ICD-20` / `REQ-TRK-01..02`)** |
 | **Phase 31** | [`xrtak-core::deconflict`](crates/xrtak-core/src/deconflict.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 4D Airspace Deconfliction, Pairwise Closest Point of Approach (CPA) & Proximity Risk Classification (`POST /api/airspace/deconflict`) | **Complete (`ICD-21` / `REQ-DEC-01..02`)** |
+| **Phase 32** | [`xrtak-core::opord`](crates/xrtak-core/src/opord.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 3D Tactical KML Scene Packaging & Automated 5-Paragraph NATO Field OPORD Generator (`GET /api/export/opord`) | **Complete (`ICD-22` / `REQ-OPO-01..02`)** |
 
-See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-21`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
+See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-22`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
 ---
 
@@ -119,7 +120,7 @@ cargo test
 
 ---
 
-## Verification & MBSE Traceability Matrix (Phases 1–31 Sealed)
+## Verification & MBSE Traceability Matrix (Phases 1–32 Sealed)
 
-All 31 phases (`ICD-01`..`ICD-21` and `REQ-DEM` / `REQ-TAC` / `REQ-AAR` / `REQ-COL` / `REQ-ELV` / `REQ-MIS` / `REQ-COG` / `REQ-RTC` / `REQ-MAV` / `REQ-MAP` / `REQ-COR` / `REQ-MAN` / `REQ-RF` / `REQ-TRK` / `REQ-DEC`) are verified by the automated Rust test suite (`cargo test`, 34 unit tests).
+All 32 phases (`ICD-01`..`ICD-22` and `REQ-DEM` / `REQ-TAC` / `REQ-AAR` / `REQ-COL` / `REQ-ELV` / `REQ-MIS` / `REQ-COG` / `REQ-RTC` / `REQ-MAV` / `REQ-MAP` / `REQ-COR` / `REQ-MAN` / `REQ-RF` / `REQ-TRK` / `REQ-DEC` / `REQ-OPO`) are verified by the automated Rust test suite (`cargo test`, 36 unit tests).
 
