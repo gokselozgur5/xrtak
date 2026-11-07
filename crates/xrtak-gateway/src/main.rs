@@ -8,11 +8,12 @@ use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
     compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
-    evaluate_swath_corridor, export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm,
-    parse_kml_mission, parse_qgc_plan_mission, predict_entity_trajectory,
-    resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider, OperatorPeer,
-    ProceduralReliefModel, RasterDemProvider, RfBand, SapientDetectionReport, SharedTablePose,
-    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPrediction, TrackPredictRequest,
+    evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
+    export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
+    predict_entity_trajectory, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
+    OperatorPeer, ProceduralReliefModel, RasterDemProvider, RfBand, SapientDetectionReport,
+    SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPrediction,
+    TrackPredictRequest,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -1000,6 +1001,31 @@ async fn handle_http_connection(
             }).collect()
         };
         let resp_json = serde_json::to_string(&predictions)?;
+        let header = json_ok_header(resp_json.len());
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(resp_json.as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "POST" && path == "/api/airspace/deconflict" {
+        let deconflict_res = {
+            let guard = world.lock().unwrap();
+            let mut list: Vec<(&str, (f64, f64, f64), f64, f64)> = guard
+                .entities
+                .values()
+                .filter(|e| e.dimension == xrtak_core::Dimension::Air && e.speed_mps > 1.0)
+                .map(|e| (e.callsign.as_str(), (e.east_m, e.north_m, e.up_m), e.speed_mps, e.course_deg))
+                .collect();
+            if list.len() < 2 {
+                list = guard
+                    .entities
+                    .values()
+                    .map(|e| (e.callsign.as_str(), (e.east_m, e.north_m, e.up_m), e.speed_mps.max(15.0), e.course_deg))
+                    .collect();
+            }
+            evaluate_theater_deconfliction(&list)
+        };
+        let resp_json = serde_json::to_string(&deconflict_res)?;
         let header = json_ok_header(resp_json.len());
         stream.write_all(header.as_bytes()).await?;
         stream.write_all(resp_json.as_bytes()).await?;
