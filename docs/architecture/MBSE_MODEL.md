@@ -49,6 +49,7 @@ classDiagram
 | `ICD-15` | `WebXR / OpenXR Client` | `xrtak-core::mission` & `ATAK UDP :4243` | `POST /api/mission/export` $\rightarrow$ QGC `.plan` JSON + ATAK `b-m-r` Route CoT XML | Phase 25 Direct Autopilot & CoT Route Export |
 | `ICD-16` | `WebXR / OpenXR Client` | `xrtak-core::tiles` (`resolve_tile_with_fallback`) | `POST /api/tiles/resolve` $\rightarrow$ Bing Quadkey / Sentinel-2 / Esri + `z=13` Sea Fallback | Phase 26 Multi-Provider Imagery & Sea Fallback |
 | `ICD-17` | `WebXR / OpenXR Client` | `xrtak-core::corridor` (`evaluate_swath_corridor`) | `POST /api/mission/corridor-polygon` $\rightarrow$ RDP Simplified Swath Polygon + KML `<Polygon>` | Phase 27 Camera FOV Swath Corridor & RDP |
+| `ICD-18` | `WebXR / OpenXR Client` | `xrtak-core::manifest` (`build_mapset_manifest`) | `POST /api/mapset/plan` $\rightarrow$ Copernicus GLO-30 DEM S3 Cells + Multi-Zoom Offline Manifest | Phase 28 Copernicus GLO-30 DEM & Mapset Manifest |
 
 See [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](NEXT_GEN_MASTER_PLAN.md) for the complete EARS requirements (`REQ-DEM`, `REQ-TAC`, `REQ-AAR`, `REQ-COL`), mathematical algorithms, and Phases 4–7 execution roadmap.
 

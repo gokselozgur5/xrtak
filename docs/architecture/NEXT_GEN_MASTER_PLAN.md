@@ -182,7 +182,7 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 
 ---
 
-## 7. Phase 21–25 Extended EARS Requirements & Strategic Roadmap
+## 7. Phase 21–28 Extended EARS Requirements & Strategic Roadmap
 
 | Req ID | Subsystem | EARS Specification | Verification |
 | :--- | :--- | :--- | :--- |
@@ -197,4 +197,6 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 | `REQ-MAP-02` | `xrtak-core::tiles` | **IF** an offshore/sea tile at zoom > 13 returns a uniform light-beige `no-tile` placeholder, the system **SHALL** detect the low-variance placeholder and fall back to the parent `z=13` ocean tile. | `tiles::tests::test_offshore_placeholder_detection` |
 | `REQ-COR-01` | `xrtak-core::corridor` | **WHEN** a dense waypoint track is provided, the system **SHALL** simplify the polyline via Ramer-Douglas-Peucker (`simplify_polyline_rdp`) and compute ground swath width from AGL altitude and camera HFOV / focal length. | `corridor::tests::test_camera_swath_width_and_rdp_simplification` |
 | `REQ-COR-02` | `xrtak-core::corridor` | **WHEN** a simplified centerline and swath width are evaluated, the system **SHALL** construct a miter-clamped closed corridor polygon ring and export a valid KML `<Polygon>`. | `corridor::tests::test_buffered_corridor_polygon_and_kml` |
+| `REQ-MAN-01` | `xrtak-core::manifest` | **WHEN** a WGS84 bounding box is queried, the system **SHALL** enumerate all intersecting 1°×1° Copernicus GLO-30 30m DEM COG tile identifiers (`Copernicus_DSM_COG_10_{N\|S}{lat:02}_00_{E\|W}{lon:03}_00_DEM`) and AWS Open Data S3 URLs. | `manifest::tests::test_copernicus_glo30_cell_naming_and_s3_urls` |
+| `REQ-MAN-02` | `xrtak-core::manifest` | **WHEN** an offline mapset plan is requested across zoom range `[z_min, z_max]`, the system **SHALL** compute per-zoom Web Mercator tile counts, storage byte estimates, and a deterministic 64-bit FNV-1a `manifest_hash`. | `manifest::tests::test_mapset_manifest_tile_counts_and_hash` |
 

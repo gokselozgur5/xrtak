@@ -488,6 +488,7 @@
       <button class="tac-btn" id="btn-export-qgc" style="border-color:var(--green);color:var(--green);">Export QGC .plan</button>
       <button class="tac-btn" id="btn-export-bmr" style="border-color:#00e5ff;color:#00e5ff;">Export ATAK b-m-r</button>
       <button class="tac-btn spi-btn" id="btn-build-corridor" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">Build 3D Swath Corridor Polygon & KML (ICD-17)</button>
+      <button class="tac-btn spi-btn" id="btn-plan-mapset" style="grid-column:span 2;border-color:var(--green);color:var(--green);">Plan Offline Mapset & Export Manifest (ICD-18)</button>
     </div>
   </div>
 
@@ -2884,6 +2885,38 @@
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = 'xrtak_swath_corridor.kml';
+            a.click();
+          }
+        } catch (_) {}
+      }
+    };
+
+    // Phase 28: Copernicus GLO-30 DEM Cell Planner & Offline Mapset Manifest Generator (ICD-18)
+    document.getElementById('btn-plan-mapset').onclick = async () => {
+      const provider = activeImageryMode || 'bing';
+      if (!standaloneSimActive) {
+        try {
+          const res = await fetch(apiUrl('/api/mapset/plan'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: `XRTAK-AO-${Math.round(currentOriginLat * 100)}N-${Math.round(currentOriginLon * 100)}E`,
+              provider,
+              min_zoom: 12,
+              max_zoom: 16
+            })
+          });
+          if (res.ok) {
+            const manifest = await res.json();
+            const sumEl = document.getElementById('elev-profile-summary');
+            if (sumEl) {
+              const mb = (manifest.total_package_bytes / (1024 * 1024)).toFixed(1);
+              sumEl.textContent = `${manifest.total_tiles} TILES + ${manifest.copernicus_dem_cells.length} GLO-30 DEM (~${mb} MB)`;
+            }
+            const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${manifest.name.toLowerCase()}_manifest.json`;
             a.click();
           }
         } catch (_) {}
