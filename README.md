@@ -45,6 +45,7 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 21** | [`xrtak-core::geo`](crates/xrtak-core/src/geo.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 3D Route Elevation Profile Curtain & Cross-Section Chart (`POST /api/elevation-profile`), Central-Difference Slope Telemetry (`sample_slope_deg`), and Offline 16-bit NASA SRTM `.hgt` Ingestion | **Complete (`ICD-11` / `REQ-ELV-01..02`)** |
 | **Phase 22** | [`xrtak-core::mission`](crates/xrtak-core/src/mission.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | KML (`<Placemark>` / `<LineString>`) & QGroundControl (`.plan`) 3D Mission Corridor Ingestion (`POST /api/mission/import`), Per-Waypoint AGL Clearance & CFIT Warning Analysis | **Complete (`ICD-12` / `REQ-MIS-01..02`)** |
 | **Phase 23** | [`xrtak-core::cog`](crates/xrtak-core/src/cog.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Pure-Rust GeoTIFF / COG DSM IFD & `ModelTiepointTag` Parser (`POST /api/terrain/geotiff`, `Float32`/`Int16`) and Offline Orthophoto Imagery Texture Draping | **Complete (`ICD-13` / `REQ-COG-01`)** |
+| **Phase 24** | [`xrtak-core::collab`](crates/xrtak-core/src/collab.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Multi-Operator Spatial Collaboration (`POST /api/collab/sync`), Shared 6DoF 3D Laser Beams, Synchronized Sand-Table Pose/Scale, and PTT Voice Comms | **Complete (`ICD-14` / `REQ-RTC-01`)** |
 
 See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
@@ -111,10 +112,9 @@ cargo test
 
 ---
 
-## Strategic Roadmap (Phases 24–25)
+## Strategic Roadmap (Phase 25)
 
 | Milestone | Target Subsystem | Traceable Requirement (`EARS`) | Planned Capability |
 | :--- | :--- | :--- | :--- |
-| **Phase 24** | `xrtak-gateway` & WebXR Multi-User | `REQ-RTC-01` | **Multi-Operator Spatial Collaboration & WebRTC Voice:** Shared 6DoF Quest 3 laser cues (`b-m-p-c`), synchronized sand-table pose/scale, and spatialized team audio. |
 | **Phase 25** | `xrtak-core::mission` & `atak-plugin` | `REQ-MAV-01` | **Direct Autopilot & CoT Route (`b-m-r`) Export:** Bidirectional 3D waypoint editing in Mixed Reality with one-click export to QGroundControl `.plan`, MAVLink, and ATAK `b-m-r` routes. |
 

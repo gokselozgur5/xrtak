@@ -8,8 +8,9 @@ use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider,
     evaluate_mission_corridor, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
-    AarSummary, GeoOrigin, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport,
-    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
+    AarSummary, GeoOrigin, OperatorPeer, ProceduralReliefModel, RasterDemProvider,
+    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
+    ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -31,6 +32,21 @@ struct WorldSnapshot {
     entities: Vec<TacticalEntity>,
     threat_domes: Vec<ThreatDome>,
     tactical_zones: Vec<TacticalZone>,
+    operators: Vec<OperatorPeer>,
+    table_pose: SharedTablePose,
+}
+
+#[derive(Debug, Deserialize)]
+struct CollabSyncRequest {
+    operator_id: String,
+    callsign: String,
+    device_mode: Option<String>,
+    head_enu: Option<(f64, f64, f64)>,
+    laser_target_enu: Option<(f64, f64, f64)>,
+    ptt_active: Option<bool>,
+    color_hex: Option<String>,
+    shared_scale: Option<f64>,
+    shared_yaw_deg: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -247,7 +263,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ticker.tick().await;
                 let payload = {
                     let mut guard = world_sim.lock().unwrap();
-                    guard.step_simulation(0.05, now_unix_ms());
+                    let now_ms = now_unix_ms();
+                    guard.step_simulation(0.05, now_ms);
+                    guard.collab.prune_stale(now_ms, 15_000);
                     let mut entities: Vec<TacticalEntity> =
                         guard.entities.values().cloned().collect();
                     entities.sort_by(|a, b| a.uid.cmp(&b.uid));
@@ -260,6 +278,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         entities,
                         threat_domes: guard.threat_domes.clone(),
                         tactical_zones: guard.tactical_zones.clone(),
+                        operators: guard.collab.sorted_peers(),
+                        table_pose: guard.collab.table_pose,
                     };
                     serde_json::to_string(&snap).unwrap_or_default()
                 };
@@ -367,6 +387,8 @@ async fn handle_http_connection(
                 entities,
                 threat_domes: guard.threat_domes.clone(),
                 tactical_zones: guard.tactical_zones.clone(),
+                operators: guard.collab.sorted_peers(),
+                table_pose: guard.collab.table_pose,
             };
             serde_json::to_string(&snap)?
         };
@@ -958,6 +980,38 @@ async fn handle_http_connection(
                 stream.write_all(json.as_bytes()).await?;
                 return Ok(());
             }
+        }
+    }
+
+    if method == "POST" && path == "/api/collab/sync" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(c_req) = serde_json::from_str::<CollabSyncRequest>(body) {
+            let resp_json = {
+                let mut guard = world.lock().unwrap();
+                let now_ms = now_unix_ms();
+                let peer = OperatorPeer {
+                    operator_id: c_req.operator_id,
+                    callsign: c_req.callsign,
+                    device_mode: c_req.device_mode.unwrap_or_else(|| "DESKTOP-C2".to_string()),
+                    head_enu: c_req.head_enu.unwrap_or((0.0, 480.0, -420.0)),
+                    laser_target_enu: c_req.laser_target_enu,
+                    ptt_active: c_req.ptt_active.unwrap_or(false),
+                    color_hex: c_req.color_hex.unwrap_or_else(|| "#00ff88".to_string()),
+                    updated_unix_ms: now_ms,
+                };
+                guard
+                    .collab
+                    .upsert_peer(peer, c_req.shared_scale, c_req.shared_yaw_deg);
+                serde_json::json!({
+                    "operators": guard.collab.sorted_peers(),
+                    "table_pose": guard.collab.table_pose,
+                })
+                .to_string()
+            };
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
         }
     }
 
