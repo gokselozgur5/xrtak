@@ -2943,12 +2943,14 @@
         });
         if (res.ok) {
           const rf = await res.json();
-          alert(`[RF LINK BUDGET - ${rf.status}]\nMargin: ${rf.link_margin_db} dB | RSSI: ${rf.received_power_dbm} dBm\nFSPL: ${rf.fspl_db} dB | Diffraction: ${rf.diffraction_loss_db} dB\nFresnel F1: ${rf.max_fresnel_radius_m}m | Clearance: ${rf.worst_clearance_m}m`);
+          const statusMsg = `RF [${rf.status}] MARGIN: ${rf.link_margin_db}dB | RSSI: ${rf.received_power_dbm}dBm | F1: ${rf.max_fresnel_radius_m}m`;
+          const hs = document.getElementById('hud-status');
+          if (hs) hs.textContent = statusMsg;
           if (rfBeamLine) tableGroup.remove(rfBeamLine);
           const color = rf.status === 'Solid' ? 0x00ff88 : (rf.status === 'Marginal' ? 0xfbbf24 : 0xef4444);
           const geom = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(-0.6 * 0.4, (150 / 3000) * 0.25, -0.4 * 0.4),
-            new THREE.Vector3(0.8 * 0.4, (180 / 3000) * 0.25, 0.6 * 0.4)
+            enuToTableVec3(-600.0, 150.0, -400.0),
+            enuToTableVec3(800.0, 180.0, 600.0)
           ]);
           rfBeamLine = new THREE.Line(geom, new THREE.LineBasicMaterial({ color, linewidth: 3 }));
           tableGroup.add(rfBeamLine);
@@ -2972,23 +2974,26 @@
           let summary = '';
           for (const tp of preds) {
             if (tp.points && tp.points.length > 0) {
-              const pts = [new THREE.Vector3((tp.current_enu[0] / 3000) * 0.8, (tp.current_enu[2] / 3000) * 0.25, -(tp.current_enu[1] / 3000) * 0.8)];
+              const pts = [enuToTableVec3(tp.current_enu[0], tp.current_enu[2], tp.current_enu[1])];
               for (const pt of tp.points) {
-                pts.push(new THREE.Vector3((pt.east_m / 3000) * 0.8, (pt.up_m / 3000) * 0.25, -(pt.north_m / 3000) * 0.8));
-                const ringGeom = new THREE.RingGeometry(((pt.cep_radius_m * 0.8) / 3000) * 0.85, (pt.cep_radius_m * 0.8) / 3000, 24);
+                const pVec = enuToTableVec3(pt.east_m, pt.up_m, pt.north_m);
+                pts.push(pVec);
+                const rM = pt.cep_radius_m * M_TO_TABLE;
+                const ringGeom = new THREE.RingGeometry(rM * 0.85, rM, 24);
                 ringGeom.rotateX(-Math.PI / 2);
                 const ringMesh = new THREE.Mesh(ringGeom, new THREE.MeshBasicMaterial({ color: 0xa855f7, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
-                ringMesh.position.set((pt.east_m / 3000) * 0.8, 0.002, -(pt.north_m / 3000) * 0.8);
+                ringMesh.position.copy(pVec);
                 trackPredGroup.add(ringMesh);
               }
               const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0xa855f7, dashSize: 0.02, gapSize: 0.01 }));
               line.computeLineDistances();
               trackPredGroup.add(line);
-              summary += `${tp.callsign}: +60s CEP=${tp.points[tp.points.length - 1].cep_radius_m}m\n`;
+              summary += `${tp.callsign}: +60s CEP=${tp.points[tp.points.length - 1].cep_radius_m}m `;
             }
           }
           tableGroup.add(trackPredGroup);
-          if (summary) alert(`[TRACK DEAD-RECKONING & CEP]\n${summary}`);
+          const hs = document.getElementById('hud-status');
+          if (hs && summary) hs.textContent = `TRACK PREDICT · ${summary.trim()}`;
         }
       } catch (_) {}
     };
