@@ -1,8 +1,5 @@
 use serde::{Deserialize, Serialize};
-use xrtak_core::ew::{
-    compute_burn_through_range, evaluate_link_jamming, BurnThroughAssessment, EwTargetBand,
-    JammerProfile, JammingAssessment, TargetLinkProfile,
-};
+use xrtak_core::ew::{BurnThroughAssessment, JammerProfile, JammingAssessment, TargetLinkProfile};
 
 #[derive(Debug, Deserialize)]
 pub struct EwJammingRequest {
