@@ -44,6 +44,7 @@ classDiagram
 | `ICD-10` | `WebXR / OpenXR Visor` | `xrtak-core::hud` | `GET /api/hud` $\rightarrow$ Helmet-Mounted AR Visor Bearing / Slant-Range / Elevation Cues | Phase 10 AR Tactical Visor HUD |
 | `ICD-11` | `WebXR / OpenXR Client` | `xrtak-core::geo` (`RasterDemProvider`) | `POST /api/elevation-profile` & SRTM `.hgt` Ingestion $\rightarrow$ `ElevationProfileResult` | Phase 21 Elevation Profile & Slope Analytics |
 | `ICD-12` | `WebXR / OpenXR Client` | `xrtak-core::mission` | `POST /api/mission/import` (KML / QGC `.plan`) $\rightarrow$ `MissionCorridorResult` (AGL & CFIT) | Phase 22 3D Mission Corridor & AGL Clearance |
+| `ICD-13` | `WebXR / OpenXR Client` | `xrtak-core::cog` (`ingest_geotiff_dsm`) | `POST /api/terrain/geotiff` (Float32/Int16 GeoTIFF DSM + ModelTiepoint) $\rightarrow$ `GeoTiffDsmResult` | Phase 23 Offline GeoTIFF / COG DSM Draping |
 
 See [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](NEXT_GEN_MASTER_PLAN.md) for the complete EARS requirements (`REQ-DEM`, `REQ-TAC`, `REQ-AAR`, `REQ-COL`), mathematical algorithms, and Phases 4–7 execution roadmap.
 
