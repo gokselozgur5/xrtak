@@ -108,3 +108,36 @@ pub fn compute_diffraction_v(obstacle_penetration_m: f64, d1_m: f64, d2_m: f64, 
     let scale = (2.0 * total_d / (lambda * d1_m * d2_m)).sqrt();
     obstacle_penetration_m * scale
 }
+
+/// Samples terrain along ray and computes distance, worst clearance, diffraction v, and FSPL.
+pub fn evaluate_rf_propagation(
+    tx: (f64, f64, f64),
+    rx: (f64, f64, f64),
+    freq: f64,
+    steps: usize,
+    provider: &dyn crate::geo::ElevationProvider,
+) -> (f64, f64, f64, f64) {
+    let dx = rx.0 - tx.0;
+    let dy = rx.1 - tx.1;
+    let dz = rx.2 - tx.2;
+    let dist = (dx * dx + dy * dy + dz * dz).sqrt().max(1.0);
+    let n = steps.max(16);
+    let mut worst_v = -10.0f64;
+    let mut min_clear = f64::MAX;
+
+    for i in 1..n {
+        let t = i as f64 / n as f64;
+        let ray_alt = tx.2 + t * dz;
+        let terrain_alt = provider.sample_relief_m(tx.0 + t * dx, tx.1 + t * dy);
+        let clear = ray_alt - terrain_alt;
+        if clear < min_clear {
+            min_clear = clear;
+        }
+        let v = compute_diffraction_v(terrain_alt - ray_alt, t * dist, (1.0 - t) * dist, freq);
+        if v > worst_v {
+            worst_v = v;
+        }
+    }
+    let fspl = compute_fspl_db(dist, freq);
+    (dist, min_clear, worst_v, fspl)
+}
