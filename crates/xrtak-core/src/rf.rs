@@ -175,3 +175,35 @@ pub fn evaluate_rf_link(
         status: status.to_string(),
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fspl_and_fresnel_radius_math() {
+        let fspl_2400 = compute_fspl_db(1000.0, 2_400_000_000.0);
+        assert!(fspl_2400 > 99.0 && fspl_2400 < 101.0, "FSPL was {fspl_2400}");
+        let r_mid = compute_fresnel_radius_m(500.0, 500.0, 2_400_000_000.0);
+        assert!((r_mid - 5.59).abs() < 0.2, "Fresnel radius was {r_mid}");
+        let diff_zero = compute_knife_edge_diffraction_db(0.0);
+        assert!((diff_zero - 6.0).abs() < 0.5, "Diffraction at v=0 was {diff_zero}");
+        assert_eq!(compute_knife_edge_diffraction_db(-1.0), 0.0);
+    }
+
+    #[test]
+    fn test_evaluate_rf_link_knife_edge_diffraction() {
+        struct MockRidgeProvider;
+        impl crate::geo::ElevationProvider for MockRidgeProvider {
+            fn sample_relief_m(&self, x: f64, _y: f64) -> f64 {
+                if (x - 500.0).abs() < 50.0 { 150.0 } else { 50.0 }
+            }
+        }
+        let provider = MockRidgeProvider;
+        let tx = (0.0, 0.0, 100.0);
+        let rx = (1000.0, 0.0, 100.0);
+        let res_uhf = evaluate_rf_link(tx, rx, RfBand::UHF900, 32, &provider);
+        assert!(res_uhf.diffraction_loss_db > 10.0, "Diffraction loss was {}", res_uhf.diffraction_loss_db);
+        assert!(res_uhf.worst_clearance_m < 0.0);
+    }
+}
