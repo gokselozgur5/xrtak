@@ -94,7 +94,7 @@ pub fn evaluate_hlz_suitability(
     threat_domes: &[ThreatDome],
 ) -> HlzSuitability {
     let radius = hlz_radius_m.max(15.0);
-    let center_elev = elevation.elevation_m(center_east_m, center_north_m);
+    let center_elev = elevation.sample_relief_m(center_east_m, center_north_m);
 
     let mut max_slope: f64 = 0.0;
     let mut sum_slope: f64 = 0.0;
@@ -104,7 +104,7 @@ pub fn evaluate_hlz_suitability(
         let angle = (i as f64) * (2.0 * std::f64::consts::PI / radial_samples as f64);
         let sample_e = center_east_m + radius * angle.cos();
         let sample_n = center_north_m + radius * angle.sin();
-        let sample_elev = elevation.elevation_m(sample_e, sample_n);
+        let sample_elev = elevation.sample_relief_m(sample_e, sample_n);
         let delta_h = (sample_elev - center_elev).abs();
         let slope_deg = (delta_h / radius).atan().to_degrees();
 
@@ -121,12 +121,12 @@ pub fn evaluate_hlz_suitability(
     let mut nearest_threat: Option<String> = None;
 
     for dome in threat_domes {
-        let de = center_east_m - dome.center_enu.0;
-        let dn = center_north_m - dome.center_enu.1;
+        let de = center_east_m - dome.east_m;
+        let dn = center_north_m - dome.north_m;
         let dist = (de.powi(2) + dn.powi(2)).sqrt() - dome.radius_m;
         if dist < min_threat_dist {
             min_threat_dist = dist;
-            nearest_threat = Some(dome.label.clone());
+            nearest_threat = Some(dome.callsign.clone());
         }
     }
 
@@ -156,6 +156,7 @@ pub fn evaluate_hlz_suitability(
 pub mod tests {
     use super::*;
     use crate::geo::ProceduralReliefModel;
+    use crate::domain::Affiliation;
 
     #[test]
     fn test_format_nato_nine_line_text() {
@@ -186,12 +187,15 @@ pub mod tests {
     fn test_evaluate_hlz_slope_and_threats() {
         let model = ProceduralReliefModel::default();
         let domes = vec![ThreatDome {
-            id: "SA-15".to_string(),
-            label: "TOR-M2".to_string(),
-            center_enu: (2000.0, 2000.0, 100.0),
+            uid: "SA-15".to_string(),
+            callsign: "TOR-M2".to_string(),
+            affiliation: Affiliation::Hostile,
+            east_m: 2000.0,
+            up_m: 100.0,
+            north_m: 2000.0,
             radius_m: 500.0,
-            max_alt_m: 4000.0,
-            threat_color_hex: "#ef4444".to_string(),
+            ceiling_m: 4000.0,
+            engaged_uids: vec![],
         }];
         let suitability = evaluate_hlz_suitability(0.0, 0.0, 25.0, &model, &domes);
         assert!(suitability.is_threat_clear);
