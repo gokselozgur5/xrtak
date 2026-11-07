@@ -490,6 +490,7 @@
       <button class="tac-btn spi-btn" id="btn-build-corridor" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">Build 3D Swath Corridor Polygon & KML (ICD-17)</button>
       <button class="tac-btn spi-btn" id="btn-plan-mapset" style="grid-column:span 2;border-color:var(--green);color:var(--green);">Plan Offline Mapset & Export Manifest (ICD-18)</button>
       <button class="tac-btn spi-btn" id="btn-eval-rf" style="grid-column:span 2;border-color:#ec4899;color:#ec4899;">Evaluate RF Link Budget & Fresnel (ICD-19)</button>
+      <button class="tac-btn spi-btn" id="btn-predict-tracks" style="grid-column:span 2;border-color:#a855f7;color:#a855f7;">Predict Dead-Reckoning & CEP Rings (ICD-20)</button>
     </div>
   </div>
 
@@ -2949,6 +2950,43 @@
           ]);
           rfBeamLine = new THREE.Line(geom, new THREE.LineBasicMaterial({ color, linewidth: 3 }));
           tableGroup.add(rfBeamLine);
+        }
+      } catch (_) {}
+    };
+
+    // Phase 30: Dead-Reckoning, Kinematic Extrapolation & CEP Rings (ICD-20)
+    let trackPredGroup = null;
+    document.getElementById('btn-predict-tracks').onclick = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/tracks/predict'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ horizons_sec: [15.0, 30.0, 60.0], stale_threshold_sec: 5.0 })
+        });
+        if (res.ok) {
+          const preds = await res.json();
+          if (trackPredGroup) tableGroup.remove(trackPredGroup);
+          trackPredGroup = new THREE.Group();
+          let summary = '';
+          for (const tp of preds) {
+            if (tp.points && tp.points.length > 0) {
+              const pts = [new THREE.Vector3((tp.current_enu[0] / 3000) * 0.8, (tp.current_enu[2] / 3000) * 0.25, -(tp.current_enu[1] / 3000) * 0.8)];
+              for (const pt of tp.points) {
+                pts.push(new THREE.Vector3((pt.east_m / 3000) * 0.8, (pt.up_m / 3000) * 0.25, -(pt.north_m / 3000) * 0.8));
+                const ringGeom = new THREE.RingGeometry(((pt.cep_radius_m * 0.8) / 3000) * 0.85, (pt.cep_radius_m * 0.8) / 3000, 24);
+                ringGeom.rotateX(-Math.PI / 2);
+                const ringMesh = new THREE.Mesh(ringGeom, new THREE.MeshBasicMaterial({ color: 0xa855f7, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
+                ringMesh.position.set((pt.east_m / 3000) * 0.8, 0.002, -(pt.north_m / 3000) * 0.8);
+                trackPredGroup.add(ringMesh);
+              }
+              const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0xa855f7, dashSize: 0.02, gapSize: 0.01 }));
+              line.computeLineDistances();
+              trackPredGroup.add(line);
+              summary += `${tp.callsign}: +60s CEP=${tp.points[tp.points.length - 1].cep_radius_m}m\n`;
+            }
+          }
+          tableGroup.add(trackPredGroup);
+          if (summary) alert(`[TRACK DEAD-RECKONING & CEP]\n${summary}`);
         }
       } catch (_) {}
     };
