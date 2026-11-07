@@ -491,6 +491,7 @@
       <button class="tac-btn spi-btn" id="btn-plan-mapset" style="grid-column:span 2;border-color:var(--green);color:var(--green);">Plan Offline Mapset & Export Manifest (ICD-18)</button>
       <button class="tac-btn spi-btn" id="btn-eval-rf" style="grid-column:span 2;border-color:#ec4899;color:#ec4899;">Evaluate RF Link Budget & Fresnel (ICD-19)</button>
       <button class="tac-btn spi-btn" id="btn-predict-tracks" style="grid-column:span 2;border-color:#a855f7;color:#a855f7;">Predict Dead-Reckoning & CEP Rings (ICD-20)</button>
+      <button class="tac-btn spi-btn" id="btn-deconflict" style="grid-column:span 2;border-color:#ef4444;color:#ef4444;">Evaluate Airspace Deconfliction & CPA (ICD-21)</button>
     </div>
   </div>
 
@@ -2987,6 +2988,32 @@
           }
           tableGroup.add(trackPredGroup);
           if (summary) alert(`[TRACK DEAD-RECKONING & CEP]\n${summary}`);
+        }
+      } catch (_) {}
+    };
+
+    // Phase 31: 4D Airspace Deconfliction & CPA (ICD-21)
+    let deconflictGroup = null;
+    document.getElementById('btn-deconflict').onclick = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/airspace/deconflict'), { method: 'POST' });
+        if (res.ok) {
+          const report = await res.json();
+          if (deconflictGroup) tableGroup.remove(deconflictGroup);
+          deconflictGroup = new THREE.Group();
+          let summary = `Max Risk: ${report.max_risk} (${report.conflicts.length} warnings / ${report.total_evaluated_pairs} pairs)\n`;
+          for (const c of report.conflicts) {
+            summary += `[${c.risk_level}] ${c.entity_a} <-> ${c.entity_b} in ${c.t_cpa_sec}s (H:${c.horiz_separation_m}m V:${c.vert_separation_m}m)\n`;
+            const color = c.risk_level === 'Critical' ? 0xef4444 : 0xfbbf24;
+            const pts = [
+              new THREE.Vector3((c.pos_a_at_cpa[0] / 3000) * 0.8, (c.pos_a_at_cpa[2] / 3000) * 0.25, -(c.pos_a_at_cpa[1] / 3000) * 0.8),
+              new THREE.Vector3((c.pos_b_at_cpa[0] / 3000) * 0.8, (c.pos_b_at_cpa[2] / 3000) * 0.25, -(c.pos_b_at_cpa[1] / 3000) * 0.8)
+            ];
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, linewidth: 3 }));
+            deconflictGroup.add(line);
+          }
+          tableGroup.add(deconflictGroup);
+          alert(`[4D AIRSPACE DECONFLICTION]\n${summary}`);
         }
       } catch (_) {}
     };

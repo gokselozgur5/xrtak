@@ -52,6 +52,7 @@ classDiagram
 | `ICD-18` | `WebXR / OpenXR Client` | `xrtak-core::manifest` (`build_mapset_manifest`) | `POST /api/mapset/plan` $\rightarrow$ Copernicus GLO-30 DEM S3 Cells + Multi-Zoom Offline Manifest | Phase 28 Copernicus GLO-30 DEM & Mapset Manifest |
 | `ICD-19` | `WebXR / OpenXR Client` | `xrtak-core::rf` (`evaluate_rf_link`) | `POST /api/rf/link-budget` $\rightarrow$ FSPL, 1st Fresnel Radius, ITU-R P.526 Diffraction & Link Margin | Phase 29 Tactical RF Link Budget & Knife-Edge |
 | `ICD-20` | `WebXR / OpenXR Client` | `xrtak-core::tracker` (`predict_entity_trajectory`) | `POST /api/tracks/predict` $\rightarrow$ Dead-Reckoning 3D Kinematics, Stale Coasting & Expanding CEP Rings | Phase 30 Dead-Reckoning & CEP Rings |
+| `ICD-21` | `WebXR / OpenXR Client` | `xrtak-core::deconflict` (`compute_pairwise_cpa`) | `POST /api/airspace/deconflict` $\rightarrow$ 4D Multi-UAV Pairwise CPA & Proximity Conflict Warnings | Phase 31 Airspace Deconfliction & CPA |
 
 See [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](NEXT_GEN_MASTER_PLAN.md) for the complete EARS requirements (`REQ-DEM`, `REQ-TAC`, `REQ-AAR`, `REQ-COL`), mathematical algorithms, and Phases 4–7 execution roadmap.
 
