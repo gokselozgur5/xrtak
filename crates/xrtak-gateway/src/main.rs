@@ -7,11 +7,12 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
-    compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_swath_corridor,
-    export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission,
-    parse_qgc_plan_mission, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
-    OperatorPeer, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport,
-    SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
+    compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
+    evaluate_swath_corridor, export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm,
+    parse_kml_mission, parse_qgc_plan_mission, resolve_tile_with_fallback, AarSummary, GeoOrigin,
+    ImageryProvider, OperatorPeer, ProceduralReliefModel, RasterDemProvider, RfBand,
+    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
+    ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -167,6 +168,14 @@ struct MapsetPlanRequest {
     east: Option<f64>,
     min_zoom: Option<u8>,
     max_zoom: Option<u8>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RfLinkBudgetRequest {
+    tx_enu: Option<(f64, f64, f64)>,
+    rx_enu: Option<(f64, f64, f64)>,
+    band: Option<String>,
+    steps: Option<usize>,
 }
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
