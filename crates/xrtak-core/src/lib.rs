@@ -1,5 +1,6 @@
 pub mod aar;
 pub mod cog;
+pub mod collab;
 pub mod domain;
 pub mod ffi;
 pub mod geo;
@@ -11,6 +12,7 @@ pub mod zones;
 
 pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
+pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
     ViewshedSample,
