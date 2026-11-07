@@ -27,3 +27,26 @@ impl MunitionType {
         }
     }
 }
+
+/// Single sample along 3D ballistic trajectory.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrajectoryPoint3d {
+    pub time_sec: f64,
+    pub east_m: f64,
+    pub north_m: f64,
+    pub up_m: f64,
+    pub terrain_elev_m: f64,
+    pub clearance_m: f64,
+}
+
+/// Ballistic fire mission solution and terrain crest analysis.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BallisticSolution {
+    pub munition: MunitionType,
+    pub ground_range_m: f64,
+    pub time_of_flight_sec: f64,
+    pub max_ordinate_m: f64,
+    pub min_crest_clearance_m: f64,
+    pub is_crest_cleared: bool,
+    pub trajectory: Vec<TrajectoryPoint3d>,
+}
