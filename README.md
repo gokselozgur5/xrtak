@@ -56,8 +56,9 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 32** | [`xrtak-core::opord`](crates/xrtak-core/src/opord.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 3D Tactical KML Scene Packaging & Automated 5-Paragraph NATO Field OPORD Generator (`GET /api/export/opord`) | **Complete (`ICD-22` / `REQ-OPO-01..02`)** |
 | **Phase 33** | [`xrtak-core::ew`](crates/xrtak-core/src/ew.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Electronic Warfare Jammer-to-Signal (J/S dB) Ratio, Radar Burn-Through Range & Suppression Radius (`POST /api/ew/jamming`) | **Complete (`ICD-23` / `REQ-EW-01..02`)** |
 | **Phase 34** | [`xrtak-core::casevac`](crates/xrtak-core/src/casevac.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | NATO 9-Line MEDEVAC Generator & Helicopter Landing Zone (HLZ) Terrain Slope Suitability Analyzer (`POST /api/medevac/nine-line`) | **Complete (`ICD-24` / `REQ-MED-01..02`)** |
+| **Phase 35** | [`xrtak-core::fires`](crates/xrtak-core/src/fires.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 3D Ballistic Trajectory Arc, Apogee (MAXORD), Time-of-Flight & Terrain Crest Clearance Analyzer (`POST /api/fires/ballistics`) | **Complete (`ICD-25` / `REQ-FIR-01..02`)** |
 
-See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-24`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
+See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-25`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
 ---
 

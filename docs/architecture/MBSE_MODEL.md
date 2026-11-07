@@ -56,6 +56,7 @@ classDiagram
 | `ICD-22` | `WebXR / OpenXR Client` | `xrtak-core::opord` (`build_opord_bundle`) | `GET /api/export/opord` $\rightarrow$ 3D Tactical KML Scene & NATO 5-Paragraph Field OPORD Markdown | Phase 32 3D KML Scene & NATO OPORD Export |
 | `ICD-23` | `WebXR / OpenXR Client` | `xrtak-core::ew` (`evaluate_link_jamming`) | `POST /api/ew/jamming` $\rightarrow$ EW Jammer-to-Signal (J/S dB) Ratio, Radar Burn-Through Range & Suppression Radius | Phase 33 Electronic Warfare & Burn-Through |
 | `ICD-24` | `WebXR / OpenXR Client` | `xrtak-core::casevac` (`evaluate_hlz_suitability`) | `POST /api/medevac/nine-line` $\rightarrow$ NATO 9-Line MEDEVAC Request & HLZ Terrain Slope Suitability Assessment | Phase 34 NATO 9-Line & HLZ Suitability |
+| `ICD-25` | `WebXR / OpenXR Client` | `xrtak-core::fires` (`compute_ballistic_trajectory`) | `POST /api/fires/ballistics` $\rightarrow$ 3D Indirect Fire Trajectory Arc, Apogee MAXORD & Terrain Crest Clearance | Phase 35 3D Ballistics & Crest Clearance |
 
 See [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](NEXT_GEN_MASTER_PLAN.md) for the complete EARS requirements (`REQ-DEM`, `REQ-TAC`, `REQ-AAR`, `REQ-COL`), mathematical algorithms, and Phases 4–7 execution roadmap.
 
