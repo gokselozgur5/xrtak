@@ -11,6 +11,7 @@ pub mod mission;
 pub mod rf;
 pub mod sapient;
 pub mod tiles;
+pub mod tracker;
 pub mod viewshed;
 pub mod zones;
 
@@ -47,6 +48,10 @@ pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetec
 pub use tiles::{
     bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy,
     resolve_tile_with_fallback, tile_xy_to_quadkey, ImageryProvider, ResolvedTileSpec,
+};
+pub use tracker::{
+    compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
+    TrackPrediction, TrackPredictionPoint, TrackPredictRequest,
 };
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
 pub use zones::{
