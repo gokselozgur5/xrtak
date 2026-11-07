@@ -151,3 +151,50 @@ pub fn evaluate_hlz_suitability(
         overall_suitability,
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::geo::ProceduralReliefModel;
+
+    #[test]
+    fn test_format_nato_nine_line_text() {
+        let rep = MedevacReport {
+            line1_location: "37.7749N 122.4194W".to_string(),
+            line2_freq_callsign: "38.50 MHz / DUSTOFF-1".to_string(),
+            line3_precedence: PatientPrecedence::Urgent,
+            line4_special_equipment: "Hoist, Ventilator".to_string(),
+            line5_litter_count: 2,
+            line5_ambulatory_count: 1,
+            line6_security: "P - Possible enemy troops in area".to_string(),
+            line7_hlz_marking: "Smoke Green".to_string(),
+            line8_patient_nationality: "US Military".to_string(),
+            line9_nbc_or_terrain: "None / Flat valley floor".to_string(),
+            lat: 37.7749,
+            lon: -122.4194,
+            east_m: 100.0,
+            north_m: 200.0,
+            up_m: 50.0,
+        };
+        let txt = format_nato_nine_line_text(&rep);
+        assert!(txt.contains("LINE 1 (Location): 37.7749N 122.4194W"));
+        assert!(txt.contains("A - URGENT"));
+        assert!(txt.contains("2 Litter / 1 Ambulatory"));
+    }
+
+    #[test]
+    fn test_evaluate_hlz_slope_and_threats() {
+        let model = ProceduralReliefModel::default();
+        let domes = vec![ThreatDome {
+            id: "SA-15".to_string(),
+            label: "TOR-M2".to_string(),
+            center_enu: (2000.0, 2000.0, 100.0),
+            radius_m: 500.0,
+            max_alt_m: 4000.0,
+            threat_color_hex: "#ef4444".to_string(),
+        }];
+        let suitability = evaluate_hlz_suitability(0.0, 0.0, 25.0, &model, &domes);
+        assert!(suitability.is_threat_clear);
+        assert!(suitability.min_threat_distance_m > 1000.0);
+    }
+}
