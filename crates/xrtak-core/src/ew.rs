@@ -56,3 +56,19 @@ pub struct TargetLinkProfile {
     pub rx_north_m: f64,
     pub rx_up_m: f64,
 }
+
+/// Convert Watts to dBm.
+pub fn watts_to_dbm(watts: f64) -> f64 {
+    if watts <= 0.0 {
+        -150.0
+    } else {
+        10.0 * (watts * 1000.0).log10()
+    }
+}
+
+/// Free-space path loss in dB: FSPL = 20*log10(d_km) + 20*log10(f_mhz) + 32.44
+pub fn compute_fspl_db(distance_m: f64, frequency_mhz: f64) -> f64 {
+    let d_km = (distance_m / 1000.0).max(0.001);
+    let f_mhz = frequency_mhz.max(1.0);
+    20.0 * d_km.log10() + 20.0 * f_mhz.log10() + 32.44
+}
