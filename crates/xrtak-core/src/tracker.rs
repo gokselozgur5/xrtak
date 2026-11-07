@@ -102,3 +102,39 @@ pub fn predict_entity_trajectory(
         points,
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_kinematic_extrapolation_cardinal_headings() {
+        // Heading 090 (East), speed 20 m/s for 30s -> dx = +600m, dy = 0m
+        let origin = (0.0, 0.0, 100.0);
+        let pt_east = compute_kinematic_extrapolation(origin, 20.0, 90.0, 0.0, 30.0);
+        assert!((pt_east.0 - 600.0).abs() < 1e-3);
+        assert!(pt_east.1.abs() < 1e-3);
+        assert!((pt_east.2 - 100.0).abs() < 1e-3);
+
+        // Heading 000 (North), speed 10 m/s for 10s -> dx = 0m, dy = +100m
+        let pt_north = compute_kinematic_extrapolation(origin, 10.0, 0.0, 0.0, 10.0);
+        assert!(pt_north.0.abs() < 1e-3);
+        assert!((pt_north.1 - 100.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_expanding_cep_growth() {
+        let origin = (0.0, 0.0, 100.0);
+        let cep_0 = compute_cep_radius_m(5.0, 25.0, 0.0);
+        assert_eq!(cep_0, 5.0);
+
+        let cep_30 = compute_cep_radius_m(5.0, 25.0, 30.0);
+        let cep_60 = compute_cep_radius_m(5.0, 25.0, 60.0);
+        assert!(cep_30 > cep_0, "CEP at 30s must exceed initial CEP");
+        assert!(cep_60 > cep_30, "CEP at 60s must exceed CEP at 30s");
+
+        let pred = predict_entity_trajectory("UAV-01", "FALCON", origin, 20.0, 45.0, true, 5.0, &[15.0, 30.0, 60.0]);
+        assert_eq!(pred.points.len(), 3);
+        assert!(pred.is_stale);
+    }
+}
