@@ -487,6 +487,7 @@
       <input type="file" id="inp-mission-file" accept=".kml,.plan,.json,.xml" style="display:none;" />
       <button class="tac-btn" id="btn-export-qgc" style="border-color:var(--green);color:var(--green);">Export QGC .plan</button>
       <button class="tac-btn" id="btn-export-bmr" style="border-color:#00e5ff;color:#00e5ff;">Export ATAK b-m-r</button>
+      <button class="tac-btn spi-btn" id="btn-build-corridor" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">Build 3D Swath Corridor Polygon & KML (ICD-17)</button>
     </div>
   </div>
 
@@ -2840,6 +2841,54 @@
 
     document.getElementById('btn-export-qgc').onclick = () => exportMissionRoute('qgc');
     document.getElementById('btn-export-bmr').onclick = () => exportMissionRoute('bmr');
+
+    // Phase 27: Camera FOV Swath Corridor Polygon Builder & RDP Simplification (ICD-17)
+    document.getElementById('btn-build-corridor').onclick = async () => {
+      let wpsEn = [];
+      if (activeMissionCorridor && Array.isArray(activeMissionCorridor.waypoints) && activeMissionCorridor.waypoints.length >= 2) {
+        wpsEn = activeMissionCorridor.waypoints.map(w => [w.east_m, w.north_m]);
+      } else if (profileWaypointsEn.length >= 2) {
+        wpsEn = profileWaypointsEn;
+      } else {
+        wpsEn = [[-420.0, -280.0], [-120.0, -40.0], [180.0, 120.0], [440.0, 310.0]];
+      }
+
+      if (!standaloneSimActive) {
+        try {
+          const res = await fetch(apiUrl('/api/mission/corridor-polygon'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'XR-SWATH-CORRIDOR',
+              waypoints_en: wpsEn,
+              rdp_epsilon_m: 8.0,
+              agl_m: 150.0,
+              hfov_deg: 62.0
+            })
+          });
+          if (res.ok) {
+            const payload = await res.json();
+            if (Array.isArray(payload.polygon_ring_en) && payload.polygon_ring_en.length >= 3) {
+              const ringPts = payload.polygon_ring_en.map(([e, n]) => {
+                const rel = sampleTerrainReliefM(e, n);
+                return enuToTableVec3(e, rel + 3.5, n);
+              });
+              const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPts);
+              elevationProfileGroup.add(new THREE.Line(ringGeo, new THREE.LineBasicMaterial({ color: 0xff9f1c, linewidth: 2 })));
+            }
+            const sumEl = document.getElementById('elev-profile-summary');
+            if (sumEl) {
+              sumEl.textContent = `SWATH ${Math.round(payload.swath_width_m)}m | ${payload.area_km2.toFixed(2)} km² (${payload.simplified_waypoint_count} WP)`;
+            }
+            const blob = new Blob([payload.kml_polygon], { type: 'application/vnd.google-earth.kml+xml' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'xrtak_swath_corridor.kml';
+            a.click();
+          }
+        } catch (_) {}
+      }
+    };
 
     const visorCanvas = document.getElementById('visor-hud-canvas');
     const vctx = visorCanvas.getContext('2d');
