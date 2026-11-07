@@ -182,7 +182,7 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 
 ---
 
-## 7. Phase 21–29 Extended EARS Requirements & Strategic Roadmap
+## 7. Phase 21–30 Extended EARS Requirements & Strategic Roadmap
 
 | Req ID | Subsystem | EARS Specification | Verification |
 | :--- | :--- | :--- | :--- |
@@ -201,4 +201,6 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 | `REQ-MAN-02` | `xrtak-core::manifest` | **WHEN** an offline mapset plan is requested across zoom range `[z_min, z_max]`, the system **SHALL** compute per-zoom Web Mercator tile counts, storage byte estimates, and a deterministic 64-bit FNV-1a `manifest_hash`. | `manifest::tests::test_mapset_manifest_tile_counts_and_hash` |
 | `REQ-RF-01` | `xrtak-core::rf` | **WHEN** an RF link is evaluated across carrier frequency $f$ and distance $d$, the system **SHALL** compute Free-Space Path Loss ($\text{FSPL dB}$) and 1st Fresnel zone radius $F_1(d_1, d_2)$. | `rf::tests::test_fspl_and_fresnel_radius_math` |
 | `REQ-RF-02` | `xrtak-core::rf` | **WHILE** traversing terrain between transmitter and receiver, the system **SHALL** identify worst-case obstacle intrusion into the 1st Fresnel zone and compute ITU-R P.526 knife-edge diffraction loss and net link margin ($\text{dB}$). | `rf::tests::test_evaluate_rf_link_knife_edge_diffraction` |
+| `REQ-TRK-01` | `xrtak-core::tracker` | **WHEN** an active or stale track is projected over lookahead horizon $\Delta t$, the system **SHALL** compute 3D kinematic dead-reckoning position given heading course, speed, and vertical velocity. | `tracker::tests::test_kinematic_extrapolation_cardinal_headings` |
+| `REQ-TRK-02` | `xrtak-core::tracker` | **WHILE** coasting a track without fresh CoT updates, the system **SHALL** compute the time-expanding Circular Error Probable ($\text{CEP}$) uncertainty radius and generate ground confidence circle rings. | `tracker::tests::test_expanding_cep_growth` |
 
