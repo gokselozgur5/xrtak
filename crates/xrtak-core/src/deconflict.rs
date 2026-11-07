@@ -35,3 +35,23 @@ pub struct DeconflictionResult {
     pub max_risk: CpaRiskLevel,
     pub total_evaluated_pairs: usize,
 }
+
+/// Computes raw time to closest approach (t_cpa) and relative velocity vector.
+pub fn compute_raw_t_cpa(
+    pos_a: (f64, f64, f64),
+    va: (f64, f64, f64),
+    pos_b: (f64, f64, f64),
+    vb: (f64, f64, f64),
+) -> (f64, (f64, f64, f64)) {
+    let rx = pos_a.0 - pos_b.0;
+    let ry = pos_a.1 - pos_b.1;
+    let rz = pos_a.2 - pos_b.2;
+    let v_rel = (va.0 - vb.0, va.1 - vb.1, va.2 - vb.2);
+    let v_sq = v_rel.0 * v_rel.0 + v_rel.1 * v_rel.1 + v_rel.2 * v_rel.2;
+    let t_cpa = if v_sq > 1e-4 {
+        -(rx * v_rel.0 + ry * v_rel.1 + rz * v_rel.2) / v_sq
+    } else {
+        0.0
+    };
+    (t_cpa, v_rel)
+}
