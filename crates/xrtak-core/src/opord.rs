@@ -96,3 +96,30 @@ pub fn generate_nato_opord_markdown(
     doc.push_str("- **Emergency Signal:** Code RED via ATAK emergency beacon broadcast.\n");
     doc
 }
+
+/// Synthesizes complete export bundle containing 3D KML Scene and NATO OPORD.
+pub fn build_opord_bundle(
+    operation_name: &str,
+    origin_lla: (f64, f64, f64),
+    units: &[OpordUnitSummary],
+    zone_count: usize,
+    dome_count: usize,
+) -> OpordExportBundle {
+    let kml_scene = generate_kml_tactical_scene(operation_name, units, origin_lla);
+    let opord_markdown = generate_nato_opord_markdown(
+        operation_name,
+        origin_lla,
+        units,
+        zone_count,
+        dome_count,
+    );
+
+    OpordExportBundle {
+        opord_markdown,
+        kml_scene,
+        unit_count: units.len(),
+        zone_count,
+        dome_count,
+        generated_utc: "2026-11-07T11:00:00Z".to_string(),
+    }
+}
