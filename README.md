@@ -55,8 +55,9 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 31** | [`xrtak-core::deconflict`](crates/xrtak-core/src/deconflict.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 4D Airspace Deconfliction, Pairwise Closest Point of Approach (CPA) & Proximity Risk Classification (`POST /api/airspace/deconflict`) | **Complete (`ICD-21` / `REQ-DEC-01..02`)** |
 | **Phase 32** | [`xrtak-core::opord`](crates/xrtak-core/src/opord.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 3D Tactical KML Scene Packaging & Automated 5-Paragraph NATO Field OPORD Generator (`GET /api/export/opord`) | **Complete (`ICD-22` / `REQ-OPO-01..02`)** |
 | **Phase 33** | [`xrtak-core::ew`](crates/xrtak-core/src/ew.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Electronic Warfare Jammer-to-Signal (J/S dB) Ratio, Radar Burn-Through Range & Suppression Radius (`POST /api/ew/jamming`) | **Complete (`ICD-23` / `REQ-EW-01..02`)** |
+| **Phase 34** | [`xrtak-core::casevac`](crates/xrtak-core/src/casevac.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | NATO 9-Line MEDEVAC Generator & Helicopter Landing Zone (HLZ) Terrain Slope Suitability Analyzer (`POST /api/medevac/nine-line`) | **Complete (`ICD-24` / `REQ-MED-01..02`)** |
 
-See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-23`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
+See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-24`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
 ---
 
