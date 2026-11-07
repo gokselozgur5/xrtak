@@ -182,7 +182,7 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 
 ---
 
-## 7. Phase 21–28 Extended EARS Requirements & Strategic Roadmap
+## 7. Phase 21–29 Extended EARS Requirements & Strategic Roadmap
 
 | Req ID | Subsystem | EARS Specification | Verification |
 | :--- | :--- | :--- | :--- |
@@ -199,4 +199,6 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 | `REQ-COR-02` | `xrtak-core::corridor` | **WHEN** a simplified centerline and swath width are evaluated, the system **SHALL** construct a miter-clamped closed corridor polygon ring and export a valid KML `<Polygon>`. | `corridor::tests::test_buffered_corridor_polygon_and_kml` |
 | `REQ-MAN-01` | `xrtak-core::manifest` | **WHEN** a WGS84 bounding box is queried, the system **SHALL** enumerate all intersecting 1°×1° Copernicus GLO-30 30m DEM COG tile identifiers (`Copernicus_DSM_COG_10_{N\|S}{lat:02}_00_{E\|W}{lon:03}_00_DEM`) and AWS Open Data S3 URLs. | `manifest::tests::test_copernicus_glo30_cell_naming_and_s3_urls` |
 | `REQ-MAN-02` | `xrtak-core::manifest` | **WHEN** an offline mapset plan is requested across zoom range `[z_min, z_max]`, the system **SHALL** compute per-zoom Web Mercator tile counts, storage byte estimates, and a deterministic 64-bit FNV-1a `manifest_hash`. | `manifest::tests::test_mapset_manifest_tile_counts_and_hash` |
+| `REQ-RF-01` | `xrtak-core::rf` | **WHEN** an RF link is evaluated across carrier frequency $f$ and distance $d$, the system **SHALL** compute Free-Space Path Loss ($\text{FSPL dB}$) and 1st Fresnel zone radius $F_1(d_1, d_2)$. | `rf::tests::test_fspl_and_fresnel_radius_math` |
+| `REQ-RF-02` | `xrtak-core::rf` | **WHILE** traversing terrain between transmitter and receiver, the system **SHALL** identify worst-case obstacle intrusion into the 1st Fresnel zone and compute ITU-R P.526 knife-edge diffraction loss and net link margin ($\text{dB}$). | `rf::tests::test_evaluate_rf_link_knife_edge_diffraction` |
 
