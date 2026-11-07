@@ -55,3 +55,49 @@ pub fn compute_raw_t_cpa(
     };
     (t_cpa, v_rel)
 }
+
+/// Calculates Closest Point of Approach (CPA) between two 3D moving entities.
+pub fn compute_pairwise_cpa(
+    uid_a: &str,
+    pos_a: (f64, f64, f64),
+    speed_a_mps: f64,
+    course_a_deg: f64,
+    uid_b: &str,
+    pos_b: (f64, f64, f64),
+    speed_b_mps: f64,
+    course_b_deg: f64,
+) -> AirspaceConflictReport {
+    let rad_a = course_a_deg.to_radians();
+    let rad_b = course_b_deg.to_radians();
+    let va = (speed_a_mps * rad_a.sin(), speed_a_mps * rad_a.cos(), 0.0);
+    let vb = (speed_b_mps * rad_b.sin(), speed_b_mps * rad_b.cos(), 0.0);
+
+    let (t_cpa_raw, _) = compute_raw_t_cpa(pos_a, va, pos_b, vb);
+    let t_eval = t_cpa_raw.max(0.0);
+    let p_a = (pos_a.0 + va.0 * t_eval, pos_a.1 + va.1 * t_eval, pos_a.2 + va.2 * t_eval);
+    let p_b = (pos_b.0 + vb.0 * t_eval, pos_b.1 + vb.1 * t_eval, pos_b.2 + vb.2 * t_eval);
+
+    let dx = p_a.0 - p_b.0;
+    let dy = p_a.1 - p_b.1;
+    let d_horiz = (dx * dx + dy * dy).sqrt();
+    let d_vert = (p_a.2 - p_b.2).abs();
+
+    let risk = if t_cpa_raw >= 0.0 && t_cpa_raw <= 60.0 && d_horiz < 300.0 && d_vert < 100.0 {
+        CpaRiskLevel::Critical
+    } else if t_cpa_raw >= 0.0 && t_cpa_raw <= 180.0 && d_horiz < 1000.0 && d_vert < 250.0 {
+        CpaRiskLevel::Advisory
+    } else {
+        CpaRiskLevel::Clear
+    };
+
+    AirspaceConflictReport {
+        entity_a: uid_a.to_string(),
+        entity_b: uid_b.to_string(),
+        t_cpa_sec: (t_cpa_raw * 10.0).round() / 10.0,
+        horiz_separation_m: (d_horiz * 10.0).round() / 10.0,
+        vert_separation_m: (d_vert * 10.0).round() / 10.0,
+        risk_level: risk,
+        pos_a_at_cpa: p_a,
+        pos_b_at_cpa: p_b,
+    }
+}
