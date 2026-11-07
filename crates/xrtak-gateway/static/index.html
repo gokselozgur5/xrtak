@@ -479,6 +479,8 @@
       <button class="tac-btn" id="btn-dem-urban">Urban Bowl</button>
       <button class="tac-btn" id="btn-upload-hgt" style="grid-column:span 2;border-color:var(--green);color:var(--green);">Load Offline SRTM .hgt DEM File</button>
       <input type="file" id="inp-hgt-file" accept=".hgt,.dem,.bin" style="display:none;" />
+      <button class="tac-btn" id="btn-upload-geotiff" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">Load Offline GeoTIFF / COG DSM + Imagery</button>
+      <input type="file" id="inp-geotiff-file" accept=".tif,.tiff,.png,.jpg,.jpeg,.webp" style="display:none;" />
       <button class="tac-btn spi-btn" id="btn-import-mission" style="grid-column:span 2;border-color:#fbbf24;color:#fbbf24;">Import KML / QGC .plan Mission Corridor</button>
       <input type="file" id="inp-mission-file" accept=".kml,.plan,.json,.xml" style="display:none;" />
     </div>
@@ -2651,6 +2653,52 @@
         } catch (_) {}
       }
       await refreshElevationProfile();
+    });
+
+    // Phase 23: Offline GeoTIFF / COG DSM (.tif/.tiff) & Local Orthophoto Imagery Draping
+    document.getElementById('btn-upload-geotiff').onclick = () => {
+      document.getElementById('inp-geotiff-file').click();
+    };
+    document.getElementById('inp-geotiff-file').addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const lower = file.name.toLowerCase();
+      if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) {
+        const url = URL.createObjectURL(file);
+        new THREE.TextureLoader().load(url, (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          activeSatelliteTexture = tex;
+          buildTerrainMesh();
+          document.getElementById('terrain-label').textContent = `IMG:${file.name.slice(0, 12).toUpperCase()}`;
+        });
+        return;
+      }
+      const buf = await file.arrayBuffer();
+      const bytesArr = Array.from(new Uint8Array(buf));
+      const gridName = file.name.replace(/\.[^.]+$/, '').toUpperCase();
+      if (!standaloneSimActive) {
+        try {
+          const res = await fetch(apiUrl('/api/terrain/geotiff'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: gridName, bytes: bytesArr, auto_recenter: true })
+          });
+          if (res.ok) {
+            const payload = await res.json();
+            currentOriginAltM = Math.round(payload.min_asl_m || 0);
+            activeDemGrid = {
+              name: payload.name,
+              resolution: payload.resolution,
+              extent_m: payload.extent_m,
+              heights_m: payload.heights_m
+            };
+            buildTerrainMesh();
+            document.getElementById('terrain-label').textContent = `${payload.name} (${currentOriginAltM}m ASL)`;
+            await refreshElevationProfile();
+            return;
+          }
+        } catch (_) {}
+      }
     });
 
     const visorCanvas = document.getElementById('visor-hud-canvas');
