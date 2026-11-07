@@ -131,3 +131,41 @@ pub fn compute_ballistic_trajectory(
         trajectory,
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::geo::ProceduralReliefModel;
+
+    #[test]
+    fn test_compute_ballistic_trajectory_mortar_plunging() {
+        let model = ProceduralReliefModel::default();
+        let sol = compute_ballistic_trajectory(
+            (0.0, 0.0, 50.0),
+            (1500.0, 1500.0, 80.0),
+            MunitionType::Mortar120mm,
+            Some(60.0),
+            &model,
+            24,
+        );
+        assert!(sol.ground_range_m > 2000.0);
+        assert!(sol.max_ordinate_m > 200.0);
+        assert!(sol.time_of_flight_sec > 10.0);
+        assert_eq!(sol.trajectory.len(), 25);
+    }
+
+    #[test]
+    fn test_compute_ballistic_trajectory_artillery_crest_clearance() {
+        let model = ProceduralReliefModel::default();
+        let sol = compute_ballistic_trajectory(
+            (-1000.0, -1000.0, 100.0),
+            (1000.0, 1000.0, 120.0),
+            MunitionType::Artillery155mm,
+            Some(40.0),
+            &model,
+            32,
+        );
+        assert!(sol.is_crest_cleared);
+        assert!(sol.max_ordinate_m > sol.min_crest_clearance_m);
+    }
+}
