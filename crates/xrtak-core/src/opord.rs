@@ -123,3 +123,49 @@ pub fn build_opord_bundle(
         generated_utc: "2026-11-07T11:00:00Z".to_string(),
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_kml_tactical_scene_generation() {
+        let units = [
+            OpordUnitSummary {
+                callsign: "FALCON-1".to_string(),
+                cot_type: "a-f-A-M-F-Q".to_string(),
+                affiliation: "Friendly".to_string(),
+                lat: 39.9218,
+                lon: 32.8522,
+                alt_m: 1250.0,
+            },
+        ];
+        let kml = generate_kml_tactical_scene("OPERATION-PARALLAX", &units, (39.92, 32.85, 950.0));
+        assert!(kml.contains("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"));
+        assert!(kml.contains("<name>FALCON-1</name>"));
+        assert!(kml.contains("<coordinates>32.852200,39.921800,1250.0</coordinates>"));
+    }
+
+    #[test]
+    fn test_nato_opord_markdown_structure() {
+        let units = [
+            OpordUnitSummary {
+                callsign: "VIPER-2".to_string(),
+                cot_type: "a-h-A".to_string(),
+                affiliation: "Hostile".to_string(),
+                lat: 39.93,
+                lon: 32.86,
+                alt_m: 1400.0,
+            },
+        ];
+        let bundle = build_opord_bundle("OP-ANATOLIA-SHIELD", (39.92, 32.85, 950.0), &units, 2, 1);
+        assert_eq!(bundle.unit_count, 1);
+        assert_eq!(bundle.zone_count, 2);
+        assert_eq!(bundle.dome_count, 1);
+        assert!(bundle.opord_markdown.contains("## 1. SITUATION"));
+        assert!(bundle.opord_markdown.contains("## 2. MISSION"));
+        assert!(bundle.opord_markdown.contains("## 3. EXECUTION"));
+        assert!(bundle.opord_markdown.contains("## 4. ADMINISTRATION & LOGISTICS"));
+        assert!(bundle.opord_markdown.contains("## 5. COMMAND & SIGNAL"));
+    }
+}
