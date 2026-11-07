@@ -115,3 +115,59 @@ pub fn compute_uav_endurance(
         rth_polygon: polygon,
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_uav_endurance_and_bingo() {
+        let state = UavBatteryState {
+            callsign: "VALKYRIE-1".to_string(),
+            battery_remaining_pct: 65.0,
+            battery_capacity_wh: 120.0,
+            current_power_draw_w: 180.0,
+            reserve_margin_pct: 15.0,
+            cruise_airspeed_mps: 18.0,
+            current_east_m: 1200.0,
+            current_north_m: 800.0,
+            current_up_m: 150.0,
+            home_east_m: 0.0,
+            home_north_m: 0.0,
+            home_up_m: 20.0,
+        };
+        let wind = WindVector {
+            east_mps: -5.0,
+            north_mps: 2.0,
+        };
+        let sol = compute_uav_endurance(&state, &wind, 24);
+        assert!(sol.remaining_flight_sec > 0.0);
+        assert!(sol.bingo_battery_pct > 15.0);
+        assert!(!sol.is_bingo_critical);
+        assert_eq!(sol.rth_polygon.len(), 24);
+    }
+
+    #[test]
+    fn test_bingo_critical_state() {
+        let state = UavBatteryState {
+            callsign: "VALKYRIE-2".to_string(),
+            battery_remaining_pct: 18.0,
+            battery_capacity_wh: 100.0,
+            current_power_draw_w: 200.0,
+            reserve_margin_pct: 15.0,
+            cruise_airspeed_mps: 15.0,
+            current_east_m: 4000.0,
+            current_north_m: 3000.0,
+            current_up_m: 200.0,
+            home_east_m: 0.0,
+            home_north_m: 0.0,
+            home_up_m: 10.0,
+        };
+        let wind = WindVector {
+            east_mps: 10.0,
+            north_mps: 5.0,
+        };
+        let sol = compute_uav_endurance(&state, &wind, 16);
+        assert!(sol.is_bingo_critical);
+    }
+}
