@@ -42,6 +42,8 @@ classDiagram
 | `ICD-08` | `WebXR / OpenXR Client` | `AarTimeline` (`xrtak-core::aar`) | `GET /api/aar` $\rightarrow$ Interpolated 4D `AarFrame` (`LIVE` $\leftrightarrow$ `REPLAY` `1x/2x/4x`) | Phase 6 & 10 4D Time-Machine |
 | `ICD-09` | `SAPIENT Edge AI Node` | `xrtak-core::sapient` | `POST /api/sapient` $\rightarrow$ BSI Flex 335 Detection $\rightarrow$ CoT Threat + Auto-Slew SPI | Phase 8 SAPIENT AI Threat Fusion |
 | `ICD-10` | `WebXR / OpenXR Visor` | `xrtak-core::hud` | `GET /api/hud` $\rightarrow$ Helmet-Mounted AR Visor Bearing / Slant-Range / Elevation Cues | Phase 10 AR Tactical Visor HUD |
+| `ICD-11` | `WebXR / OpenXR Client` | `xrtak-core::geo` (`RasterDemProvider`) | `POST /api/elevation-profile` & SRTM `.hgt` Ingestion $\rightarrow$ `ElevationProfileResult` | Phase 21 Elevation Profile & Slope Analytics |
+| `ICD-12` | `WebXR / OpenXR Client` | `xrtak-core::mission` | `POST /api/mission/import` (KML / QGC `.plan`) $\rightarrow$ `MissionCorridorResult` (AGL & CFIT) | Phase 22 3D Mission Corridor & AGL Clearance |
 
 See [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](NEXT_GEN_MASTER_PLAN.md) for the complete EARS requirements (`REQ-DEM`, `REQ-TAC`, `REQ-AAR`, `REQ-COL`), mathematical algorithms, and Phases 4–7 execution roadmap.
 
