@@ -483,6 +483,8 @@
       <input type="file" id="inp-geotiff-file" accept=".tif,.tiff,.png,.jpg,.jpeg,.webp" style="display:none;" />
       <button class="tac-btn spi-btn" id="btn-import-mission" style="grid-column:span 2;border-color:#fbbf24;color:#fbbf24;">Import KML / QGC .plan Mission Corridor</button>
       <input type="file" id="inp-mission-file" accept=".kml,.plan,.json,.xml" style="display:none;" />
+      <button class="tac-btn" id="btn-export-qgc" style="border-color:var(--green);color:var(--green);">Export QGC .plan</button>
+      <button class="tac-btn" id="btn-export-bmr" style="border-color:#00e5ff;color:#00e5ff;">Export ATAK b-m-r</button>
     </div>
   </div>
 
@@ -2795,6 +2797,47 @@
       }
       await syncCollabState(true);
     };
+
+    // Phase 25: Direct Autopilot QGC .plan & ATAK b-m-r CoT Route Export (ICD-15)
+    async function exportMissionRoute(targetFormat) {
+      let wpsEnAgl = [];
+      if (activeMissionCorridor && Array.isArray(activeMissionCorridor.waypoints) && activeMissionCorridor.waypoints.length > 0) {
+        wpsEnAgl = activeMissionCorridor.waypoints.map(w => [w.east_m, w.north_m, Math.max(25.0, w.agl_m)]);
+      } else if (profileWaypointsEn.length >= 2) {
+        wpsEnAgl = profileWaypointsEn.map(([e, n]) => [e, n, 95.0]);
+      } else {
+        wpsEnAgl = [[-360.0, -240.0, 90.0], [40.0, 60.0, 110.0], [380.0, 290.0, 95.0]];
+      }
+
+      if (!standaloneSimActive) {
+        try {
+          const res = await fetch(apiUrl('/api/mission/export'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              route_uid: 'RTE-XR-TAK-01',
+              route_callsign: 'XR-CORRIDOR-01',
+              waypoints_en_agl: wpsEnAgl
+            })
+          });
+          if (res.ok) {
+            const payload = await res.json();
+            const content = targetFormat === 'qgc' ? payload.qgc_plan_json : payload.atak_bmr_cot_xml;
+            const mime = targetFormat === 'qgc' ? 'application/json' : 'application/xml';
+            const ext = targetFormat === 'qgc' ? 'xrtak_mission.plan' : 'xrtak_route_bmr.cot';
+            const blob = new Blob([content], { type: mime });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = ext;
+            a.click();
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+
+    document.getElementById('btn-export-qgc').onclick = () => exportMissionRoute('qgc');
+    document.getElementById('btn-export-bmr').onclick = () => exportMissionRoute('bmr');
 
     const visorCanvas = document.getElementById('visor-hud-canvas');
     const vctx = visorCanvas.getContext('2d');
