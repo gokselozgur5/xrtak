@@ -50,6 +50,7 @@ classDiagram
 | `ICD-16` | `WebXR / OpenXR Client` | `xrtak-core::tiles` (`resolve_tile_with_fallback`) | `POST /api/tiles/resolve` $\rightarrow$ Bing Quadkey / Sentinel-2 / Esri + `z=13` Sea Fallback | Phase 26 Multi-Provider Imagery & Sea Fallback |
 | `ICD-17` | `WebXR / OpenXR Client` | `xrtak-core::corridor` (`evaluate_swath_corridor`) | `POST /api/mission/corridor-polygon` $\rightarrow$ RDP Simplified Swath Polygon + KML `<Polygon>` | Phase 27 Camera FOV Swath Corridor & RDP |
 | `ICD-18` | `WebXR / OpenXR Client` | `xrtak-core::manifest` (`build_mapset_manifest`) | `POST /api/mapset/plan` $\rightarrow$ Copernicus GLO-30 DEM S3 Cells + Multi-Zoom Offline Manifest | Phase 28 Copernicus GLO-30 DEM & Mapset Manifest |
+| `ICD-19` | `WebXR / OpenXR Client` | `xrtak-core::rf` (`evaluate_rf_link`) | `POST /api/rf/link-budget` $\rightarrow$ FSPL, 1st Fresnel Radius, ITU-R P.526 Diffraction & Link Margin | Phase 29 Tactical RF Link Budget & Knife-Edge |
 
 See [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](NEXT_GEN_MASTER_PLAN.md) for the complete EARS requirements (`REQ-DEM`, `REQ-TAC`, `REQ-AAR`, `REQ-COL`), mathematical algorithms, and Phases 4–7 execution roadmap.
 

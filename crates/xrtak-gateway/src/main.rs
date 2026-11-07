@@ -7,11 +7,12 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
-    compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_swath_corridor,
-    export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission,
-    parse_qgc_plan_mission, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
-    OperatorPeer, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport,
-    SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
+    compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
+    evaluate_swath_corridor, export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm,
+    parse_kml_mission, parse_qgc_plan_mission, resolve_tile_with_fallback, AarSummary, GeoOrigin,
+    ImageryProvider, OperatorPeer, ProceduralReliefModel, RasterDemProvider, RfBand,
+    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
+    ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -167,6 +168,14 @@ struct MapsetPlanRequest {
     east: Option<f64>,
     min_zoom: Option<u8>,
     max_zoom: Option<u8>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RfLinkBudgetRequest {
+    tx_enu: Option<(f64, f64, f64)>,
+    rx_enu: Option<(f64, f64, f64)>,
+    band: Option<String>,
+    steps: Option<usize>,
 }
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
@@ -936,6 +945,29 @@ async fn handle_http_connection(
                 &name, provider, south, west, north, east, min_zoom, max_zoom,
             );
             let resp_json = serde_json::to_string(&manifest)?;
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
+    if method == "POST" && path == "/api/rf/link-budget" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(rf_req) = serde_json::from_str::<RfLinkBudgetRequest>(body) {
+            let tx = rf_req.tx_enu.unwrap_or((-600.0, -400.0, 150.0));
+            let rx = rf_req.rx_enu.unwrap_or((800.0, 600.0, 180.0));
+            let band = match rf_req.band.as_deref().unwrap_or("ism2400") {
+                "uhf900" | "900" => RfBand::UHF900,
+                "shf5800" | "5800" | "5.8" => RfBand::SHF5800,
+                _ => RfBand::ISM2400,
+            };
+            let steps = rf_req.steps.unwrap_or(32);
+            let result = {
+                let guard = world.lock().unwrap();
+                evaluate_rf_link(tx, rx, band, steps, guard.terrain.as_ref())
+            };
+            let resp_json = serde_json::to_string(&result)?;
             let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp_json.as_bytes()).await?;

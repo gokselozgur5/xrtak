@@ -8,6 +8,7 @@ pub mod geo;
 pub mod hud;
 pub mod manifest;
 pub mod mission;
+pub mod rf;
 pub mod sapient;
 pub mod tiles;
 pub mod viewshed;
@@ -36,6 +37,11 @@ pub use manifest::{
 pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
     parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
+};
+pub use rf::{
+    compute_diffraction_v, compute_fresnel_radius_m, compute_fspl_db,
+    compute_knife_edge_diffraction_db, evaluate_rf_link, evaluate_rf_propagation, RfBand,
+    RfLinkResult,
 };
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
 pub use tiles::{
