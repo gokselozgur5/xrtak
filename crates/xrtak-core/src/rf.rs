@@ -43,3 +43,37 @@ impl RfBand {
         }
     }
 }
+
+/// Evaluated RF Link telemetry and propagation budget.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RfLinkResult {
+    pub frequency_hz: f64,
+    pub wavelength_m: f64,
+    pub distance_m: f64,
+    pub fspl_db: f64,
+    pub max_fresnel_radius_m: f64,
+    pub worst_clearance_m: f64,
+    pub diffraction_loss_db: f64,
+    pub received_power_dbm: f64,
+    pub link_margin_db: f64,
+    pub status: String,
+}
+
+/// Computes Free-Space Path Loss (FSPL) in decibels.
+pub fn compute_fspl_db(distance_m: f64, frequency_hz: f64) -> f64 {
+    let d = distance_m.max(1.0);
+    let c = 299_792_458.0;
+    let lambda = c / frequency_hz;
+    20.0 * (4.0 * std::f64::consts::PI * d / lambda).log10()
+}
+
+/// Computes 1st Fresnel zone radius F_1 (meters) at distances d1, d2.
+pub fn compute_fresnel_radius_m(d1_m: f64, d2_m: f64, frequency_hz: f64) -> f64 {
+    let total_d = d1_m + d2_m;
+    if total_d <= 1e-3 {
+        return 0.0;
+    }
+    let c = 299_792_458.0;
+    let lambda = c / frequency_hz;
+    ((lambda * d1_m * d2_m) / total_d).sqrt()
+}
