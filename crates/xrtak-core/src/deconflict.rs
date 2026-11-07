@@ -133,3 +133,42 @@ pub fn evaluate_theater_deconfliction(
         total_evaluated_pairs: total_pairs,
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_head_on_critical_cpa() {
+        // UAV-A at (0, 0, 100), heading North (0 deg) at 20 m/s
+        // UAV-B at (0, 600, 100), heading South (180 deg) at 20 m/s
+        // Head-on collision at t = 600 / 40 = 15.0s, sep = 0m
+        let rep = compute_pairwise_cpa(
+            "UAV-A", (0.0, 0.0, 100.0), 20.0, 0.0,
+            "UAV-B", (0.0, 600.0, 100.0), 20.0, 180.0,
+        );
+        assert_eq!(rep.risk_level, CpaRiskLevel::Critical);
+        assert!((rep.t_cpa_sec - 15.0).abs() < 0.5, "t_cpa was {}", rep.t_cpa_sec);
+        assert!(rep.horiz_separation_m < 1.0);
+    }
+
+    #[test]
+    fn test_diverging_and_theater_evaluation() {
+        // Diverging aircraft: UAV-A flying West, UAV-B flying East
+        let rep = compute_pairwise_cpa(
+            "UAV-A", (-100.0, 0.0, 100.0), 25.0, 270.0,
+            "UAV-B", (100.0, 0.0, 100.0), 25.0, 90.0,
+        );
+        assert_eq!(rep.risk_level, CpaRiskLevel::Clear);
+
+        let entities = [
+            ("FALCON-1", (0.0, 0.0, 150.0), 20.0, 0.0),
+            ("VALKYRIE-2", (0.0, 500.0, 150.0), 20.0, 180.0),
+            ("REAPER-3", (1500.0, 1500.0, 300.0), 10.0, 90.0),
+        ];
+        let res = evaluate_theater_deconfliction(&entities);
+        assert_eq!(res.total_evaluated_pairs, 3);
+        assert_eq!(res.max_risk, CpaRiskLevel::Critical);
+        assert_eq!(res.conflicts.len(), 1);
+    }
+}
