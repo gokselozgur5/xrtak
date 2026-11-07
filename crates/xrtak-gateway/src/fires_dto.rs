@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use xrtak_core::fires::{BallisticSolution, MunitionType};
+use xrtak_core::fires::BallisticSolution;
 
 #[derive(Debug, Deserialize)]
 pub struct BallisticsRequest {
