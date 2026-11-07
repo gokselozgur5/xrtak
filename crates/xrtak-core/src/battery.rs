@@ -43,3 +43,75 @@ pub struct RthPolygonVertex {
     pub north_m: f64,
     pub max_radius_m: f64,
 }
+
+/// Comprehensive UAV battery endurance assessment and asymmetric RTH polygon.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UavEnduranceSolution {
+    pub callsign: String,
+    pub total_endurance_sec: f64,
+    pub remaining_flight_sec: f64,
+    pub return_home_time_sec: f64,
+    pub bingo_battery_pct: f64,
+    pub is_bingo_critical: bool,
+    pub distance_to_home_m: f64,
+    pub rth_polygon: Vec<RthPolygonVertex>,
+}
+
+/// Compute wind-corrected bingo battery threshold and asymmetric return polygon.
+pub fn compute_uav_endurance(
+    state: &UavBatteryState,
+    wind: &WindVector,
+    polygon_radial_steps: usize,
+) -> UavEnduranceSolution {
+    let power_w = state.current_power_draw_w.max(10.0);
+    let rem_wh = (state.battery_remaining_pct / 100.0) * state.battery_capacity_wh;
+    let total_rem_sec = (rem_wh / power_w) * 3600.0;
+
+    let res_wh = (state.reserve_margin_pct / 100.0) * state.battery_capacity_wh;
+    let usable_sec = (((rem_wh - res_wh).max(0.0)) / power_w) * 3600.0;
+
+    let dx_home = state.home_east_m - state.current_east_m;
+    let dy_home = state.home_north_m - state.current_north_m;
+    let dist_to_home = (dx_home.powi(2) + dy_home.powi(2)).sqrt();
+
+    let bearing_to_home_rad = dy_home.atan2(dx_home);
+    let headwind_comp = wind.east_mps * bearing_to_home_rad.cos() + wind.north_mps * bearing_to_home_rad.sin();
+    let ground_speed_home = (state.cruise_airspeed_mps + headwind_comp).max(1.0);
+    let rth_time_sec = dist_to_home / ground_speed_home;
+
+    let energy_home_wh = (rth_time_sec / 3600.0) * power_w;
+    let bingo_wh = energy_home_wh + res_wh;
+    let bingo_pct = (bingo_wh / state.battery_capacity_wh.max(1.0)) * 100.0;
+    let is_bingo_critical = state.battery_remaining_pct <= bingo_pct;
+
+    let steps = polygon_radial_steps.max(16);
+    let mut polygon = Vec::with_capacity(steps);
+
+    for i in 0..steps {
+        let frac = i as f64 / steps as f64;
+        let az_rad = frac * 2.0 * std::f64::consts::PI;
+        let bearing_deg = az_rad.to_degrees();
+
+        let headwind = wind.east_mps * az_rad.cos() + wind.north_mps * az_rad.sin();
+        let ground_speed = (state.cruise_airspeed_mps + headwind).max(1.0);
+        let max_r = (usable_sec * ground_speed * 0.5).max(10.0);
+
+        polygon.push(RthPolygonVertex {
+            bearing_deg: (bearing_deg * 10.0).round() / 10.0,
+            east_m: (state.current_east_m + max_r * az_rad.cos() * 10.0).round() / 10.0,
+            north_m: (state.current_north_m + max_r * az_rad.sin() * 10.0).round() / 10.0,
+            max_radius_m: (max_r * 10.0).round() / 10.0,
+        });
+    }
+
+    UavEnduranceSolution {
+        callsign: state.callsign.clone(),
+        total_endurance_sec: (total_rem_sec * 10.0).round() / 10.0,
+        remaining_flight_sec: (usable_sec * 10.0).round() / 10.0,
+        return_home_time_sec: (rth_time_sec * 10.0).round() / 10.0,
+        bingo_battery_pct: (bingo_pct * 10.0).round() / 10.0,
+        is_bingo_critical,
+        distance_to_home_m: (dist_to_home * 10.0).round() / 10.0,
+        rth_polygon: polygon,
+    }
+}
