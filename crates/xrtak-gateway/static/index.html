@@ -479,6 +479,8 @@
       <button class="tac-btn" id="btn-dem-urban">Urban Bowl</button>
       <button class="tac-btn" id="btn-upload-hgt" style="grid-column:span 2;border-color:var(--green);color:var(--green);">Load Offline SRTM .hgt DEM File</button>
       <input type="file" id="inp-hgt-file" accept=".hgt,.dem,.bin" style="display:none;" />
+      <button class="tac-btn spi-btn" id="btn-import-mission" style="grid-column:span 2;border-color:#fbbf24;color:#fbbf24;">Import KML / QGC .plan Mission Corridor</button>
+      <input type="file" id="inp-mission-file" accept=".kml,.plan,.json,.xml" style="display:none;" />
     </div>
   </div>
 
@@ -2530,9 +2532,66 @@
 
     document.getElementById('btn-elev-clear').onclick = () => {
       profileWaypointsEn = [];
+      activeMissionCorridor = null;
       renderElevationProfile3dAndChart(null);
       setInteractionMode(null);
     };
+
+    let activeMissionCorridor = null;
+
+    function renderMissionCorridorOverlay3d() {
+      if (!activeMissionCorridor || !Array.isArray(activeMissionCorridor.waypoints) || activeMissionCorridor.waypoints.length === 0) return;
+      const flightPts = [];
+      for (const wp of activeMissionCorridor.waypoints) {
+        const pFlight = enuToTableVec3(wp.east_m, wp.flight_up_m, wp.north_m);
+        const pGround = enuToTableVec3(wp.east_m, wp.terrain_relief_m, wp.north_m);
+        flightPts.push(pFlight);
+        const stemColor = wp.clearance_violation ? 0xff3355 : 0xfbbf24;
+        const stemGeo = new THREE.BufferGeometry().setFromPoints([pGround, pFlight]);
+        elevationProfileGroup.add(new THREE.Line(stemGeo, new THREE.LineBasicMaterial({ color: stemColor, transparent: true, opacity: 0.85 })));
+        const nodeMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.013, 14, 14),
+          new THREE.MeshBasicMaterial({ color: stemColor })
+        );
+        nodeMesh.position.copy(pFlight);
+        elevationProfileGroup.add(nodeMesh);
+      }
+      if (flightPts.length >= 2) {
+        const flightGeo = new THREE.BufferGeometry().setFromPoints(flightPts);
+        elevationProfileGroup.add(new THREE.Line(flightGeo, new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 2 })));
+      }
+    }
+
+    document.getElementById('btn-import-mission').onclick = () => {
+      document.getElementById('inp-mission-file').click();
+    };
+    document.getElementById('inp-mission-file').addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const fmt = file.name.toLowerCase().endsWith('.plan') || text.trim().startsWith('{') ? 'qgc' : 'kml';
+      if (!standaloneSimActive) {
+        try {
+          const res = await fetch(apiUrl('/api/mission/import'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ format: fmt, content: text, corridor_width_m: 120.0, min_safe_agl_m: 35.0, auto_recenter: true })
+          });
+          if (res.ok) {
+            const payload = await res.json();
+            activeMissionCorridor = payload.corridor;
+            profileWaypointsEn = payload.corridor.waypoints.map(w => [w.east_m, w.north_m]);
+            renderElevationProfile3dAndChart(payload.profile);
+            renderMissionCorridorOverlay3d();
+            const sumEl = document.getElementById('elev-profile-summary');
+            if (sumEl && activeMissionCorridor) {
+              sumEl.textContent = `${activeMissionCorridor.waypoints.length} WP | MIN AGL ${Math.round(activeMissionCorridor.min_agl_m)}m (${activeMissionCorridor.violation_count} WARN)`;
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+    });
 
     // Offline NASA SRTM .hgt (16-bit signed big-endian) file ingestion
     document.getElementById('btn-upload-hgt').onclick = () => {
