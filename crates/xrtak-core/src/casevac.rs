@@ -72,3 +72,82 @@ pub fn format_nato_nine_line_text(report: &MedevacReport) -> String {
         report.line9_nbc_or_terrain
     )
 }
+
+/// Helicopter Landing Zone (HLZ) terrain and threat evaluation metrics.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HlzSuitability {
+    pub max_slope_deg: f64,
+    pub avg_slope_deg: f64,
+    pub is_slope_acceptable: bool,
+    pub min_threat_distance_m: f64,
+    pub nearest_threat_callsign: Option<String>,
+    pub is_threat_clear: bool,
+    pub overall_suitability: String,
+}
+
+/// Evaluate terrain slope around candidate HLZ radius (m) and safety distance to threat domes.
+pub fn evaluate_hlz_suitability(
+    center_east_m: f64,
+    center_north_m: f64,
+    hlz_radius_m: f64,
+    elevation: &dyn ElevationProvider,
+    threat_domes: &[ThreatDome],
+) -> HlzSuitability {
+    let radius = hlz_radius_m.max(15.0);
+    let center_elev = elevation.elevation_m(center_east_m, center_north_m);
+
+    let mut max_slope: f64 = 0.0;
+    let mut sum_slope: f64 = 0.0;
+    let radial_samples = 12;
+
+    for i in 0..radial_samples {
+        let angle = (i as f64) * (2.0 * std::f64::consts::PI / radial_samples as f64);
+        let sample_e = center_east_m + radius * angle.cos();
+        let sample_n = center_north_m + radius * angle.sin();
+        let sample_elev = elevation.elevation_m(sample_e, sample_n);
+        let delta_h = (sample_elev - center_elev).abs();
+        let slope_deg = (delta_h / radius).atan().to_degrees();
+
+        if slope_deg > max_slope {
+            max_slope = slope_deg;
+        }
+        sum_slope += slope_deg;
+    }
+
+    let avg_slope = sum_slope / (radial_samples as f64);
+    let is_slope_acceptable = max_slope <= 8.0;
+
+    let mut min_threat_dist = f64::MAX;
+    let mut nearest_threat: Option<String> = None;
+
+    for dome in threat_domes {
+        let de = center_east_m - dome.center_enu.0;
+        let dn = center_north_m - dome.center_enu.1;
+        let dist = (de.powi(2) + dn.powi(2)).sqrt() - dome.radius_m;
+        if dist < min_threat_dist {
+            min_threat_dist = dist;
+            nearest_threat = Some(dome.label.clone());
+        }
+    }
+
+    let is_threat_clear = min_threat_dist > 500.0;
+    let overall_suitability = if is_slope_acceptable && is_threat_clear {
+        "GREEN - SUITABLE".to_string()
+    } else if is_slope_acceptable && !is_threat_clear {
+        "AMBER - THREAT PROXIMITY".to_string()
+    } else if !is_slope_acceptable && is_threat_clear {
+        "AMBER - STEEP TERRAIN".to_string()
+    } else {
+        "RED - UNSUITABLE".to_string()
+    };
+
+    HlzSuitability {
+        max_slope_deg: (max_slope * 10.0).round() / 10.0,
+        avg_slope_deg: (avg_slope * 10.0).round() / 10.0,
+        is_slope_acceptable,
+        min_threat_distance_m: if min_threat_dist == f64::MAX { 99999.0 } else { (min_threat_dist * 10.0).round() / 10.0 },
+        nearest_threat_callsign: nearest_threat,
+        is_threat_clear,
+        overall_suitability,
+    }
+}
