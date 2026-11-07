@@ -4,6 +4,7 @@ pub mod collab;
 pub mod corridor;
 pub mod deconflict;
 pub mod domain;
+pub mod ew;
 pub mod ffi;
 pub mod geo;
 pub mod hud;
@@ -27,6 +28,10 @@ pub use corridor::{
 pub use deconflict::{
     compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction, AirspaceConflictReport,
     CpaRiskLevel, DeconflictionResult,
+};
+pub use ew::{
+    compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
+    EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
 };
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
