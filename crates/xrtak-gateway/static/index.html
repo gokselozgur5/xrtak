@@ -492,6 +492,7 @@
       <button class="tac-btn spi-btn" id="btn-eval-rf" style="grid-column:span 2;border-color:#ec4899;color:#ec4899;">Evaluate RF Link Budget & Fresnel (ICD-19)</button>
       <button class="tac-btn spi-btn" id="btn-predict-tracks" style="grid-column:span 2;border-color:#a855f7;color:#a855f7;">Predict Dead-Reckoning & CEP Rings (ICD-20)</button>
       <button class="tac-btn spi-btn" id="btn-deconflict" style="grid-column:span 2;border-color:#ef4444;color:#ef4444;">Evaluate Airspace Deconfliction & CPA (ICD-21)</button>
+      <button class="tac-btn spi-btn" id="btn-export-opord" style="grid-column:span 2;border-color:#10b981;color:#10b981;">Export 3D KML Scene & NATO OPORD (ICD-22)</button>
     </div>
   </div>
 
@@ -3014,6 +3015,27 @@
           }
           tableGroup.add(deconflictGroup);
           alert(`[4D AIRSPACE DECONFLICTION]\n${summary}`);
+        }
+      } catch (_) {}
+    };
+
+    // Phase 32: 3D Tactical KML Scene & NATO OPORD Export (ICD-22)
+    document.getElementById('btn-export-opord').onclick = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/export/opord'));
+        if (res.ok) {
+          const bundle = await res.json();
+          const blobMd = new Blob([bundle.opord_markdown], { type: 'text/markdown' });
+          const aMd = document.createElement('a');
+          aMd.href = URL.createObjectURL(blobMd);
+          aMd.download = 'NATO_OPORD_ORDER.md';
+          aMd.click();
+          const blobKml = new Blob([bundle.kml_scene], { type: 'application/vnd.google-earth.kml+xml' });
+          const aKml = document.createElement('a');
+          aKml.href = URL.createObjectURL(blobKml);
+          aKml.download = 'tactical_scene_3d.kml';
+          aKml.click();
+          alert(`[NATO OPORD & 3D KML EXPORTED]\nUnits: ${bundle.unit_count} | Zones: ${bundle.zone_count} | Threat Domes: ${bundle.dome_count}\nFiles downloaded: NATO_OPORD_ORDER.md & tactical_scene_3d.kml`);
         }
       } catch (_) {}
     };
