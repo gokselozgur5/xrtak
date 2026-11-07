@@ -1,4 +1,14 @@
+use crate::geo::RasterDemProvider;
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeoTiffDsmResult {
+    pub metadata: GeoTiffMetadata,
+    pub center_lat_lon: Option<(f64, f64)>,
+    pub min_asl_m: f64,
+    pub max_asl_m: f64,
+    pub dem: RasterDemProvider,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeoTiffMetadata {
@@ -163,3 +173,179 @@ pub fn parse_geotiff_metadata(bytes: &[u8]) -> Result<GeoTiffMetadata, String> {
         pixel_scale_xy,
     })
 }
+
+/// Decodes uncompressed `Float32` (32-bit IEEE) or `Int16` (16-bit signed/unsigned) GeoTIFF DSM
+/// elevation rasters, filters void samples (`<= -9999`), and resamples into a `RasterDemProvider` (`REQ-COG-01`).
+pub fn ingest_geotiff_dsm(
+    name: impl Into<String>,
+    extent_m: f64,
+    target_res: usize,
+    bytes: &[u8],
+) -> Result<GeoTiffDsmResult, String> {
+    let meta = parse_geotiff_metadata(bytes)?;
+    let endian = if &bytes[0..2] == b"II" {
+        Endian::Little
+    } else {
+        Endian::Big
+    };
+
+    let bytes_per_sample = match meta.bits_per_sample {
+        32 => 4usize,
+        16 => 2usize,
+        other => {
+            return Err(format!(
+                "Unsupported GeoTIFF DSM BitsPerSample={other} (expected 16 or 32)"
+            ))
+        }
+    };
+
+    let total_pixels = meta.width * meta.height;
+    let first_offset = meta.data_offsets[0];
+    let needed_bytes = total_pixels * bytes_per_sample;
+    if first_offset + needed_bytes > bytes.len() {
+        return Err("GeoTIFF pixel buffer truncated relative to ImageWidth * ImageLength".to_string());
+    }
+
+    let mut raw_asl = Vec::with_capacity(total_pixels);
+    let mut min_asl_m = f64::INFINITY;
+    let mut max_asl_m = f64::NEG_INFINITY;
+
+    for idx in 0..total_pixels {
+        let off = first_offset + idx * bytes_per_sample;
+        let val = if bytes_per_sample == 4 {
+            endian.f32(bytes, off).unwrap_or(f32::NAN) as f64
+        } else {
+            endian.i16(bytes, off).unwrap_or(-32768) as f64
+        };
+        if val.is_finite() && val > -9999.0 {
+            min_asl_m = min_asl_m.min(val);
+            max_asl_m = max_asl_m.max(val);
+            raw_asl.push(val);
+        } else {
+            raw_asl.push(f64::NAN);
+        }
+    }
+
+    if !min_asl_m.is_finite() {
+        min_asl_m = 0.0;
+        max_asl_m = 0.0;
+    }
+
+    let res = target_res.max(2);
+    let mut resampled_relief = Vec::with_capacity(res * res);
+    // Row 0 in RasterDemProvider is South (`north = -extent_m`), whereas Row 0 in GeoTIFF is North (top-left).
+    for r in 0..res {
+        let v_south_to_north = r as f64 / (res - 1) as f64;
+        let src_row = (((1.0 - v_south_to_north) * (meta.height - 1) as f64).round() as usize)
+            .min(meta.height - 1);
+        for c in 0..res {
+            let u_west_to_east = c as f64 / (res - 1) as f64;
+            let src_col =
+                ((u_west_to_east * (meta.width - 1) as f64).round() as usize).min(meta.width - 1);
+            let sample = raw_asl[src_row * meta.width + src_col];
+            let relief_m = if sample.is_finite() {
+                (sample - min_asl_m).max(0.0)
+            } else {
+                0.0
+            };
+            resampled_relief.push((relief_m * 100.0).round() / 100.0);
+        }
+    }
+
+    let center_lat_lon = match (meta.origin_lon_lat, meta.pixel_scale_xy) {
+        (Some((lon0, lat0)), Some((sx, sy))) if lon0.abs() <= 180.0 && lat0.abs() <= 90.0 => {
+            let center_lon = lon0 + (meta.width as f64 * 0.5) * sx;
+            let center_lat = lat0 - (meta.height as f64 * 0.5) * sy;
+            Some((center_lat, center_lon))
+        }
+        (Some((lon0, lat0)), None) if lon0.abs() <= 180.0 && lat0.abs() <= 90.0 => {
+            Some((lat0, lon0))
+        }
+        _ => None,
+    };
+
+    let dem = RasterDemProvider::new(name, res, res, extent_m, resampled_relief)?;
+    Ok(GeoTiffDsmResult {
+        metadata: meta,
+        center_lat_lon,
+        min_asl_m: (min_asl_m * 100.0).round() / 100.0,
+        max_asl_m: (max_asl_m * 100.0).round() / 100.0,
+        dem,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::geo::ElevationProvider;
+
+    fn build_synthetic_f32_geotiff_dsm() -> Vec<u8> {
+        // Little-endian Classic TIFF with 2x2 Float32 pixels + ModelPixelScale + ModelTiepoint
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"II");
+        buf.extend_from_slice(&42u16.to_le_bytes());
+        buf.extend_from_slice(&8u32.to_le_bytes()); // IFD at offset 8
+
+        let num_entries = 7u16;
+        buf.extend_from_slice(&num_entries.to_le_bytes());
+
+        // IFD ends at 8 + 2 + 7*12 + 4 = 98
+        // Scale (3 * f64 = 24 bytes) at offset 100..124
+        // Tiepoint (6 * f64 = 48 bytes) at offset 124..172
+        // Pixel data (4 * f32 = 16 bytes) at offset 172..188
+        let mut write_entry = |tag: u16, ftype: u16, count: u32, val_or_off: u32| {
+            buf.extend_from_slice(&tag.to_le_bytes());
+            buf.extend_from_slice(&ftype.to_le_bytes());
+            buf.extend_from_slice(&count.to_le_bytes());
+            buf.extend_from_slice(&val_or_off.to_le_bytes());
+        };
+
+        write_entry(256, 3, 1, 2); // ImageWidth = 2
+        write_entry(257, 3, 1, 2); // ImageLength = 2
+        write_entry(258, 3, 1, 32); // BitsPerSample = 32
+        write_entry(273, 4, 1, 172); // StripOffsets = 172
+        write_entry(339, 3, 1, 3); // SampleFormat = 3 (IEEE float)
+        write_entry(33550, 12, 3, 100); // ModelPixelScaleTag at 100
+        write_entry(33922, 12, 6, 124); // ModelTiepointTag at 124
+
+        buf.extend_from_slice(&0u32.to_le_bytes()); // next IFD = 0
+        while buf.len() < 100 {
+            buf.push(0);
+        }
+
+        // ModelPixelScale: (0.01 deg, 0.01 deg, 0.0)
+        for v in [0.01f64, 0.01f64, 0.0f64] {
+            buf.extend_from_slice(&v.to_le_bytes());
+        }
+        // ModelTiepoint: (0, 0, 0, lon=-4.12, lat=52.81, 0)
+        for v in [0.0f64, 0.0, 0.0, -4.12, 52.81, 0.0] {
+            buf.extend_from_slice(&v.to_le_bytes());
+        }
+        // 2x2 Float32 pixels: North row [910.0, 930.0], South row [850.0, 870.0]
+        for p in [910.0f32, 930.0, 850.0, 870.0] {
+            buf.extend_from_slice(&p.to_le_bytes());
+        }
+        buf
+    }
+
+    #[test]
+    fn test_parse_geotiff_dsm_f32_with_tiepoint() {
+        let tiff = build_synthetic_f32_geotiff_dsm();
+        let res = ingest_geotiff_dsm("llanbedr-dsm", 1000.0, 2, &tiff).expect("valid GeoTIFF DSM");
+        assert_eq!(res.metadata.width, 2);
+        assert_eq!(res.metadata.height, 2);
+        assert_eq!(res.metadata.bits_per_sample, 32);
+        assert!((res.min_asl_m - 850.0).abs() < 1e-6);
+        assert!((res.max_asl_m - 930.0).abs() < 1e-6);
+
+        let (clat, clon) = res.center_lat_lon.expect("tiepoint georeference");
+        assert!((clat - 52.80).abs() < 0.02);
+        assert!((clon - (-4.11)).abs() < 0.02);
+
+        // South-West corner (-1000, -1000) corresponds to South row col 0 = 850m ASL -> 0m relief
+        assert!((res.dem.sample_relief_m(-1000.0, -1000.0) - 0.0).abs() < 1e-6);
+        // North-East corner (+1000, +1000) corresponds to North row col 1 = 930m ASL -> 80m relief
+        assert!((res.dem.sample_relief_m(1000.0, 1000.0) - 80.0).abs() < 1e-6);
+    }
+}
+

@@ -10,7 +10,7 @@ pub mod viewshed;
 pub mod zones;
 
 pub use aar::{AarFrame, AarSummary, AarTimeline};
-pub use cog::{parse_geotiff_metadata, GeoTiffMetadata};
+pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
     ViewshedSample,
