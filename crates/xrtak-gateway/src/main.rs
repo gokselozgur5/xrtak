@@ -7,10 +7,10 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider,
-    evaluate_mission_corridor, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
-    AarSummary, GeoOrigin, OperatorPeer, ProceduralReliefModel, RasterDemProvider,
-    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
-    ThreatDome,
+    evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json,
+    ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission, AarSummary, GeoOrigin,
+    OperatorPeer, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport,
+    SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -128,6 +128,13 @@ struct MissionImportRequest {
     corridor_width_m: Option<f64>,
     min_safe_agl_m: Option<f64>,
     auto_recenter: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MissionExportRequest {
+    route_uid: Option<String>,
+    route_callsign: Option<String>,
+    waypoints_en_agl: Vec<(f64, f64, f64)>,
 }
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
@@ -780,6 +787,50 @@ async fn handle_http_connection(
                     return Ok(());
                 }
             }
+        }
+    }
+
+    if method == "POST" && path == "/api/mission/export" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(ex_req) = serde_json::from_str::<MissionExportRequest>(body) {
+            let route_uid = ex_req
+                .route_uid
+                .unwrap_or_else(|| "RTE-XR-TAK-01".to_string());
+            let route_cs = ex_req
+                .route_callsign
+                .unwrap_or_else(|| "XR-CORRIDOR-01".to_string());
+            let (qgc_plan_json, atak_bmr_xml) = {
+                let guard = world.lock().unwrap();
+                let qgc = export_qgc_plan_json(
+                    &guard.origin,
+                    guard.terrain.as_ref(),
+                    &ex_req.waypoints_en_agl,
+                );
+                let bmr = export_atak_route_cot_xml(
+                    &route_uid,
+                    &route_cs,
+                    &guard.origin,
+                    guard.terrain.as_ref(),
+                    &ex_req.waypoints_en_agl,
+                );
+                (qgc, bmr)
+            };
+            if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
+                let _ = sock.send_to(atak_bmr_xml.as_bytes(), "127.0.0.1:4243").await;
+            }
+            let resp_json = serde_json::json!({
+                "route_uid": route_uid,
+                "route_callsign": route_cs,
+                "waypoint_count": ex_req.waypoints_en_agl.len(),
+                "qgc_plan": serde_json::from_str::<serde_json::Value>(&qgc_plan_json).unwrap_or(serde_json::Value::Null),
+                "qgc_plan_json": qgc_plan_json,
+                "atak_bmr_cot_xml": atak_bmr_xml,
+            })
+            .to_string();
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
         }
     }
 
