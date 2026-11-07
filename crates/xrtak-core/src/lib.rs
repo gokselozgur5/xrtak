@@ -1,4 +1,5 @@
 pub mod aar;
+pub mod casevac;
 pub mod cog;
 pub mod collab;
 pub mod corridor;
@@ -19,6 +20,10 @@ pub mod viewshed;
 pub mod zones;
 
 pub use aar::{AarFrame, AarSummary, AarTimeline};
+pub use casevac::{
+    evaluate_hlz_suitability, format_nato_nine_line_text, HlzSuitability, MedevacReport,
+    PatientPrecedence,
+};
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
 pub use corridor::{
