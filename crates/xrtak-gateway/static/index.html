@@ -471,7 +471,9 @@
       <button class="tac-btn" id="btn-real-ankara">Ankara 3D</button>
       <button class="tac-btn" id="btn-real-matterhorn">Matterhorn Alps</button>
       <button class="tac-btn active" id="btn-toggle-buildings" style="grid-column:span 2;border-color:#38bdf8;color:#38bdf8;">Real 3D OSM Buildings: ON (<span id="osm-bldg-count">0</span>)</button>
-      <button class="tac-btn" id="btn-map-sat">Imagery: Satellite</button>
+      <button class="tac-btn" id="btn-map-sat">Imagery: Esri Sat</button>
+      <button class="tac-btn" id="btn-map-bing">Imagery: Bing Aerial</button>
+      <button class="tac-btn" id="btn-map-s2">Imagery: Sentinel-2</button>
       <button class="tac-btn" id="btn-map-topo">Imagery: OpenTopo</button>
       <button class="tac-btn active" id="btn-dem-valley">Valley Relief</button>
       <button class="tac-btn" id="btn-dem-alpine">Alpine Ridge</button>
@@ -3381,6 +3383,31 @@
       });
     }
 
+    function tileXyToQuadkey(tx, ty, z) {
+      let qk = '';
+      for (let i = z; i > 0; i--) {
+        const mask = 1 << (i - 1);
+        let d = 0;
+        if ((tx & mask) !== 0) d += 1;
+        if ((ty & mask) !== 0) d += 2;
+        qk += String(d);
+      }
+      return qk;
+    }
+
+    function providerTileUrl(style, tx, ty, z) {
+      if (style === 'topo') return `https://tile.opentopomap.org/${z}/${tx}/${ty}.png`;
+      if (style === 'bing') {
+        const qk = tileXyToQuadkey(tx, ty, z);
+        const sub = (tx + ty) & 3;
+        return `https://ecn.t${sub}.tiles.virtualearth.net/tiles/a${qk}.jpeg?g=1`;
+      }
+      if (style === 'sentinel2') {
+        return `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/${z}/${ty}/${tx}.jpg`;
+      }
+      return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${tx}`;
+    }
+
     async function loadRealWorldSector(lat, lon, labelHint = 'REAL-SRTM') {
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
       currentOriginLat = lat;
@@ -3415,9 +3442,7 @@
           const px = (dx + 1) * 256;
           const py = (dy + 1) * 256;
           const demUrl = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${tx}/${ty}.png`;
-          const satUrl = currentImageryStyle === 'topo'
-            ? `https://tile.opentopomap.org/${z}/${tx}/${ty}.png`
-            : `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${tx}`;
+          const satUrl = providerTileUrl(currentImageryStyle, tx, ty, z);
 
           tileJobs.push(
             loadCrossOriginImage(demUrl)
@@ -3859,7 +3884,15 @@
     };
     document.getElementById('btn-map-sat').onclick = () => {
       currentImageryStyle = 'sat';
-      loadRealWorldSector(currentOriginLat, currentOriginLon, 'SAT-SRTM');
+      loadRealWorldSector(currentOriginLat, currentOriginLon, 'ESRI-SRTM');
+    };
+    document.getElementById('btn-map-bing').onclick = () => {
+      currentImageryStyle = 'bing';
+      loadRealWorldSector(currentOriginLat, currentOriginLon, 'BING-QUADKEY');
+    };
+    document.getElementById('btn-map-s2').onclick = () => {
+      currentImageryStyle = 'sentinel2';
+      loadRealWorldSector(currentOriginLat, currentOriginLon, 'SENTINEL2-SRTM');
     };
     document.getElementById('btn-map-topo').onclick = () => {
       currentImageryStyle = 'topo';
