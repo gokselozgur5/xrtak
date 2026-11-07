@@ -7,6 +7,7 @@ pub mod deconflict;
 pub mod domain;
 pub mod ew;
 pub mod ffi;
+pub mod fires;
 pub mod geo;
 pub mod hud;
 pub mod manifest;
@@ -37,6 +38,9 @@ pub use deconflict::{
 pub use ew::{
     compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
     EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
+};
+pub use fires::{
+    compute_ballistic_trajectory, BallisticSolution, MunitionType, TrajectoryPoint3d,
 };
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,

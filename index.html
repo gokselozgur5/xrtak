@@ -495,6 +495,7 @@
       <button class="tac-btn spi-btn" id="btn-export-opord" style="grid-column:span 2;border-color:#10b981;color:#10b981;">Export 3D KML Scene & NATO OPORD (ICD-22)</button>
       <button class="tac-btn spi-btn" id="btn-eval-ew" style="grid-column:span 2;border-color:#f97316;color:#f97316;">Assess EW Jamming & Burn-Through (ICD-23)</button>
       <button class="tac-btn spi-btn" id="btn-eval-medevac" style="grid-column:span 2;border-color:#e11d48;color:#e11d48;">NATO 9-Line & HLZ Slope Suitability (ICD-24)</button>
+      <button class="tac-btn spi-btn" id="btn-eval-fires" style="grid-column:span 2;border-color:#eab308;color:#eab308;">Compute Ballistics & Crest Clearance (ICD-25)</button>
     </div>
   </div>
 
@@ -3178,6 +3179,59 @@
           medevacHlzGroup.add(beaconMesh);
 
           tableGroup.add(medevacHlzGroup);
+        }
+      } catch (_) {}
+    };
+
+    // Phase 35: 3D Ballistic Trajectory & Crest Clearance (ICD-25)
+    let ballisticsMeshGroup = null;
+    document.getElementById('btn-eval-fires').onclick = async () => {
+      try {
+        const payload = {
+          origin_enu: [-750.0, 60.0, -600.0],
+          target_enu: [650.0, 95.0, 700.0],
+          munition: "artillery",
+          elevation_angle_deg: 42.0,
+          samples: 36
+        };
+        const res = await fetch(apiUrl('/api/fires/ballistics'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const bData = await res.json();
+          const sol = bData.solution;
+          const statusText = `FIRES [${sol.is_crest_cleared ? 'CLEAR' : 'MASKED'}] RANGE: ${sol.ground_range_m}m | APOGEE: ${sol.max_ordinate_m}m | TOF: ${sol.time_of_flight_sec}s | CREST: ${sol.min_crest_clearance_m}m`;
+          const hs = document.getElementById('hud-status');
+          if (hs) hs.textContent = statusText;
+          const sumEl = document.getElementById('elev-profile-summary');
+          if (sumEl) sumEl.textContent = statusText;
+
+          if (ballisticsMeshGroup) tableGroup.remove(ballisticsMeshGroup);
+          ballisticsMeshGroup = new THREE.Group();
+
+          const pts = [];
+          for (const tp of sol.trajectory) {
+            pts.push(enuToTableVec3(tp.east_m, tp.up_m, tp.north_m));
+          }
+
+          const arcGeom = new THREE.BufferGeometry().setFromPoints(pts);
+          const arcColor = sol.is_crest_cleared ? 0xeab308 : 0xef4444;
+          const arcLine = new THREE.Line(arcGeom, new THREE.LineBasicMaterial({ color: arcColor, linewidth: 3 }));
+          ballisticsMeshGroup.add(arcLine);
+
+          const apogeeIdx = Math.floor(pts.length / 2);
+          if (pts[apogeeIdx]) {
+            const apoMesh = new THREE.Mesh(
+              new THREE.SphereGeometry(0.008, 12, 12),
+              new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            apoMesh.position.copy(pts[apogeeIdx]);
+            ballisticsMeshGroup.add(apoMesh);
+          }
+
+          tableGroup.add(ballisticsMeshGroup);
         }
       } catch (_) {}
     };
