@@ -1,4 +1,5 @@
 pub mod aar;
+pub mod battery;
 pub mod casevac;
 pub mod cog;
 pub mod collab;
@@ -21,6 +22,9 @@ pub mod viewshed;
 pub mod zones;
 
 pub use aar::{AarFrame, AarSummary, AarTimeline};
+pub use battery::{
+    compute_uav_endurance, RthPolygonVertex, UavBatteryState, UavEnduranceSolution, WindVector,
+};
 pub use casevac::{
     evaluate_hlz_suitability, format_nato_nine_line_text, HlzSuitability, MedevacReport,
     PatientPrecedence,

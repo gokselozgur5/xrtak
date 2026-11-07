@@ -496,6 +496,7 @@
       <button class="tac-btn spi-btn" id="btn-eval-ew" style="grid-column:span 2;border-color:#f97316;color:#f97316;">Assess EW Jamming & Burn-Through (ICD-23)</button>
       <button class="tac-btn spi-btn" id="btn-eval-medevac" style="grid-column:span 2;border-color:#e11d48;color:#e11d48;">NATO 9-Line & HLZ Slope Suitability (ICD-24)</button>
       <button class="tac-btn spi-btn" id="btn-eval-fires" style="grid-column:span 2;border-color:#eab308;color:#eab308;">Compute Ballistics & Crest Clearance (ICD-25)</button>
+      <button class="tac-btn spi-btn" id="btn-eval-endurance" style="grid-column:span 2;border-color:#06b6d4;color:#06b6d4;">Compute Bingo Battery & RTH Polygon (ICD-26)</button>
     </div>
   </div>
 
@@ -3232,6 +3233,75 @@
           }
 
           tableGroup.add(ballisticsMeshGroup);
+        }
+      } catch (_) {}
+    };
+
+    // Phase 36: UAV Wind-Corrected Bingo Battery & RTH Polygon (ICD-26)
+    let endurancePolygonGroup = null;
+    document.getElementById('btn-eval-endurance').onclick = async () => {
+      try {
+        const payload = {
+          state: {
+            callsign: "FALCON-1",
+            battery_remaining_pct: 55.0,
+            battery_capacity_wh: 150.0,
+            current_power_draw_w: 190.0,
+            reserve_margin_pct: 15.0,
+            cruise_airspeed_mps: 19.0,
+            current_east_m: 400.0,
+            current_north_m: 350.0,
+            current_up_m: 160.0,
+            home_east_m: -500.0,
+            home_north_m: -400.0,
+            home_up_m: 30.0
+          },
+          wind: {
+            east_mps: -6.0,
+            north_mps: 3.0
+          },
+          radial_steps: 32
+        };
+        const res = await fetch(apiUrl('/api/uav/endurance'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const endData = await res.json();
+          const sol = endData.solution;
+          const statusText = `UAV [${sol.is_bingo_critical ? 'BINGO RTB' : 'NOMINAL'}] FLIGHT: ${(sol.remaining_flight_sec/60).toFixed(1)}m | BINGO: ${sol.bingo_battery_pct}% | RTH TIME: ${(sol.return_home_time_sec/60).toFixed(1)}m | HOME: ${sol.distance_to_home_m}m`;
+          const hs = document.getElementById('hud-status');
+          if (hs) hs.textContent = statusText;
+          const sumEl = document.getElementById('elev-profile-summary');
+          if (sumEl) sumEl.textContent = statusText;
+
+          if (endurancePolygonGroup) tableGroup.remove(endurancePolygonGroup);
+          endurancePolygonGroup = new THREE.Group();
+
+          const polyPts = [];
+          for (const v of sol.rth_polygon) {
+            polyPts.push(enuToTableVec3(v.east_m, payload.state.current_up_m * 0.5, v.north_m));
+          }
+          if (polyPts.length > 0) {
+            polyPts.push(polyPts[0].clone()); // Close loop
+          }
+
+          const polyGeom = new THREE.BufferGeometry().setFromPoints(polyPts);
+          const pColor = sol.is_bingo_critical ? 0xef4444 : 0x06b6d4;
+          const polyLine = new THREE.Line(polyGeom, new THREE.LineDashedMaterial({ color: pColor, dashSize: 0.02, gapSize: 0.01 }));
+          polyLine.computeLineDistances();
+          endurancePolygonGroup.add(polyLine);
+
+          // RTH Home vector
+          const homeLineGeom = new THREE.BufferGeometry().setFromPoints([
+            enuToTableVec3(payload.state.current_east_m, payload.state.current_up_m, payload.state.current_north_m),
+            enuToTableVec3(payload.state.home_east_m, payload.state.home_up_m, payload.state.home_north_m)
+          ]);
+          const homeLine = new THREE.Line(homeLineGeom, new THREE.LineBasicMaterial({ color: 0x00ff88 }));
+          endurancePolygonGroup.add(homeLine);
+
+          tableGroup.add(endurancePolygonGroup);
         }
       } catch (_) {}
     };
