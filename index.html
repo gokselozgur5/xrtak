@@ -544,6 +544,18 @@
       <button class="tac-btn" id="btn-auto-recenter">Auto-Center CoT</button>
       <button class="tac-btn spi-btn" id="btn-laser-pointer" style="grid-column:span 2;">3D XR Laser Pointer (b-m-p-c)</button>
     </div>
+
+    <div class="panel-title" style="margin-top:4px;">
+      <span>MULTI-OPERATOR XR COLLAB & PTT VOICE</span>
+      <span id="collab-peer-count" style="color:var(--green);">1 PEER</span>
+    </div>
+    <div style="display:flex;gap:5px;">
+      <input id="inp-collab-callsign" value="OP-PARALLAX" placeholder="Operator Callsign" style="flex:1;background:#040b14;color:#00ff88;border:1px solid rgba(0,255,136,0.35);border-radius:4px;padding:4px 7px;font-family:inherit;font-size:10px;" />
+      <button class="tac-btn" id="btn-collab-ptt" style="border-color:#fbbf24;color:#fbbf24;padding:4px 8px;">PTT Voice: IDLE</button>
+    </div>
+    <div class="btn-group">
+      <button class="tac-btn spi-btn" id="btn-collab-sync" style="grid-column:span 2;border-color:#00e5ff;color:#00e5ff;">Sync Shared Laser & Table Pose (ICD-14)</button>
+    </div>
   </div>
 
   <div class="bottom-help" id="bottom-help">
@@ -2700,6 +2712,89 @@
         } catch (_) {}
       }
     });
+
+    // Phase 24: Multi-Operator Spatial Collaboration, Shared 3D Laser Beams & WebRTC PTT Voice
+    const collabPeerGroup = new THREE.Group();
+    tableGroup.add(collabPeerGroup);
+    const localOperatorId = `OP-${Math.floor(1000 + Math.random() * 8999)}`;
+    let pttActive = false;
+    let lastLaserTargetEnu = null;
+    const collabChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('xrtak_collab_v1') : null;
+
+    function renderCollabPeers3d(peers) {
+      while (collabPeerGroup.children.length > 0) {
+        const ch = collabPeerGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+      }
+      if (!Array.isArray(peers)) return;
+      const badge = document.getElementById('collab-peer-count');
+      if (badge) badge.textContent = `${Math.max(1, peers.length)} PEER${peers.length === 1 ? '' : 'S'}`;
+
+      for (const p of peers) {
+        const headVec = enuToTableVec3(p.head_enu[0], p.head_enu[1], p.head_enu[2]);
+        const col = new THREE.Color(p.color_hex || '#00ff88');
+        const visor = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.018, 1),
+          new THREE.MeshBasicMaterial({ color: p.ptt_active ? 0xfbbf24 : col })
+        );
+        visor.position.copy(headVec);
+        collabPeerGroup.add(visor);
+
+        if (Array.isArray(p.laser_target_enu) && p.laser_target_enu.length === 3) {
+          const tgtVec = enuToTableVec3(p.laser_target_enu[0], p.laser_target_enu[1], p.laser_target_enu[2]);
+          const beamGeo = new THREE.BufferGeometry().setFromPoints([headVec, tgtVec]);
+          collabPeerGroup.add(new THREE.Line(beamGeo, new THREE.LineBasicMaterial({ color: p.ptt_active ? 0xfbbf24 : 0x00ff88 })));
+        }
+      }
+    }
+
+    async function syncCollabState(shareTablePose = false) {
+      const csInput = document.getElementById('inp-collab-callsign');
+      const callsign = (csInput && csInput.value.trim()) || localOperatorId;
+      const reqBody = {
+        operator_id: localOperatorId,
+        callsign,
+        device_mode: renderer.xr.isPresenting ? 'QUEST3-AR' : 'DESKTOP-C2',
+        head_enu: [camera.position.x * 800.0, Math.max(180.0, camera.position.y * 500.0), -camera.position.z * 800.0],
+        laser_target_enu: lastLaserTargetEnu,
+        ptt_active: pttActive,
+        color_hex: pttActive ? '#fbbf24' : '#00ff88',
+        shared_scale: shareTablePose ? tableScaleFactor : undefined,
+        shared_yaw_deg: shareTablePose ? (THREE.MathUtils.radToDeg(tableGroup.rotation.y) % 360) : undefined
+      };
+      if (collabChannel) collabChannel.postMessage(reqBody);
+      if (!standaloneSimActive) {
+        try {
+          const res = await fetch(apiUrl('/api/collab/sync'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+          });
+          if (res.ok) {
+            const data = await res.json();
+            renderCollabPeers3d(data.operators || []);
+            return;
+          }
+        } catch (_) {}
+      }
+      renderCollabPeers3d([reqBody]);
+    }
+
+    document.getElementById('btn-collab-ptt').onclick = async () => {
+      pttActive = !pttActive;
+      const btn = document.getElementById('btn-collab-ptt');
+      btn.textContent = pttActive ? 'PTT Voice: TX ON' : 'PTT Voice: IDLE';
+      btn.classList.toggle('active', pttActive);
+      await syncCollabState(false);
+    };
+
+    document.getElementById('btn-collab-sync').onclick = async () => {
+      const sel = latestEntities.find(e => e.uid === selectedUid);
+      if (sel) {
+        lastLaserTargetEnu = [sel.east_m, sel.up_m, sel.north_m];
+      }
+      await syncCollabState(true);
+    };
 
     const visorCanvas = document.getElementById('visor-hud-canvas');
     const vctx = visorCanvas.getContext('2d');
