@@ -952,6 +952,29 @@ async fn handle_http_connection(
         }
     }
 
+    if method == "POST" && path == "/api/rf/link-budget" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(rf_req) = serde_json::from_str::<RfLinkBudgetRequest>(body) {
+            let tx = rf_req.tx_enu.unwrap_or((-600.0, -400.0, 150.0));
+            let rx = rf_req.rx_enu.unwrap_or((800.0, 600.0, 180.0));
+            let band = match rf_req.band.as_deref().unwrap_or("ism2400") {
+                "uhf900" | "900" => RfBand::UHF900,
+                "shf5800" | "5800" | "5.8" => RfBand::SHF5800,
+                _ => RfBand::ISM2400,
+            };
+            let steps = rf_req.steps.unwrap_or(32);
+            let result = {
+                let guard = world.lock().unwrap();
+                evaluate_rf_link(tx, rx, band, steps, guard.terrain.as_ref())
+            };
+            let resp_json = serde_json::to_string(&result)?;
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
     if method == "POST" && path == "/api/spawn" {
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
