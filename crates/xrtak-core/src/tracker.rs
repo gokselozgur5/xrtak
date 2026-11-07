@@ -61,3 +61,44 @@ pub fn compute_cep_radius_m(initial_ce_m: f64, speed_mps: f64, dt_sec: f64) -> f
     let turn_variance = 0.25 * (sigma_omega * speed_mps * dt_sec.powi(2)).powi(2);
     (r0.powi(2) + vel_variance + turn_variance).sqrt()
 }
+
+/// Generates kinematic track prediction points across specified time horizons.
+pub fn predict_entity_trajectory(
+    uid: &str,
+    callsign: &str,
+    current_enu: (f64, f64, f64),
+    speed_mps: f64,
+    course_deg: f64,
+    is_stale: bool,
+    initial_ce_m: f64,
+    horizons: &[f64],
+) -> TrackPrediction {
+    let mut points = Vec::new();
+    for &dt in horizons {
+        let (e, n, u) = compute_kinematic_extrapolation(
+            current_enu,
+            speed_mps,
+            course_deg,
+            0.0,
+            dt,
+        );
+        let cep = compute_cep_radius_m(initial_ce_m, speed_mps, dt);
+        points.push(TrackPredictionPoint {
+            dt_sec: dt,
+            east_m: (e * 100.0).round() / 100.0,
+            north_m: (n * 100.0).round() / 100.0,
+            up_m: (u * 100.0).round() / 100.0,
+            cep_radius_m: (cep * 100.0).round() / 100.0,
+        });
+    }
+
+    TrackPrediction {
+        uid: uid.to_string(),
+        callsign: callsign.to_string(),
+        current_enu,
+        speed_mps,
+        course_deg,
+        is_stale,
+        points,
+    }
+}
