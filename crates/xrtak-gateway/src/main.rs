@@ -16,6 +16,7 @@ use xrtak_core::{
     ThreatDome, TrackPrediction, TrackPredictRequest,
 };
 
+mod battery_dto;
 mod ew_dto;
 mod fires_dto;
 mod medevac_dto;
@@ -1206,6 +1207,24 @@ async fn handle_http_connection(
             return Ok(());
         }
         let err = r#"{"error":"invalid_ballistics_request_payload"}"#;
+        stream.write_all(format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n{}", err.len(), err).as_bytes()).await?;
+        return Ok(());
+    }
+
+    if method == "POST" && path == "/api/uav/endurance" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(bat_req) = serde_json::from_str::<battery_dto::UavEnduranceRequest>(body) {
+            let wind = bat_req.wind.unwrap_or_default();
+            let steps = bat_req.radial_steps.unwrap_or(32);
+            let solution = xrtak_core::compute_uav_endurance(&bat_req.state, &wind, steps);
+            let resp = battery_dto::UavEnduranceResponse { solution };
+            let resp_json = serde_json::to_string(&resp)?;
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
+        let err = r#"{"error":"invalid_uav_endurance_payload"}"#;
         stream.write_all(format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n{}", err.len(), err).as_bytes()).await?;
         return Ok(());
     }
