@@ -256,6 +256,89 @@ pub fn parse_qgc_plan_mission(plan_json: &str) -> Result<(String, Vec<RawMission
     Ok(("QGC-PLAN-MISSION".to_string(), waypoints))
 }
 
+/// Exports ENU + AGL waypoints `(east_m, north_m, agl_m)` into a QGroundControl `.plan` v1 JSON document (`REQ-MAV-01`).
+pub fn export_qgc_plan_json(
+    origin: &GeoOrigin,
+    terrain: &dyn ElevationProvider,
+    waypoints_en_agl: &[(f64, f64, f64)],
+) -> String {
+    let mut items = Vec::with_capacity(waypoints_en_agl.len());
+    for (idx, &(east_m, north_m, agl_m)) in waypoints_en_agl.iter().enumerate() {
+        let relief_m = terrain.sample_relief_m(east_m, north_m);
+        let (lat, lon, _) = origin.enu_to_lla(east_m, relief_m + agl_m, north_m);
+        let cmd = if idx == 0 { 22 } else { 16 }; // 22 = MAV_CMD_NAV_TAKEOFF, 16 = MAV_CMD_NAV_WAYPOINT
+        items.push(serde_json::json!({
+            "AMSLAltAboveTerrain": null,
+            "Altitude": (agl_m * 10.0).round() / 10.0,
+            "AltitudeMode": 1,
+            "autoContinue": true,
+            "command": cmd,
+            "doJumpId": idx + 1,
+            "frame": 3,
+            "params": [0, 0, 0, null, (lat * 1e7).round() / 1e7, (lon * 1e7).round() / 1e7, (agl_m * 10.0).round() / 10.0],
+            "type": "SimpleItem"
+        }));
+    }
+
+    let home_lla = if let Some(&(e0, n0, _)) = waypoints_en_agl.first() {
+        let r0 = terrain.sample_relief_m(e0, n0);
+        let (lat0, lon0, hae0) = origin.enu_to_lla(e0, r0, n0);
+        [lat0, lon0, hae0]
+    } else {
+        [origin.lat, origin.lon, origin.alt_m]
+    };
+
+    serde_json::to_string_pretty(&serde_json::json!({
+        "fileType": "Plan",
+        "geoFence": { "circles": [], "polygons": [], "version": 2 },
+        "groundStation": "XR-TAK Mixed-Reality C2",
+        "mission": {
+            "cruiseSpeed": 18,
+            "firmwareType": 12,
+            "globalPlanAltitudeMode": 1,
+            "hoverSpeed": 5,
+            "items": items,
+            "plannedHomePosition": home_lla,
+            "vehicleType": 2,
+            "version": 2
+        },
+        "rallyPoints": { "points": [], "version": 2 },
+        "version": 1
+    }))
+    .unwrap_or_default()
+}
+
+/// Exports ENU + AGL waypoints `(east_m, north_m, agl_m)` as an ATAK `b-m-r` (Route) CoT XML packet (`REQ-MAV-01`).
+pub fn export_atak_route_cot_xml(
+    route_uid: &str,
+    route_callsign: &str,
+    origin: &GeoOrigin,
+    terrain: &dyn ElevationProvider,
+    waypoints_en_agl: &[(f64, f64, f64)],
+) -> String {
+    let (lat0, lon0, hae0) = if let Some(&(e0, n0, agl0)) = waypoints_en_agl.first() {
+        let r0 = terrain.sample_relief_m(e0, n0);
+        origin.enu_to_lla(e0, r0 + agl0, n0)
+    } else {
+        (origin.lat, origin.lon, origin.alt_m)
+    };
+
+    let mut links = String::new();
+    for (idx, &(east_m, north_m, agl_m)) in waypoints_en_agl.iter().enumerate() {
+        let relief_m = terrain.sample_relief_m(east_m, north_m);
+        let (lat, lon, hae) = origin.enu_to_lla(east_m, relief_m + agl_m, north_m);
+        links.push_str(&format!(
+            r#"<link uid="{route_uid}-WP{wp}" callsign="WP-{wp}" type="b-m-p-w" point="{lat:.6},{lon:.6},{hae:.1}" relation="c"/>"#,
+            wp = idx + 1
+        ));
+    }
+
+    format!(
+        r#"<event version="2.0" uid="{route_uid}" type="b-m-r" how="h-g-i-g-o"><point lat="{lat0:.6}" lon="{lon0:.6}" hae="{hae0:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{route_callsign}"/>{links}<strokeColor value="-256"/>< strokeWeight value="3.0"/><remarks>Exported 3D Mission Route from XR-TAK</remarks></detail></event>"#
+    )
+    .replace("< strokeWeight", "<strokeWeight")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -324,6 +407,25 @@ mod tests {
         assert!((res.waypoints[0].agl_m - 85.0).abs() < 0.1);
         assert!((res.waypoints[1].agl_m - 20.0).abs() < 0.1);
         assert_eq!(res.violation_count, 1);
+    }
+
+    #[test]
+    fn test_export_qgc_plan_and_atak_bmr_cot_route() {
+        let origin = GeoOrigin::default();
+        let dem = RasterDemProvider::new("flat-10m", 2, 2, 1500.0, vec![10.0, 10.0, 10.0, 10.0])
+            .expect("flat dem");
+        let wps = vec![(-250.0, -180.0, 90.0), (120.0, 240.0, 110.0), (420.0, 310.0, 95.0)];
+
+        let qgc_json = export_qgc_plan_json(&origin, &dem, &wps);
+        let (_, reparsed) = parse_qgc_plan_mission(&qgc_json).expect("round-trip QGC .plan");
+        assert_eq!(reparsed.len(), 3);
+        assert!((reparsed[0].alt_m - 90.0).abs() < 1e-3);
+        assert!((reparsed[1].alt_m - 110.0).abs() < 1e-3);
+
+        let bmr_xml = export_atak_route_cot_xml("RTE-XR-01", "ALPHA-CORRIDOR", &origin, &dem, &wps);
+        assert!(bmr_xml.contains(r#"type="b-m-r""#));
+        assert!(bmr_xml.contains(r#"callsign="ALPHA-CORRIDOR""#));
+        assert!(bmr_xml.contains(r#"uid="RTE-XR-01-WP3""#));
     }
 }
 

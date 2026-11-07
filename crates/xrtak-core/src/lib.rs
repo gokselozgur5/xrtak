@@ -23,8 +23,8 @@ pub use geo::{
 };
 pub use hud::{compute_hud_cue, HudCue};
 pub use mission::{
-    evaluate_mission_corridor, parse_kml_mission, parse_qgc_plan_mission, MissionCorridorResult,
-    MissionWaypoint3d, RawMissionWaypoint,
+    evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
+    parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
 };
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
