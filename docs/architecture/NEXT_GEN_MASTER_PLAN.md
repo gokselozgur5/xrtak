@@ -182,7 +182,7 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 
 ---
 
-## 7. Phase 21–30 Extended EARS Requirements & Strategic Roadmap
+## 7. Phase 21–31 Extended EARS Requirements & Strategic Roadmap
 
 | Req ID | Subsystem | EARS Specification | Verification |
 | :--- | :--- | :--- | :--- |
@@ -203,4 +203,6 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 | `REQ-RF-02` | `xrtak-core::rf` | **WHILE** traversing terrain between transmitter and receiver, the system **SHALL** identify worst-case obstacle intrusion into the 1st Fresnel zone and compute ITU-R P.526 knife-edge diffraction loss and net link margin ($\text{dB}$). | `rf::tests::test_evaluate_rf_link_knife_edge_diffraction` |
 | `REQ-TRK-01` | `xrtak-core::tracker` | **WHEN** an active or stale track is projected over lookahead horizon $\Delta t$, the system **SHALL** compute 3D kinematic dead-reckoning position given heading course, speed, and vertical velocity. | `tracker::tests::test_kinematic_extrapolation_cardinal_headings` |
 | `REQ-TRK-02` | `xrtak-core::tracker` | **WHILE** coasting a track without fresh CoT updates, the system **SHALL** compute the time-expanding Circular Error Probable ($\text{CEP}$) uncertainty radius and generate ground confidence circle rings. | `tracker::tests::test_expanding_cep_growth` |
+| `REQ-DEC-01` | `xrtak-core::deconflict` | **WHEN** two moving 3D air tracks are evaluated, the system **SHALL** compute time to Closest Point of Approach ($t_{\text{CPA}}$), horizontal separation, and vertical separation. | `deconflict::tests::test_head_on_critical_cpa` |
+| `REQ-DEC-02` | `xrtak-core::deconflict` | **WHILE** screening theater airspace across all active airborne assets, the system **SHALL** classify pairwise collision risks into `Critical`, `Advisory`, or `Clear` tiers. | `deconflict::tests::test_diverging_and_theater_evaluation` |
 
