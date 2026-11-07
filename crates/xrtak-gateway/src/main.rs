@@ -7,11 +7,11 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
     build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider,
-    evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json,
-    ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission, resolve_tile_with_fallback,
-    AarSummary, GeoOrigin, ImageryProvider, OperatorPeer, ProceduralReliefModel,
-    RasterDemProvider, SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld,
-    TacticalZone, ThreatDome,
+    evaluate_mission_corridor, evaluate_swath_corridor, export_atak_route_cot_xml,
+    export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
+    resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider, OperatorPeer,
+    ProceduralReliefModel, RasterDemProvider, SapientDetectionReport, SharedTablePose,
+    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome,
 };
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
@@ -144,6 +144,17 @@ struct TileResolveRequest {
     lat: Option<f64>,
     lon: Option<f64>,
     zoom: Option<u8>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CorridorPolygonRequest {
+    name: Option<String>,
+    waypoints_en: Vec<(f64, f64)>,
+    rdp_epsilon_m: Option<f64>,
+    agl_m: Option<f64>,
+    hfov_deg: Option<f64>,
+    focal_px: Option<f64>,
+    sensor_width_px: Option<f64>,
 }
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
@@ -858,6 +869,31 @@ async fn handle_http_connection(
             let zoom = t_req.zoom.unwrap_or(15);
             let spec = resolve_tile_with_fallback(provider, lat, lon, zoom);
             let resp_json = serde_json::to_string(&spec)?;
+            let header = json_ok_header(resp_json.len());
+            stream.write_all(header.as_bytes()).await?;
+            stream.write_all(resp_json.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
+    if method == "POST" && path == "/api/mission/corridor-polygon" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(c_req) = serde_json::from_str::<CorridorPolygonRequest>(body) {
+            let origin = {
+                let guard = world.lock().unwrap();
+                guard.origin
+            };
+            let res = evaluate_swath_corridor(
+                c_req.name.unwrap_or_else(|| "XR-SWATH-CORRIDOR".to_string()),
+                &origin,
+                &c_req.waypoints_en,
+                c_req.rdp_epsilon_m.unwrap_or(8.0),
+                c_req.agl_m.unwrap_or(140.0),
+                c_req.hfov_deg,
+                c_req.focal_px,
+                c_req.sensor_width_px,
+            );
+            let resp_json = serde_json::to_string(&res)?;
             let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp_json.as_bytes()).await?;
