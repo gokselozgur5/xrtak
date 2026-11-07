@@ -9,6 +9,7 @@ pub mod geo;
 pub mod hud;
 pub mod manifest;
 pub mod mission;
+pub mod opord;
 pub mod rf;
 pub mod sapient;
 pub mod tiles;
@@ -43,6 +44,10 @@ pub use manifest::{
 pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
     parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
+};
+pub use opord::{
+    build_opord_bundle, generate_kml_tactical_scene, generate_nato_opord_markdown,
+    OpordExportBundle, OpordUnitSummary,
 };
 pub use rf::{
     compute_diffraction_v, compute_fresnel_radius_m, compute_fspl_db,
