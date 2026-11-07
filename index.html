@@ -3007,19 +3007,19 @@
           const report = await res.json();
           if (deconflictGroup) tableGroup.remove(deconflictGroup);
           deconflictGroup = new THREE.Group();
-          let summary = `Max Risk: ${report.max_risk} (${report.conflicts.length} warnings / ${report.total_evaluated_pairs} pairs)\n`;
+          let summary = `MAX RISK: ${report.max_risk} (${report.conflicts.length} WARNINGS)`;
           for (const c of report.conflicts) {
-            summary += `[${c.risk_level}] ${c.entity_a} <-> ${c.entity_b} in ${c.t_cpa_sec}s (H:${c.horiz_separation_m}m V:${c.vert_separation_m}m)\n`;
             const color = c.risk_level === 'Critical' ? 0xef4444 : 0xfbbf24;
             const pts = [
-              new THREE.Vector3((c.pos_a_at_cpa[0] / 3000) * 0.8, (c.pos_a_at_cpa[2] / 3000) * 0.25, -(c.pos_a_at_cpa[1] / 3000) * 0.8),
-              new THREE.Vector3((c.pos_b_at_cpa[0] / 3000) * 0.8, (c.pos_b_at_cpa[2] / 3000) * 0.25, -(c.pos_b_at_cpa[1] / 3000) * 0.8)
+              enuToTableVec3(c.pos_a_at_cpa[0], c.pos_a_at_cpa[2], c.pos_a_at_cpa[1]),
+              enuToTableVec3(c.pos_b_at_cpa[0], c.pos_b_at_cpa[2], c.pos_b_at_cpa[1])
             ];
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, linewidth: 3 }));
             deconflictGroup.add(line);
           }
           tableGroup.add(deconflictGroup);
-          alert(`[4D AIRSPACE DECONFLICTION]\n${summary}`);
+          const hs = document.getElementById('hud-status');
+          if (hs) hs.textContent = `DECONFLICT · ${summary}`;
         }
       } catch (_) {}
     };
@@ -3040,7 +3040,8 @@
           aKml.href = URL.createObjectURL(blobKml);
           aKml.download = 'tactical_scene_3d.kml';
           aKml.click();
-          alert(`[NATO OPORD & 3D KML EXPORTED]\nUnits: ${bundle.unit_count} | Zones: ${bundle.zone_count} | Threat Domes: ${bundle.dome_count}\nFiles downloaded: NATO_OPORD_ORDER.md & tactical_scene_3d.kml`);
+          const hs = document.getElementById('hud-status');
+          if (hs) hs.textContent = `OPORD EXPORTED · ${bundle.unit_count} UNITS, ${bundle.zone_count} ZONES, ${bundle.dome_count} DOMES`;
         }
       } catch (_) {}
     };
