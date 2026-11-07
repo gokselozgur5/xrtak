@@ -60,3 +60,39 @@ pub fn generate_kml_tactical_scene(
     kml.push_str("</kml>\n");
     kml
 }
+
+/// Generates standard 5-Paragraph NATO Field Operation Order (OPORD / SMEAC) Markdown.
+pub fn generate_nato_opord_markdown(
+    operation_name: &str,
+    origin_lla: (f64, f64, f64),
+    units: &[OpordUnitSummary],
+    zone_count: usize,
+    dome_count: usize,
+) -> String {
+    let mut doc = String::with_capacity(2048);
+    doc.push_str(&format!("# NATO OPERATION ORDER (OPORD): {}\n\n", operation_name.to_uppercase()));
+    doc.push_str(&format!("**Area of Operations (AO Center):** {:.5}N, {:.5}E (Elevation: {:.0}m ASL)\n\n", origin_lla.0, origin_lla.1, origin_lla.2));
+
+    doc.push_str("## 1. SITUATION\n");
+    doc.push_str(&format!("- **Forces Tracked:** {} active tactical units in theatre.\n", units.len()));
+    doc.push_str(&format!("- **Threat Profile:** {} air-defense/SAM threat domes active.\n", dome_count));
+    doc.push_str(&format!("- **Airspace Restrictions:** {} tactical geofence/ROZ zones established.\n\n", zone_count));
+
+    doc.push_str("## 2. MISSION\n");
+    doc.push_str(&format!("Task Force conducts multi-domain spatial awareness and persistent ISR across {} to ensure aerial deconfliction and datalink integrity.\n\n", operation_name));
+
+    doc.push_str("## 3. EXECUTION\n");
+    doc.push_str("- **Commander's Intent:** Maintain 3D holographic common operational picture (COP) via XR-TAK.\n");
+    doc.push_str("- **Airspace Coordination:** Strict compliance with 300m horizontal / 100m vertical CPA margins.\n");
+    doc.push_str("- **Rules of Engagement (ROE):** Autonomous gimbal tracking permitted; engagement requires positive identification (PID).\n\n");
+
+    doc.push_str("## 4. ADMINISTRATION & LOGISTICS\n");
+    doc.push_str("- **Primary Recovery Site:** Base Station ENU (0, 0, Relief Alt).\n");
+    doc.push_str("- **Power & Spectrum:** MPU5 / Silvus battery rotation every 120 mins.\n\n");
+
+    doc.push_str("## 5. COMMAND & SIGNAL\n");
+    doc.push_str("- **Primary C2 Mesh:** TAK Server TCP/UDP :4242 / :8087.\n");
+    doc.push_str("- **Datalink Bands:** UHF 900MHz (Telemetry), ISM 2.4GHz (C2), SHF 5.8GHz (Video).\n");
+    doc.push_str("- **Emergency Signal:** Code RED via ATAK emergency beacon broadcast.\n");
+    doc
+}
