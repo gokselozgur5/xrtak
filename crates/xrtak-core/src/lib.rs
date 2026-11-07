@@ -30,8 +30,8 @@ pub use deconflict::{
     CpaRiskLevel, DeconflictionResult,
 };
 pub use ew::{
-    compute_burn_through_range, compute_fspl_db, evaluate_link_jamming, watts_to_dbm,
-    BurnThroughAssessment, EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
+    compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
+    EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
 };
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
