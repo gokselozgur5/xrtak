@@ -50,8 +50,9 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 26** | [`xrtak-core::tiles`](crates/xrtak-core/src/tiles.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Multi-Provider Satellite Imagery (**Bing Aerial Quadkey**, **Sentinel-2 Cloudless**, **Esri**, **OpenTopo**), Offshore `no-tile` Placeholder Detection, and Parent-Zoom (`z=13`) Fallback (`POST /api/tiles/resolve`) | **Complete (`ICD-16` / `REQ-MAP-01..02`)** |
 | **Phase 27** | [`xrtak-core::corridor`](crates/xrtak-core/src/corridor.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Ramer-Douglas-Peucker (`RDP`) Waypoint Simplification, Optical Camera FOV Swath Width Calculator, and Buffered 3D Corridor Polygon & KML Builder (`POST /api/mission/corridor-polygon`) | **Complete (`ICD-17` / `REQ-COR-01..02`)** |
 | **Phase 28** | [`xrtak-core::manifest`](crates/xrtak-core/src/manifest.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Copernicus GLO-30 (30m COG) DEM Cell Planner, Multi-Zoom Web Mercator Tile Pyramid Estimator, and Content-Addressed Offline Mapset Manifest Generator (`POST /api/mapset/plan`) | **Complete (`ICD-18` / `REQ-MAN-01..02`)** |
+| **Phase 29** | [`xrtak-core::rf`](crates/xrtak-core/src/rf.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | Tactical RF Link Budget (900MHz/2.4GHz/5.8GHz), Free-Space Path Loss, 1st Fresnel Radius & ITU-R P.526 Knife-Edge Diffraction (`POST /api/rf/link-budget`) | **Complete (`ICD-19` / `REQ-RF-01..02`)** |
 
-See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-18`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
+See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-19`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
 ---
 
@@ -116,7 +117,7 @@ cargo test
 
 ---
 
-## Verification & MBSE Traceability Matrix (Phases 1–28 Sealed)
+## Verification & MBSE Traceability Matrix (Phases 1–29 Sealed)
 
-All 28 phases (`ICD-01`..`ICD-18` and `REQ-DEM` / `REQ-TAC` / `REQ-AAR` / `REQ-COL` / `REQ-ELV` / `REQ-MIS` / `REQ-COG` / `REQ-RTC` / `REQ-MAV` / `REQ-MAP` / `REQ-COR` / `REQ-MAN`) are verified by the automated Rust test suite (`cargo test`, 28 unit tests).
+All 29 phases (`ICD-01`..`ICD-19` and `REQ-DEM` / `REQ-TAC` / `REQ-AAR` / `REQ-COL` / `REQ-ELV` / `REQ-MIS` / `REQ-COG` / `REQ-RTC` / `REQ-MAV` / `REQ-MAP` / `REQ-COR` / `REQ-MAN` / `REQ-RF`) are verified by the automated Rust test suite (`cargo test`, 30 unit tests).
 
