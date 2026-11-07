@@ -25,3 +25,38 @@ pub struct OpordExportBundle {
     pub dome_count: usize,
     pub generated_utc: String,
 }
+
+/// Generates a valid 3D KML document bundling tactical units and ground markers.
+pub fn generate_kml_tactical_scene(
+    scene_name: &str,
+    units: &[OpordUnitSummary],
+    origin_lla: (f64, f64, f64),
+) -> String {
+    let mut kml = String::with_capacity(2048);
+    kml.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    kml.push_str("<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n");
+    kml.push_str("  <Document>\n");
+    kml.push_str(&format!("    <name>XR-TAK Tactical Scene: {}</name>\n", scene_name));
+    kml.push_str(&format!(
+        "    <description>Exported from XR-TAK Sand Table at origin {:.5}N, {:.5}E, {:.1}m</description>\n",
+        origin_lla.0, origin_lla.1, origin_lla.2
+    ));
+
+    for u in units {
+        kml.push_str("    <Placemark>\n");
+        kml.push_str(&format!("      <name>{}</name>\n", u.callsign));
+        kml.push_str(&format!(
+            "      <description>Type: {} | Affiliation: {}</description>\n",
+            u.cot_type, u.affiliation
+        ));
+        kml.push_str("      <Point>\n");
+        kml.push_str("        <altitudeMode>absolute</altitudeMode>\n");
+        kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", u.lon, u.lat, u.alt_m));
+        kml.push_str("      </Point>\n");
+        kml.push_str("    </Placemark>\n");
+    }
+
+    kml.push_str("  </Document>\n");
+    kml.push_str("</kml>\n");
+    kml
+}
