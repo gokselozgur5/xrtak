@@ -136,3 +136,42 @@ pub fn evaluate_link_jamming(
         suppression_radius_m: (suppression_radius_m * 10.0).round() / 10.0,
     }
 }
+
+/// Burn-through evaluation against standoff radar noise jamming.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BurnThroughAssessment {
+    pub radar_callsign: String,
+    pub jammer_callsign: String,
+    pub burn_through_range_m: f64,
+    pub target_rcs_dbsm: f64,
+    pub is_burned_through: bool,
+}
+
+/// Compute radar burn-through range R_BT where target echo power >= jammer noise.
+pub fn compute_burn_through_range(
+    radar_callsign: &str,
+    p_radar_w: f64,
+    g_radar_dbi: f64,
+    target_rcs_m2: f64,
+    jammer_callsign: &str,
+    p_jammer_w: f64,
+    g_jammer_dbi: f64,
+    distance_radar_to_jammer_m: f64,
+    current_target_range_m: f64,
+) -> BurnThroughAssessment {
+    let g_rad_linear = 10.0_f64.powf(g_radar_dbi / 10.0);
+    let g_jam_linear = 10.0_f64.powf(g_jammer_dbi / 10.0);
+    let r_j = distance_radar_to_jammer_m.max(100.0);
+
+    let numerator = p_radar_w * g_rad_linear * target_rcs_m2.max(0.01) * (r_j.powi(2));
+    let denominator = (4.0 * std::f64::consts::PI) * (p_jammer_w * g_jam_linear).max(0.001);
+    let r_bt = (numerator / denominator).powf(0.5).max(10.0);
+
+    BurnThroughAssessment {
+        radar_callsign: radar_callsign.to_string(),
+        jammer_callsign: jammer_callsign.to_string(),
+        burn_through_range_m: (r_bt * 10.0).round() / 10.0,
+        target_rcs_dbsm: (10.0 * target_rcs_m2.max(0.001).log10() * 100.0).round() / 100.0,
+        is_burned_through: current_target_range_m <= r_bt,
+    }
+}
