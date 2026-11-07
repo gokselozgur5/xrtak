@@ -6,8 +6,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::broadcast;
 use xrtak_core::{
-    build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider, AarSummary,
-    GeoOrigin, ProceduralReliefModel, RasterDemProvider, SapientDetectionReport, TacticalEntity,
+    build_laser_pointer_cot_xml, compute_link_los, compute_viewshed_with_provider,
+    evaluate_mission_corridor, parse_kml_mission, parse_qgc_plan_mission, AarSummary, GeoOrigin,
+    ProceduralReliefModel, RasterDemProvider, SapientDetectionReport, TacticalEntity,
     TacticalWorld, TacticalZone, ThreatDome,
 };
 
@@ -95,6 +96,15 @@ struct PinDeleteRequest {
 #[derive(Debug, Deserialize)]
 struct ElevationProfileRequest {
     waypoints_en: Vec<(f64, f64)>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MissionImportRequest {
+    format: Option<String>,
+    content: String,
+    corridor_width_m: Option<f64>,
+    min_safe_agl_m: Option<f64>,
+    auto_recenter: Option<bool>,
 }
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
@@ -612,6 +622,78 @@ async fn handle_http_connection(
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(json.as_bytes()).await?;
             return Ok(());
+        }
+    }
+
+    if method == "POST" && path == "/api/mission/import" {
+        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        if let Ok(m_req) = serde_json::from_str::<MissionImportRequest>(body) {
+            let trimmed = m_req.content.trim();
+            let is_qgc = m_req
+                .format
+                .as_deref()
+                .map(|f| f.eq_ignore_ascii_case("qgc") || f.eq_ignore_ascii_case("plan"))
+                .unwrap_or_else(|| trimmed.starts_with('{'));
+            let parsed = if is_qgc {
+                parse_qgc_plan_mission(trimmed)
+            } else {
+                parse_kml_mission(trimmed)
+            };
+            match parsed {
+                Ok((name, raw_wps)) => {
+                    let resp_json = {
+                        let mut guard = world.lock().unwrap();
+                        if m_req.auto_recenter.unwrap_or(true) && !raw_wps.is_empty() {
+                            let avg_lat = raw_wps.iter().map(|w| w.lat).sum::<f64>()
+                                / raw_wps.len() as f64;
+                            let avg_lon = raw_wps.iter().map(|w| w.lon).sum::<f64>()
+                                / raw_wps.len() as f64;
+                            let ext = guard.origin.extent_m;
+                            let alt = guard.origin.alt_m;
+                            guard.recenter_origin(GeoOrigin {
+                                lat: avg_lat,
+                                lon: avg_lon,
+                                alt_m: alt,
+                                extent_m: ext,
+                            });
+                        }
+                        let corridor = evaluate_mission_corridor(
+                            &name,
+                            &raw_wps,
+                            &guard.origin,
+                            guard.terrain.as_ref(),
+                            m_req.corridor_width_m.unwrap_or(120.0),
+                            m_req.min_safe_agl_m.unwrap_or(35.0),
+                        );
+                        let wps_en: Vec<(f64, f64)> = corridor
+                            .waypoints
+                            .iter()
+                            .map(|w| (w.east_m, w.north_m))
+                            .collect();
+                        let profile = guard.compute_elevation_profile(&wps_en);
+                        serde_json::json!({
+                            "origin": guard.origin,
+                            "corridor": corridor,
+                            "profile": profile,
+                        })
+                        .to_string()
+                    };
+                    let header = json_ok_header(resp_json.len());
+                    stream.write_all(header.as_bytes()).await?;
+                    stream.write_all(resp_json.as_bytes()).await?;
+                    return Ok(());
+                }
+                Err(err) => {
+                    let msg = serde_json::json!({ "error": err }).to_string();
+                    let header = format!(
+                        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
+                        msg.len()
+                    );
+                    stream.write_all(header.as_bytes()).await?;
+                    stream.write_all(msg.as_bytes()).await?;
+                    return Ok(());
+                }
+            }
         }
     }
 

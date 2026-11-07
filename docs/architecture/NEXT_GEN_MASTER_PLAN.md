@@ -179,3 +179,18 @@ We execute via **atomic, test-verified issues and pull requests** (`<50`–`150`
 ### Immediate First Step (How We Start Right Now)
 1. Review and lock this `NEXT_GEN_MASTER_PLAN.md` specification in the repository.
 2. Open the **Phase 4** issue (`feat(geo): add RasterDemProvider bilinear DEM engine and dynamic terrain switching`) and implement `RasterDemProvider` in `crates/xrtak-core/src/geo.rs` with full unit test coverage and live 3D WebXR terrain switching.
+
+---
+
+## 7. Phase 21–25 Extended EARS Requirements & Strategic Roadmap
+
+| Req ID | Subsystem | EARS Specification | Verification |
+| :--- | :--- | :--- | :--- |
+| `REQ-ELV-01` | `xrtak-core::geo` | **WHEN** an operator queries a multi-segment route polyline, the system **SHALL** compute cumulative distance, ASL/relief altitude, local terrain slope (degrees), total ascent/descent, and max grade. | `geo::tests::test_elevation_profile_and_slope` |
+| `REQ-ELV-02` | `xrtak-core::geo` | **WHEN** a 16-bit signed big-endian NASA SRTM `.hgt` buffer is provided, the system **SHALL** normalize void samples (`-32768`) and construct a bilinear `RasterDemProvider`. | `geo::tests::test_srtm_i16_be_ingestion_and_presets` |
+| `REQ-MIS-01` | `xrtak-core::mission` | **WHEN** a KML (`<Placemark>` / `<LineString>`) or QGroundControl (`.plan`) mission file is imported, the system **SHALL** extract ordered 3D waypoints (`lat, lon, alt_m`) and project them into local ENU coordinates. | `mission::tests::test_kml_mission_parsing_and_agl_clearance` |
+| `REQ-MIS-02` | `xrtak-core::mission` | **WHILE** evaluating an imported mission corridor against the active `ElevationProvider`, **IF** any waypoint's Above-Ground-Level clearance (`agl_m`) falls below `min_safe_agl_m`, the system **SHALL** flag `clearance_violation = true` and increment `violation_count`. | `mission::tests::test_qgc_plan_parsing_and_relative_altitude` |
+| `REQ-COG-01` | Phase 23 Roadmap | **WHEN** an offline Cloud-Optimized GeoTIFF (COG) RGB imagery + DSM bundle is loaded, the system **SHALL** drape UTM/Mercator tiles and elevation grids without internet connectivity. | Planned (Milestone 23) |
+| `REQ-RTC-01` | Phase 24 Roadmap | **WHILE** multiple Quest 3 / desktop operators are connected to the same gateway, the system **SHALL** synchronize spatial 3D laser pointers, table scale/pose, and WebRTC voice channels. | Planned (Milestone 24) |
+| `REQ-MAV-01` | Phase 25 Roadmap | **WHEN** an operator edits or approves a 3D mission corridor in XR, the system **SHALL** export MAVLink / STANAG 4586 mission items or CoT route (`b-m-r`) directly to the autopilot/TAK mesh. | Planned (Milestone 25) |
+

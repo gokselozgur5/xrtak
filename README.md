@@ -42,6 +42,8 @@ It ingests standard **Cursor-on-Target (CoT)** XML streams (`UDP / TCP`) and pro
 | **Phase 16** | [`static/index.html`](crates/xrtak-gateway/static/index.html) | Independent 6DoF Draggable 3D VR Button Dock & 3D Video Wall Screens (`GRAB & MOVE`) + Draggable 2D Desktop HUD Panels (`localStorage` persisted) | **Complete** |
 | **Phase 17** | [`crates/xrtak-gateway`](crates/xrtak-gateway/src/main.rs) | Real-World Satellite (`Esri`) & Topographic (`OpenTopoMap`) Tile Draping, Live **AWS Terrarium SRTM 24-bit DEM** Sync (`POST /api/terrain`), and Persistent Real CoT Pinning (`data/real_pins.json`, GeoJSON & CoT XML export) | **Complete** |
 | **Phase 18–20** | [`static/index.html`](crates/xrtak-gateway/static/index.html) & [`LICENSE`](LICENSE) | City / Place Search (`Nominatim`), Real-World 3D Extruded OpenStreetMap Buildings (`Overpass API`), Live Camera 3D Video Wall, Meta Quest 3 Passthrough Captures, and `MIT` License | **Complete (`v1.0`)** |
+| **Phase 21** | [`xrtak-core::geo`](crates/xrtak-core/src/geo.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | 3D Route Elevation Profile Curtain & Cross-Section Chart (`POST /api/elevation-profile`), Central-Difference Slope Telemetry (`sample_slope_deg`), and Offline 16-bit NASA SRTM `.hgt` Ingestion | **Complete (`ICD-11` / `REQ-ELV-01..02`)** |
+| **Phase 22** | [`xrtak-core::mission`](crates/xrtak-core/src/mission.rs) & [`main.rs`](crates/xrtak-gateway/src/main.rs) | KML (`<Placemark>` / `<LineString>`) & QGroundControl (`.plan`) 3D Mission Corridor Ingestion (`POST /api/mission/import`), Per-Waypoint AGL Clearance & CFIT Warning Analysis | **Complete (`ICD-12` / `REQ-MIS-01..02`)** |
 
 See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the SysML Block Definition Diagram (BDD) and Interface Control Document (`ICD-01`..`ICD-08`), and [`docs/architecture/NEXT_GEN_MASTER_PLAN.md`](docs/architecture/NEXT_GEN_MASTER_PLAN.md) for the formal EARS requirements, mathematical algorithms, and execution roadmap.
 
@@ -105,3 +107,14 @@ printf '<event version="2.0" uid="COT-UDP-01" type="a-f-G-U-C" how="h-g-i-g-o"><
 ```bash
 cargo test
 ```
+
+---
+
+## Strategic Roadmap (Phases 23–25)
+
+| Milestone | Target Subsystem | Traceable Requirement (`EARS`) | Planned Capability |
+| :--- | :--- | :--- | :--- |
+| **Phase 23** | `xrtak-core::cog` & `xrtak-gateway` | `REQ-COG-01` | **Offline Cloud-Optimized GeoTIFF (COG) + DSM Bundle Draping:** Direct local ingestion of tiled RGB imagery COGs and Copernicus/SRTM DSM GeoTIFFs for disconnected field operations. |
+| **Phase 24** | `xrtak-gateway` & WebXR Multi-User | `REQ-RTC-01` | **Multi-Operator Spatial Collaboration & WebRTC Voice:** Shared 6DoF Quest 3 laser cues (`b-m-p-c`), synchronized sand-table pose/scale, and spatialized team audio. |
+| **Phase 25** | `xrtak-core::mission` & `atak-plugin` | `REQ-MAV-01` | **Direct Autopilot & CoT Route (`b-m-r`) Export:** Bidirectional 3D waypoint editing in Mixed Reality with one-click export to QGroundControl `.plan`, MAVLink, and ATAK `b-m-r` routes. |
+
