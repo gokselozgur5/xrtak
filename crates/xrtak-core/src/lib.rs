@@ -402,6 +402,7 @@ pub struct TacticalWorld {
     pub threat_domes: Vec<ThreatDome>,
     pub tactical_zones: Vec<TacticalZone>,
     pub aar: AarTimeline,
+    pub collab: CollabRoomState,
     /// Map from UAV UID (e.g. `UAV-FALCON-01`) to locked SPI ENU target `(east_m, up_m, north_m)`
     pub spi_locks: HashMap<String, (f64, f64, f64)>,
     pub sim_time_sec: f64,
@@ -439,6 +440,7 @@ impl TacticalWorld {
             threat_domes: Vec::new(),
             tactical_zones,
             aar: AarTimeline::default(),
+            collab: CollabRoomState::default(),
             spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
         }
