@@ -996,120 +996,136 @@
 
     let liveWebcamVideo = null;
     let liveWebcamActive = false;
+    let lastVideoWallDrawMs = 0;
 
     function updateSpatialVideoWall(timeMs) {
       videoWallGroup.visible = showVideoWall;
       if (!showVideoWall) return;
 
+      const shouldRedrawCanvas = (timeMs - lastVideoWallDrawMs >= 66);
+      if (shouldRedrawCanvas) {
+        lastVideoWallDrawMs = timeMs;
+      }
+
       for (const p of videoWallPanels) {
         const { slot, canvas, ctx, tex, borderMat, tetherLine } = p;
-        const w = canvas.width;
-        const h = canvas.height;
-        const ent = latestEntities.find(e => e.uid === slot.uid);
         const isSelected = selectedUid === slot.uid;
-
         borderMat.color.setHex(isSelected ? 0x00ff88 : 0x00e5ff);
 
-        // Background
-        ctx.fillStyle = '#040b14';
-        ctx.fillRect(0, 0, w, h);
+        if (shouldRedrawCanvas) {
+          const w = canvas.width;
+          const h = canvas.height;
+          const ent = latestEntities.find(e => e.uid === slot.uid);
 
-        // Top Header Bar
-        ctx.fillStyle = isSelected ? 'rgba(0, 255, 136, 0.22)' : 'rgba(0, 229, 255, 0.16)';
-        ctx.fillRect(0, 0, w, 28);
-        ctx.font = 'bold 12px "SF Mono", Menlo, monospace';
-        ctx.fillStyle = isSelected ? '#00ff88' : '#00e5ff';
-        ctx.fillText(liveWebcamActive && slot.mode === 'sar' ? 'CAM-1 // LIVE WEBCAM / XR FEED [REALTIME]' : slot.title, 10, 18);
+          // Background
+          ctx.fillStyle = '#040b14';
+          ctx.fillRect(0, 0, w, h);
 
-        // Live Webcam / Custom Stream on CAM-1 or Simulated feed content per sensor modality
-        if (liveWebcamActive && slot.mode === 'sar' && liveWebcamVideo && liveWebcamVideo.readyState >= 2) {
-          ctx.drawImage(liveWebcamVideo, 0, 28, w, h - 52);
-          ctx.strokeStyle = '#00ff88';
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(w * 0.5 - 24, h * 0.5 - 18, 48, 36);
-        } else if (slot.mode === 'eoir') {
-          ctx.strokeStyle = 'rgba(0, 255, 136, 0.14)';
-          for (let y = 34; y < h - 24; y += 14) {
+          // Top Header Bar
+          ctx.fillStyle = isSelected ? 'rgba(0, 255, 136, 0.22)' : 'rgba(0, 229, 255, 0.16)';
+          ctx.fillRect(0, 0, w, 28);
+          ctx.font = 'bold 12px "SF Mono", Menlo, monospace';
+          ctx.fillStyle = isSelected ? '#00ff88' : '#00e5ff';
+          ctx.fillText(liveWebcamActive && slot.mode === 'sar' ? 'CAM-1 // LIVE WEBCAM / XR FEED [REALTIME]' : slot.title, 10, 18);
+
+          // Live Webcam / Custom Stream on CAM-1 or Simulated feed content per sensor modality
+          if (liveWebcamActive && slot.mode === 'sar' && liveWebcamVideo && liveWebcamVideo.readyState >= 2) {
+            ctx.drawImage(liveWebcamVideo, 0, 28, w, h - 52);
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(w * 0.5 - 24, h * 0.5 - 18, 48, 36);
+          } else if (slot.mode === 'eoir') {
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.14)';
+            for (let y = 34; y < h - 24; y += 14) {
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(w, y);
+              ctx.stroke();
+            }
+            const hasSpi = entityNodes.has('UAV-FALCON-01.SPI1');
+            const tx = hasSpi ? w * 0.5 : w * 0.5 + Math.sin(timeMs * 0.0018) * 44;
+            const ty = hasSpi ? h * 0.52 : h * 0.54 + Math.cos(timeMs * 0.0013) * 20;
+            const grad = ctx.createRadialGradient(tx, ty, 3, tx, ty, 24);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.45, '#00ffaa');
+            grad.addColorStop(1, 'rgba(0,255,170,0)');
+            ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(w, y);
-            ctx.stroke();
-          }
-          const hasSpi = entityNodes.has('UAV-FALCON-01.SPI1');
-          const tx = hasSpi ? w * 0.5 : w * 0.5 + Math.sin(timeMs * 0.0018) * 44;
-          const ty = hasSpi ? h * 0.52 : h * 0.54 + Math.cos(timeMs * 0.0013) * 20;
-          const grad = ctx.createRadialGradient(tx, ty, 3, tx, ty, 24);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.45, '#00ffaa');
-          grad.addColorStop(1, 'rgba(0,255,170,0)');
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(tx, ty, 24, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = hasSpi ? '#00ff88' : '#ff3355';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(tx - 18, ty - 18, 36, 36);
-        } else if (slot.mode === 'sar') {
-          // Synthetic Aperture Radar sweep fan
-          const cx = w * 0.5, cy = h * 0.82;
-          ctx.strokeStyle = 'rgba(0, 229, 255, 0.24)';
-          ctx.lineWidth = 1;
-          for (const r of [45, 85, 125]) {
+            ctx.arc(tx, ty, 24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = hasSpi ? '#00ff88' : '#ff3355';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(tx - 18, ty - 18, 36, 36);
+          } else if (slot.mode === 'sar') {
+            // Synthetic Aperture Radar sweep fan
+            const cx = w * 0.5, cy = h * 0.82;
+            ctx.strokeStyle = 'rgba(0, 229, 255, 0.24)';
+            ctx.lineWidth = 1;
+            for (const r of [45, 85, 125]) {
+              ctx.beginPath();
+              ctx.arc(cx, cy, r, Math.PI * 1.15, Math.PI * 1.85);
+              ctx.stroke();
+            }
+            const sweepAngle = Math.PI * 1.5 + Math.sin(timeMs * 0.0025) * 0.95;
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(cx, cy, r, Math.PI * 1.15, Math.PI * 1.85);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(sweepAngle) * 135, cy + Math.sin(sweepAngle) * 135);
             ctx.stroke();
-          }
-          const sweepAngle = Math.PI * 1.5 + Math.sin(timeMs * 0.0025) * 0.95;
-          ctx.strokeStyle = '#00ff88';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + Math.cos(sweepAngle) * 135, cy + Math.sin(sweepAngle) * 135);
-          ctx.stroke();
 
-          // Radar blips
-          ctx.fillStyle = '#ffbb00';
-          ctx.fillRect(cx - 34, cy - 78, 6, 6);
-          ctx.fillStyle = '#ff3355';
-          ctx.fillRect(cx + 22, cy - 96, 7, 7);
-        } else {
-          // Ridge PTZ optical horizon + valley watch
-          ctx.strokeStyle = '#1e5078';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(0, h * 0.55);
-          for (let x = 0; x <= w; x += 24) {
-            const ry = h * 0.52 + Math.sin(x * 0.025 + timeMs * 0.0006) * 18;
-            ctx.lineTo(x, ry);
-          }
-          ctx.stroke();
+            // Radar blips
+            ctx.fillStyle = '#ffbb00';
+            ctx.fillRect(cx - 34, cy - 78, 6, 6);
+            ctx.fillStyle = '#ff3355';
+            ctx.fillRect(cx + 22, cy - 96, 7, 7);
+          } else {
+            // Ridge PTZ optical horizon + valley watch
+            ctx.strokeStyle = '#1e5078';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, h * 0.55);
+            for (let x = 0; x <= w; x += 24) {
+              const ry = h * 0.52 + Math.sin(x * 0.025 + timeMs * 0.0006) * 18;
+              ctx.lineTo(x, ry);
+            }
+            ctx.stroke();
 
-          const vx = (w * 0.35 + ((timeMs * 0.03) % (w * 0.45)));
-          const vy = h * 0.66;
-          ctx.strokeStyle = '#ff3355';
-          ctx.strokeRect(vx - 12, vy - 8, 24, 16);
-          ctx.fillStyle = '#ff3355';
-          ctx.font = '10px "SF Mono", Menlo, monospace';
-          ctx.fillText('MOVING TRACK', vx - 30, vy - 12);
+            const vx = (w * 0.35 + ((timeMs * 0.03) % (w * 0.45)));
+            const vy = h * 0.66;
+            ctx.strokeStyle = '#ff3355';
+            ctx.strokeRect(vx - 12, vy - 8, 24, 16);
+            ctx.fillStyle = '#ff3355';
+            ctx.font = '10px "SF Mono", Menlo, monospace';
+            ctx.fillText('MOVING TRACK', vx - 30, vy - 12);
+          }
+
+          // Crosshair & Footer Telemetry
+          ctx.fillStyle = 'rgba(2, 8, 16, 0.82)';
+          ctx.fillRect(0, h - 24, w, 24);
+          ctx.font = '11px "SF Mono", Menlo, monospace';
+          ctx.fillStyle = '#7aa2c4';
+          const teleText = ent
+            ? `${slot.stream}  |  ALT ${Math.round(ent.hae_m)}m  CRS ${Math.round(ent.course_deg)}°`
+            : slot.stream;
+          ctx.fillText(teleText, 10, h - 8);
+
+          tex.needsUpdate = true;
         }
 
-        // Crosshair & Footer Telemetry
-        ctx.fillStyle = 'rgba(2, 8, 16, 0.82)';
-        ctx.fillRect(0, h - 24, w, 24);
-        ctx.font = '11px "SF Mono", Menlo, monospace';
-        ctx.fillStyle = '#7aa2c4';
-        const teleText = ent
-          ? `${slot.stream}  |  ALT ${Math.round(ent.hae_m)}m  CRS ${Math.round(ent.course_deg)}°`
-          : slot.stream;
-        ctx.fillText(teleText, 10, h - 8);
-
-        tex.needsUpdate = true;
-
-        // Update 3D Tether Line from bottom edge of floating panel down to unit on table
+        // Update 3D Tether Line in-place without allocating new BufferAttributes
         const node = entityNodes.get(slot.uid);
         if (node) {
-          const anchorTop = p.panelGroup.position.clone().add(new THREE.Vector3(0, -0.118, 0));
-          tetherLine.geometry.setFromPoints([anchorTop, node.root.position.clone()]);
+          const tPos = tetherLine.geometry.attributes.position;
+          const px = p.panelGroup.position.x;
+          const py = p.panelGroup.position.y - 0.118;
+          const pz = p.panelGroup.position.z;
+          const nx = node.root.position.x;
+          const ny = node.root.position.y;
+          const nz = node.root.position.z;
+          tPos.setXYZ(0, px, py, pz);
+          tPos.setXYZ(1, nx, ny, nz);
+          tPos.needsUpdate = true;
           tetherLine.visible = true;
         } else {
           tetherLine.visible = false;
@@ -1580,7 +1596,10 @@
 
     const gimbalCanvas = document.getElementById('gimbal-canvas');
     const gctx = gimbalCanvas.getContext('2d');
+    let lastGimbalPipDrawMs = 0;
     function renderGimbalPip(timeMs) {
+      if (timeMs - lastGimbalPipDrawMs < 50) return;
+      lastGimbalPipDrawMs = timeMs;
       const w = gimbalCanvas.width;
       const h = gimbalCanvas.height;
       gctx.fillStyle = '#050d14';
@@ -4952,8 +4971,11 @@
       updateVirtualHandsPose(timeMs);
       camera.getWorldDirection(dirVec);
       const headingDeg = (Math.round(THREE.MathUtils.radToDeg(Math.atan2(dirVec.x, -dirVec.z))) + 360) % 360;
-      document.getElementById('hud-heading').textContent =
-        `HDG ${headingDeg.toString().padStart(3, '0')}°`;
+      if (headingDeg !== updateCameraFacingPanels._lastHeadingDeg) {
+        updateCameraFacingPanels._lastHeadingDeg = headingDeg;
+        document.getElementById('hud-heading').textContent =
+          `HDG ${headingDeg.toString().padStart(3, '0')}°`;
+      }
 
       renderGimbalPip(timeMs);
       updateSpatialVideoWall(timeMs);
