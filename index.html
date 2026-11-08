@@ -4790,17 +4790,25 @@
       const playBtn = document.getElementById('btn-aar-play');
       const speedBtn = document.getElementById('btn-aar-speed');
 
+      let aarFetchInFlight = false;
       async function loadAarFrameAt(t) {
-        if (standaloneSimActive) return;
-        const res = await fetch(apiUrl(`/api/aar?t=${t.toFixed(2)}`));
-        const data = await res.json();
-        if (data.frame) {
-          aarLabel.textContent = `REPLAY T+${data.frame.sim_time_sec.toFixed(1)}s (${aarSpeed}x)`;
-          updateHudAndRoster({
-            entities: data.frame.entities,
-            threat_domes: data.threat_domes || [],
-            tactical_zones: data.tactical_zones || []
-          });
+        if (standaloneSimActive || aarFetchInFlight) return;
+        aarFetchInFlight = true;
+        try {
+          const res = await fetch(apiUrl(`/api/aar?t=${t.toFixed(2)}`));
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.frame) {
+            aarLabel.textContent = `REPLAY T+${data.frame.sim_time_sec.toFixed(1)}s (${aarSpeed}x)`;
+            updateHudAndRoster({
+              entities: data.frame.entities,
+              threat_domes: data.threat_domes || [],
+              tactical_zones: data.tactical_zones || []
+            });
+          }
+        } catch (_) {
+        } finally {
+          aarFetchInFlight = false;
         }
       }
 
