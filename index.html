@@ -752,6 +752,7 @@
 
     let terrainMesh = null;
     let terrainWireMesh = null;
+    let terrainRaycastMesh = null;
     let activeSatelliteTexture = null;
     let currentOriginLat = 39.9200;
     let currentOriginLon = 32.8500;
@@ -762,11 +763,18 @@
       if (terrainMesh) {
         tableGroup.remove(terrainMesh);
         terrainMesh.geometry.dispose();
+        if (terrainMesh.material) terrainMesh.material.dispose();
       }
       if (terrainWireMesh) {
         tableGroup.remove(terrainWireMesh);
+        if (terrainWireMesh.material) terrainWireMesh.material.dispose();
       }
-      const segs = 120;
+      if (terrainRaycastMesh) {
+        tableGroup.remove(terrainRaycastMesh);
+        terrainRaycastMesh.geometry.dispose();
+        if (terrainRaycastMesh.material) terrainRaycastMesh.material.dispose();
+      }
+      const segs = 96;
       const size = TABLE_RADIUS_UNITS * 2.0;
       const geo = new THREE.PlaneGeometry(size, size, segs, segs);
       geo.rotateX(-Math.PI / 2);
@@ -819,6 +827,21 @@
       terrainWireMesh = new THREE.Mesh(geo, wireMat);
       terrainWireMesh.position.y = 0.001;
       tableGroup.add(terrainWireMesh);
+
+      // Lightweight 24x24 decimated proxy mesh for fast CPU raycasting (~25x fewer triangles)
+      const rcSegs = 24;
+      const rcGeo = new THREE.PlaneGeometry(size, size, rcSegs, rcSegs);
+      rcGeo.rotateX(-Math.PI / 2);
+      const rcPos = rcGeo.attributes.position;
+      for (let i = 0; i < rcPos.count; i++) {
+        const eastM = rcPos.getX(i) / M_TO_TABLE;
+        const northM = -rcPos.getZ(i) / M_TO_TABLE;
+        rcPos.setY(i, sampleTerrainReliefM(eastM, northM) * M_TO_TABLE * ALT_EXAGGERATION);
+      }
+      rcGeo.computeBoundingBox();
+      rcGeo.computeBoundingSphere();
+      terrainRaycastMesh = new THREE.Mesh(rcGeo, new THREE.MeshBasicMaterial({ visible: false }));
+      tableGroup.add(terrainRaycastMesh);
     }
 
     function makeTextSprite(label, colorHex = '#00e5ff', fontPx = 28) {
@@ -1972,26 +1995,42 @@
 
       raycaster.setFromCamera(lastPointerNdc, camera);
       let beamEnd = rPos.clone().addScaledVector(raycaster.ray.direction, 1.8);
-      if (terrainMesh) {
+      if (terrainMesh && timeMs - lastVirtualHandRaycastMs >= 32) {
+        lastVirtualHandRaycastMs = timeMs;
         const dockHits = raycaster.intersectObjects(vrDockButtons.map(b => b.mesh), false);
         if (dockHits.length > 0) {
-          beamEnd.copy(dockHits[0].point);
+          cachedVirtualHandBeamEnd = dockHits[0].point.clone();
         } else {
-          const hits = raycaster.intersectObject(terrainMesh, false);
+          const hits = raycaster.intersectObject(terrainRaycastMesh || terrainMesh, false);
           if (hits.length > 0) {
-            beamEnd.copy(hits[0].point);
+            cachedVirtualHandBeamEnd = hits[0].point.clone();
             const localPt = tableGroup.worldToLocal(hits[0].point.clone());
             updateReticleAtLocal(localPt, timeMs);
+          } else {
+            cachedVirtualHandBeamEnd = null;
           }
         }
       }
-      rightLaserGeo.setFromPoints([rPos, beamEnd]);
+      if (cachedVirtualHandBeamEnd) {
+        beamEnd.copy(cachedVirtualHandBeamEnd);
+      }
+      const rLaserPos = rightLaserGeo.attributes.position;
+      rLaserPos.setXYZ(0, rPos.x, rPos.y, rPos.z);
+      rLaserPos.setXYZ(1, beamEnd.x, beamEnd.y, beamEnd.z);
+      rLaserPos.needsUpdate = true;
       const lEnd = lPos.clone().addScaledVector(camFwd, 0.55).addScaledVector(camRight, 0.08);
-      leftLaserGeo.setFromPoints([lPos, lEnd]);
+      const lLaserPos = leftLaserGeo.attributes.position;
+      lLaserPos.setXYZ(0, lPos.x, lPos.y, lPos.z);
+      lLaserPos.setXYZ(1, lEnd.x, lEnd.y, lEnd.z);
+      lLaserPos.needsUpdate = true;
     }
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    let lastVirtualHandRaycastMs = 0;
+    let cachedVirtualHandBeamEnd = null;
+    let lastPointerHoverRaycastMs = 0;
+    let lastXrHoverRaycastMs = 0;
     let active3dDrag = null; // { group, distance, offsetWorld }
     let activePinDrag = null; // { uid, node }
     let active2dDrag = null; // { el, startX, startY, origLeft, origTop }
@@ -2055,7 +2094,7 @@
         pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
         pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(pointer, camera);
-        const hits = raycaster.intersectObject(terrainMesh, false);
+        const hits = raycaster.intersectObject(terrainRaycastMesh || terrainMesh, false);
         if (hits.length > 0) {
           const localPt = tableGroup.worldToLocal(hits[0].point.clone());
           const eastM = localPt.x / M_TO_TABLE;
@@ -2087,15 +2126,18 @@
       pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
       lastPointerNdc.copy(pointer);
+      const nowMs = performance.now();
+      if (nowMs - lastPointerHoverRaycastMs < 32) return;
+      lastPointerHoverRaycastMs = nowMs;
       raycaster.setFromCamera(pointer, camera);
-      const hits = raycaster.intersectObject(terrainMesh, false);
+      const hits = raycaster.intersectObject(terrainRaycastMesh || terrainMesh, false);
       if (hits.length > 0) {
         const localPt = tableGroup.worldToLocal(hits[0].point.clone());
         if (!interactionMode && !vrHeadsetActive) {
           updateCursorDemReadout(localPt.x / M_TO_TABLE, -localPt.z / M_TO_TABLE);
           cursorReticleGroup.visible = false;
         } else {
-          updateReticleAtLocal(localPt, performance.now());
+          updateReticleAtLocal(localPt, nowMs);
         }
       } else {
         cursorReticleGroup.visible = false;
@@ -2181,7 +2223,7 @@
 
       // 2. Check active terrain tool
       if (interactionMode && terrainMesh) {
-        const hits = raycaster.intersectObject(terrainMesh, false);
+        const hits = raycaster.intersectObject(terrainRaycastMesh || terrainMesh, false);
         if (hits.length > 0) {
           const localPt = tableGroup.worldToLocal(hits[0].point.clone());
           const eastM = localPt.x / M_TO_TABLE;
@@ -2233,7 +2275,7 @@
         return;
       }
       if (terrainMesh) {
-        const hits = raycaster.intersectObject(terrainMesh, false);
+        const hits = raycaster.intersectObject(terrainRaycastMesh || terrainMesh, false);
         if (hits.length > 0) {
           const hitPt = hits[0].point.clone();
           const camOffset = camera.position.clone().sub(controls.target).setLength(0.55);
@@ -3554,7 +3596,7 @@
 
         // 4. Otherwise execute the active VR tool on the 3D terrain!
         if (!terrainMesh) return;
-        const hits = raycaster.intersectObject(terrainMesh, false);
+        const hits = raycaster.intersectObject(terrainRaycastMesh || terrainMesh, false);
         if (hits.length > 0) {
           const localPt = tableGroup.worldToLocal(hits[0].point.clone());
           const eastM = localPt.x / M_TO_TABLE;
@@ -4852,11 +4894,12 @@
           }
         }
 
-        if (terrainMesh && xrControllers[0]) {
+        if (terrainMesh && xrControllers[0] && timeMs - lastXrHoverRaycastMs >= 32) {
+          lastXrHoverRaycastMs = timeMs;
           const tempMatrix = new THREE.Matrix4().extractRotation(xrControllers[0].matrixWorld);
           raycaster.ray.origin.setFromMatrixPosition(xrControllers[0].matrixWorld);
           raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-          const hits = raycaster.intersectObject(terrainMesh, false);
+          const hits = raycaster.intersectObject(terrainRaycastMesh || terrainMesh, false);
           if (hits.length > 0) {
             updateReticleAtLocal(tableGroup.worldToLocal(hits[0].point.clone()), timeMs);
           }
