@@ -590,6 +590,7 @@
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { ARButton } from 'three/addons/webxr/ARButton.js';
+    import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
     const urlParams = new URLSearchParams(window.location.search);
     const API_BASE = (urlParams.get('gateway') || (window.location.hostname.endsWith('github.io') ? 'http://192.168.1.6:8090' : '')).replace(/\/$/, '');
@@ -4241,6 +4242,8 @@
       });
 
       let count = 0;
+      const bldgGeos = [];
+      const edgeGeos = [];
       for (const el of data.elements) {
         if (el.type !== 'way' || !Array.isArray(el.geometry) || el.geometry.length < 3) continue;
         const pts2d = [];
@@ -4282,19 +4285,35 @@
             bevelEnabled: false
           });
           // Rotate so shape XY maps to table XZ (X = East, -Z = North) and extrusion +Z maps to +Y (Up)
+          const yOffset = gndM * M_TO_TABLE * ALT_EXAGGERATION;
           extrudeGeo.rotateX(-Math.PI / 2);
-
-          const mesh = new THREE.Mesh(extrudeGeo, bldgMat);
-          mesh.position.y = gndM * M_TO_TABLE * ALT_EXAGGERATION;
-          osmBuildingsGroup.add(mesh);
+          extrudeGeo.translate(0, yOffset, 0);
+          bldgGeos.push(extrudeGeo);
 
           if (heightM >= 18.0 || count % 3 === 0) {
-            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(extrudeGeo), edgeMat);
-            edges.position.y = mesh.position.y;
-            osmBuildingsGroup.add(edges);
+            edgeGeos.push(new THREE.EdgesGeometry(extrudeGeo));
           }
           count++;
         } catch (_) {}
+      }
+
+      if (bldgGeos.length > 0) {
+        const mergedBldgGeo = mergeGeometries(bldgGeos, false);
+        for (const g of bldgGeos) g.dispose();
+        if (mergedBldgGeo) {
+          osmBuildingsGroup.add(new THREE.Mesh(mergedBldgGeo, bldgMat));
+        }
+      } else {
+        bldgMat.dispose();
+      }
+      if (edgeGeos.length > 0) {
+        const mergedEdgeGeo = mergeGeometries(edgeGeos, false);
+        for (const g of edgeGeos) g.dispose();
+        if (mergedEdgeGeo) {
+          osmBuildingsGroup.add(new THREE.LineSegments(mergedEdgeGeo, edgeMat));
+        }
+      } else {
+        edgeMat.dispose();
       }
 
       if (cntEl) cntEl.textContent = String(count);
