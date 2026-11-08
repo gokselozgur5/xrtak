@@ -20,6 +20,8 @@ CNF_PATH = "/tmp/xrtak_openssl.cnf"
 OPENSSL_BIN = "/usr/bin/openssl"
 UPSTREAM_HOST = "127.0.0.1"
 HTTPS_PORT = int(os.environ.get("XRTAK_HTTPS_PORT", "8443"))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+INDEX_HTML_PATH = os.path.join(REPO_ROOT, "index.html")
 
 
 def detect_upstream_port() -> int:
@@ -102,10 +104,31 @@ class ReverseProxyHandler(http.server.BaseHTTPRequestHandler):
         pass
 
     def _proxy(self):
+        clean_path = self.path.split("?", 1)[0]
+        if self.command == "GET" and clean_path in ("/", "/index.html") and os.path.isfile(INDEX_HTML_PATH):
+            try:
+                with open(INDEX_HTML_PATH, "rb") as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Private-Network", "true")
+                self.end_headers()
+                self.wfile.write(data)
+                self.wfile.flush()
+                return
+            except (BrokenPipeError, ConnectionResetError):
+                return
+            except Exception:
+                pass
+
         content_len = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(content_len) if content_len > 0 else None
 
-        conn = http.client.HTTPConnection(UPSTREAM_HOST, UPSTREAM_PORT, timeout=300)
+        is_sse = self.path.startswith("/api/stream")
+        conn = http.client.HTTPConnection(UPSTREAM_HOST, UPSTREAM_PORT, timeout=300 if is_sse else 12)
         try:
             fwd_headers = {
                 k: v
