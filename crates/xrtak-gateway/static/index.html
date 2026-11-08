@@ -1185,92 +1185,123 @@
     // --- Phase 5: 3D SAM/Radar Threat Domes & Polygonal Geofence Zones (`REQ-TAC`) ---
     const threatDomesGroup = new THREE.Group();
     tableGroup.add(threatDomesGroup);
+    const threatLockBeamsGroup = new THREE.Group();
+    tableGroup.add(threatLockBeamsGroup);
     const tacticalZonesGroup = new THREE.Group();
     tableGroup.add(tacticalZonesGroup);
     let showThreatDomes = true;
     let showTacticalZones = true;
+    let lastThreatDomesSig = '';
+    let lastTacticalZonesSig = '';
+
+    function disposeGroupChildren(grp) {
+      while (grp.children.length > 0) {
+        const ch = grp.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+        if (ch.material) ch.material.dispose();
+      }
+    }
 
     function updateThreatDomesAndZones(domes, zones, entitiesMap) {
       threatDomesGroup.visible = showThreatDomes;
+      threatLockBeamsGroup.visible = showThreatDomes;
       tacticalZonesGroup.visible = showTacticalZones;
 
-      while (threatDomesGroup.children.length > 0) {
-        const ch = threatDomesGroup.children.pop();
-        if (ch.geometry) ch.geometry.dispose();
-      }
+      disposeGroupChildren(threatLockBeamsGroup);
       if (showThreatDomes && Array.isArray(domes)) {
+        const domesSig = domes.map(d =>
+          `${d.uid}:${Math.round(d.east_m)}:${Math.round(d.north_m)}:${Math.round(d.up_m)}:${Math.round(d.radius_m)}:${d.engaged_uids && d.engaged_uids.length > 0 ? 1 : 0}`
+        ).join('|');
+
+        if (domesSig !== lastThreatDomesSig) {
+          lastThreatDomesSig = domesSig;
+          disposeGroupChildren(threatDomesGroup);
+          for (const d of domes) {
+            const rUnits = d.radius_m * M_TO_TABLE;
+            const domeGeo = new THREE.SphereGeometry(rUnits, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const isAlert = d.engaged_uids && d.engaged_uids.length > 0;
+            const domeMat = new THREE.MeshBasicMaterial({
+              color: isAlert ? 0xff2244 : 0xff5533,
+              transparent: true,
+              opacity: isAlert ? 0.16 : 0.09,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            });
+            const domeMesh = new THREE.Mesh(domeGeo, domeMat);
+            const centerPos = enuToTableVec3(d.east_m, d.up_m, d.north_m);
+            domeMesh.position.copy(centerPos);
+            threatDomesGroup.add(domeMesh);
+
+            const wireGeo = new THREE.EdgesGeometry(domeGeo);
+            const wireMat = new THREE.LineBasicMaterial({
+              color: isAlert ? 0xff3355 : 0xff8844,
+              transparent: true,
+              opacity: 0.42,
+            });
+            const wireLines = new THREE.LineSegments(wireGeo, wireMat);
+            wireLines.position.copy(centerPos);
+            threatDomesGroup.add(wireLines);
+          }
+        }
+
+        // Draw live 3D radar lock beams (`compute_link_los` verified) to engaged tracks
         for (const d of domes) {
-          const rUnits = d.radius_m * M_TO_TABLE;
-          const domeGeo = new THREE.SphereGeometry(rUnits, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
-          const isAlert = d.engaged_uids && d.engaged_uids.length > 0;
-          const domeMat = new THREE.MeshBasicMaterial({
-            color: isAlert ? 0xff2244 : 0xff5533,
-            transparent: true,
-            opacity: isAlert ? 0.16 : 0.09,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-          });
-          const domeMesh = new THREE.Mesh(domeGeo, domeMat);
-          const centerPos = enuToTableVec3(d.east_m, d.up_m, d.north_m);
-          domeMesh.position.copy(centerPos);
-          threatDomesGroup.add(domeMesh);
-
-          const wireGeo = new THREE.EdgesGeometry(domeGeo);
-          const wireMat = new THREE.LineBasicMaterial({
-            color: isAlert ? 0xff3355 : 0xff8844,
-            transparent: true,
-            opacity: 0.42,
-          });
-          const wireLines = new THREE.LineSegments(wireGeo, wireMat);
-          wireLines.position.copy(centerPos);
-          threatDomesGroup.add(wireLines);
-
-          // Draw live 3D radar lock beams (`compute_link_los` verified) to engaged tracks
-          if (d.engaged_uids) {
+          if (d.engaged_uids && d.engaged_uids.length > 0) {
+            const centerPos = enuToTableVec3(d.east_m, d.up_m, d.north_m);
             for (const targetUid of d.engaged_uids) {
               const tgt = entitiesMap.get(targetUid);
               if (tgt) {
                 const tgtPos = enuToTableVec3(tgt.east_m, tgt.up_m, tgt.north_m);
                 const beamGeo = new THREE.BufferGeometry().setFromPoints([centerPos, tgtPos]);
                 const beamMat = new THREE.LineBasicMaterial({ color: 0xff2244, opacity: 0.92, transparent: true });
-                threatDomesGroup.add(new THREE.Line(beamGeo, beamMat));
+                threatLockBeamsGroup.add(new THREE.Line(beamGeo, beamMat));
               }
             }
           }
         }
+      } else if (!showThreatDomes && lastThreatDomesSig !== '') {
+        lastThreatDomesSig = '';
+        disposeGroupChildren(threatDomesGroup);
       }
 
-      while (tacticalZonesGroup.children.length > 0) {
-        const ch = tacticalZonesGroup.children.pop();
-        if (ch.geometry) ch.geometry.dispose();
-      }
       if (showTacticalZones && Array.isArray(zones)) {
-        for (const z of zones) {
-          if (!z.vertices_en || z.vertices_en.length < 3) continue;
-          const isHostile = z.affiliation === 'hostile';
-          const hasInside = z.inside_uids && z.inside_uids.length > 0;
-          const colorHex = isHostile ? (hasInside ? 0xff2244 : 0xff6633) : 0x00ff88;
+        const zonesSig = `${currentOriginLat.toFixed(4)}:${currentOriginLon.toFixed(4)}:` + zones.map(z =>
+          `${z.uid}:${z.affiliation}:${Math.round(z.floor_m)}:${Math.round(z.ceiling_m)}:${z.inside_uids && z.inside_uids.length > 0 ? 1 : 0}:${z.vertices_en ? z.vertices_en.length : 0}`
+        ).join('|');
 
-          const floorPts = [];
-          const ceilPts = [];
-          for (const [eM, nM] of z.vertices_en) {
-            const gnd = sampleTerrainReliefM(eM, nM);
-            floorPts.push(enuToTableVec3(eM, Math.max(gnd, z.floor_m), nM));
-            ceilPts.push(enuToTableVec3(eM, z.ceiling_m, nM));
-          }
-          floorPts.push(floorPts[0].clone());
-          ceilPts.push(ceilPts[0].clone());
+        if (zonesSig !== lastTacticalZonesSig) {
+          lastTacticalZonesSig = zonesSig;
+          disposeGroupChildren(tacticalZonesGroup);
+          for (const z of zones) {
+            if (!z.vertices_en || z.vertices_en.length < 3) continue;
+            const isHostile = z.affiliation === 'hostile';
+            const hasInside = z.inside_uids && z.inside_uids.length > 0;
+            const colorHex = isHostile ? (hasInside ? 0xff2244 : 0xff6633) : 0x00ff88;
 
-          const loopMat = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.78 });
-          tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(floorPts), loopMat));
-          tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ceilPts), loopMat));
+            const floorPts = [];
+            const ceilPts = [];
+            for (const [eM, nM] of z.vertices_en) {
+              const gnd = sampleTerrainReliefM(eM, nM);
+              floorPts.push(enuToTableVec3(eM, Math.max(gnd, z.floor_m), nM));
+              ceilPts.push(enuToTableVec3(eM, z.ceiling_m, nM));
+            }
+            floorPts.push(floorPts[0].clone());
+            ceilPts.push(ceilPts[0].clone());
 
-          // Vertical corner pillars of the 3D ROZ prism
-          for (let i = 0; i < z.vertices_en.length; i++) {
-            const pillarGeo = new THREE.BufferGeometry().setFromPoints([floorPts[i], ceilPts[i]]);
-            tacticalZonesGroup.add(new THREE.Line(pillarGeo, loopMat));
+            const loopMat = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.78 });
+            tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(floorPts), loopMat));
+            tacticalZonesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ceilPts), loopMat.clone()));
+
+            // Vertical corner pillars of the 3D ROZ prism
+            for (let i = 0; i < z.vertices_en.length; i++) {
+              const pillarGeo = new THREE.BufferGeometry().setFromPoints([floorPts[i], ceilPts[i]]);
+              tacticalZonesGroup.add(new THREE.Line(pillarGeo, loopMat.clone()));
+            }
           }
         }
+      } else if (!showTacticalZones && lastTacticalZonesSig !== '') {
+        lastTacticalZonesSig = '';
+        disposeGroupChildren(tacticalZonesGroup);
       }
     }
 
@@ -1431,7 +1462,10 @@
         tableGroup.add(fovGroup);
 
         // VR-TAK `AGame_SimpleSegmentedLineActor` laser line from parent UAV to SPI target
-        const spiLaserGeo = new THREE.BufferGeometry();
+        const spiLaserGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, 0, 0),
+        ]);
         const spiLaserMat = new THREE.LineBasicMaterial({
           color: 0x00ff88,
           transparent: true,
@@ -1449,6 +1483,7 @@
           trailLine,
           trailPoints: [],
           fovGroup,
+          fovSpecKey: '',
           spiLaserLine,
         };
         entityNodes.set(ent.uid, node);
@@ -1466,7 +1501,10 @@
       }
 
       node.haloMat.opacity = ent.uid === selectedUid ? 0.95 : 0.0;
-      node.stemLine.geometry.setFromPoints([pos, groundPos]);
+      const stemPos = node.stemLine.geometry.attributes.position;
+      stemPos.setXYZ(0, pos.x, pos.y, pos.z);
+      stemPos.setXYZ(1, groundPos.x, groundPos.y, groundPos.z);
+      stemPos.needsUpdate = true;
 
       if (!isSpi) {
         if (
@@ -1484,54 +1522,67 @@
       if (isSpi && ent.parent_uid && allEntitiesMap.has(ent.parent_uid)) {
         const parentEnt = allEntitiesMap.get(ent.parent_uid);
         const parentPos = enuToTableVec3(parentEnt.east_m, parentEnt.up_m, parentEnt.north_m);
-        node.spiLaserLine.geometry.setFromPoints([parentPos, pos]);
+        const spiPos = node.spiLaserLine.geometry.attributes.position;
+        spiPos.setXYZ(0, parentPos.x, parentPos.y, parentPos.z);
+        spiPos.setXYZ(1, pos.x, pos.y, pos.z);
+        spiPos.needsUpdate = true;
         node.spiLaserLine.visible = true;
       } else {
         node.spiLaserLine.visible = false;
       }
 
-      // Update 3D Gimbal Sensor FOV Frustum
-      while (node.fovGroup.children.length > 0) {
-        const child = node.fovGroup.children.pop();
-        if (child.geometry) child.geometry.dispose();
-      }
+      // Update 3D Gimbal Sensor FOV Frustum without recreating ConeGeometry/EdgesGeometry at 20Hz
       if (ent.sensor && showFovCones) {
         const s = ent.sensor;
-        const coneLen = s.range_m * M_TO_TABLE;
-        const coneRadius = Math.tan(THREE.MathUtils.degToRad(s.hfov_deg * 0.5)) * coneLen;
-        const coneGeo = new THREE.ConeGeometry(coneRadius, coneLen, 4, 1, true);
-        coneGeo.translate(0, -coneLen / 2, 0);
-        coneGeo.rotateX(Math.PI / 2);
+        const fovSpecKey = `${s.hfov_deg.toFixed(1)}_${Math.round(s.range_m)}`;
+        if (node.fovSpecKey !== fovSpecKey) {
+          node.fovSpecKey = fovSpecKey;
+          while (node.fovGroup.children.length > 0) {
+            const child = node.fovGroup.children.pop();
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+          }
+          const coneLen = s.range_m * M_TO_TABLE;
+          const coneRadius = Math.tan(THREE.MathUtils.degToRad(s.hfov_deg * 0.5)) * coneLen;
+          const coneGeo = new THREE.ConeGeometry(coneRadius, coneLen, 4, 1, true);
+          coneGeo.translate(0, -coneLen / 2, 0);
+          coneGeo.rotateX(Math.PI / 2);
 
-        const coneMat = new THREE.MeshBasicMaterial({
-          color: 0x00ffaa,
-          transparent: true,
-          opacity: 0.14,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-        });
-        const coneMesh = new THREE.Mesh(coneGeo, coneMat);
+          const coneMat = new THREE.MeshBasicMaterial({
+            color: 0x00ffaa,
+            transparent: true,
+            opacity: 0.14,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          });
+          const coneMesh = new THREE.Mesh(coneGeo, coneMat);
 
-        const edgeGeo = new THREE.EdgesGeometry(coneGeo);
-        const edgeMat = new THREE.LineBasicMaterial({
-          color: 0x00ffaa,
-          transparent: true,
-          opacity: 0.52,
-        });
-        coneMesh.add(new THREE.LineSegments(edgeGeo, edgeMat));
-
+          const edgeGeo = new THREE.EdgesGeometry(coneGeo);
+          const edgeMat = new THREE.LineBasicMaterial({
+            color: 0x00ffaa,
+            transparent: true,
+            opacity: 0.52,
+          });
+          coneMesh.add(new THREE.LineSegments(edgeGeo, edgeMat));
+          node.fovGroup.add(coneMesh);
+        }
+        node.fovGroup.visible = true;
         node.fovGroup.position.copy(pos);
         const azRad = THREE.MathUtils.degToRad(s.azimuth_deg);
         const elRad = THREE.MathUtils.degToRad(s.elevation_deg);
         node.fovGroup.rotation.set(elRad, Math.PI - azRad, 0, 'YXZ');
-        node.fovGroup.add(coneMesh);
+      } else {
+        node.fovGroup.visible = false;
       }
     }
 
     const unitListEl = document.getElementById('unit-list');
+    let lastRosterDomUpdateMs = 0;
+    let lastRosterSelectedUid = '';
+    let lastRosterUnitCount = -1;
+
     function updateHudAndRoster(snap) {
       latestEntities = snap.entities;
-      document.getElementById('track-count').textContent = `${snap.entities.length} UNITS`;
 
       const mapById = new Map();
       for (const e of snap.entities) mapById.set(e.uid, e);
@@ -1542,10 +1593,24 @@
         if (!mapById.has(uid)) removeEntityNode(uid);
       }
 
-      unitListEl.innerHTML = '';
       for (const ent of snap.entities) {
         createOrUpdateEntityNode(ent, mapById);
+      }
 
+      const nowMs = performance.now();
+      const shouldUpdateDom = (
+        nowMs - lastRosterDomUpdateMs >= 250 ||
+        selectedUid !== lastRosterSelectedUid ||
+        snap.entities.length !== lastRosterUnitCount
+      );
+      if (!shouldUpdateDom) return;
+      lastRosterDomUpdateMs = nowMs;
+      lastRosterSelectedUid = selectedUid;
+      lastRosterUnitCount = snap.entities.length;
+
+      document.getElementById('track-count').textContent = `${snap.entities.length} UNITS`;
+      unitListEl.innerHTML = '';
+      for (const ent of snap.entities) {
         const item = document.createElement('div');
         item.className = `unit-item ${ent.affiliation} ${ent.uid === selectedUid ? 'active' : ''}`;
         item.innerHTML = `
