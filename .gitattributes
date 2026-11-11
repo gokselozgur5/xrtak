@@ -1,0 +1,4 @@
+# GitHub Linguist language overrides
+# WebXR standalone single-file client bundles
+index.html linguist-documentation=false linguist-vendored=true
+crates/xrtak-gateway/static/index.html linguist-documentation=false linguist-vendored=true
