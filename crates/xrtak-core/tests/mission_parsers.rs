@@ -43,3 +43,27 @@ fn qgc_plan_rejects_bad_input() {
     let err = parse_qgc_plan_mission("{}").unwrap_err();
     assert!(err.contains("mission.items"));
 }
+
+fn flat() -> RasterDemProvider {
+    RasterDemProvider::new("flat", 2, 2, 100.0, vec![0.0; 4]).unwrap()
+}
+
+#[test]
+fn qgc_export_round_trips_through_parser() {
+    let wps = [(0.0, 0.0, 80.0), (50.0, 50.0, 90.0)];
+    let json = export_qgc_plan_json(&GeoOrigin::default(), &flat(), &wps);
+    let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(v["mission"]["items"][0]["command"], 22);
+    assert_eq!(v["mission"]["items"][1]["command"], 16);
+    let (_, back) = parse_qgc_plan_mission(&json).unwrap();
+    assert_eq!(back.len(), 2);
+}
+
+#[test]
+fn route_cot_lists_one_link_per_waypoint() {
+    let wps = [(0.0, 0.0, 80.0), (50.0, 50.0, 90.0)];
+    let xml = export_atak_route_cot_xml("R1", "Route", &GeoOrigin::default(), &flat(), &wps);
+    assert!(xml.contains(r#"type="b-m-r""#));
+    assert_eq!(xml.matches("b-m-p-w").count(), 2);
+    assert!(!xml.contains("< strokeWeight"));
+}
