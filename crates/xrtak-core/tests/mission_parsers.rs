@@ -23,3 +23,23 @@ fn kml_without_coordinates_is_rejected() {
     assert!(parse_kml_mission("<kml><Document/></kml>").is_err());
     assert!(parse_kml_mission("<a><b></a>").is_err());
 }
+
+#[test]
+fn qgc_plan_parses_and_skips_empty_coordinates() {
+    let json = r#"{"mission":{"items":[
+        {"params":[0,0,0,0,39.9,32.8,100],"frame":3},
+        {"params":[0,0,0,0,0,0,50]},
+        {"params":[0,0,0,0,40.0,33.0,200],"frame":0,"AltitudeMode":0}]}}"#;
+    let (name, wps) = parse_qgc_plan_mission(json).unwrap();
+    assert_eq!(name, "QGC-PLAN-MISSION");
+    assert_eq!(wps.len(), 2);
+    assert_eq!(wps[0].name, "QGC-WP-1");
+    assert!(wps[0].alt_is_relative && !wps[1].alt_is_relative);
+}
+
+#[test]
+fn qgc_plan_rejects_bad_input() {
+    assert!(parse_qgc_plan_mission("{").is_err());
+    let err = parse_qgc_plan_mission("{}").unwrap_err();
+    assert!(err.contains("mission.items"));
+}
