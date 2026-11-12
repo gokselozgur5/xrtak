@@ -17,3 +17,9 @@ fn kml_parses_names_altitudes_and_modes() {
     assert!(!wps[0].alt_is_relative && wps[1].alt_is_relative);
     assert_eq!((wps[1].alt_m, wps[2].alt_m), (120.0, 70.0));
 }
+
+#[test]
+fn kml_without_coordinates_is_rejected() {
+    assert!(parse_kml_mission("<kml><Document/></kml>").is_err());
+    assert!(parse_kml_mission("<a><b></a>").is_err());
+}
