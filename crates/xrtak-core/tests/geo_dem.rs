@@ -50,3 +50,14 @@ fn profile_handles_empty_and_straight_paths() {
     assert!((p.total_distance_m - 80.0).abs() < 1e-6);
     assert!(p.total_ascent_m > 0.0 && p.total_descent_m == 0.0);
 }
+
+#[test]
+fn origin_maps_to_zero_and_round_trips() {
+    let o = GeoOrigin::default();
+    assert_eq!(o.lla_to_enu(o.lat, o.lon, o.alt_m), (0.0, 0.0, 0.0));
+    let (e, u, n) = o.lla_to_enu(o.lat + 0.001, o.lon + 0.001, o.alt_m + 25.0);
+    assert!((n - 111.1).abs() < 0.5 && u == 25.0 && e > 80.0);
+    let (lat, lon, hae) = o.enu_to_lla(e, u, n);
+    assert!((lat - (o.lat + 0.001)).abs() < 1e-9);
+    assert!((lon - (o.lon + 0.001)).abs() < 1e-9 && hae == o.alt_m + 25.0);
+}
