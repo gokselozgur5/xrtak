@@ -29,3 +29,31 @@ fn bing_subdomain_stays_in_range() {
     assert_eq!(bing_subdomain(3, 5), 0);
     assert_eq!(bing_subdomain(1, 2), 3);
 }
+
+#[test]
+fn provider_ids_parse_with_default() {
+    assert_eq!(
+        ImageryProvider::from_id(" BING "),
+        ImageryProvider::BingAerial
+    );
+    assert_eq!(
+        ImageryProvider::from_id("S2"),
+        ImageryProvider::Sentinel2Cloudless
+    );
+    assert_eq!(
+        ImageryProvider::from_id("topo"),
+        ImageryProvider::OpenTopoMap
+    );
+    assert_eq!(
+        ImageryProvider::from_id("nope"),
+        ImageryProvider::EsriWorldImagery
+    );
+}
+
+#[test]
+fn tile_urls_order_coordinates_per_provider() {
+    let esri = ImageryProvider::EsriWorldImagery.tile_url(1, 2, 3);
+    assert!(esri.ends_with("/tile/3/2/1"));
+    let topo = ImageryProvider::OpenTopoMap.tile_url(1, 2, 3);
+    assert_eq!(topo, "https://tile.opentopomap.org/3/1/2.png");
+}
