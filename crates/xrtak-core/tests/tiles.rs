@@ -57,3 +57,19 @@ fn tile_urls_order_coordinates_per_provider() {
     let topo = ImageryProvider::OpenTopoMap.tile_url(1, 2, 3);
     assert_eq!(topo, "https://tile.opentopomap.org/3/1/2.png");
 }
+
+#[test]
+fn placeholder_detection_edge_cases() {
+    assert!(is_placeholder_rgb_tile(&[]));
+    assert!(!is_placeholder_rgb_tile(&[0u8; 48]));
+}
+
+#[test]
+fn resolve_clamps_zoom_and_caps_fallback() {
+    let spec = resolve_tile_with_fallback(ImageryProvider::OpenTopoMap, 10.0, 20.0, 99);
+    assert_eq!(spec.zoom, 20);
+    assert_eq!(spec.fallback_zoom, 13);
+    let low = resolve_tile_with_fallback(ImageryProvider::OpenTopoMap, 10.0, 20.0, 5);
+    assert_eq!(low.fallback_zoom, 5);
+    assert_eq!(low.primary_url, low.fallback_url);
+}
