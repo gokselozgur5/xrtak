@@ -43,3 +43,27 @@ fn metadata_reads_dimensions_and_offsets() {
     assert_eq!((m.sample_format, m.data_offsets), (2, vec![74]));
     assert!(m.origin_lon_lat.is_none() && m.pixel_scale_xy.is_none());
 }
+
+#[test]
+fn missing_required_tags_are_rejected() {
+    let mut b = b"II\x2a\x00\x08\x00\x00\x00".to_vec();
+    b.extend_from_slice(&1u16.to_le_bytes());
+    b.extend(entry(256, 3, 1, 2));
+    b.extend_from_slice(&0u32.to_le_bytes());
+    assert!(parse_geotiff_metadata(&b).unwrap_err().contains("missing"));
+}
+
+#[test]
+fn dsm_ingestion_flips_rows_and_normalizes_relief() {
+    let r = ingest_geotiff_dsm("t", 100.0, 2, &int16_tiff([100, 110, 120, 130])).unwrap();
+    assert_eq!(r.dem.heights_m, vec![20.0, 30.0, 0.0, 10.0]);
+    assert_eq!((r.min_asl_m, r.max_asl_m), (100.0, 130.0));
+    assert!(r.center_lat_lon.is_none());
+}
+
+#[test]
+fn dsm_ingestion_rejects_truncated_pixels() {
+    let mut b = int16_tiff([1, 2, 3, 4]);
+    b.truncate(b.len() - 2);
+    assert!(ingest_geotiff_dsm("t", 100.0, 2, &b).is_err());
+}
