@@ -148,6 +148,8 @@ pub struct BurnThroughAssessment {
 }
 
 /// Compute radar burn-through range R_BT where target echo power >= jammer noise.
+// TODO(XR-072): replace the argument list with a BurnThroughScenario struct.
+#[allow(clippy::too_many_arguments)]
 pub fn compute_burn_through_range(
     radar_callsign: &str,
     p_radar_w: f64,
@@ -177,7 +179,7 @@ pub fn compute_burn_through_range(
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     #[test]
