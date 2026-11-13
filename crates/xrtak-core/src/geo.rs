@@ -263,7 +263,13 @@ impl RasterDemProvider {
         }
         let heights_m: Vec<f64> = raw
             .into_iter()
-            .map(|v| if v.is_finite() { (v - min_valid).max(0.0) } else { 0.0 })
+            .map(|v| {
+                if v.is_finite() {
+                    (v - min_valid).max(0.0)
+                } else {
+                    0.0
+                }
+            })
             .collect();
         Self::new(name, width, height, extent_m, heights_m)
     }
@@ -307,7 +313,10 @@ impl RasterDemProvider {
                         let r = (nx * nx + nz * nz).sqrt();
                         let rim = (-((r - 0.78).powi(2)) * 14.0).exp() * 165.0;
                         let central_mound = (-(r * r * 12.0)).exp() * 48.0;
-                        let grid_blocks = if r < 0.48 && (nx * 14.0).sin().abs() > 0.35 && (nz * 14.0).sin().abs() > 0.35 {
+                        let grid_blocks = if r < 0.48
+                            && (nx * 14.0).sin().abs() > 0.35
+                            && (nz * 14.0).sin().abs() > 0.35
+                        {
                             26.0
                         } else {
                             0.0
