@@ -37,3 +37,25 @@ fn test_cep_growth_monotonic_with_floor() {
         last_cep = cep;
     }
 }
+
+#[test]
+fn test_predict_trajectory_points_and_cep_rounding() {
+    let horizons = vec![1.234, 5.678];
+    let pred = predict_entity_trajectory(
+        "T-01",
+        "Track 1",
+        (10.123, 20.456, 30.789),
+        15.555,
+        45.0,
+        false,
+        3.333,
+        &horizons,
+    );
+
+    assert_eq!(pred.points.len(), 2);
+    for pt in &pred.points {
+        assert_eq!(pt.east_m, (pt.east_m * 100.0).round() / 100.0);
+        assert_eq!(pt.north_m, (pt.north_m * 100.0).round() / 100.0);
+        assert_eq!(pt.cep_radius_m, (pt.cep_radius_m * 100.0).round() / 100.0);
+    }
+}
