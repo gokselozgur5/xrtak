@@ -427,5 +427,14 @@ mod tests {
         assert!(bmr_xml.contains(r#"callsign="ALPHA-CORRIDOR""#));
         assert!(bmr_xml.contains(r#"uid="RTE-XR-01-WP3""#));
     }
-}
 
+    #[test]
+    fn test_kml_linestring_waypoint_names_are_sequential() {
+        let kml = "<kml><Document><Placemark><name>Route</name><LineString>\
+            <coordinates>1.0,2.0,10 1.1,2.1,10 1.2,2.2,10</coordinates>\
+            </LineString></Placemark></Document></kml>";
+        let (_, raw) = parse_kml_mission(kml).expect("valid KML");
+        let names: Vec<&str> = raw.iter().map(|w| w.name.as_str()).collect();
+        assert_eq!(names, ["WP-1", "WP-2", "WP-3"]);
+    }
+}
