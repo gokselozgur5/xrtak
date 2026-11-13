@@ -999,10 +999,11 @@ async fn handle_http_connection(
 
     if method == "POST" && path == "/api/tracks/predict" {
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
-        let p_req: TrackPredictRequest = serde_json::from_str(body).unwrap_or_else(|_| TrackPredictRequest {
-            horizons_sec: Some(vec![15.0, 30.0, 60.0]),
-            stale_threshold_sec: Some(5.0),
-        });
+        let p_req: TrackPredictRequest =
+            serde_json::from_str(body).unwrap_or_else(|_| TrackPredictRequest {
+                horizons_sec: Some(vec![15.0, 30.0, 60.0]),
+                stale_threshold_sec: Some(5.0),
+            });
         let horizons = p_req.horizons_sec.unwrap_or_else(|| vec![15.0, 30.0, 60.0]);
         let stale_thresh = p_req.stale_threshold_sec.unwrap_or(5.0);
         let predictions: Vec<TrackPrediction> = {
