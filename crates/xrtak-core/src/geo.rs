@@ -377,14 +377,8 @@ mod tests {
         // 2x2 grid over [-100, +100] meters:
         // row 0 (south, north = -100): [10.0, 20.0]
         // row 1 (north, north = +100): [30.0, 50.0]
-        let dem = RasterDemProvider::new(
-            "test-2x2",
-            2,
-            2,
-            100.0,
-            vec![10.0, 20.0, 30.0, 50.0],
-        )
-        .expect("valid 2x2 DEM");
+        let dem = RasterDemProvider::new("test-2x2", 2, 2, 100.0, vec![10.0, 20.0, 30.0, 50.0])
+            .expect("valid 2x2 DEM");
 
         assert!((dem.sample_relief_m(-100.0, -100.0) - 10.0).abs() < 1e-9);
         assert!((dem.sample_relief_m(100.0, -100.0) - 20.0).abs() < 1e-9);
