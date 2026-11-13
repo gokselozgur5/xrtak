@@ -22,3 +22,16 @@ fn every_known_sapient_class_maps_to_cot_type() {
         assert_eq!(sapient_class_to_cot_type(cls), "a-h-G-U-C-I");
     }
 }
+
+#[test]
+fn unknown_sapient_classes_fall_back_to_generic() {
+    assert_eq!(sapient_class_to_cot_type("UNKNOWN"), "a-u-G");
+    assert_eq!(sapient_class_to_cot_type("CIVILIAN_CAR"), "a-u-G");
+    assert_eq!(sapient_class_to_cot_type(""), "a-u-G");
+    assert_eq!(sapient_class_to_cot_type("???"), "a-u-G");
+
+    assert_eq!(sapient_class_to_cot_type("  drone  "), "a-h-A-M-F-Q");
+    assert_eq!(sapient_class_to_cot_type("tank\n"), "a-h-G-E-V-A");
+    assert_eq!(sapient_class_to_cot_type("radar"), "a-h-G-E-S");
+    assert_eq!(sapient_class_to_cot_type(" human "), "a-h-G-U-C-I");
+}
