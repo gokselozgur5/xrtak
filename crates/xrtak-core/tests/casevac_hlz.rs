@@ -31,3 +31,24 @@ fn steep_ramp_terrain_is_unsuitable() {
     assert!(!suitability.is_slope_acceptable);
     assert_eq!(suitability.overall_suitability, "AMBER - STEEP TERRAIN");
 }
+
+#[test]
+fn point_inside_threat_dome_is_unsuitable() {
+    use xrtak_core::domain::{Affiliation, ThreatDome};
+
+    let dome = ThreatDome {
+        uid: "DOME-1".into(),
+        callsign: "SAM-BATTERY".into(),
+        affiliation: Affiliation::Hostile,
+        east_m: 100.0,
+        up_m: 0.0,
+        north_m: 100.0,
+        radius_m: 500.0,
+        ceiling_m: 2000.0,
+        engaged_uids: Vec::new(),
+    };
+    let suitability = evaluate_hlz_suitability(120.0, 120.0, 25.0, &Flat, &[dome]);
+    assert!(!suitability.is_threat_clear);
+    assert!(suitability.min_threat_distance_m < 0.0);
+    assert_eq!(suitability.overall_suitability, "AMBER - THREAT PROXIMITY");
+}
