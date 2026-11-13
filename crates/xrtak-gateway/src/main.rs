@@ -1178,10 +1178,18 @@ async fn handle_http_connection(
                     .unwrap_or_else(|| "None / Standard".to_string()),
                 line5_litter_count: m_req.litter_count.unwrap_or(1),
                 line5_ambulatory_count: m_req.ambulatory_count.unwrap_or(0),
-                line6_security: m_req.security.unwrap_or_else(|| "N - No enemy troops in area".to_string()),
-                line7_hlz_marking: m_req.marking.unwrap_or_else(|| "Panels / Smoke Green".to_string()),
-                line8_patient_nationality: m_req.nationality.unwrap_or_else(|| "Friendly Military".to_string()),
-                line9_nbc_or_terrain: m_req.terrain_remarks.unwrap_or_else(|| "Valley clearing".to_string()),
+                line6_security: m_req
+                    .security
+                    .unwrap_or_else(|| "N - No enemy troops in area".to_string()),
+                line7_hlz_marking: m_req
+                    .marking
+                    .unwrap_or_else(|| "Panels / Smoke Green".to_string()),
+                line8_patient_nationality: m_req
+                    .nationality
+                    .unwrap_or_else(|| "Friendly Military".to_string()),
+                line9_nbc_or_terrain: m_req
+                    .terrain_remarks
+                    .unwrap_or_else(|| "Valley clearing".to_string()),
                 lat,
                 lon,
                 east_m: e,
@@ -1438,7 +1446,10 @@ async fn handle_http_connection(
             let (xml, res) = {
                 let mut guard = world.lock().unwrap();
                 let up_m = guard.sample_relief_m(ptr_req.east_m, ptr_req.north_m);
-                let (lat, lon, hae) = guard.origin.enu_to_lla(ptr_req.east_m, up_m, ptr_req.north_m);
+                let (lat, lon, hae) =
+                    guard
+                        .origin
+                        .enu_to_lla(ptr_req.east_m, up_m, ptr_req.north_m);
                 let cs = ptr_req.callsign.unwrap_or_else(|| "QUEST3-OP".to_string());
                 let xml = build_laser_pointer_cot_xml(&cs, lat, lon, hae);
                 let res = guard.ingest_cot_xml(&xml, now_unix_ms());
