@@ -129,13 +129,8 @@ pub fn build_opord_bundle(
     dome_count: usize,
 ) -> OpordExportBundle {
     let kml_scene = generate_kml_tactical_scene(operation_name, units, origin_lla);
-    let opord_markdown = generate_nato_opord_markdown(
-        operation_name,
-        origin_lla,
-        units,
-        zone_count,
-        dome_count,
-    );
+    let opord_markdown =
+        generate_nato_opord_markdown(operation_name, origin_lla, units, zone_count, dome_count);
 
     OpordExportBundle {
         opord_markdown,
