@@ -49,3 +49,18 @@ fn make_link() -> TargetLinkProfile {
         rx_up_m: 10.0,
     }
 }
+
+use xrtak_core::ew::{evaluate_link_jamming, EwTargetBand};
+
+#[test]
+fn test_high_js_marks_link_denied() {
+    let jammer = make_jammer(100.0);
+    let link = make_link();
+    let res = evaluate_link_jamming(&jammer, &link, EwTargetBand::VideoDownlink, 0.0);
+    assert!(res.is_denied);
+    assert!(res.jammer_to_signal_ratio_db > 0.0);
+
+    let weak_jammer = make_jammer(0.0001);
+    let clear_res = evaluate_link_jamming(&weak_jammer, &link, EwTargetBand::VideoDownlink, 0.0);
+    assert!(!clear_res.is_denied);
+}
