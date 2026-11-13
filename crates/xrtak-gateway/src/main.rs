@@ -683,7 +683,8 @@ async fn handle_http_connection(
                     let mut guard = world.lock().unwrap();
                     guard.clear_spi_lock(&sensor_uid);
                 }
-                let json = serde_json::json!({ "status": "cleared", "sensor_uid": sensor_uid }).to_string();
+                let json = serde_json::json!({ "status": "cleared", "sensor_uid": sensor_uid })
+                    .to_string();
                 let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
                 stream.write_all(json.as_bytes()).await?;
@@ -735,10 +736,18 @@ async fn handle_http_connection(
             let res = {
                 let guard = world.lock().unwrap();
                 let from_enu = los_req.from_enu.or_else(|| {
-                    los_req.from_uid.as_ref().and_then(|u| guard.entities.get(u)).map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
+                    los_req
+                        .from_uid
+                        .as_ref()
+                        .and_then(|u| guard.entities.get(u))
+                        .map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
                 });
                 let to_enu = los_req.to_enu.or_else(|| {
-                    los_req.to_uid.as_ref().and_then(|u| guard.entities.get(u)).map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
+                    los_req
+                        .to_uid
+                        .as_ref()
+                        .and_then(|u| guard.entities.get(u))
+                        .map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
                 });
                 match (from_enu, to_enu) {
                     (Some(a), Some(b)) => Some(compute_link_los(guard.terrain.as_ref(), a, b, 48)),
