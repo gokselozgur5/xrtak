@@ -19,3 +19,16 @@ fn test_lerp_angle_shortest_arc_wrap() {
     let three_quarters = lerp_angle_deg(350.0, 10.0, 0.75);
     assert_eq!(three_quarters, 5.0);
 }
+
+#[test]
+fn test_lerp_angle_stays_in_range() {
+    for a in [0.0, 90.0, 180.0, 270.0, 359.9] {
+        for b in [0.0, 90.0, 180.0, 270.0, 359.9] {
+            for step in 0..=10 {
+                let t = step as f64 / 10.0;
+                let res = lerp_angle_deg(a, b, t);
+                assert!((0.0..360.0).contains(&res));
+            }
+        }
+    }
+}
