@@ -55,3 +55,27 @@ fn sapient_high_confidence_auto_slews_falcon() {
     assert!(world.entities.contains_key("UAV-FALCON-01.SPI1"));
     assert!(world.spi_locks.contains_key("UAV-FALCON-01"));
 }
+
+#[test]
+fn sapient_auto_slew_explicit_sensor_and_low_confidence() {
+    let mut world = TacticalWorld::new(GeoOrigin::default());
+    let mut report = SapientDetectionReport {
+        node_id: "RADAR-1".to_string(),
+        object_id: "THREAT-2".to_string(),
+        classification: "HOSTILE_ARMOR".to_string(),
+        confidence: 0.50,
+        east_m: -100.0,
+        north_m: 100.0,
+        alt_offset_m: None,
+        speed_mps: None,
+        course_deg: None,
+        auto_slew_sensor_uid: None,
+    };
+    let _ = world.ingest_sapient_detection(&report, 3000).unwrap();
+    assert!(!world.spi_locks.contains_key("UAV-FALCON-01"));
+
+    report.object_id = "THREAT-3".to_string();
+    report.auto_slew_sensor_uid = Some("UAV-VALKYRIE-02".to_string());
+    let _ = world.ingest_sapient_detection(&report, 3100).unwrap();
+    assert!(world.spi_locks.contains_key("UAV-VALKYRIE-02"));
+}
