@@ -189,7 +189,7 @@ pub fn evaluate_rf_link(
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     #[test]
