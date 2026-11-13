@@ -13,7 +13,7 @@ use xrtak_core::{
     predict_entity_trajectory, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
     OperatorPeer, OpordUnitSummary, ProceduralReliefModel, RasterDemProvider, RfBand,
     SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
-    ThreatDome, TrackPrediction, TrackPredictRequest,
+    ThreatDome, TrackPredictRequest, TrackPrediction,
 };
 
 mod battery_dto;
@@ -268,8 +268,10 @@ fn now_unix_ms() -> u64 {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let http_addr_str = std::env::var("XRTAK_HTTP_ADDR").unwrap_or_else(|_| "0.0.0.0:8090".to_string());
-    let udp_addr_str = std::env::var("XRTAK_UDP_ADDR").unwrap_or_else(|_| "0.0.0.0:4242".to_string());
+    let http_addr_str =
+        std::env::var("XRTAK_HTTP_ADDR").unwrap_or_else(|_| "0.0.0.0:8090".to_string());
+    let udp_addr_str =
+        std::env::var("XRTAK_UDP_ADDR").unwrap_or_else(|_| "0.0.0.0:4242".to_string());
     let http_addr: SocketAddr = http_addr_str.parse()?;
     let udp_cot_addr: SocketAddr = udp_addr_str.parse()?;
 
