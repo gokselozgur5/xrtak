@@ -466,7 +466,12 @@ impl TacticalWorld {
                 uid: "ZONE-ROZ-KILLBOX-1".to_string(),
                 name: "KILLBOX RED-ALPHA [ROZ]".to_string(),
                 affiliation: Affiliation::Hostile,
-                vertices_en: vec![(-380.0, -280.0), (60.0, -280.0), (90.0, 40.0), (-340.0, 60.0)],
+                vertices_en: vec![
+                    (-380.0, -280.0),
+                    (60.0, -280.0),
+                    (90.0, 40.0),
+                    (-340.0, 60.0),
+                ],
                 floor_m: 0.0,
                 ceiling_m: 380.0,
                 inside_uids: Vec::new(),
@@ -475,7 +480,12 @@ impl TacticalWorld {
                 uid: "ZONE-FOB-SAFE".to_string(),
                 name: "OP-BRAVO OVERWATCH SECTOR".to_string(),
                 affiliation: Affiliation::Friendly,
-                vertices_en: vec![(280.0, -480.0), (640.0, -480.0), (640.0, -140.0), (280.0, -140.0)],
+                vertices_en: vec![
+                    (280.0, -480.0),
+                    (640.0, -480.0),
+                    (640.0, -140.0),
+                    (280.0, -140.0),
+                ],
                 floor_m: 0.0,
                 ceiling_m: 340.0,
                 inside_uids: Vec::new(),
@@ -534,7 +544,11 @@ impl TacticalWorld {
     }
 
     /// Switch the active terrain provider and re-clamp ground entities to the new relief surface (`REQ-DEM-04`).
-    pub fn set_terrain_provider(&mut self, name: impl Into<String>, provider: Box<dyn ElevationProvider>) {
+    pub fn set_terrain_provider(
+        &mut self,
+        name: impl Into<String>,
+        provider: Box<dyn ElevationProvider>,
+    ) {
         self.terrain_name = name.into();
         self.terrain = provider;
         for ent in self.entities.values_mut() {
