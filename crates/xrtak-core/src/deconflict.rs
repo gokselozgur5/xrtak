@@ -102,9 +102,12 @@ pub fn compute_pairwise_cpa(
     }
 }
 
+/// Airborne entity input: uid, ENU position, speed in m/s, course in degrees.
+pub type TheaterEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
+
 /// Evaluates all moving airborne entity pairs and returns aggregate deconfliction report.
 pub fn evaluate_theater_deconfliction(
-    entities: &[(&str, (f64, f64, f64), f64, f64)],
+    entities: &[TheaterEntity],
 ) -> DeconflictionResult {
     let mut conflicts = Vec::new();
     let mut max_risk = CpaRiskLevel::Clear;
