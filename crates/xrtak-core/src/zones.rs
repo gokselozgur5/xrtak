@@ -60,7 +60,11 @@ pub fn parse_cot_polygon_zone(xml: &str, origin: &GeoOrigin) -> Option<TacticalZ
     if uid.is_empty() || vertices_en.len() < 3 {
         return None;
     }
-    let name = if callsign.is_empty() { uid.clone() } else { callsign };
+    let name = if callsign.is_empty() {
+        uid.clone()
+    } else {
+        callsign
+    };
     let upper = name.to_ascii_uppercase();
     let affiliation = if cot_type.starts_with("a-h")
         || upper.contains("KILL")
@@ -141,7 +145,11 @@ mod tests {
     struct CanyonWallTerrain;
     impl ElevationProvider for CanyonWallTerrain {
         fn sample_relief_m(&self, east_m: f64, _north_m: f64) -> f64 {
-            if (80.0..=140.0).contains(&east_m) { 130.0 } else { 30.0 }
+            if (80.0..=140.0).contains(&east_m) {
+                130.0
+            } else {
+                30.0
+            }
         }
     }
 
@@ -158,8 +166,16 @@ mod tests {
             ceiling_m: 450.0,
             engaged_uids: Vec::new(),
         };
-        assert!(is_engaged_by_threat_dome(&dome, (250.0, 320.0, 0.0), &CanyonWallTerrain));
-        assert!(!is_engaged_by_threat_dome(&dome, (250.0, 110.0, 0.0), &CanyonWallTerrain));
+        assert!(is_engaged_by_threat_dome(
+            &dome,
+            (250.0, 320.0, 0.0),
+            &CanyonWallTerrain
+        ));
+        assert!(!is_engaged_by_threat_dome(
+            &dome,
+            (250.0, 110.0, 0.0),
+            &CanyonWallTerrain
+        ));
 
         let zone = TacticalZone {
             uid: "ROZ-1".to_string(),
