@@ -8,3 +8,23 @@ fn test_precedence_doctrine_codes() {
     assert_eq!(PatientPrecedence::Routine.code(), "D - ROUTINE");
     assert_eq!(PatientPrecedence::Convenience.code(), "E - CONVENIENCE");
 }
+
+fn sample_report(precedence: PatientPrecedence) -> MedevacReport {
+    MedevacReport {
+        line1_location: "GRID 12S TK 1234 5678".to_string(),
+        line2_freq_callsign: "45.00 MHz / DUSTOFF".to_string(),
+        line3_precedence: precedence,
+        line4_special_equipment: "Hoist".to_string(),
+        line5_litter_count: 2,
+        line5_ambulatory_count: 1,
+        line6_security: "N".to_string(),
+        line7_hlz_marking: "Smoke".to_string(),
+        line8_patient_nationality: "Friendly".to_string(),
+        line9_nbc_or_terrain: "None".to_string(),
+        lat: 34.0,
+        lon: -117.0,
+        east_m: 0.0,
+        north_m: 0.0,
+        up_m: 0.0,
+    }
+}
