@@ -28,9 +28,9 @@ impl RfBand {
     /// Typical transmitter output power in dBm (1 Watt = +30 dBm).
     pub fn default_tx_power_dbm(&self) -> f64 {
         match self {
-            RfBand::UHF900 => 30.0,   // 1W
-            RfBand::ISM2400 => 27.0,  // 500mW
-            RfBand::SHF5800 => 33.0,  // 2W MIMO
+            RfBand::UHF900 => 30.0,  // 1W
+            RfBand::ISM2400 => 27.0, // 500mW
+            RfBand::SHF5800 => 33.0, // 2W MIMO
         }
     }
 
@@ -98,7 +98,12 @@ pub fn compute_knife_edge_diffraction_db(v: f64) -> f64 {
 /// Computes dimensionless Fresnel-Kirchhoff diffraction parameter v.
 ///
 /// obstacle_penetration_m is obstacle elevation minus LOS ray height at obstacle distance.
-pub fn compute_diffraction_v(obstacle_penetration_m: f64, d1_m: f64, d2_m: f64, frequency_hz: f64) -> f64 {
+pub fn compute_diffraction_v(
+    obstacle_penetration_m: f64,
+    d1_m: f64,
+    d2_m: f64,
+    frequency_hz: f64,
+) -> f64 {
     let total_d = d1_m + d2_m;
     if total_d <= 1e-3 || d1_m <= 1e-3 || d2_m <= 1e-3 {
         return -1.0;
@@ -159,8 +164,15 @@ pub fn evaluate_rf_link(
     let rx_pwr = band.default_tx_power_dbm() + 4.3 - fspl - diffraction; // 2.15 dBi dipoles
     let margin = rx_pwr - band.default_rx_sensitivity_dbm();
 
-    let status = if margin >= 15.0 { "Solid" } else if margin >= 5.0 { "Marginal" }
-                 else if margin >= 0.0 { "Degraded" } else { "Severed" };
+    let status = if margin >= 15.0 {
+        "Solid"
+    } else if margin >= 5.0 {
+        "Marginal"
+    } else if margin >= 0.0 {
+        "Degraded"
+    } else {
+        "Severed"
+    };
 
     RfLinkResult {
         frequency_hz: freq,
