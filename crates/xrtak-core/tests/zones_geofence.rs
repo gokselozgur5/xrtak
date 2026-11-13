@@ -60,3 +60,24 @@ impl ElevationProvider for FlatGround {
         0.0
     }
 }
+
+#[test]
+fn threat_dome_radius_and_altitude_boundaries() {
+    let d = ThreatDome {
+        uid: "D1".into(),
+        callsign: "S1".into(),
+        affiliation: Affiliation::Hostile,
+        east_m: 0.0,
+        up_m: 0.0,
+        north_m: 0.0,
+        radius_m: 500.0,
+        ceiling_m: 300.0,
+        engaged_uids: Vec::new(),
+    };
+    let g = FlatGround;
+    let chk = |pt| is_engaged_by_threat_dome(&d, pt, &g);
+    assert!(chk((100.0, 50.0, 100.0)));
+    assert!(!chk((400.0, 50.0, 400.0)));
+    assert!(!chk((50.0, 350.0, 50.0)));
+    assert!(!chk((50.0, -20.0, 50.0)));
+}
