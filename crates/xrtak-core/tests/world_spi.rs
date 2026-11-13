@@ -19,3 +19,17 @@ fn slew_sensor_creates_linked_spi_and_lock() {
     let lock = world.spi_locks.get("UAV-FALCON-01").copied().unwrap();
     assert_eq!(lock, (spi_ent.east_m, spi_ent.up_m, spi_ent.north_m));
 }
+
+#[test]
+fn clear_spi_lock_removes_entity_and_lock() {
+    let mut world = TacticalWorld::new(GeoOrigin::default());
+    world.step_simulation(0.1, 1000);
+    let res = world.slew_sensor_to_spi("UAV-FALCON-01", 100.0, 200.0, 2000);
+    assert!(res.is_ok());
+    assert!(world.entities.contains_key("UAV-FALCON-01.SPI1"));
+    assert!(world.spi_locks.contains_key("UAV-FALCON-01"));
+
+    world.clear_spi_lock("UAV-FALCON-01");
+    assert!(!world.entities.contains_key("UAV-FALCON-01.SPI1"));
+    assert!(!world.spi_locks.contains_key("UAV-FALCON-01"));
+}
