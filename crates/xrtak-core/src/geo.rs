@@ -413,14 +413,8 @@ mod tests {
 
     #[test]
     fn test_elevation_profile_and_slope() {
-        let dem = RasterDemProvider::new(
-            "ramp-2x2",
-            2,
-            2,
-            100.0,
-            vec![0.0, 100.0, 0.0, 100.0],
-        )
-        .expect("valid ramp DEM");
+        let dem = RasterDemProvider::new("ramp-2x2", 2, 2, 100.0, vec![0.0, 100.0, 0.0, 100.0])
+            .expect("valid ramp DEM");
 
         // Moving 200m east rises 100m -> grade = 0.5 -> atan(0.5) ~= 26.565 deg
         let slope = dem.sample_slope_deg(0.0, 0.0);
