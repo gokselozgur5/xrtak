@@ -165,6 +165,8 @@ fn compute_manifest_fnv1a_hex(
 }
 
 /// Build an offline mapset manifest (`MapsetManifest`) for the given WGS84 bounding box and zoom range (`ICD-18`).
+// TODO(XR-073): replace the argument list with an input struct.
+#[allow(clippy::too_many_arguments)]
 pub fn build_mapset_manifest(
     name: &str,
     provider: ImageryProvider,
