@@ -57,6 +57,8 @@ pub fn compute_raw_t_cpa(
 }
 
 /// Calculates Closest Point of Approach (CPA) between two 3D moving entities.
+// TODO(XR-071): replace the argument list with a CpaTrack pair.
+#[allow(clippy::too_many_arguments)]
 pub fn compute_pairwise_cpa(
     uid_a: &str,
     pos_a: (f64, f64, f64),
@@ -138,7 +140,7 @@ pub fn evaluate_theater_deconfliction(
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     #[test]
