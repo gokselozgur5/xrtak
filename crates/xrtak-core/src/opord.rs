@@ -86,9 +86,18 @@ pub fn generate_nato_opord_markdown(
     ));
 
     doc.push_str("## 1. SITUATION\n");
-    doc.push_str(&format!("- **Forces Tracked:** {} active tactical units in theatre.\n", units.len()));
-    doc.push_str(&format!("- **Threat Profile:** {} air-defense/SAM threat domes active.\n", dome_count));
-    doc.push_str(&format!("- **Airspace Restrictions:** {} tactical geofence/ROZ zones established.\n\n", zone_count));
+    doc.push_str(&format!(
+        "- **Forces Tracked:** {} active tactical units in theatre.\n",
+        units.len()
+    ));
+    doc.push_str(&format!(
+        "- **Threat Profile:** {} air-defense/SAM threat domes active.\n",
+        dome_count
+    ));
+    doc.push_str(&format!(
+        "- **Airspace Restrictions:** {} tactical geofence/ROZ zones established.\n\n",
+        zone_count
+    ));
 
     doc.push_str("## 2. MISSION\n");
     doc.push_str(&format!("Task Force conducts multi-domain spatial awareness and persistent ISR across {} to ensure aerial deconfliction and datalink integrity.\n\n", operation_name));
@@ -104,7 +113,9 @@ pub fn generate_nato_opord_markdown(
 
     doc.push_str("## 5. COMMAND & SIGNAL\n");
     doc.push_str("- **Primary C2 Mesh:** TAK Server TCP/UDP :4242 / :8087.\n");
-    doc.push_str("- **Datalink Bands:** UHF 900MHz (Telemetry), ISM 2.4GHz (C2), SHF 5.8GHz (Video).\n");
+    doc.push_str(
+        "- **Datalink Bands:** UHF 900MHz (Telemetry), ISM 2.4GHz (C2), SHF 5.8GHz (Video).\n",
+    );
     doc.push_str("- **Emergency Signal:** Code RED via ATAK emergency beacon broadcast.\n");
     doc
 }
