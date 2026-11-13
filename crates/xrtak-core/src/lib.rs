@@ -36,20 +36,18 @@ pub use corridor::{
     simplify_polyline_rdp, CorridorPolygonResult,
 };
 pub use deconflict::{
-    compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction, AirspaceConflictReport,
-    CpaRiskLevel, DeconflictionResult,
-};
-pub use ew::{
-    compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
-    EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
-};
-pub use fires::{
-    compute_ballistic_trajectory, BallisticSolution, MunitionType, TrajectoryPoint3d,
+    compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction,
+    AirspaceConflictReport, CpaRiskLevel, DeconflictionResult,
 };
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
     ViewshedSample,
 };
+pub use ew::{
+    compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
+    EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
+};
+pub use fires::{compute_ballistic_trajectory, BallisticSolution, MunitionType, TrajectoryPoint3d};
 pub use geo::{
     compute_elevation_profile, ElevationProfileResult, ElevationProfileSample, ElevationProvider,
     ProceduralReliefModel, RasterDemProvider,
@@ -79,7 +77,7 @@ pub use tiles::{
 };
 pub use tracker::{
     compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
-    TrackPrediction, TrackPredictionPoint, TrackPredictRequest,
+    TrackPredictRequest, TrackPrediction, TrackPredictionPoint,
 };
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
 pub use zones::{
@@ -373,8 +371,7 @@ pub fn parse_cot_xml_with_provider(
                     b"__video" => {
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"url" {
-                                video_url =
-                                    Some(String::from_utf8_lossy(&attr.value).into_owned());
+                                video_url = Some(String::from_utf8_lossy(&attr.value).into_owned());
                             }
                         }
                     }
