@@ -169,7 +169,7 @@ pub fn parse_kml_mission(kml: &str) -> Result<(String, Vec<RawMissionWaypoint>),
                     alt_is_relative = lower.contains("relative");
                 } else if current_tag == "coordinates" {
                     let tuples: Vec<&str> = text.split_whitespace().collect();
-                    for (idx, tuple) in tuples.iter().enumerate() {
+                    for tuple in tuples.iter() {
                         let parts: Vec<&str> = tuple.split(',').collect();
                         if parts.len() >= 2 {
                             if let (Ok(lon), Ok(lat)) =
@@ -182,7 +182,7 @@ pub fn parse_kml_mission(kml: &str) -> Result<(String, Vec<RawMissionWaypoint>),
                                 let wp_name = if !current_pm_name.is_empty() && tuples.len() == 1 {
                                     current_pm_name.clone()
                                 } else {
-                                    format!("WP-{}", waypoints.len() + 1 + idx * 0)
+                                    format!("WP-{}", waypoints.len() + 1)
                                 };
                                 waypoints.push(RawMissionWaypoint {
                                     name: wp_name,
