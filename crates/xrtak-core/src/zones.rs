@@ -181,7 +181,12 @@ mod tests {
             uid: "ROZ-1".to_string(),
             name: "ROZ".to_string(),
             affiliation: Affiliation::Hostile,
-            vertices_en: vec![(-200.0, -200.0), (200.0, -200.0), (200.0, 200.0), (-200.0, 200.0)],
+            vertices_en: vec![
+                (-200.0, -200.0),
+                (200.0, -200.0),
+                (200.0, 200.0),
+                (-200.0, 200.0),
+            ],
             floor_m: 0.0,
             ceiling_m: 350.0,
             inside_uids: Vec::new(),
