@@ -1,6 +1,5 @@
-use xrtak_core::{Affiliation, Dimension, TacticalEntity};
+use xrtak_core::{Affiliation, Dimension, GeoOrigin, TacticalEntity, TacticalWorld};
 
-#[allow(dead_code)]
 fn make_ent(id: &str, cot: &str, af: Affiliation, e: f64, u: f64, n: f64) -> TacticalEntity {
     TacticalEntity {
         uid: id.into(),
@@ -22,4 +21,17 @@ fn make_ent(id: &str, cot: &str, af: Affiliation, e: f64, u: f64, n: f64) -> Tac
         north_m: n,
         updated_unix_ms: 1000,
     }
+}
+
+#[test]
+fn test_threat_dome_flags_engaged_friendly() {
+    let world = TacticalWorld::new(GeoOrigin::default());
+    let u0 = world.terrain.sample_relief_m(0.0, 0.0);
+    let u1 = world.terrain.sample_relief_m(100.0, 100.0) + 80.0;
+    let em = make_ent("RADAR-1", "a-h-G-E-S", Affiliation::Hostile, 0.0, u0, 0.0);
+    let tgt = make_ent("UAV-1", "a-f-A", Affiliation::Friendly, 100.0, u1, 100.0);
+    let far = make_ent("UAV-2", "a-f-A", Affiliation::Friendly, 900.0, u1, 900.0);
+    let (domes, _) = world.evaluate_overlays_for_entities(&[em, tgt, far]);
+    assert_eq!(domes.len(), 1);
+    assert_eq!(domes[0].engaged_uids, vec!["UAV-1"]);
 }
