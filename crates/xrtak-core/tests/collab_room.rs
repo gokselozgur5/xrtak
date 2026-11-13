@@ -41,3 +41,18 @@ fn prune_stale_respects_ttl_boundary() {
     assert!(room.peers.contains_key("OP-EDGE"));
     assert!(room.peers.contains_key("OP-FRESH"));
 }
+
+#[test]
+fn sorted_peers_orders_by_operator_id() {
+    let mut room = CollabRoomState::new();
+    room.peers
+        .insert("OP-ZULU".into(), make_peer("OP-ZULU", "ZULU", 1000));
+    room.peers
+        .insert("OP-ALPHA".into(), make_peer("OP-ALPHA", "ALPHA", 1000));
+    room.peers
+        .insert("OP-MIKE".into(), make_peer("OP-MIKE", "MIKE", 1000));
+
+    let sorted = room.sorted_peers();
+    let ids: Vec<&str> = sorted.iter().map(|p| p.operator_id.as_str()).collect();
+    assert_eq!(ids, vec!["OP-ALPHA", "OP-MIKE", "OP-ZULU"]);
+}
