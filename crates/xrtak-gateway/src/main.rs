@@ -1008,12 +1008,14 @@ async fn handle_http_connection(
         let stale_thresh = p_req.stale_threshold_sec.unwrap_or(5.0);
         let predictions: Vec<TrackPrediction> = {
             let guard = world.lock().unwrap();
-            guard.entities.values().map(|e| {
-                let is_stale = e.speed_mps <= stale_thresh;
-                predict_entity_trajectory(
-                    &e.uid,
-                    &e.callsign,
-                    (e.east_m, e.north_m, e.up_m),
+            guard
+                .entities
+                .values()
+                .map(|e| {
+                    let is_stale = e.speed_mps <= stale_thresh;
+                    predict_entity_trajectory(
+                        &e.uid,
+                        &e.callsign,
                     e.speed_mps,
                     e.course_deg,
                     is_stale,
