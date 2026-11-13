@@ -1,9 +1,9 @@
 // crates/xrtak-core/src/casevac.rs
 //! NATO 9-Line MEDEVAC & Helicopter Landing Zone (HLZ) Suitability Engine (ICD-24, REQ-MED-01..02).
 
-use serde::{Deserialize, Serialize};
-use crate::geo::ElevationProvider;
 use crate::domain::ThreatDome;
+use crate::geo::ElevationProvider;
+use serde::{Deserialize, Serialize};
 
 /// Patient precedent / urgency level (Line 3).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -145,7 +145,11 @@ pub fn evaluate_hlz_suitability(
         max_slope_deg: (max_slope * 10.0).round() / 10.0,
         avg_slope_deg: (avg_slope * 10.0).round() / 10.0,
         is_slope_acceptable,
-        min_threat_distance_m: if min_threat_dist == f64::MAX { 99999.0 } else { (min_threat_dist * 10.0).round() / 10.0 },
+        min_threat_distance_m: if min_threat_dist == f64::MAX {
+            99999.0
+        } else {
+            (min_threat_dist * 10.0).round() / 10.0
+        },
         nearest_threat_callsign: nearest_threat,
         is_threat_clear,
         overall_suitability,
@@ -155,8 +159,8 @@ pub fn evaluate_hlz_suitability(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geo::ProceduralReliefModel;
     use crate::domain::Affiliation;
+    use crate::geo::ProceduralReliefModel;
 
     #[test]
     fn test_format_nato_nine_line_text() {
