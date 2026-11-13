@@ -22,3 +22,22 @@ fn parse_cot_polygon_zone_link_points_to_vertices() {
     assert!(zone.vertices_en[0].0 < 0.0);
     assert!(zone.vertices_en[0].1 < 0.0);
 }
+
+#[test]
+fn parse_cot_polygon_zone_fewer_than_three_points_rejected() {
+    let origin = GeoOrigin::default();
+    let one_point = r#"<event uid="POLY-02" type="u-d-f">
+        <point lat="39.9200" lon="32.8500" hae="850.0"/>
+        <detail><link point="39.9180,32.8480,850.0"/></detail>
+    </event>"#;
+    assert!(parse_cot_polygon_zone(one_point, &origin).is_none());
+
+    let two_points = r#"<event uid="POLY-03" type="u-d-f">
+        <point lat="39.9200" lon="32.8500" hae="850.0"/>
+        <detail>
+            <link point="39.9180,32.8480,850.0"/>
+            <link point="39.9180,32.8520,850.0"/>
+        </detail>
+    </event>"#;
+    assert!(parse_cot_polygon_zone(two_points, &origin).is_none());
+}
