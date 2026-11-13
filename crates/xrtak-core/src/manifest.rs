@@ -87,9 +87,8 @@ pub fn copernicus_glo30_cells_for_bounds(
     for lat_floor in min_lat..=max_lat {
         for lon_floor in min_lon..=max_lon {
             let cell_id = format_copernicus_glo30_cell_id(lat_floor, lon_floor);
-            let s3_url = format!(
-                "https://copernicus-dem-30m.s3.amazonaws.com/{cell_id}/{cell_id}.tif"
-            );
+            let s3_url =
+                format!("https://copernicus-dem-30m.s3.amazonaws.com/{cell_id}/{cell_id}.tif");
             cells.push(CopernicusDemCell {
                 cell_id,
                 lat_floor_deg: lat_floor,
