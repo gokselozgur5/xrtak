@@ -40,3 +40,23 @@ fn ingest_upserts_existing_entity_by_uid() {
     assert_eq!(stored.callsign, "VIPER-LEAD");
     assert!((stored.lat - 39.925).abs() < 1e-6);
 }
+
+#[test]
+fn recenter_origin_recomputes_enu_for_entities() {
+    let mut world = TacticalWorld::new(GeoOrigin::default());
+    let xml = make_cot("BRAVO-1", "PHANTOM", 39.93, 32.86, 950.0);
+    world.ingest_cot_xml(&xml, 1000).expect("ingest");
+    let initial_e = world.entities["BRAVO-1"].east_m;
+    let initial_n = world.entities["BRAVO-1"].north_m;
+    assert!(initial_e.abs() > 10.0 || initial_n.abs() > 10.0);
+    let new_origin = GeoOrigin {
+        lat: 39.93,
+        lon: 32.86,
+        alt_m: 950.0,
+        extent_m: 5000.0,
+    };
+    world.recenter_origin(new_origin);
+    let recomputed = &world.entities["BRAVO-1"];
+    assert!(recomputed.east_m.abs() < 1.0);
+    assert!(recomputed.north_m.abs() < 1.0);
+}
