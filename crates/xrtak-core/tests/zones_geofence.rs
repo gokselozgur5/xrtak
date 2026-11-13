@@ -1,5 +1,6 @@
-use xrtak_core::domain::{Affiliation, TacticalZone};
-use xrtak_core::zones::{is_inside_tactical_zone, point_in_polygon_en};
+use xrtak_core::domain::{Affiliation, TacticalZone, ThreatDome};
+use xrtak_core::geo::ElevationProvider;
+use xrtak_core::zones::{is_engaged_by_threat_dome, is_inside_tactical_zone, point_in_polygon_en};
 
 #[test]
 fn polygon_fewer_than_three_vertices_returns_false() {
@@ -50,4 +51,12 @@ fn tactical_zone_elevation_and_boundary_checks() {
     assert!(!is_inside_tactical_zone(&zone, (50.0, 40.0, 50.0)));
     assert!(!is_inside_tactical_zone(&zone, (50.0, 260.0, 50.0)));
     assert!(!is_inside_tactical_zone(&zone, (150.0, 100.0, 50.0)));
+}
+
+struct FlatGround;
+
+impl ElevationProvider for FlatGround {
+    fn sample_relief_m(&self, _e: f64, _n: f64) -> f64 {
+        0.0
+    }
 }
