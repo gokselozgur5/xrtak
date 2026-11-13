@@ -153,7 +153,7 @@ pub fn evaluate_hlz_suitability(
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
     use crate::geo::ProceduralReliefModel;
     use crate::domain::Affiliation;
@@ -185,7 +185,7 @@ pub mod tests {
 
     #[test]
     fn test_evaluate_hlz_slope_and_threats() {
-        let model = ProceduralReliefModel::default();
+        let model = ProceduralReliefModel;
         let domes = vec![ThreatDome {
             uid: "SA-15".to_string(),
             callsign: "TOR-M2".to_string(),
