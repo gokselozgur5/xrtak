@@ -36,7 +36,10 @@ pub fn generate_kml_tactical_scene(
     kml.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     kml.push_str("<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n");
     kml.push_str("  <Document>\n");
-    kml.push_str(&format!("    <name>XR-TAK Tactical Scene: {}</name>\n", scene_name));
+    kml.push_str(&format!(
+        "    <name>XR-TAK Tactical Scene: {}</name>\n",
+        scene_name
+    ));
     kml.push_str(&format!(
         "    <description>Exported from XR-TAK Sand Table at origin {:.5}N, {:.5}E, {:.1}m</description>\n",
         origin_lla.0, origin_lla.1, origin_lla.2
@@ -51,7 +54,10 @@ pub fn generate_kml_tactical_scene(
         ));
         kml.push_str("      <Point>\n");
         kml.push_str("        <altitudeMode>absolute</altitudeMode>\n");
-        kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", u.lon, u.lat, u.alt_m));
+        kml.push_str(&format!(
+            "        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n",
+            u.lon, u.lat, u.alt_m
+        ));
         kml.push_str("      </Point>\n");
         kml.push_str("    </Placemark>\n");
     }
@@ -70,8 +76,14 @@ pub fn generate_nato_opord_markdown(
     dome_count: usize,
 ) -> String {
     let mut doc = String::with_capacity(2048);
-    doc.push_str(&format!("# NATO OPERATION ORDER (OPORD): {}\n\n", operation_name.to_uppercase()));
-    doc.push_str(&format!("**Area of Operations (AO Center):** {:.5}N, {:.5}E (Elevation: {:.0}m ASL)\n\n", origin_lla.0, origin_lla.1, origin_lla.2));
+    doc.push_str(&format!(
+        "# NATO OPERATION ORDER (OPORD): {}\n\n",
+        operation_name.to_uppercase()
+    ));
+    doc.push_str(&format!(
+        "**Area of Operations (AO Center):** {:.5}N, {:.5}E (Elevation: {:.0}m ASL)\n\n",
+        origin_lla.0, origin_lla.1, origin_lla.2
+    ));
 
     doc.push_str("## 1. SITUATION\n");
     doc.push_str(&format!("- **Forces Tracked:** {} active tactical units in theatre.\n", units.len()));
