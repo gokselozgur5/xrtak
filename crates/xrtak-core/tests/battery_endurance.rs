@@ -41,3 +41,15 @@ fn test_headwind_reduces_rth_margin() {
     assert!(sol_wind.return_home_time_sec > sol_calm.return_home_time_sec);
     assert!(sol_wind.bingo_battery_pct > sol_calm.bingo_battery_pct);
 }
+
+#[test]
+fn test_rth_polygon_vertex_count_matches_radial_steps() {
+    let uav = sample_uav(80.0, 15.0, 500.0);
+    let wind = WindVector::default();
+    assert_eq!(compute_uav_endurance(&uav, &wind, 16).rth_polygon.len(), 16);
+    assert_eq!(compute_uav_endurance(&uav, &wind, 32).rth_polygon.len(), 32);
+    assert_eq!(compute_uav_endurance(&uav, &wind, 8).rth_polygon.len(), 16);
+    let sol = compute_uav_endurance(&uav, &wind, 20);
+    assert_eq!(sol.rth_polygon.len(), 20);
+    assert!(sol.rth_polygon.iter().all(|v| v.max_radius_m > 0.0));
+}
