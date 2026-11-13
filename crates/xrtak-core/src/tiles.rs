@@ -179,8 +179,9 @@ pub fn is_placeholder_rgb_tile(rgb_bytes: &[u8]) -> bool {
     let vb = (sumsq_b as f64 / n) - mb * mb;
 
     let low_var = vr <= 36.0 && vg <= 36.0 && vb <= 36.0;
-    let low_range =
-        max_r.saturating_sub(min_r) <= 50 && max_g.saturating_sub(min_g) <= 50 && max_b.saturating_sub(min_b) <= 50;
+    let low_range = max_r.saturating_sub(min_r) <= 50
+        && max_g.saturating_sub(min_g) <= 50
+        && max_b.saturating_sub(min_b) <= 50;
     let is_beige_light = mr >= 220.0 && mg >= 220.0 && mb >= 220.0;
 
     low_var && low_range && is_beige_light
