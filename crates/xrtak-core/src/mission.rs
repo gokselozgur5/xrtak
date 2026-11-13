@@ -172,9 +172,10 @@ pub fn parse_kml_mission(kml: &str) -> Result<(String, Vec<RawMissionWaypoint>),
                     for tuple in tuples.iter() {
                         let parts: Vec<&str> = tuple.split(',').collect();
                         if parts.len() >= 2 {
-                            if let (Ok(lon), Ok(lat)) =
-                                (parts[0].trim().parse::<f64>(), parts[1].trim().parse::<f64>())
-                            {
+                            if let (Ok(lon), Ok(lat)) = (
+                                parts[0].trim().parse::<f64>(),
+                                parts[1].trim().parse::<f64>(),
+                            ) {
                                 let alt_m = parts
                                     .get(2)
                                     .and_then(|s| s.trim().parse::<f64>().ok())
@@ -209,7 +210,9 @@ pub fn parse_kml_mission(kml: &str) -> Result<(String, Vec<RawMissionWaypoint>),
 }
 
 /// Parses a QGroundControl `.plan` JSON document (`mission.items`) into ordered waypoints (`REQ-MIS-01`).
-pub fn parse_qgc_plan_mission(plan_json: &str) -> Result<(String, Vec<RawMissionWaypoint>), String> {
+pub fn parse_qgc_plan_mission(
+    plan_json: &str,
+) -> Result<(String, Vec<RawMissionWaypoint>), String> {
     let v: serde_json::Value =
         serde_json::from_str(plan_json).map_err(|e| format!("Invalid QGC .plan JSON: {e}"))?;
     let items = v
@@ -238,7 +241,10 @@ pub fn parse_qgc_plan_mission(plan_json: &str) -> Result<(String, Vec<RawMission
             .unwrap_or(100.0);
         // QGC frame 3 = MAV_FRAME_GLOBAL_RELATIVE_ALT, AltitudeMode 1 = Relative
         let frame = item.get("frame").and_then(|f| f.as_u64()).unwrap_or(3);
-        let alt_mode = item.get("AltitudeMode").and_then(|a| a.as_u64()).unwrap_or(1);
+        let alt_mode = item
+            .get("AltitudeMode")
+            .and_then(|a| a.as_u64())
+            .unwrap_or(1);
         let alt_is_relative = frame == 3 || alt_mode == 1;
 
         waypoints.push(RawMissionWaypoint {
@@ -414,7 +420,11 @@ mod tests {
         let origin = GeoOrigin::default();
         let dem = RasterDemProvider::new("flat-10m", 2, 2, 1500.0, vec![10.0, 10.0, 10.0, 10.0])
             .expect("flat dem");
-        let wps = vec![(-250.0, -180.0, 90.0), (120.0, 240.0, 110.0), (420.0, 310.0, 95.0)];
+        let wps = vec![
+            (-250.0, -180.0, 90.0),
+            (120.0, 240.0, 110.0),
+            (420.0, 310.0, 95.0),
+        ];
 
         let qgc_json = export_qgc_plan_json(&origin, &dem, &wps);
         let (_, reparsed) = parse_qgc_plan_mission(&qgc_json).expect("round-trip QGC .plan");
