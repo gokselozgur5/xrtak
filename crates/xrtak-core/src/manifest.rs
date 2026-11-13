@@ -200,7 +200,7 @@ pub fn build_mapset_manifest(
 
     MapsetManifest {
         name: if name.trim().is_empty() {
-            format!("XRTAK-MAPSET-{}", &manifest_hash[..8].to_uppercase())
+            format!("XRTAK-MAPSET-{}", manifest_hash[..8].to_uppercase())
         } else {
             name.trim().to_string()
         },
