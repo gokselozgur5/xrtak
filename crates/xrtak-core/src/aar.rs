@@ -60,7 +60,11 @@ impl AarTimeline {
         if self.frames.len() >= self.max_frames {
             self.frames.pop_front();
         }
-        self.frames.push_back(AarFrame { sim_time_sec, unix_ms, entities });
+        self.frames.push_back(AarFrame {
+            sim_time_sec,
+            unix_ms,
+            entities,
+        });
         true
     }
 
@@ -85,16 +89,26 @@ impl AarTimeline {
             return self.frames.back().cloned();
         }
 
-        let upper_idx = self.frames.partition_point(|f| f.sim_time_sec < target_sim_sec);
+        let upper_idx = self
+            .frames
+            .partition_point(|f| f.sim_time_sec < target_sim_sec);
         let fa = &self.frames[upper_idx.saturating_sub(1)];
         let fb = &self.frames[upper_idx];
-        let lambda = ((target_sim_sec - fa.sim_time_sec) / (fb.sim_time_sec - fa.sim_time_sec).max(1e-6)).clamp(0.0, 1.0);
-        let fb_map: HashMap<&str, &TacticalEntity> = fb.entities.iter().map(|e| (e.uid.as_str(), e)).collect();
+        let lambda = ((target_sim_sec - fa.sim_time_sec)
+            / (fb.sim_time_sec - fa.sim_time_sec).max(1e-6))
+        .clamp(0.0, 1.0);
+        let fb_map: HashMap<&str, &TacticalEntity> =
+            fb.entities.iter().map(|e| (e.uid.as_str(), e)).collect();
 
         let entities = fa
             .entities
             .iter()
-            .map(|ea| fb_map.get(ea.uid.as_str()).map(|eb| interpolate_entity(ea, eb, lambda)).unwrap_or_else(|| ea.clone()))
+            .map(|ea| {
+                fb_map
+                    .get(ea.uid.as_str())
+                    .map(|eb| interpolate_entity(ea, eb, lambda))
+                    .unwrap_or_else(|| ea.clone())
+            })
             .collect();
         let unix_ms = (fa.unix_ms as f64 + lambda * (fb.unix_ms.saturating_sub(fa.unix_ms) as f64)).round() as u64;
         Some(AarFrame { sim_time_sec: target_sim_sec, unix_ms, entities })
