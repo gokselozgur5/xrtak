@@ -34,3 +34,14 @@ fn test_classify_dimensions() {
         assert_eq!(dim, expected_dim, "mismatch for {cot_type}");
     }
 }
+
+#[test]
+fn test_classify_spi_special_case() {
+    let (aff, dim) = classify_cot_type("b-m-p-s-p-i");
+    assert_eq!(aff, Affiliation::Neutral);
+    assert_eq!(dim, Dimension::Ground);
+
+    let (aff_sub, dim_sub) = classify_cot_type("b-m-p-s-p-i-sub");
+    assert_eq!(aff_sub, Affiliation::Neutral);
+    assert_eq!(dim_sub, Dimension::Ground);
+}
