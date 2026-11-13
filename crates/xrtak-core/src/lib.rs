@@ -870,9 +870,7 @@ impl TacticalWorld {
     ) -> (Vec<ThreatDome>, Vec<TacticalZone>) {
         let mut emitters: Vec<&TacticalEntity> = entities
             .iter()
-            .filter(|e| {
-                e.cot_type.starts_with("a-h-G-E-S") || e.cot_type.starts_with("a-h-G-E-W")
-            })
+            .filter(|e| e.cot_type.starts_with("a-h-G-E-S") || e.cot_type.starts_with("a-h-G-E-W"))
             .collect();
         emitters.sort_by(|a, b| a.uid.cmp(&b.uid));
 
@@ -930,7 +928,10 @@ impl TacticalWorld {
     }
 
     /// Compute First-Person AR Visor HUD angular/slant-range cues relative to an observer track (`Phase 3 HUD`).
-    pub fn compute_visor_hud_cues(&self, observer_uid: &str) -> Vec<(String, String, Affiliation, HudCue)> {
+    pub fn compute_visor_hud_cues(
+        &self,
+        observer_uid: &str,
+    ) -> Vec<(String, String, Affiliation, HudCue)> {
         let obs_enu = self
             .entities
             .get(observer_uid)
@@ -1062,12 +1063,16 @@ mod tests {
 
         world.auto_recenter_on_next_live_cot = true;
         let live_xml = r#"<event version="2.0" uid="ATAK-LIVE-99" type="a-f-G-U-C"><point lat="41.0082" lon="28.9784" hae="120.0" ce="5" le="5"/><detail><contact callsign="ISTANBUL-1"/></detail></event>"#;
-        let ent = world.ingest_cot_xml(live_xml, 2000).expect("live CoT ingested");
+        let ent = world
+            .ingest_cot_xml(live_xml, 2000)
+            .expect("live CoT ingested");
         assert!((world.origin.lat - 41.0082).abs() < 1e-5);
         assert!(ent.east_m.abs() < 1.0 && ent.north_m.abs() < 1.0);
 
         let laser_xml = build_laser_pointer_cot_xml("QUEST-GOKSEL", 41.0085, 28.9790, 85.0);
-        let laser_ent = world.ingest_cot_xml(&laser_xml, 2100).expect("laser CoT valid");
+        let laser_ent = world
+            .ingest_cot_xml(&laser_xml, 2100)
+            .expect("laser CoT valid");
         assert_eq!(laser_ent.cot_type, "b-m-p-c");
     }
 
