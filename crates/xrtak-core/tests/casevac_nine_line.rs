@@ -28,3 +28,22 @@ fn sample_report(precedence: PatientPrecedence) -> MedevacReport {
         up_m: 0.0,
     }
 }
+
+#[test]
+fn test_nine_line_order_and_content() {
+    let rep = sample_report(PatientPrecedence::Urgent);
+    let text = format_nato_nine_line_text(&rep);
+    let lines: Vec<&str> = text.lines().collect();
+
+    assert_eq!(lines[0], "--- NATO 9-LINE MEDEVAC REQUEST ---");
+    for i in 1..=9 {
+        let prefix = format!("LINE {i}");
+        assert!(
+            lines[i].starts_with(&prefix),
+            "Expected line {} to start with {}, got {}",
+            i,
+            prefix,
+            lines[i]
+        );
+    }
+}
