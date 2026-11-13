@@ -24,3 +24,22 @@ fn parse_cot_xml_happy_path_enu_and_fields() {
     assert_eq!(ent.remarks, "patrol element");
     assert_eq!(ent.updated_unix_ms, 5000);
 }
+
+#[test]
+fn parse_cot_xml_missing_point_rejected() {
+    let origin = GeoOrigin::default();
+    let no_point = r#"<event uid="TGT-01" type="a-h-G">
+        <detail><contact callsign="HOSTILE"/></detail>
+    </event>"#;
+    assert!(parse_cot_xml(no_point, &origin, 1000).is_err());
+
+    let no_lat = r#"<event uid="TGT-02" type="a-h-G">
+        <point lon="32.8500" hae="850.0"/>
+    </event>"#;
+    assert!(parse_cot_xml(no_lat, &origin, 1000).is_err());
+
+    let no_uid = r#"<event type="a-h-G">
+        <point lat="39.9200" lon="32.8500"/>
+    </event>"#;
+    assert!(parse_cot_xml(no_uid, &origin, 1000).is_err());
+}
