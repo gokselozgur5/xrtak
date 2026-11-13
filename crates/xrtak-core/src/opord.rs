@@ -148,16 +148,14 @@ pub mod tests {
 
     #[test]
     fn test_kml_tactical_scene_generation() {
-        let units = [
-            OpordUnitSummary {
-                callsign: "FALCON-1".to_string(),
-                cot_type: "a-f-A-M-F-Q".to_string(),
-                affiliation: "Friendly".to_string(),
-                lat: 39.9218,
-                lon: 32.8522,
-                alt_m: 1250.0,
-            },
-        ];
+        let units = [OpordUnitSummary {
+            callsign: "FALCON-1".to_string(),
+            cot_type: "a-f-A-M-F-Q".to_string(),
+            affiliation: "Friendly".to_string(),
+            lat: 39.9218,
+            lon: 32.8522,
+            alt_m: 1250.0,
+        }];
         let kml = generate_kml_tactical_scene("OPERATION-PARALLAX", &units, (39.92, 32.85, 950.0));
         assert!(kml.contains("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"));
         assert!(kml.contains("<name>FALCON-1</name>"));
