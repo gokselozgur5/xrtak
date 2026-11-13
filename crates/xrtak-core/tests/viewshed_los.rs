@@ -33,3 +33,13 @@ fn test_link_los_clear_above_ridge() {
     assert!(res.obstruction_enu.is_none());
     assert!((res.slant_range_m - 200.0).abs() < 1e-6);
 }
+
+#[test]
+fn test_link_los_zero_length() {
+    let point = (0.0, 150.0, 0.0);
+    let res = compute_link_los(&RidgeElevation, point, point, 10);
+    assert_eq!(res.from_enu, point);
+    assert_eq!(res.to_enu, point);
+    assert_eq!(res.slant_range_m, 0.0);
+    assert!(res.clear);
+}
