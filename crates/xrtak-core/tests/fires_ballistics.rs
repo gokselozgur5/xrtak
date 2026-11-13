@@ -55,3 +55,22 @@ fn test_flat_terrain_apogee_within_one_percent() {
     let diff_ratio = (sol.max_ordinate_m - expected_apogee).abs() / expected_apogee;
     assert!(diff_ratio < 0.01);
 }
+
+#[test]
+fn test_ridge_triggers_crest_clearance_failure() {
+    let origin = (0.0, 0.0, 0.0);
+    let target = (2000.0, 0.0, 0.0);
+    let terrain = HighRidge { elevation: 3000.0 };
+
+    let sol = compute_ballistic_trajectory(
+        origin,
+        target,
+        MunitionType::Mortar120mm,
+        Some(45.0),
+        &terrain,
+        64,
+    );
+
+    assert!(!sol.is_crest_cleared);
+    assert!(sol.min_crest_clearance_m < 0.0);
+}
