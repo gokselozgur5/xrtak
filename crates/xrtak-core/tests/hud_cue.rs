@@ -32,3 +32,18 @@ fn test_hud_cue_elevation_signs() {
     assert!(below.elevation_deg < 0.0);
     assert!((below.elevation_deg - (-45.0)).abs() < 1e-9);
 }
+
+#[test]
+fn test_hud_cue_3d_slant_range() {
+    let obs = (10.0, 20.0, 30.0);
+    let target = (40.0, 60.0, 150.0);
+    let cue = compute_hud_cue(obs, target);
+
+    let dx = target.0 - obs.0;
+    let dy = target.1 - obs.1;
+    let dz = target.2 - obs.2;
+    let expected_range = (dx * dx + dy * dy + dz * dz).sqrt();
+
+    assert!((cue.slant_range_m - 130.0).abs() < 1e-9);
+    assert!((cue.slant_range_m - expected_range).abs() < 1e-9);
+}
