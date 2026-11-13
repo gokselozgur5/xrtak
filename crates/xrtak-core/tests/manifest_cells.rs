@@ -20,3 +20,14 @@ fn cells_for_bounds_crossing_equator() {
     assert_eq!(cells[1].cell_id, "Copernicus_DSM_COG_10_N00_00_E010_00_DEM");
     assert!(cells.iter().all(|c| c.estimated_bytes > 0));
 }
+
+#[test]
+fn cells_for_bounds_crossing_prime_meridian() {
+    let cells = copernicus_glo30_cells_for_bounds(51.0, -0.5, 51.5, 0.5);
+    assert_eq!(cells.len(), 2);
+    assert_eq!(cells[0].cell_id, "Copernicus_DSM_COG_10_N51_00_W001_00_DEM");
+    assert_eq!(cells[1].cell_id, "Copernicus_DSM_COG_10_N51_00_E000_00_DEM");
+    let url = &cells[0].s3_url;
+    assert!(url.starts_with("https://copernicus-dem-30m.s3.amazonaws.com/"));
+    assert!(url.ends_with(".tif"));
+}
