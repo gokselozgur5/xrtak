@@ -61,3 +61,21 @@ fn parse_cot_xml_sensor_cone_attributes() {
     assert_eq!(sensor.vfov_deg, 30.0);
     assert_eq!(sensor.range_m, 1200.0);
 }
+
+#[test]
+fn parse_cot_xml_video_url_and_parent_link() {
+    let origin = GeoOrigin::default();
+    let xml = r#"<event uid="SPI-99" type="b-m-p-s-p-i">
+        <point lat="39.9200" lon="32.8500" hae="900.0"/>
+        <detail>
+            <__video url="rtsp://192.168.1.100:8554/live"/>
+            <link relation="p-p" uid="PARENT-UAV-1"/>
+        </detail>
+    </event>"#;
+    let ent = parse_cot_xml(xml, &origin, 3000).expect("valid spi cot");
+    assert_eq!(
+        ent.video_url.as_deref(),
+        Some("rtsp://192.168.1.100:8554/live")
+    );
+    assert_eq!(ent.parent_uid.as_deref(), Some("PARENT-UAV-1"));
+}
