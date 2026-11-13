@@ -121,7 +121,7 @@ pub fn evaluate_link_jamming(
 
     let delta_db = (p_jam_dbm + jammer.antenna_gain_dbi + bw_correction_db) - (p_rx_sig + jamming_margin_threshold_db - link.rx_antenna_gain_dbi);
     let supp_km = 10.0_f64.powf((delta_db - 32.44 - 20.0 * freq.log10()) / 20.0);
-    let suppression_radius_m = (supp_km * 1000.0).max(10.0).min(100_000.0);
+    let suppression_radius_m = (supp_km * 1000.0).clamp(10.0, 100_000.0);
 
     JammingAssessment {
         jammer_callsign: jammer.callsign.clone(),
