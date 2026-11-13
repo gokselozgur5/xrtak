@@ -562,7 +562,8 @@ impl TacticalWorld {
     }
 
     pub fn ingest_cot_xml(&mut self, xml: &str, now_ms: u64) -> Result<TacticalEntity, String> {
-        let mut entity = parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
+        let mut entity =
+            parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
         if self.auto_recenter_on_next_live_cot && !entity.uid.starts_with("XR-") {
             self.auto_recenter_on_next_live_cot = false;
             self.recenter_origin(GeoOrigin {
@@ -581,10 +582,8 @@ impl TacticalWorld {
         // If this incoming CoT is an SPI (`b-m-p-s-p-i`) with a parent UAV link, lock that UAV's gimbal!
         if entity.cot_type.starts_with("b-m-p-s-p-i") {
             if let Some(ref parent) = entity.parent_uid {
-                self.spi_locks.insert(
-                    parent.clone(),
-                    (entity.east_m, entity.up_m, entity.north_m),
-                );
+                self.spi_locks
+                    .insert(parent.clone(), (entity.east_m, entity.up_m, entity.north_m));
             }
         }
         self.entities.insert(entity.uid.clone(), entity.clone());
@@ -609,14 +608,7 @@ impl TacticalWorld {
             .map(|e| (e.callsign.clone(), e.cot_type.clone()))
             .unwrap_or_else(|| ("FALCON-1".to_string(), "a-f-A-M-F-Q".to_string()));
 
-        let xml = build_spi_cot_xml(
-            sensor_uid,
-            &parent_callsign,
-            &parent_type,
-            lat,
-            lon,
-            hae_m,
-        );
+        let xml = build_spi_cot_xml(sensor_uid, &parent_callsign, &parent_type, lat, lon, hae_m);
         self.ingest_cot_xml(&xml, now_ms)
     }
 
@@ -653,7 +645,8 @@ impl TacticalWorld {
         self.sim_time_sec += dt_sec;
         if !self.sim_enabled {
             self.refresh_threat_domes_and_zones();
-            self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
+            self.aar
+                .maybe_record(self.sim_time_sec, now_ms, &self.entities);
             return;
         }
         let t = self.sim_time_sec;
