@@ -50,3 +50,19 @@ fn test_tactical_zone_containment_flagged() {
         .unwrap();
     assert_eq!(roz.inside_uids, vec!["TRK-1"]);
 }
+
+#[test]
+fn test_visor_hud_cues_exclude_observer_and_sort_by_uid() {
+    let mut world = TacticalWorld::new(GeoOrigin::default());
+    let e_z = make_ent("ZULU", "a-f-G", Affiliation::Friendly, 10.0, 0.0, 10.0);
+    let e_b = make_ent("BRAVO", "a-f-G", Affiliation::Friendly, 20.0, 0.0, 20.0);
+    let e_a = make_ent("ALPHA", "a-f-G", Affiliation::Friendly, 30.0, 0.0, 30.0);
+    let obs = make_ent("OBS-1", "a-f-G", Affiliation::Friendly, 0.0, 0.0, 0.0);
+    let spi = make_ent("SPI-1", "b-m-p-s-p-i", Affiliation::Friendly, 5.0, 0.0, 5.0);
+    for e in [e_z, e_b, e_a, obs, spi] {
+        world.entities.insert(e.uid.clone(), e);
+    }
+    let cues = world.compute_visor_hud_cues("OBS-1");
+    let uids: Vec<String> = cues.into_iter().map(|c| c.0).collect();
+    assert_eq!(uids, vec!["ALPHA", "BRAVO", "ZULU"]);
+}
