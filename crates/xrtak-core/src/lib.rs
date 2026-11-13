@@ -666,12 +666,7 @@ impl TacticalWorld {
             // otherwise track the hostile armor in the valley.
             let (target_e, target_up, target_n, lock_label) =
                 if let Some(&(se, sup, sn)) = self.spi_locks.get("UAV-FALCON-01") {
-                    (
-                        se,
-                        sup,
-                        sn,
-                        format!("SPI LOCK [E:{:.0}m N:{:.0}m]", se, sn),
-                    )
+                    (se, sup, sn, format!("SPI LOCK [E:{:.0}m N:{:.0}m]", se, sn))
                 } else {
                     let te = -180.0 + (t * 0.08).sin() * 260.0;
                     let tn = -120.0 + (t * 0.08).cos() * 190.0;
@@ -683,7 +678,9 @@ impl TacticalWorld {
             let dn = target_n - north_m;
             let dup = target_up - up_m;
             let horiz_dist = (de * de + dn * dn).sqrt().max(1.0);
-            let slant_range = (horiz_dist * horiz_dist + dup * dup).sqrt().clamp(150.0, 1400.0);
+            let slant_range = (horiz_dist * horiz_dist + dup * dup)
+                .sqrt()
+                .clamp(150.0, 1400.0);
             let gimbal_az = de.atan2(dn).to_degrees().rem_euclid(360.0);
             let gimbal_el = dup.atan2(horiz_dist).to_degrees();
 
@@ -718,7 +715,9 @@ impl TacticalWorld {
             let north_m = 90.0 + 320.0 * (2.0 * a).sin() * 0.5;
             let ground_h = self.terrain.sample_relief_m(east_m, north_m);
             let up_m = ground_h + 240.0;
-            let course_deg = (a.cos().atan2((2.0 * a).cos())).to_degrees().rem_euclid(360.0);
+            let course_deg = (a.cos().atan2((2.0 * a).cos()))
+                .to_degrees()
+                .rem_euclid(360.0);
             let gimbal_az = (course_deg + (t * 0.6).sin() * 35.0).rem_euclid(360.0);
 
             self.upsert_sim_entity(
@@ -855,7 +854,8 @@ impl TacticalWorld {
         }
 
         self.refresh_threat_domes_and_zones();
-        self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
+        self.aar
+            .maybe_record(self.sim_time_sec, now_ms, &self.entities);
     }
 
     /// Compute a terrain elevation cross-section profile across a polyline of `(east_m, north_m)` waypoints.
