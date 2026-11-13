@@ -1,4 +1,4 @@
-use xrtak_core::{GeoOrigin, TacticalWorld};
+use xrtak_core::{GeoOrigin, SapientDetectionReport, TacticalWorld};
 
 #[test]
 fn slew_sensor_creates_linked_spi_and_lock() {
@@ -32,4 +32,26 @@ fn clear_spi_lock_removes_entity_and_lock() {
     world.clear_spi_lock("UAV-FALCON-01");
     assert!(!world.entities.contains_key("UAV-FALCON-01.SPI1"));
     assert!(!world.spi_locks.contains_key("UAV-FALCON-01"));
+}
+
+#[test]
+fn sapient_high_confidence_auto_slews_falcon() {
+    let mut world = TacticalWorld::new(GeoOrigin::default());
+    world.step_simulation(0.1, 1000);
+    let report = SapientDetectionReport {
+        node_id: "RADAR-1".to_string(),
+        object_id: "THREAT-1".to_string(),
+        classification: "HOSTILE_ARMOR".to_string(),
+        confidence: 0.95,
+        east_m: -150.0,
+        north_m: 220.0,
+        alt_offset_m: Some(0.0),
+        speed_mps: Some(8.0),
+        course_deg: Some(45.0),
+        auto_slew_sensor_uid: None,
+    };
+    let (_, ent) = world.ingest_sapient_detection(&report, 2000).unwrap();
+    assert_eq!(ent.uid, "SAPIENT-THREAT-1");
+    assert!(world.entities.contains_key("UAV-FALCON-01.SPI1"));
+    assert!(world.spi_locks.contains_key("UAV-FALCON-01"));
 }
