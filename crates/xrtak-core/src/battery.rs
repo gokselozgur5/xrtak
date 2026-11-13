@@ -14,7 +14,10 @@ pub struct WindVector {
 
 impl Default for WindVector {
     fn default() -> Self {
-        Self { east_mps: 0.0, north_mps: 0.0 }
+        Self {
+            east_mps: 0.0,
+            north_mps: 0.0,
+        }
     }
 }
 
@@ -75,7 +78,8 @@ pub fn compute_uav_endurance(
     let dist_to_home = (dx_home.powi(2) + dy_home.powi(2)).sqrt();
 
     let bearing_to_home_rad = dy_home.atan2(dx_home);
-    let headwind_comp = wind.east_mps * bearing_to_home_rad.cos() + wind.north_mps * bearing_to_home_rad.sin();
+    let headwind_comp =
+        wind.east_mps * bearing_to_home_rad.cos() + wind.north_mps * bearing_to_home_rad.sin();
     let ground_speed_home = (state.cruise_airspeed_mps + headwind_comp).max(1.0);
     let rth_time_sec = dist_to_home / ground_speed_home;
 
