@@ -164,16 +164,14 @@ pub mod tests {
 
     #[test]
     fn test_nato_opord_markdown_structure() {
-        let units = [
-            OpordUnitSummary {
-                callsign: "VIPER-2".to_string(),
-                cot_type: "a-h-A".to_string(),
-                affiliation: "Hostile".to_string(),
-                lat: 39.93,
-                lon: 32.86,
-                alt_m: 1400.0,
-            },
-        ];
+        let units = [OpordUnitSummary {
+            callsign: "VIPER-2".to_string(),
+            cot_type: "a-h-A".to_string(),
+            affiliation: "Hostile".to_string(),
+            lat: 39.93,
+            lon: 32.86,
+            alt_m: 1400.0,
+        }];
         let bundle = build_opord_bundle("OP-ANATOLIA-SHIELD", (39.92, 32.85, 950.0), &units, 2, 1);
         assert_eq!(bundle.unit_count, 1);
         assert_eq!(bundle.zone_count, 2);
@@ -181,7 +179,9 @@ pub mod tests {
         assert!(bundle.opord_markdown.contains("## 1. SITUATION"));
         assert!(bundle.opord_markdown.contains("## 2. MISSION"));
         assert!(bundle.opord_markdown.contains("## 3. EXECUTION"));
-        assert!(bundle.opord_markdown.contains("## 4. ADMINISTRATION & LOGISTICS"));
+        assert!(bundle
+            .opord_markdown
+            .contains("## 4. ADMINISTRATION & LOGISTICS"));
         assert!(bundle.opord_markdown.contains("## 5. COMMAND & SIGNAL"));
     }
 }
