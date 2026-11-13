@@ -1,8 +1,8 @@
 // crates/xrtak-core/src/fires.rs
 //! 3D Ballistic Trajectory, Maximum Ordinate & Crest Clearance Engine (ICD-25, REQ-FIR-01..02).
 
-use serde::{Deserialize, Serialize};
 use crate::geo::ElevationProvider;
+use serde::{Deserialize, Serialize};
 
 /// Fire support munition / trajectory profile.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
