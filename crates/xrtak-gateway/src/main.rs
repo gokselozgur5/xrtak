@@ -1477,7 +1477,9 @@ async fn handle_http_connection(
                 let peer = OperatorPeer {
                     operator_id: c_req.operator_id,
                     callsign: c_req.callsign,
-                    device_mode: c_req.device_mode.unwrap_or_else(|| "DESKTOP-C2".to_string()),
+                    device_mode: c_req
+                        .device_mode
+                        .unwrap_or_else(|| "DESKTOP-C2".to_string()),
                     head_enu: c_req.head_enu.unwrap_or((0.0, 480.0, -420.0)),
                     laser_target_enu: c_req.laser_target_enu,
                     ptt_active: c_req.ptt_active.unwrap_or(false),
@@ -1558,7 +1560,12 @@ async fn handle_http_connection(
                 if let (Some(lat), Some(lon)) = (cfg.origin_lat, cfg.origin_lon) {
                     let alt_m = cfg.origin_alt_m.unwrap_or(guard.origin.alt_m);
                     let ext = guard.origin.extent_m;
-                    guard.recenter_origin(GeoOrigin { lat, lon, alt_m, extent_m: ext });
+                    guard.recenter_origin(GeoOrigin {
+                        lat,
+                        lon,
+                        alt_m,
+                        extent_m: ext,
+                    });
                 }
                 save_persistent_pins(&guard);
                 serde_json::json!({
