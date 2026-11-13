@@ -143,7 +143,7 @@ pub fn build_opord_bundle(
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     #[test]
