@@ -29,3 +29,18 @@ fn fresnel_radius_matches_closed_form() {
     );
     assert_eq!(compute_fresnel_radius_m(0.0, 0.0, freq), 0.0);
 }
+
+#[test]
+fn knife_edge_diffraction_reference_values() {
+    assert_eq!(compute_knife_edge_diffraction_db(-0.78), 0.0);
+    assert_eq!(compute_knife_edge_diffraction_db(-1.5), 0.0);
+
+    let loss_v0 = compute_knife_edge_diffraction_db(0.0);
+    assert!(
+        (loss_v0 - 6.03).abs() < 0.1,
+        "Diffraction at v=0 was {loss_v0}, expected ~6.03 dB"
+    );
+
+    let loss_v1 = compute_knife_edge_diffraction_db(1.0);
+    assert!(loss_v1 > loss_v0);
+}
