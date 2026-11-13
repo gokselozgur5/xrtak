@@ -1040,13 +1040,27 @@ async fn handle_http_connection(
                 .entities
                 .values()
                 .filter(|e| e.dimension == xrtak_core::Dimension::Air && e.speed_mps > 1.0)
-                .map(|e| (e.callsign.as_str(), (e.east_m, e.north_m, e.up_m), e.speed_mps, e.course_deg))
+                .map(|e| {
+                    (
+                        e.callsign.as_str(),
+                        (e.east_m, e.north_m, e.up_m),
+                        e.speed_mps,
+                        e.course_deg,
+                    )
+                })
                 .collect();
             if list.len() < 2 {
                 list = guard
                     .entities
                     .values()
-                    .map(|e| (e.callsign.as_str(), (e.east_m, e.north_m, e.up_m), e.speed_mps.max(15.0), e.course_deg))
+                    .map(|e| {
+                        (
+                            e.callsign.as_str(),
+                            (e.east_m, e.north_m, e.up_m),
+                            e.speed_mps.max(15.0),
+                            e.course_deg,
+                        )
+                    })
                     .collect();
             }
             evaluate_theater_deconfliction(&list)
