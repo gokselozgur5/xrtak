@@ -23,7 +23,10 @@ pub fn compute_viewshed_with_provider(
 
         for s in 1..=points_per_beam {
             let dist = (s as f64 / points_per_beam as f64) * radius_m;
-            let (sample_e, sample_n) = (observer_east_m + dir_e * dist, observer_north_m + dir_n * dist);
+            let (sample_e, sample_n) = (
+                observer_east_m + dir_e * dist,
+                observer_north_m + dir_n * dist,
+            );
             let terrain_up = provider.sample_relief_m(sample_e, sample_n);
             let slope = (terrain_up - observer_up_m) / dist;
             let visible = slope >= max_slope - 1e-6;
@@ -33,7 +36,12 @@ pub fn compute_viewshed_with_provider(
             if visible {
                 visible_count += 1;
             }
-            samples.push(ViewshedSample { east_m: sample_e, up_m: terrain_up, north_m: sample_n, visible });
+            samples.push(ViewshedSample {
+                east_m: sample_e,
+                up_m: terrain_up,
+                north_m: sample_n,
+                visible,
+            });
         }
     }
 
@@ -56,14 +64,22 @@ pub fn compute_link_los(
     num_samples: usize,
 ) -> LinkLosResult {
     let steps = num_samples.max(4);
-    let (de, du, dn) = (to_enu.0 - from_enu.0, to_enu.1 - from_enu.1, to_enu.2 - from_enu.2);
+    let (de, du, dn) = (
+        to_enu.0 - from_enu.0,
+        to_enu.1 - from_enu.1,
+        to_enu.2 - from_enu.2,
+    );
     let slant_range_m = (de * de + du * du + dn * dn).sqrt();
     let mut min_clearance_m = f64::INFINITY;
     let mut obstruction_enu: Option<(f64, f64, f64)> = None;
 
     for k in 1..steps {
         let t = k as f64 / steps as f64;
-        let (ray_e, ray_u, ray_n) = (from_enu.0 + t * de, from_enu.1 + t * du, from_enu.2 + t * dn);
+        let (ray_e, ray_u, ray_n) = (
+            from_enu.0 + t * de,
+            from_enu.1 + t * du,
+            from_enu.2 + t * dn,
+        );
         let terrain_u = provider.sample_relief_m(ray_e, ray_n);
         let clearance = ray_u - terrain_u;
         if clearance < min_clearance_m {
