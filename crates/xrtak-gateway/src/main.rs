@@ -1115,12 +1115,8 @@ async fn handle_http_connection(
                 _ => xrtak_core::EwTargetBand::TacticalC2,
             };
             let threshold = ew_req.jamming_margin_threshold_db.unwrap_or(6.0);
-            let assessment = xrtak_core::evaluate_link_jamming(
-                &ew_req.jammer,
-                &ew_req.link,
-                band,
-                threshold,
-            );
+            let assessment =
+                xrtak_core::evaluate_link_jamming(&ew_req.jammer, &ew_req.link, band, threshold);
             let burn_through = ew_req.radar_burn_through.map(|r| {
                 let dx_rj = ew_req.jammer.east_m;
                 let dy_rj = ew_req.jammer.north_m;
@@ -1168,13 +1164,8 @@ async fn handle_http_connection(
             let (hlz_suitability, lat, lon) = {
                 let guard = world.lock().unwrap();
                 let elev: &dyn xrtak_core::ElevationProvider = guard.terrain.as_ref();
-                let suit = xrtak_core::evaluate_hlz_suitability(
-                    e,
-                    n,
-                    radius,
-                    elev,
-                    &guard.threat_domes,
-                );
+                let suit =
+                    xrtak_core::evaluate_hlz_suitability(e, n, radius, elev, &guard.threat_domes);
                 let (lat, lon, _) = guard.origin.enu_to_lla(e, n, u);
                 (suit, lat, lon)
             };
@@ -1182,7 +1173,9 @@ async fn handle_http_connection(
                 line1_location: m_req.location,
                 line2_freq_callsign: m_req.freq_callsign,
                 line3_precedence: prec,
-                line4_special_equipment: m_req.special_equipment.unwrap_or_else(|| "None / Standard".to_string()),
+                line4_special_equipment: m_req
+                    .special_equipment
+                    .unwrap_or_else(|| "None / Standard".to_string()),
                 line5_litter_count: m_req.litter_count.unwrap_or(1),
                 line5_ambulatory_count: m_req.ambulatory_count.unwrap_or(0),
                 line6_security: m_req.security.unwrap_or_else(|| "N - No enemy troops in area".to_string()),
