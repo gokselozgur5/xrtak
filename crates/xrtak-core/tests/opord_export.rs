@@ -54,3 +54,15 @@ fn test_nato_opord_five_numbered_paragraphs() {
     assert!(doc.contains("1 air-defense/SAM threat domes active"));
     assert!(doc.contains("2 tactical geofence/ROZ zones established"));
 }
+
+#[test]
+fn test_opord_bundle_contains_kml_and_opord() {
+    let units = vec![sample_unit("HQ-1", 41.0, 29.0, 120.0)];
+    let b = build_opord_bundle("Shield", (41.0, 29.0, 120.0), &units, 4, 3);
+    assert_eq!(b.unit_count, 1);
+    assert_eq!(b.zone_count, 4);
+    assert_eq!(b.dome_count, 3);
+    assert!(b.kml_scene.contains("<kml"));
+    assert!(b.opord_markdown.contains("NATO OPERATION ORDER"));
+    assert!(!b.generated_utc.is_empty());
+}
