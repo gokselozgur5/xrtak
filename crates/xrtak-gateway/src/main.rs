@@ -30,6 +30,9 @@ fn json_ok_header(len: usize) -> String {
     )
 }
 
+/// Entity id, (east, north, up) position, speed in m/s and course in degrees.
+type DeconflictEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
+
 #[derive(Debug, Clone, Serialize)]
 struct WorldSnapshot {
     origin: GeoOrigin,
@@ -1017,7 +1020,7 @@ async fn handle_http_connection(
     if method == "POST" && path == "/api/airspace/deconflict" {
         let deconflict_res = {
             let guard = world.lock().unwrap();
-            let mut list: Vec<(&str, (f64, f64, f64), f64, f64)> = guard
+            let mut list: Vec<DeconflictEntity<'_>> = guard
                 .entities
                 .values()
                 .filter(|e| e.dimension == xrtak_core::Dimension::Air && e.speed_mps > 1.0)
