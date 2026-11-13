@@ -99,12 +99,16 @@ pub fn evaluate_link_jamming(
     let dx_sig = link.rx_east_m - link.tx_east_m;
     let dy_sig = link.rx_north_m - link.tx_north_m;
     let dz_sig = link.rx_up_m - link.tx_up_m;
-    let dist_sig = (dx_sig.powi(2) + dy_sig.powi(2) + dz_sig.powi(2)).sqrt().max(1.0);
+    let dist_sig = (dx_sig.powi(2) + dy_sig.powi(2) + dz_sig.powi(2))
+        .sqrt()
+        .max(1.0);
 
     let dx_jam = link.rx_east_m - jammer.east_m;
     let dy_jam = link.rx_north_m - jammer.north_m;
     let dz_jam = link.rx_up_m - jammer.up_m;
-    let dist_jam = (dx_jam.powi(2) + dy_jam.powi(2) + dz_jam.powi(2)).sqrt().max(1.0);
+    let dist_jam = (dx_jam.powi(2) + dy_jam.powi(2) + dz_jam.powi(2))
+        .sqrt()
+        .max(1.0);
 
     let fspl_sig = compute_fspl_db(dist_sig, freq);
     let fspl_jam = compute_fspl_db(dist_jam, freq);
@@ -113,13 +117,19 @@ pub fn evaluate_link_jamming(
     let p_rx_sig = p_tx_dbm + link.tx_antenna_gain_dbi + link.rx_antenna_gain_dbi - fspl_sig;
 
     let p_jam_dbm = watts_to_dbm(jammer.transmitter_power_w);
-    let bw_correction_db = 10.0 * (link.signal_bandwidth_mhz / jammer.bandwidth_mhz.max(0.1)).min(1.0).log10();
-    let p_rx_jam = p_jam_dbm + jammer.antenna_gain_dbi + link.rx_antenna_gain_dbi - fspl_jam + bw_correction_db;
+    let bw_correction_db = 10.0
+        * (link.signal_bandwidth_mhz / jammer.bandwidth_mhz.max(0.1))
+            .min(1.0)
+            .log10();
+    let p_rx_jam = p_jam_dbm + jammer.antenna_gain_dbi + link.rx_antenna_gain_dbi - fspl_jam
+        + bw_correction_db;
 
     let js_ratio = p_rx_jam - p_rx_sig;
-    let is_denied = js_ratio >= jamming_margin_threshold_db || p_rx_sig < link.receiver_sensitivity_dbm;
+    let is_denied =
+        js_ratio >= jamming_margin_threshold_db || p_rx_sig < link.receiver_sensitivity_dbm;
 
-    let delta_db = (p_jam_dbm + jammer.antenna_gain_dbi + bw_correction_db) - (p_rx_sig + jamming_margin_threshold_db - link.rx_antenna_gain_dbi);
+    let delta_db = (p_jam_dbm + jammer.antenna_gain_dbi + bw_correction_db)
+        - (p_rx_sig + jamming_margin_threshold_db - link.rx_antenna_gain_dbi);
     let supp_km = 10.0_f64.powf((delta_db - 32.44 - 20.0 * freq.log10()) / 20.0);
     let suppression_radius_m = (supp_km * 1000.0).clamp(10.0, 100_000.0);
 
