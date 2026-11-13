@@ -16,3 +16,21 @@ impl ElevationProvider for HighRidge {
         self.elevation
     }
 }
+
+#[test]
+fn test_ballistic_time_of_flight_is_positive() {
+    let origin = (0.0, 0.0, 10.0);
+    let target = (1500.0, 500.0, 10.0);
+    let terrain = FlatTerrain;
+
+    for munition in [
+        MunitionType::Artillery155mm,
+        MunitionType::Mortar120mm,
+        MunitionType::LoiteringMunition,
+        MunitionType::TacticalRocket,
+    ] {
+        let sol = compute_ballistic_trajectory(origin, target, munition, None, &terrain, 32);
+        assert!(sol.time_of_flight_sec > 0.0);
+        assert!(sol.ground_range_m > 0.0);
+    }
+}
