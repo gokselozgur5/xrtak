@@ -245,7 +245,7 @@ impl RasterDemProvider {
         }
         let mut raw = Vec::with_capacity(width * height);
         let mut min_valid = f64::INFINITY;
-        for chunk in bytes.chunks_exact(2) {
+        for chunk in bytes.windows(2).step_by(2) {
             let val = i16::from_be_bytes([chunk[0], chunk[1]]);
             // SRTM void value is -32768
             if val > -10000 {
