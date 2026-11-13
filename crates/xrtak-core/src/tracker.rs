@@ -45,11 +45,7 @@ pub fn compute_kinematic_extrapolation(
     let dx = speed_mps * rad.sin() * dt_sec;
     let dy = speed_mps * rad.cos() * dt_sec;
     let dz = vert_speed_mps * dt_sec;
-    (
-        current_enu.0 + dx,
-        current_enu.1 + dy,
-        current_enu.2 + dz,
-    )
+    (current_enu.0 + dx, current_enu.1 + dy, current_enu.2 + dz)
 }
 
 /// Computes expanding Circular Error Probable (CEP) confidence radius in meters.
@@ -77,13 +73,8 @@ pub fn predict_entity_trajectory(
 ) -> TrackPrediction {
     let mut points = Vec::new();
     for &dt in horizons {
-        let (e, n, u) = compute_kinematic_extrapolation(
-            current_enu,
-            speed_mps,
-            course_deg,
-            0.0,
-            dt,
-        );
+        let (e, n, u) =
+            compute_kinematic_extrapolation(current_enu, speed_mps, course_deg, 0.0, dt);
         let cep = compute_cep_radius_m(initial_ce_m, speed_mps, dt);
         points.push(TrackPredictionPoint {
             dt_sec: dt,
@@ -135,7 +126,16 @@ mod tests {
         assert!(cep_30 > cep_0, "CEP at 30s must exceed initial CEP");
         assert!(cep_60 > cep_30, "CEP at 60s must exceed CEP at 30s");
 
-        let pred = predict_entity_trajectory("UAV-01", "FALCON", origin, 20.0, 45.0, true, 5.0, &[15.0, 30.0, 60.0]);
+        let pred = predict_entity_trajectory(
+            "UAV-01",
+            "FALCON",
+            origin,
+            20.0,
+            45.0,
+            true,
+            5.0,
+            &[15.0, 30.0, 60.0],
+        );
         assert_eq!(pred.points.len(), 3);
         assert!(pred.is_stale);
     }
