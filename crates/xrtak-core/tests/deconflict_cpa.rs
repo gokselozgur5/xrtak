@@ -37,3 +37,10 @@ fn test_critical_and_advisory_risk_levels() {
     let adv = compute_pairwise_cpa("A", p0, 5.0, 0.0, "B", (400.0, 800.0, 50.0), 5.0, 180.0);
     assert_eq!(adv.risk_level, CpaRiskLevel::Advisory);
 }
+
+#[test]
+fn test_clear_risk_level() {
+    let p0 = (0.0, 0.0, 0.0);
+    let clear = compute_pairwise_cpa("A", p0, 10.0, 0.0, "B", (5000.0, 0.0, 0.0), 10.0, 0.0);
+    assert_eq!(clear.risk_level, CpaRiskLevel::Clear);
+}
