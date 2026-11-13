@@ -153,6 +153,8 @@ fn polygon_area_m2(ring_en: &[(f64, f64)]) -> f64 {
 }
 
 /// Evaluates RDP simplification, optical swath width, buffered corridor ring, and KML `<Polygon>` (`ICD-17`).
+// Argument bundling is tracked as XR-074.
+#[allow(clippy::too_many_arguments)]
 pub fn evaluate_swath_corridor(
     name: impl Into<String>,
     origin: &GeoOrigin,
