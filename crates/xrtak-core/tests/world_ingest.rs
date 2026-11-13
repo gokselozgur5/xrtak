@@ -60,3 +60,18 @@ fn recenter_origin_recomputes_enu_for_entities() {
     assert!(recomputed.east_m.abs() < 1.0);
     assert!(recomputed.north_m.abs() < 1.0);
 }
+
+#[test]
+fn sim_toggle_removes_simulated_units_and_keeps_live() {
+    let mut world = TacticalWorld::new(GeoOrigin::default());
+    world.step_simulation(0.1, 1000);
+    assert!(world.entities.contains_key("UAV-FALCON-01"));
+    let live_xml = make_cot("LIVE-UNIT-1", "GUARDIAN", 39.92, 32.85, 900.0);
+    world.ingest_cot_xml(&live_xml, 1100).expect("ingest live");
+    assert!(world.entities.contains_key("LIVE-UNIT-1"));
+    world.set_sim_enabled(false);
+    assert!(!world.sim_enabled);
+    assert!(!world.entities.contains_key("UAV-FALCON-01"));
+    assert!(!world.entities.contains_key("HST-ARMOR-01"));
+    assert!(world.entities.contains_key("LIVE-UNIT-1"));
+}
