@@ -156,11 +156,21 @@ mod tests {
         // UAV-B at (0, 600, 100), heading South (180 deg) at 20 m/s
         // Head-on collision at t = 600 / 40 = 15.0s, sep = 0m
         let rep = compute_pairwise_cpa(
-            "UAV-A", (0.0, 0.0, 100.0), 20.0, 0.0,
-            "UAV-B", (0.0, 600.0, 100.0), 20.0, 180.0,
+            "UAV-A",
+            (0.0, 0.0, 100.0),
+            20.0,
+            0.0,
+            "UAV-B",
+            (0.0, 600.0, 100.0),
+            20.0,
+            180.0,
         );
         assert_eq!(rep.risk_level, CpaRiskLevel::Critical);
-        assert!((rep.t_cpa_sec - 15.0).abs() < 0.5, "t_cpa was {}", rep.t_cpa_sec);
+        assert!(
+            (rep.t_cpa_sec - 15.0).abs() < 0.5,
+            "t_cpa was {}",
+            rep.t_cpa_sec
+        );
         assert!(rep.horiz_separation_m < 1.0);
     }
 
@@ -168,8 +178,14 @@ mod tests {
     fn test_diverging_and_theater_evaluation() {
         // Diverging aircraft: UAV-A flying West, UAV-B flying East
         let rep = compute_pairwise_cpa(
-            "UAV-A", (-100.0, 0.0, 100.0), 25.0, 270.0,
-            "UAV-B", (100.0, 0.0, 100.0), 25.0, 90.0,
+            "UAV-A",
+            (-100.0, 0.0, 100.0),
+            25.0,
+            270.0,
+            "UAV-B",
+            (100.0, 0.0, 100.0),
+            25.0,
+            90.0,
         );
         assert_eq!(rep.risk_level, CpaRiskLevel::Clear);
 
