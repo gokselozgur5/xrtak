@@ -23,3 +23,21 @@ fn upsert_peer_updates_in_place() {
     assert_eq!(room.peers.len(), 1);
     assert_eq!(room.peers.get("OP-1").unwrap().callsign, "BRAVO");
 }
+
+#[test]
+fn prune_stale_respects_ttl_boundary() {
+    let mut room = CollabRoomState::new();
+    room.peers
+        .insert("OP-STALE".into(), make_peer("OP-STALE", "STALE", 10_000));
+    room.peers
+        .insert("OP-EDGE".into(), make_peer("OP-EDGE", "EDGE", 20_000));
+    room.peers
+        .insert("OP-FRESH".into(), make_peer("OP-FRESH", "FRESH", 24_000));
+
+    room.prune_stale(25_000, 5_000);
+
+    assert_eq!(room.peers.len(), 2);
+    assert!(!room.peers.contains_key("OP-STALE"));
+    assert!(room.peers.contains_key("OP-EDGE"));
+    assert!(room.peers.contains_key("OP-FRESH"));
+}
