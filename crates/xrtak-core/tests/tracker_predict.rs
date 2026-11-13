@@ -22,3 +22,18 @@ fn test_kinematic_extrapolation_four_headings() {
     assert!((west.0 - 0.0).abs() < 1e-9);
     assert!((west.1 - 200.0).abs() < 1e-9);
 }
+
+#[test]
+fn test_cep_growth_monotonic_with_floor() {
+    let speed = 25.0;
+
+    let cep_floor = compute_cep_radius_m(0.5, speed, 0.0);
+    assert!((cep_floor - 2.0).abs() < 1e-9);
+
+    let mut last_cep = cep_floor;
+    for &dt in &[1.0, 5.0, 10.0, 30.0, 60.0] {
+        let cep = compute_cep_radius_m(1.0, speed, dt);
+        assert!(cep > last_cep);
+        last_cep = cep;
+    }
+}
