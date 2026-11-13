@@ -798,10 +798,10 @@ async fn handle_http_connection(
                     let resp_json = {
                         let mut guard = world.lock().unwrap();
                         if m_req.auto_recenter.unwrap_or(true) && !raw_wps.is_empty() {
-                            let avg_lat = raw_wps.iter().map(|w| w.lat).sum::<f64>()
-                                / raw_wps.len() as f64;
-                            let avg_lon = raw_wps.iter().map(|w| w.lon).sum::<f64>()
-                                / raw_wps.len() as f64;
+                            let avg_lat =
+                                raw_wps.iter().map(|w| w.lat).sum::<f64>() / raw_wps.len() as f64;
+                            let avg_lon =
+                                raw_wps.iter().map(|w| w.lon).sum::<f64>() / raw_wps.len() as f64;
                             let ext = guard.origin.extent_m;
                             let alt = guard.origin.alt_m;
                             guard.recenter_origin(GeoOrigin {
@@ -877,7 +877,9 @@ async fn handle_http_connection(
                 (qgc, bmr)
             };
             if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                let _ = sock.send_to(atak_bmr_xml.as_bytes(), "127.0.0.1:4243").await;
+                let _ = sock
+                    .send_to(atak_bmr_xml.as_bytes(), "127.0.0.1:4243")
+                    .await;
             }
             let resp_json = serde_json::json!({
                 "route_uid": route_uid,
@@ -905,8 +907,7 @@ async fn handle_http_connection(
                     t_req.lon.unwrap_or(guard.origin.lon),
                 )
             };
-            let provider =
-                ImageryProvider::from_id(t_req.provider.as_deref().unwrap_or("esri"));
+            let provider = ImageryProvider::from_id(t_req.provider.as_deref().unwrap_or("esri"));
             let zoom = t_req.zoom.unwrap_or(15);
             let spec = resolve_tile_with_fallback(provider, lat, lon, zoom);
             let resp_json = serde_json::to_string(&spec)?;
@@ -925,7 +926,9 @@ async fn handle_http_connection(
                 guard.origin
             };
             let res = evaluate_swath_corridor(
-                c_req.name.unwrap_or_else(|| "XR-SWATH-CORRIDOR".to_string()),
+                c_req
+                    .name
+                    .unwrap_or_else(|| "XR-SWATH-CORRIDOR".to_string()),
                 &origin,
                 &c_req.waypoints_en,
                 c_req.rdp_epsilon_m.unwrap_or(8.0),
@@ -956,8 +959,7 @@ async fn handle_http_connection(
             let west = mp_req.west.unwrap_or(sw_lon);
             let north = mp_req.north.unwrap_or(ne_lat);
             let east = mp_req.east.unwrap_or(ne_lon);
-            let provider =
-                ImageryProvider::from_id(mp_req.provider.as_deref().unwrap_or("bing"));
+            let provider = ImageryProvider::from_id(mp_req.provider.as_deref().unwrap_or("bing"));
             let min_zoom = mp_req.min_zoom.unwrap_or(12);
             let max_zoom = mp_req.max_zoom.unwrap_or(16);
             let name = mp_req.name.unwrap_or_default();
