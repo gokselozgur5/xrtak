@@ -63,6 +63,8 @@ pub fn compute_cep_radius_m(initial_ce_m: f64, speed_mps: f64, dt_sec: f64) -> f
 }
 
 /// Generates kinematic track prediction points across specified time horizons.
+// TODO(XR-070): replace the argument list with a TrackPredictInput struct.
+#[allow(clippy::too_many_arguments)]
 pub fn predict_entity_trajectory(
     uid: &str,
     callsign: &str,
@@ -104,7 +106,7 @@ pub fn predict_entity_trajectory(
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     #[test]
