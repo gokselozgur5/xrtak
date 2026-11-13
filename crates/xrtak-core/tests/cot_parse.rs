@@ -43,3 +43,21 @@ fn parse_cot_xml_missing_point_rejected() {
     </event>"#;
     assert!(parse_cot_xml(no_uid, &origin, 1000).is_err());
 }
+
+#[test]
+fn parse_cot_xml_sensor_cone_attributes() {
+    let origin = GeoOrigin::default();
+    let xml = r#"<event uid="RECON-1" type="a-f-A">
+        <point lat="39.9200" lon="32.8500" hae="1200.0"/>
+        <detail>
+            <sensor azimuth="135.5" elevation="-25.0" fov="45.0" vfov="30.0" range="1200.0"/>
+        </detail>
+    </event>"#;
+    let ent = parse_cot_xml(xml, &origin, 2000).expect("valid sensor cot");
+    let sensor = ent.sensor.expect("sensor cone present");
+    assert_eq!(sensor.azimuth_deg, 135.5);
+    assert_eq!(sensor.elevation_deg, -25.0);
+    assert_eq!(sensor.hfov_deg, 45.0);
+    assert_eq!(sensor.vfov_deg, 30.0);
+    assert_eq!(sensor.range_m, 1200.0);
+}
