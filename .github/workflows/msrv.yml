@@ -1,0 +1,8 @@
+name: MSRV
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
