@@ -27,3 +27,16 @@ fn test_kml_scene_parses_with_quick_xml() {
     }
     assert!(count > 0);
 }
+
+#[test]
+fn test_kml_placemark_coordinates() {
+    let units = vec![
+        sample_unit("GND-1", 45.123456, 12.654321, 55.5),
+        sample_unit("GND-2", -10.0, 20.0, 30.0),
+    ];
+    let kml = generate_kml_tactical_scene("Alpha", &units, (0.0, 0.0, 0.0));
+    assert!(kml.contains("<name>GND-1</name>"));
+    assert!(kml.contains("<name>GND-2</name>"));
+    assert!(kml.contains("<coordinates>12.654321,45.123456,55.5</coordinates>"));
+    assert!(kml.contains("<coordinates>20.000000,-10.000000,30.0</coordinates>"));
+}
