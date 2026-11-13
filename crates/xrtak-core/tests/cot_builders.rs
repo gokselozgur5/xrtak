@@ -36,3 +36,20 @@ fn test_laser_pointer_cot_builder_roundtrip() {
     assert!((entity.hae_m - 865.0).abs() < 0.2);
     assert_eq!(entity.remarks, "Quest 3 XR Spatial Laser Pointer");
 }
+
+#[test]
+fn test_cot_builders_coordinate_precision() {
+    let origin = GeoOrigin::default();
+    let (lat, lon, hae) = (-12.345678, 123.456789, 150.3);
+    let spi = build_spi_cot_xml("UAV-9", "Reaper", "a-f-A", lat, lon, hae);
+    let ent_spi = parse_cot_xml(&spi, &origin, 0).expect("parse SPI");
+    assert!((ent_spi.lat - lat).abs() < 1e-6);
+    assert!((ent_spi.lon - lon).abs() < 1e-6);
+    assert!((ent_spi.hae_m - hae).abs() < 0.2);
+
+    let laser = build_laser_pointer_cot_xml("Operator 1", lat, lon, hae);
+    let ent_laser = parse_cot_xml(&laser, &origin, 0).expect("parse laser");
+    assert!((ent_laser.lat - lat).abs() < 1e-6);
+    assert!((ent_laser.lon - lon).abs() < 1e-6);
+    assert!((ent_laser.hae_m - hae).abs() < 0.2);
+}
