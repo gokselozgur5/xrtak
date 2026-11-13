@@ -241,7 +241,16 @@ mod tests {
     fn test_buffered_corridor_polygon_and_kml() {
         let origin = GeoOrigin::default();
         let line = vec![(0.0, 0.0), (1000.0, 0.0)];
-        let res = evaluate_swath_corridor("TEST-CORRIDOR", &origin, &line, 5.0, 100.0, Some(90.0), None, None);
+        let res = evaluate_swath_corridor(
+            "TEST-CORRIDOR",
+            &origin,
+            &line,
+            5.0,
+            100.0,
+            Some(90.0),
+            None,
+            None,
+        );
         // 100m AGL @ 90 deg HFOV -> 200m swath width -> 1000m * 200m = 0.200 km^2
         assert!((res.swath_width_m - 200.0).abs() < 0.2);
         assert!((res.area_km2 - 0.200).abs() < 0.01);
