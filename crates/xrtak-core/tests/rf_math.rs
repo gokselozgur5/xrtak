@@ -44,3 +44,16 @@ fn knife_edge_diffraction_reference_values() {
     let loss_v1 = compute_knife_edge_diffraction_db(1.0);
     assert!(loss_v1 > loss_v0);
 }
+
+#[test]
+fn diffraction_v_and_band_parameters() {
+    let v_flat = compute_diffraction_v(0.0, 500.0, 500.0, 2.4e9);
+    assert_eq!(v_flat, 0.0);
+    assert_eq!(compute_diffraction_v(10.0, 0.0, 500.0, 2.4e9), -1.0);
+
+    assert_eq!(RfBand::UHF900.frequency_hz(), 900_000_000.0);
+    assert_eq!(RfBand::ISM2400.frequency_hz(), 2_400_000_000.0);
+    assert_eq!(RfBand::SHF5800.frequency_hz(), 5_800_000_000.0);
+    assert_eq!(RfBand::UHF900.default_tx_power_dbm(), 30.0);
+    assert_eq!(RfBand::UHF900.default_rx_sensitivity_dbm(), -110.0);
+}
