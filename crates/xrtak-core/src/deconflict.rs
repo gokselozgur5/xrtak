@@ -82,9 +82,9 @@ pub fn compute_pairwise_cpa(
     let d_horiz = (dx * dx + dy * dy).sqrt();
     let d_vert = (p_a.2 - p_b.2).abs();
 
-    let risk = if t_cpa_raw >= 0.0 && t_cpa_raw <= 60.0 && d_horiz < 300.0 && d_vert < 100.0 {
+    let risk = if (0.0..=60.0).contains(&t_cpa_raw) && d_horiz < 300.0 && d_vert < 100.0 {
         CpaRiskLevel::Critical
-    } else if t_cpa_raw >= 0.0 && t_cpa_raw <= 180.0 && d_horiz < 1000.0 && d_vert < 250.0 {
+    } else if (0.0..=180.0).contains(&t_cpa_raw) && d_horiz < 1000.0 && d_vert < 250.0 {
         CpaRiskLevel::Advisory
     } else {
         CpaRiskLevel::Clear
