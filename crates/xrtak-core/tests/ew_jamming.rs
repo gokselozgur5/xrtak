@@ -14,3 +14,18 @@ fn test_ew_fspl_mhz_equals_rf_fspl_hz() {
     let rf_loss = xrtak_core::rf::compute_fspl_db(1000.0, 2_400_000_000.0);
     assert!((ew_loss - rf_loss).abs() < 0.05);
 }
+
+use xrtak_core::ew::JammerProfile;
+
+#[allow(dead_code)]
+fn make_jammer(p_w: f64) -> JammerProfile {
+    JammerProfile {
+        callsign: "JAM".into(),
+        transmitter_power_w: p_w,
+        antenna_gain_dbi: 10.0,
+        bandwidth_mhz: 20.0,
+        east_m: 0.0,
+        north_m: 100.0,
+        up_m: 50.0,
+    }
+}
