@@ -29,3 +29,23 @@ fn make_jammer(p_w: f64) -> JammerProfile {
         up_m: 50.0,
     }
 }
+
+use xrtak_core::ew::TargetLinkProfile;
+
+#[allow(dead_code)]
+fn make_link() -> TargetLinkProfile {
+    TargetLinkProfile {
+        callsign: "LINK".into(),
+        transmitter_power_w: 1.0,
+        tx_antenna_gain_dbi: 2.0,
+        rx_antenna_gain_dbi: 2.0,
+        signal_bandwidth_mhz: 10.0,
+        receiver_sensitivity_dbm: -95.0,
+        tx_east_m: 0.0,
+        tx_north_m: 5000.0,
+        tx_up_m: 100.0,
+        rx_east_m: 0.0,
+        rx_north_m: 0.0,
+        rx_up_m: 10.0,
+    }
+}
