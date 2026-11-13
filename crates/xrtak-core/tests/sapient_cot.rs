@@ -35,3 +35,28 @@ fn unknown_sapient_classes_fall_back_to_generic() {
     assert_eq!(sapient_class_to_cot_type("radar"), "a-h-G-E-S");
     assert_eq!(sapient_class_to_cot_type(" human "), "a-h-G-U-C-I");
 }
+
+#[test]
+fn generated_sapient_cot_xml_parses_cleanly() {
+    use xrtak_core::geo::ProceduralReliefModel;
+    use xrtak_core::sapient::{build_sapient_cot_xml, SapientDetectionReport};
+    use xrtak_core::{parse_cot_xml, Affiliation, GeoOrigin};
+
+    let report = SapientDetectionReport {
+        node_id: "RADAR-1".into(),
+        object_id: "T90-A".into(),
+        classification: "TANK".into(),
+        confidence: 0.95,
+        east_m: 100.0,
+        north_m: 200.0,
+        alt_offset_m: Some(0.0),
+        speed_mps: Some(12.0),
+        course_deg: Some(180.0),
+        auto_slew_sensor_uid: None,
+    };
+    let xml = build_sapient_cot_xml(&report, &GeoOrigin::default(), &ProceduralReliefModel);
+    let entity = parse_cot_xml(&xml, &GeoOrigin::default(), 1000).expect("parses");
+    assert_eq!(entity.uid, "SAPIENT-T90-A");
+    assert_eq!(entity.cot_type, "a-h-G-E-V-A");
+    assert_eq!(entity.affiliation, Affiliation::Hostile);
+}
