@@ -35,3 +35,18 @@ fn test_threat_dome_flags_engaged_friendly() {
     assert_eq!(domes.len(), 1);
     assert_eq!(domes[0].engaged_uids, vec!["UAV-1"]);
 }
+
+#[test]
+fn test_tactical_zone_containment_flagged() {
+    let world = TacticalWorld::new(GeoOrigin::default());
+    let aff = Affiliation::Friendly;
+    let inside = make_ent("TRK-1", "a-f-G", aff, -100.0, 50.0, -100.0);
+    let outside = make_ent("TRK-2", "a-f-G", aff, 0.0, 50.0, 500.0);
+    let spi = make_ent("SPI-1", "b-m-p-s-p-i", aff, -100.0, 50.0, -100.0);
+    let (_, zones) = world.evaluate_overlays_for_entities(&[inside, outside, spi]);
+    let roz = zones
+        .iter()
+        .find(|z| z.uid == "ZONE-ROZ-KILLBOX-1")
+        .unwrap();
+    assert_eq!(roz.inside_uids, vec!["TRK-1"]);
+}
