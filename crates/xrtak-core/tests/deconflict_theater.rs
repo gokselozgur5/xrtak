@@ -35,3 +35,25 @@ fn theater_max_risk_aggregation() {
     assert_eq!(res_mixed.max_risk, CpaRiskLevel::Critical);
     assert_eq!(res_mixed.conflicts.len(), 1);
 }
+
+fn cpa(id: &str, dx: f64) -> AirspaceConflictReport {
+    let p = (0.0, 0.0, 100.0);
+    compute_pairwise_cpa(id, p, 20.0, 0.0, "T", (dx, 400.0, 100.0), 20.0, 180.0)
+}
+
+#[test]
+fn theater_conflicts_ordering_by_risk_and_separation() {
+    let mut v = vec![cpa("ADV", 500.0), cpa("CRIT-B", 150.0), cpa("CRIT-A", 50.0)];
+    let rank = |r| match r {
+        CpaRiskLevel::Critical => 0,
+        _ => 1,
+    };
+    v.sort_by(|a, b| {
+        rank(a.risk_level)
+            .cmp(&rank(b.risk_level))
+            .then(a.horiz_separation_m.total_cmp(&b.horiz_separation_m))
+    });
+    assert_eq!(v[0].entity_a, "CRIT-A");
+    assert_eq!(v[1].entity_a, "CRIT-B");
+    assert_eq!(v[2].entity_a, "ADV");
+}
