@@ -6,3 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+jobs:
+  rustdoc:
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: Build documentation
+        run: cargo doc --workspace --no-deps --locked
