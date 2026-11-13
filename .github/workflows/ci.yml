@@ -35,3 +35,12 @@ jobs:
         run: rustup show active-toolchain || rustup toolchain install
       - name: Check formatting
         run: cargo fmt --all -- --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
