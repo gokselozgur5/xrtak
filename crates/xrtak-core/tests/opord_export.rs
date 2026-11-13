@@ -40,3 +40,17 @@ fn test_kml_placemark_coordinates() {
     assert!(kml.contains("<coordinates>12.654321,45.123456,55.5</coordinates>"));
     assert!(kml.contains("<coordinates>20.000000,-10.000000,30.0</coordinates>"));
 }
+
+#[test]
+fn test_nato_opord_five_numbered_paragraphs() {
+    let units = vec![sample_unit("SCOUT-1", 39.0, 32.0, 900.0)];
+    let doc = generate_nato_opord_markdown("Anvil", (39.0, 32.0, 900.0), &units, 2, 1);
+    assert!(doc.contains("## 1. SITUATION"));
+    assert!(doc.contains("## 2. MISSION"));
+    assert!(doc.contains("## 3. EXECUTION"));
+    assert!(doc.contains("## 4. ADMINISTRATION & LOGISTICS"));
+    assert!(doc.contains("## 5. COMMAND & SIGNAL"));
+    assert!(doc.contains("1 active tactical units in theatre"));
+    assert!(doc.contains("1 air-defense/SAM threat domes active"));
+    assert!(doc.contains("2 tactical geofence/ROZ zones established"));
+}
