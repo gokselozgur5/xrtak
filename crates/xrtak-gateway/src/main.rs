@@ -1016,13 +1016,15 @@ async fn handle_http_connection(
                     predict_entity_trajectory(
                         &e.uid,
                         &e.callsign,
-                    e.speed_mps,
-                    e.course_deg,
-                    is_stale,
-                    5.0,
-                    &horizons,
-                )
-            }).collect()
+                        (e.east_m, e.north_m, e.up_m),
+                        e.speed_mps,
+                        e.course_deg,
+                        is_stale,
+                        5.0,
+                        &horizons,
+                    )
+                })
+                .collect()
         };
         let resp_json = serde_json::to_string(&predictions)?;
         let header = json_ok_header(resp_json.len());
