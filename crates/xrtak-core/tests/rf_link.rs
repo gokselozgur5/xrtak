@@ -33,3 +33,27 @@ fn flat_terrain_positive_margin_shf_and_link_metrics() {
     assert_eq!(shf.diffraction_loss_db, 0.0);
     assert!(shf.max_fresnel_radius_m > 0.0);
 }
+
+struct RidgeTerrain;
+impl ElevationProvider for RidgeTerrain {
+    fn sample_relief_m(&self, east_m: f64, _n: f64) -> f64 {
+        if (east_m - 250.0).abs() < 50.0 {
+            80.0
+        } else {
+            0.0
+        }
+    }
+}
+
+#[test]
+fn ridge_obstacle_adds_diffraction_loss() {
+    let flat = FlatPlane;
+    let ridge = RidgeTerrain;
+    let tx = (0.0, 0.0, 50.0);
+    let rx = (500.0, 0.0, 50.0);
+    let flat_res = evaluate_rf_link(tx, rx, RfBand::ISM2400, 32, &flat);
+    let ridge_res = evaluate_rf_link(tx, rx, RfBand::ISM2400, 32, &ridge);
+    assert_eq!(flat_res.diffraction_loss_db, 0.0);
+    assert!(ridge_res.diffraction_loss_db > 5.0);
+    assert!(ridge_res.link_margin_db < flat_res.link_margin_db);
+}
