@@ -49,3 +49,32 @@ fn timeline_sample_empty_and_boundaries() {
     let after = tl.sample_at(25.0).expect("frame after");
     assert_eq!(after.sim_time_sec, 20.0);
 }
+
+#[test]
+fn timeline_sample_interpolation_and_summary() {
+    let mut tl = AarTimeline::new(8, 0.1);
+    let origin = xrtak_core::GeoOrigin::default();
+    let xml =
+        r#"<event uid="U1" type="a-f-G"><point lat="39.92" lon="32.85" hae="850.0"/></event>"#;
+    let mut map1 = std::collections::HashMap::new();
+    let mut e1 = xrtak_core::parse_cot_xml(xml, &origin, 1000).unwrap();
+    e1.east_m = 0.0;
+    map1.insert("U1".to_string(), e1);
+    tl.maybe_record(10.0, 10_000, &map1);
+
+    let mut map2 = std::collections::HashMap::new();
+    let mut e2 = xrtak_core::parse_cot_xml(xml, &origin, 2000).unwrap();
+    e2.east_m = 100.0;
+    map2.insert("U1".to_string(), e2);
+    tl.maybe_record(20.0, 20_000, &map2);
+
+    let mid = tl.sample_at(15.0).expect("midpoint frame");
+    assert_eq!(mid.sim_time_sec, 15.0);
+    assert_eq!(mid.unix_ms, 15_000);
+    assert_eq!(mid.entities[0].east_m, 50.0);
+
+    let summary = tl.summary();
+    assert_eq!(summary.frame_count, 2);
+    assert_eq!(summary.min_time_sec, 10.0);
+    assert_eq!(summary.max_time_sec, 20.0);
+}
