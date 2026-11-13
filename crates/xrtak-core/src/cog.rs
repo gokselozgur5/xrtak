@@ -80,7 +80,9 @@ pub fn parse_geotiff_metadata(bytes: &[u8]) -> Result<GeoTiffMetadata, String> {
     let endian = match (&bytes[0..2], bytes[2], bytes[3]) {
         (b"II", 42, 0) => Endian::Little,
         (b"MM", 0, 42) => Endian::Big,
-        _ => return Err("Invalid TIFF byte-order or magic number (expected II/MM + 42)".to_string()),
+        _ => {
+            return Err("Invalid TIFF byte-order or magic number (expected II/MM + 42)".to_string())
+        }
     };
 
     let ifd_offset = endian
@@ -140,7 +142,9 @@ pub fn parse_geotiff_metadata(bytes: &[u8]) -> Result<GeoTiffMetadata, String> {
             33550 if count >= 2 => {
                 if let Some(arr_off) = endian.u32(bytes, val_off) {
                     let b_off = arr_off as usize;
-                    if let (Some(sx), Some(sy)) = (endian.f64(bytes, b_off), endian.f64(bytes, b_off + 8)) {
+                    if let (Some(sx), Some(sy)) =
+                        (endian.f64(bytes, b_off), endian.f64(bytes, b_off + 8))
+                    {
                         pixel_scale_xy = Some((sx, sy));
                     }
                 }
@@ -160,7 +164,9 @@ pub fn parse_geotiff_metadata(bytes: &[u8]) -> Result<GeoTiffMetadata, String> {
     }
 
     if width == 0 || height == 0 || data_offsets.is_empty() {
-        return Err("GeoTIFF missing required ImageWidth, ImageLength, or Strip/TileOffsets".to_string());
+        return Err(
+            "GeoTIFF missing required ImageWidth, ImageLength, or Strip/TileOffsets".to_string(),
+        );
     }
 
     Ok(GeoTiffMetadata {
@@ -203,7 +209,9 @@ pub fn ingest_geotiff_dsm(
     let first_offset = meta.data_offsets[0];
     let needed_bytes = total_pixels * bytes_per_sample;
     if first_offset + needed_bytes > bytes.len() {
-        return Err("GeoTIFF pixel buffer truncated relative to ImageWidth * ImageLength".to_string());
+        return Err(
+            "GeoTIFF pixel buffer truncated relative to ImageWidth * ImageLength".to_string(),
+        );
     }
 
     let mut raw_asl = Vec::with_capacity(total_pixels);
@@ -348,4 +356,3 @@ mod tests {
         assert!((res.dem.sample_relief_m(1000.0, 1000.0) - 80.0).abs() < 1e-6);
     }
 }
-
