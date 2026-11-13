@@ -76,8 +76,16 @@ pub fn compute_pairwise_cpa(
 
     let (t_cpa_raw, _) = compute_raw_t_cpa(pos_a, va, pos_b, vb);
     let t_eval = t_cpa_raw.max(0.0);
-    let p_a = (pos_a.0 + va.0 * t_eval, pos_a.1 + va.1 * t_eval, pos_a.2 + va.2 * t_eval);
-    let p_b = (pos_b.0 + vb.0 * t_eval, pos_b.1 + vb.1 * t_eval, pos_b.2 + vb.2 * t_eval);
+    let p_a = (
+        pos_a.0 + va.0 * t_eval,
+        pos_a.1 + va.1 * t_eval,
+        pos_a.2 + va.2 * t_eval,
+    );
+    let p_b = (
+        pos_b.0 + vb.0 * t_eval,
+        pos_b.1 + vb.1 * t_eval,
+        pos_b.2 + vb.2 * t_eval,
+    );
 
     let dx = p_a.0 - p_b.0;
     let dy = p_a.1 - p_b.1;
@@ -108,9 +116,7 @@ pub fn compute_pairwise_cpa(
 pub type TheaterEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
 
 /// Evaluates all moving airborne entity pairs and returns aggregate deconfliction report.
-pub fn evaluate_theater_deconfliction(
-    entities: &[TheaterEntity],
-) -> DeconflictionResult {
+pub fn evaluate_theater_deconfliction(entities: &[TheaterEntity]) -> DeconflictionResult {
     let mut conflicts = Vec::new();
     let mut max_risk = CpaRiskLevel::Clear;
     let mut total_pairs = 0;
@@ -123,7 +129,8 @@ pub fn evaluate_theater_deconfliction(
             let rep = compute_pairwise_cpa(a.0, a.1, a.2, a.3, b.0, b.1, b.2, b.3);
             if rep.risk_level == CpaRiskLevel::Critical {
                 max_risk = CpaRiskLevel::Critical;
-            } else if rep.risk_level == CpaRiskLevel::Advisory && max_risk != CpaRiskLevel::Critical {
+            } else if rep.risk_level == CpaRiskLevel::Advisory && max_risk != CpaRiskLevel::Critical
+            {
                 max_risk = CpaRiskLevel::Advisory;
             }
             if rep.risk_level != CpaRiskLevel::Clear {
