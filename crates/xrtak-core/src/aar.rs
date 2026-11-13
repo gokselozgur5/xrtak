@@ -110,8 +110,13 @@ impl AarTimeline {
                     .unwrap_or_else(|| ea.clone())
             })
             .collect();
-        let unix_ms = (fa.unix_ms as f64 + lambda * (fb.unix_ms.saturating_sub(fa.unix_ms) as f64)).round() as u64;
-        Some(AarFrame { sim_time_sec: target_sim_sec, unix_ms, entities })
+        let unix_ms = (fa.unix_ms as f64 + lambda * (fb.unix_ms.saturating_sub(fa.unix_ms) as f64))
+            .round() as u64;
+        Some(AarFrame {
+            sim_time_sec: target_sim_sec,
+            unix_ms,
+            entities,
+        })
     }
 }
 
