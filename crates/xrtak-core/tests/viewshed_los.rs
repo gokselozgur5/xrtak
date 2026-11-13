@@ -1,4 +1,4 @@
-use xrtak_core::{compute_link_los, ElevationProvider};
+use xrtak_core::{compute_link_los, compute_viewshed_with_provider, ElevationProvider};
 
 struct RidgeElevation;
 
@@ -42,4 +42,14 @@ fn test_link_los_zero_length() {
     assert_eq!(res.to_enu, point);
     assert_eq!(res.slant_range_m, 0.0);
     assert!(res.clear);
+}
+
+#[test]
+fn test_viewshed_sample_count_and_geometry() {
+    let beams = 16;
+    let points = 25;
+    let res = compute_viewshed_with_provider(&RidgeElevation, 0.0, 0.0, 20.0, 500.0, beams, points);
+    assert_eq!(res.samples.len(), beams * points);
+    assert_eq!(res.radius_m, 500.0);
+    assert!(res.visible_ratio >= 0.0 && res.visible_ratio <= 1.0);
 }
