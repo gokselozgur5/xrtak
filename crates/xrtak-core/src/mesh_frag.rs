@@ -105,3 +105,15 @@ fn split_payload(msg_id: u32, payload: &[u8], chunk_sz: usize) -> Vec<MeshFragme
         })
         .collect()
 }
+
+use std::collections::HashMap;
+
+/// In-progress reassembly buffer for fragments belonging to one message.
+#[derive(Debug, Clone)]
+pub struct FragmentReassemblyBuffer {
+    pub message_id: u32,
+    pub total_fragments: u16,
+    pub total_length: u32,
+    pub received_fragments: HashMap<u16, Vec<u8>>,
+    pub updated_unix_ms: u64,
+}
