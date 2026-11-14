@@ -38,3 +38,22 @@ impl RawCotMessage {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParsedCotMessage {
+    pub entity: TacticalEntity,
+    pub raw_bytes_len: usize,
+    pub parse_duration_micros: u64,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CotParseMetrics {
+    pub total_processed: usize,
+    pub total_success: usize,
+    pub total_failed: usize,
+    pub total_bytes_ingested: usize,
+    pub friendly_count: usize,
+    pub hostile_count: usize,
+    pub neutral_count: usize,
+    pub unknown_count: usize,
+}
