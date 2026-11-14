@@ -108,3 +108,14 @@ impl RadialMenuStateMachine {
         Some(((angle / sector_size).floor() as usize) % self.items.len())
     }
 }
+
+impl RadialMenuStateMachine {
+    /// Updates cursor position and accumulates dwell time.
+    pub fn update_cursor(&mut self, x: f64, y: f64, dt_sec: f64) {
+        if self.state != RadialMenuState::Active && self.state != RadialMenuState::Confirming {
+            return;
+        }
+        let target_idx = self.sector_index_at(x, y);
+        self.handle_sector_hover(target_idx, dt_sec);
+    }
+}
