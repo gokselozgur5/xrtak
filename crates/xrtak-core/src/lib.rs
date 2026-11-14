@@ -1092,7 +1092,9 @@ mod tests {
             course_deg: Some(210.0),
             auto_slew_sensor_uid: None,
         };
-        let (_xml, ent) = world.ingest_sapient_detection(&report, 2000).expect("SAPIENT ingested");
+        let (_xml, ent) = world
+            .ingest_sapient_detection(&report, 2000)
+            .expect("SAPIENT ingested");
         assert_eq!(ent.uid, "SAPIENT-THREAT-42");
         assert_eq!(ent.affiliation, Affiliation::Hostile);
         assert!(world.entities.contains_key("UAV-FALCON-01.SPI1"));
