@@ -105,3 +105,15 @@ impl CotParseHarness {
         self.parse_raw_with_provider(raw, &ProceduralReliefModel)
     }
 }
+
+impl CotParseHarness {
+    fn record_affiliation(&mut self, aff: Affiliation) {
+        match aff {
+            Affiliation::Friendly => self.metrics.friendly_count += 1,
+            Affiliation::Hostile => self.metrics.hostile_count += 1,
+            Affiliation::Neutral => self.metrics.neutral_count += 1,
+            Affiliation::Unknown => self.metrics.unknown_count += 1,
+        }
+        self.metrics.total_success += 1;
+    }
+}
