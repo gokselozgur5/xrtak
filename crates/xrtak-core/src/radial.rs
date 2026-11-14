@@ -36,3 +36,13 @@ pub struct RadialMenuConfig {
     pub outer_radius: f64,
     pub dwell_confirm_sec: f64,
 }
+
+impl Default for RadialMenuConfig {
+    fn default() -> Self {
+        Self {
+            inner_deadband_radius: 0.05,
+            outer_radius: 0.35,
+            dwell_confirm_sec: 0.40,
+        }
+    }
+}
