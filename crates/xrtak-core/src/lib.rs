@@ -17,6 +17,7 @@ pub mod marker;
 pub mod mesh_frag;
 pub mod mission;
 pub mod opord;
+pub mod radial;
 pub mod rf;
 pub mod sapient;
 pub mod thermal;
