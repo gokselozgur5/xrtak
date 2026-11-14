@@ -1,3 +1,4 @@
+use super::types::AudioVec3;
 use serde::{Deserialize, Serialize};
 
 /// Listener head pose orientation in radians (yaw, pitch, roll).
@@ -16,4 +17,11 @@ impl Default for ListenerOrientation {
             roll_rad: 0.0,
         }
     }
+}
+
+/// Listener pose representation including position and head orientation.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ListenerPose {
+    pub position: AudioVec3,
+    pub orientation: ListenerOrientation,
 }
