@@ -90,3 +90,10 @@ pub fn sample_green_hot(t: f32) -> ColorRgb {
     ColorRgb::new(val * 0.15, val, val * 0.25)
 }
 
+impl ThermalPalette {
+    /// Samples RGB color for a given normalized temperature [0.0, 1.0].
+    pub fn sample_color(self, t: f32) -> ColorRgb {
+        match self {
+            Self::WhiteHot => sample_white_hot(t),
+            Self::BlackHot => sample_black_hot(t),
+            Self::Ironbow => sample_ironbow(t),
