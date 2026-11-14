@@ -25,3 +25,23 @@ fn test_cot_harness_happy_path_batch() {
     assert_eq!(harness.metrics.friendly_count, 1);
     assert_eq!(harness.metrics.hostile_count, 1);
 }
+
+#[test]
+fn test_cot_harness_error_handling() {
+    let mut harness = CotParseHarness::default();
+    let malformed = RawCotMessage::new("<event><not_closed>", 1000);
+    let res = harness.parse_raw(&malformed);
+    assert!(res.is_err());
+    assert_eq!(harness.metrics.total_processed, 1);
+    assert_eq!(harness.metrics.total_failed, 1);
+    assert_eq!(harness.metrics.total_success, 0);
+
+    let no_point = RawCotMessage::new(r#"<event uid="T1" type="a-f-G"></event>"#, 1001);
+    let res_no_point = harness.parse_raw(&no_point);
+    assert!(matches!(res_no_point, Err(CotHarnessError::MissingPoint)));
+    assert_eq!(harness.metrics.total_processed, 2);
+    assert_eq!(harness.metrics.total_failed, 2);
+
+    harness.reset_metrics();
+    assert_eq!(harness.metrics.total_processed, 0);
+}
