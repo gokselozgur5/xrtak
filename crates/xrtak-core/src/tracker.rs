@@ -94,6 +94,19 @@ impl<'a> TrackPredictInput<'a> {
             horizons,
         }
     }
+
+    pub fn predict(&self) -> TrackPrediction {
+        predict_entity_trajectory(
+            self.uid,
+            self.callsign,
+            self.current_enu,
+            self.speed_mps,
+            self.course_deg,
+            self.is_stale,
+            self.initial_ce_m,
+            self.horizons,
+        )
+    }
 }
 
 /// Generates kinematic track prediction points across specified time horizons.
