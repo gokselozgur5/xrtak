@@ -19,3 +19,14 @@ impl ChannelGains {
         }
     }
 }
+
+/// Result of evaluating spatial audio emitter relative to listener.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpatializedAudio {
+    pub emitter_id: String,
+    pub azimuth_deg: f64,
+    pub elevation_deg: f64,
+    pub distance_m: f64,
+    pub gains: ChannelGains,
+    pub delay_ms: f64,
+}
