@@ -249,6 +249,21 @@ impl LruTileCache {
     pub fn is_empty(&self) -> bool {
         self.tiles.is_empty()
     }
+
+    pub fn get(&mut self, coord: &TileCoord) -> Option<&[u8]> {
+        if self.tiles.contains_key(coord) {
+            if let Some(pos) = self.entries.iter().position(|c| c == coord) {
+                let item = self.entries.remove(pos).unwrap();
+                self.entries.push_back(item);
+            }
+            return self.tiles.get(coord).map(|v| v.as_slice());
+        }
+        None
+    }
+
+    pub fn peek(&self, coord: &TileCoord) -> Option<&[u8]> {
+        self.tiles.get(coord).map(|v| v.as_slice())
+    }
 }
 
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
