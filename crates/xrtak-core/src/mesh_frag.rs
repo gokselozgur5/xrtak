@@ -161,3 +161,10 @@ impl FragmentReassemblyBuffer {
         Some(assembled)
     }
 }
+
+/// Mesh reassembly engine managing concurrent fragmented messages.
+#[derive(Debug, Clone, Default)]
+pub struct MeshReassembler {
+    pub buffers: HashMap<u32, FragmentReassemblyBuffer>,
+    pub ttl_ms: u64,
+}
