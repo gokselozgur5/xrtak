@@ -242,3 +242,24 @@ impl OpenXrPoseAdapter {
             timestamp_unix_ms: ts_ms,
         }
     }
+
+    pub fn project_gaze_to_ground(
+        &self,
+        pose: &TacticalHeadPose,
+        ground_up_m: f64,
+    ) -> Option<(f64, f64, f64)> {
+        if !pose.is_valid || pose.forward_enu.1 >= -1e-6 {
+            return None;
+        }
+        let delta_y = ground_up_m - pose.head_enu.1;
+        let t = delta_y / pose.forward_enu.1;
+        if t <= 0.0 {
+            return None;
+        }
+        Some((
+            pose.head_enu.0 + pose.forward_enu.0 * t,
+            ground_up_m,
+            pose.head_enu.2 + pose.forward_enu.2 * t,
+        ))
+    }
+}
