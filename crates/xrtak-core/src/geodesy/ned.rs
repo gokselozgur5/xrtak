@@ -63,8 +63,10 @@ pub fn ned_to_ecef(ned: &NedCoord, origin: &NedOrigin) -> EcefCoord {
     let sin_lon = lon_rad.sin();
     let cos_lon = lon_rad.cos();
 
-    let dx = -sin_lat * cos_lon * ned.north_m - sin_lon * ned.east_m - cos_lat * cos_lon * ned.down_m;
-    let dy = -sin_lat * sin_lon * ned.north_m + cos_lon * ned.east_m - cos_lat * sin_lon * ned.down_m;
+    let dx =
+        -sin_lat * cos_lon * ned.north_m - sin_lon * ned.east_m - cos_lat * cos_lon * ned.down_m;
+    let dy =
+        -sin_lat * sin_lon * ned.north_m + cos_lon * ned.east_m - cos_lat * sin_lon * ned.down_m;
     let dz = cos_lat * ned.north_m - sin_lat * ned.down_m;
 
     EcefCoord::new(
