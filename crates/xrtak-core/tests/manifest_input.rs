@@ -1,4 +1,4 @@
-use xrtak_core::manifest::{ManifestInput, MapsetManifest};
+use xrtak_core::manifest::ManifestInput;
 use xrtak_core::tiles::ImageryProvider;
 
 #[test]
