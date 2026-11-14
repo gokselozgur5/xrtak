@@ -167,7 +167,6 @@ impl OpenXrPoseAdapter {
             table_scale: 1.0,
         }
     }
-}
 
     pub fn with_table_transform(
         mut self,
