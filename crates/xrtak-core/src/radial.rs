@@ -79,3 +79,12 @@ impl RadialMenuStateMachine {
         }
     }
 }
+
+impl RadialMenuStateMachine {
+    /// Dismisses the radial menu without executing any action.
+    pub fn dismiss(&mut self) {
+        self.state = RadialMenuState::Dismissed;
+        self.selected_index = None;
+        self.dwell_timer_sec = 0.0;
+    }
+}
