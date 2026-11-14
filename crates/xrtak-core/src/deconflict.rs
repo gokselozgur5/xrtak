@@ -56,6 +56,26 @@ pub fn compute_raw_t_cpa(
     (t_cpa, v_rel)
 }
 
+/// Airborne track parameter bundle for pairwise CPA calculation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CpaTrack {
+    pub uid: String,
+    pub pos: (f64, f64, f64),
+    pub speed_mps: f64,
+    pub course_deg: f64,
+}
+
+impl CpaTrack {
+    pub fn new(uid: impl Into<String>, pos: (f64, f64, f64), speed_mps: f64, course_deg: f64) -> Self {
+        Self {
+            uid: uid.into(),
+            pos,
+            speed_mps,
+            course_deg,
+        }
+    }
+}
+
 /// Calculates Closest Point of Approach (CPA) between two 3D moving entities.
 // TODO(XR-071): replace the argument list with a CpaTrack pair.
 #[allow(clippy::too_many_arguments)]
