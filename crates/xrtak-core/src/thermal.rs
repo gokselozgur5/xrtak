@@ -21,3 +21,16 @@ pub struct ThermalShaderConfig {
     pub noise_intensity: f32,
 }
 
+impl Default for ThermalShaderConfig {
+    fn default() -> Self {
+        Self {
+            palette: ThermalPalette::WhiteHot,
+            min_temp_c: 0.0,
+            max_temp_c: 50.0,
+            gain: 1.0,
+            noise_intensity: 0.02,
+        }
+    }
+}
+
+/// RGB color with float components in [0.0, 1.0].
