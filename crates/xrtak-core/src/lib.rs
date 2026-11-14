@@ -13,6 +13,7 @@ pub mod fires;
 pub mod geo;
 pub mod geodesy;
 pub mod hud;
+pub mod hud_telemetry;
 pub mod manifest;
 pub mod marker;
 pub mod mesh_frag;
