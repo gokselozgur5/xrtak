@@ -88,3 +88,11 @@ impl RadialMenuStateMachine {
         self.dwell_timer_sec = 0.0;
     }
 }
+
+impl RadialMenuStateMachine {
+    /// Evaluates cursor distance from menu center.
+    pub fn is_within_bounds(&self, x: f64, y: f64) -> bool {
+        let dist = (x * x + y * y).sqrt();
+        dist >= self.config.inner_deadband_radius && dist <= self.config.outer_radius
+    }
+}
