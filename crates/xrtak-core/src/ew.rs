@@ -171,6 +171,33 @@ pub struct BurnThroughScenario<'a> {
     pub current_target_range_m: f64,
 }
 
+impl<'a> BurnThroughScenario<'a> {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        radar_callsign: &'a str,
+        p_radar_w: f64,
+        g_radar_dbi: f64,
+        target_rcs_m2: f64,
+        jammer_callsign: &'a str,
+        p_jammer_w: f64,
+        g_jammer_dbi: f64,
+        distance_radar_to_jammer_m: f64,
+        current_target_range_m: f64,
+    ) -> Self {
+        Self {
+            radar_callsign,
+            p_radar_w,
+            g_radar_dbi,
+            target_rcs_m2,
+            jammer_callsign,
+            p_jammer_w,
+            g_jammer_dbi,
+            distance_radar_to_jammer_m,
+            current_target_range_m,
+        }
+    }
+}
+
 /// Compute radar burn-through range R_BT where target echo power >= jammer noise.
 // TODO(XR-072): replace the argument list with a BurnThroughScenario struct.
 #[allow(clippy::too_many_arguments)]
