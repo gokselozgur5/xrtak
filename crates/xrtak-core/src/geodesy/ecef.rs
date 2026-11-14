@@ -23,3 +23,17 @@ impl GeodeticCoord {
         }
     }
 }
+
+/// Earth-Centered, Earth-Fixed (ECEF) Cartesian coordinates in meters.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct EcefCoord {
+    pub x_m: f64,
+    pub y_m: f64,
+    pub z_m: f64,
+}
+
+impl EcefCoord {
+    pub const fn new(x_m: f64, y_m: f64, z_m: f64) -> Self {
+        Self { x_m, y_m, z_m }
+    }
+}
