@@ -222,6 +222,35 @@ impl GeoPackageMemoryReader {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct LruTileCache {
+    capacity: usize,
+    entries: std::collections::VecDeque<TileCoord>,
+    tiles: std::collections::HashMap<TileCoord, Vec<u8>>,
+}
+
+impl LruTileCache {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            capacity: capacity.max(1),
+            entries: std::collections::VecDeque::with_capacity(capacity.max(1)),
+            tiles: std::collections::HashMap::with_capacity(capacity.max(1)),
+        }
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.capacity
+    }
+
+    pub fn len(&self) -> usize {
+        self.tiles.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tiles.is_empty()
+    }
+}
+
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
 /// aerial tile servers over open sea at high zoom levels (`REQ-MAP-02`).
 pub fn is_placeholder_rgb_tile(rgb_bytes: &[u8]) -> bool {
