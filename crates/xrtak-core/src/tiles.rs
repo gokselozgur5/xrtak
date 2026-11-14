@@ -421,4 +421,14 @@ mod tests {
     fn is_placeholder_rgb_rgb(b: &[u8]) -> bool {
         is_placeholder_rgb_tile(b)
     }
+
+    #[test]
+    fn test_tile_coord_tms_roundtrip() {
+        let coord = TileCoord::new(10, 512, 340);
+        let (z, x, tms_y) = coord.to_tms();
+        assert_eq!(z, 10);
+        assert_eq!(x, 512);
+        let from_tms = TileCoord::from_tms(z, x, tms_y);
+        assert_eq!(from_tms, coord);
+    }
 }
