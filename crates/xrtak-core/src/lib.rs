@@ -61,7 +61,8 @@ pub use geo::{
 pub use hud::{compute_hud_cue, HudCue};
 pub use manifest::{
     build_mapset_manifest, copernicus_glo30_cells_for_bounds, estimate_tiles_for_bounds,
-    format_copernicus_glo30_cell_id, CopernicusDemCell, MapsetManifest, ZoomTileEstimate,
+    format_copernicus_glo30_cell_id, CopernicusDemCell, ManifestInput, MapsetManifest,
+    ZoomTileEstimate,
 };
 pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
