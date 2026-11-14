@@ -96,3 +96,15 @@ impl RadialMenuStateMachine {
         dist >= self.config.inner_deadband_radius && dist <= self.config.outer_radius
     }
 }
+
+impl RadialMenuStateMachine {
+    /// Maps 2D coordinate to sector index if items present.
+    pub fn sector_index_at(&self, x: f64, y: f64) -> Option<usize> {
+        if self.items.is_empty() || !self.is_within_bounds(x, y) {
+            return None;
+        }
+        let angle = y.atan2(x).to_degrees().rem_euclid(360.0);
+        let sector_size = 360.0 / (self.items.len() as f64);
+        Some(((angle / sector_size).floor() as usize) % self.items.len())
+    }
+}
