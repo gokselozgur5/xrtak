@@ -135,6 +135,31 @@ pub fn resolve_tile_with_fallback(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TileCoord {
+    pub zoom: u8,
+    pub tile_x: u32,
+    pub tile_y: u32,
+}
+
+impl TileCoord {
+    pub const fn new(zoom: u8, tile_x: u32, tile_y: u32) -> Self {
+        Self { zoom, tile_x, tile_y }
+    }
+
+    /// Converts TMS tile coordinates (`tms_y = (1 << zoom) - 1 - tile_y`) to XYZ tile coordinates.
+    pub const fn from_tms(zoom: u8, tile_x: u32, tms_y: u32) -> Self {
+        let max_idx = (1u32 << zoom).saturating_sub(1);
+        Self { zoom, tile_x, tile_y: max_idx.saturating_sub(tms_y) }
+    }
+
+    /// Converts XYZ tile coordinates to TMS tile coordinates.
+    pub const fn to_tms(self) -> (u8, u32, u32) {
+        let max_idx = (1u32 << self.zoom).saturating_sub(1);
+        (self.zoom, self.tile_x, max_idx.saturating_sub(self.tile_y))
+    }
+}
+
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
 /// aerial tile servers over open sea at high zoom levels (`REQ-MAP-02`).
 pub fn is_placeholder_rgb_tile(rgb_bytes: &[u8]) -> bool {
