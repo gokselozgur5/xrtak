@@ -58,6 +58,19 @@ pub fn compute_cep_radius_m(initial_ce_m: f64, speed_mps: f64, dt_sec: f64) -> f
     (r0.powi(2) + vel_variance + turn_variance).sqrt()
 }
 
+/// Kinematic prediction input parameters for an entity trajectory projection.
+#[derive(Debug, Clone)]
+pub struct TrackPredictInput<'a> {
+    pub uid: &'a str,
+    pub callsign: &'a str,
+    pub current_enu: (f64, f64, f64),
+    pub speed_mps: f64,
+    pub course_deg: f64,
+    pub is_stale: bool,
+    pub initial_ce_m: f64,
+    pub horizons: &'a [f64],
+}
+
 /// Generates kinematic track prediction points across specified time horizons.
 // TODO(XR-070): replace the argument list with a TrackPredictInput struct.
 #[allow(clippy::too_many_arguments)]
