@@ -127,3 +127,11 @@ impl PoseTrackingFlags {
         self.orientation_valid && self.position_valid
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct OpenXrPoseSample {
+    pub position: PosePosition,
+    pub orientation: PoseOrientation,
+    pub tracking_flags: PoseTrackingFlags,
+    pub timestamp_ns: i64,
+}
