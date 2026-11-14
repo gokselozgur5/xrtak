@@ -65,6 +65,10 @@ pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
     parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
 };
+pub use openxr_pose::{
+    OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition,
+    PoseTrackingFlags, TacticalHeadPose,
+};
 pub use opord::{
     build_opord_bundle, generate_kml_tactical_scene, generate_nato_opord_markdown,
     OpordExportBundle, OpordUnitSummary,
