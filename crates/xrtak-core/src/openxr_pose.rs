@@ -97,3 +97,11 @@ impl PoseOrientation {
         )
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PoseTrackingFlags {
+    pub orientation_valid: bool,
+    pub position_valid: bool,
+    pub orientation_tracked: bool,
+    pub position_tracked: bool,
+}
