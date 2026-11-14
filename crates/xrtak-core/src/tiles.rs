@@ -160,6 +160,23 @@ impl TileCoord {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GeoPackageTileEntry {
+    pub coord: TileCoord,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GeoPackageTileMatrixMetadata {
+    pub table_name: String,
+    pub min_zoom: u8,
+    pub max_zoom: u8,
+    pub min_x: f64,
+    pub min_y: f64,
+    pub max_x: f64,
+    pub max_y: f64,
+}
+
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
 /// aerial tile servers over open sea at high zoom levels (`REQ-MAP-02`).
 pub fn is_placeholder_rgb_tile(rgb_bytes: &[u8]) -> bool {
