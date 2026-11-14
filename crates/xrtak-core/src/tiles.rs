@@ -310,6 +310,23 @@ impl GeoPackageCachedLayer {
     pub fn cache_len(&self) -> usize {
         self.cache.len()
     }
+
+    pub fn get_tile(&mut self, coord: TileCoord) -> Option<Vec<u8>> {
+        if let Some(cached) = self.cache.get(&coord) {
+            return Some(cached.to_vec());
+        }
+        if let Some(raw) = self.reader.get_tile(coord) {
+            let data = raw.to_vec();
+            self.cache.put(coord, data.clone());
+            return Some(data);
+        }
+        None
+    }
+
+    pub fn get_tms_tile(&mut self, zoom: u8, tile_x: u32, tms_y: u32) -> Option<Vec<u8>> {
+        let coord = TileCoord::from_tms(zoom, tile_x, tms_y);
+        self.get_tile(coord)
+    }
 }
 
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
