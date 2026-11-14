@@ -6,3 +6,15 @@ pub struct Vertex3D {
     pub normal: [f32; 3],
     pub uv: [f32; 2],
 }
+
+impl Vertex3D {
+    pub const fn new(position: [f32; 3], normal: [f32; 3], uv: [f32; 2]) -> Self {
+        Self { position, normal, uv }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MarkerMesh {
+    pub vertices: Vec<Vertex3D>,
+    pub indices: Vec<u32>,
+}
