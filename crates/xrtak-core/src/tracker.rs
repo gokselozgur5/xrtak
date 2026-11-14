@@ -71,6 +71,31 @@ pub struct TrackPredictInput<'a> {
     pub horizons: &'a [f64],
 }
 
+impl<'a> TrackPredictInput<'a> {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        uid: &'a str,
+        callsign: &'a str,
+        current_enu: (f64, f64, f64),
+        speed_mps: f64,
+        course_deg: f64,
+        is_stale: bool,
+        initial_ce_m: f64,
+        horizons: &'a [f64],
+    ) -> Self {
+        Self {
+            uid,
+            callsign,
+            current_enu,
+            speed_mps,
+            course_deg,
+            is_stale,
+            initial_ce_m,
+            horizons,
+        }
+    }
+}
+
 /// Generates kinematic track prediction points across specified time horizons.
 // TODO(XR-070): replace the argument list with a TrackPredictInput struct.
 #[allow(clippy::too_many_arguments)]
