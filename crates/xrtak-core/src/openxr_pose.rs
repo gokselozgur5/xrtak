@@ -40,7 +40,6 @@ impl PoseOrientation {
     pub fn norm(&self) -> f64 {
         (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
     }
-}
 
     pub fn normalized(&self) -> Self {
         let n = self.norm();
