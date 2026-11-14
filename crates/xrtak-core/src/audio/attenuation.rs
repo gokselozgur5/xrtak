@@ -34,3 +34,30 @@ impl Default for AttenuationParams {
         }
     }
 }
+
+pub fn compute_distance_attenuation(distance_m: f64, params: &AttenuationParams) -> f64 {
+    if params.model == AttenuationModel::None || distance_m <= params.min_distance_m {
+        return 1.0;
+    }
+    if distance_m >= params.max_distance_m {
+        return 0.0;
+    }
+    match params.model {
+        AttenuationModel::None => 1.0,
+        AttenuationModel::InverseDistance => {
+            (params.min_distance_m
+                / (params.min_distance_m + params.rolloff_factor * (distance_m - params.min_distance_m)))
+                .clamp(0.0, 1.0)
+        }
+        AttenuationModel::Linear => {
+            let span = params.max_distance_m - params.min_distance_m;
+            if span <= 0.0 {
+                return 0.0;
+            }
+            (1.0 - params.rolloff_factor * (distance_m - params.min_distance_m) / span).clamp(0.0, 1.0)
+        }
+        AttenuationModel::Exponential => {
+            (distance_m / params.min_distance_m).max(1.0).powf(-params.rolloff_factor).clamp(0.0, 1.0)
+        }
+    }
+}
