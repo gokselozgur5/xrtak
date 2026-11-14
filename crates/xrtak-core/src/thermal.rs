@@ -215,3 +215,4 @@ mod tests {
         assert!(glsl.contains("gl_FragColor"));
         assert!(godot.contains("shader_type canvas_item"));
     }
+}
