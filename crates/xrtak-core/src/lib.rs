@@ -608,14 +608,7 @@ impl TacticalWorld {
             .map(|e| (e.callsign.clone(), e.cot_type.clone()))
             .unwrap_or_else(|| ("FALCON-1".to_string(), "a-f-A-M-F-Q".to_string()));
 
-        let xml = build_spi_cot_xml(
-            sensor_uid,
-            &parent_callsign,
-            &parent_type,
-            lat,
-            lon,
-            hae_m,
-        );
+        let xml = build_spi_cot_xml(sensor_uid, &parent_callsign, &parent_type, lat, lon, hae_m);
         self.ingest_cot_xml(&xml, now_ms)
     }
 
