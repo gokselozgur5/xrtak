@@ -80,3 +80,13 @@ pub fn sample_rainbow(t: f32) -> ColorRgb {
     let x = t.clamp(0.0, 1.0);
     let r = (2.0 * x - 0.5).clamp(0.0, 1.0);
     let g = (1.0 - (2.0 * x - 1.0).abs()).clamp(0.0, 1.0);
+    let b = (1.0 - 2.0 * x).clamp(0.0, 1.0);
+    ColorRgb::new(r, g, b)
+}
+
+/// Samples a normalized temperature `t` in [0.0, 1.0] under GreenHot palette.
+pub fn sample_green_hot(t: f32) -> ColorRgb {
+    let val = t.clamp(0.0, 1.0);
+    ColorRgb::new(val * 0.15, val, val * 0.25)
+}
+
