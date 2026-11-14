@@ -40,7 +40,10 @@ fn swath_width_matches_trigonometry_across_altitudes() {
         for h in [50.0_f64, 100.0, 250.0, 500.0] {
             let w = compute_camera_swath_width_m(h, Some(fov), None, None);
             let expected = 2.0 * h * (fov.to_radians() / 2.0).tan();
-            assert!((w - expected).abs() < 1e-3, "h={h} fov={fov}: {w} vs {expected}");
+            assert!(
+                (w - expected).abs() < 1e-3,
+                "h={h} fov={fov}: {w} vs {expected}"
+            );
         }
     }
 }
