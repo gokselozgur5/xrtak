@@ -48,3 +48,16 @@ fn test_deadband_and_bounds_detection() {
     menu.update_cursor(0.2, 0.0, 0.1);
     assert_eq!(menu.selected_index, Some(0));
 }
+
+#[test]
+fn test_sector_selection_and_disabled_branch() {
+    let mut menu = fixture_menu();
+    menu.open();
+    menu.update_cursor(0.0, 0.2, 0.1);
+    assert_eq!(menu.selected_index, Some(0));
+    menu.update_cursor(-0.2, 0.0, 0.1);
+    assert_eq!(menu.selected_index, Some(1));
+    let act = menu.select();
+    assert_eq!(act, Some(RadialAction::SelectTool("measure".into())));
+    assert_eq!(menu.state, RadialMenuState::Closed);
+}
