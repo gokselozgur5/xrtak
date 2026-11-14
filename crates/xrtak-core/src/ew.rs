@@ -196,6 +196,20 @@ impl<'a> BurnThroughScenario<'a> {
             current_target_range_m,
         }
     }
+
+    pub fn evaluate(&self) -> BurnThroughAssessment {
+        compute_burn_through_range(
+            self.radar_callsign,
+            self.p_radar_w,
+            self.g_radar_dbi,
+            self.target_rcs_m2,
+            self.jammer_callsign,
+            self.p_jammer_w,
+            self.g_jammer_dbi,
+            self.distance_radar_to_jammer_m,
+            self.current_target_range_m,
+        )
+    }
 }
 
 /// Compute radar burn-through range R_BT where target echo power >= jammer noise.
