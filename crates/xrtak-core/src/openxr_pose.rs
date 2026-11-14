@@ -216,3 +216,13 @@ impl OpenXrPoseAdapter {
         let final_e = self.table_anchor_enu.0 + rotated_e;
         let final_u = self.table_anchor_enu.1 + raw_u;
         let final_n = self.table_anchor_enu.2 + rotated_n;
+
+        let rot_fwd_e = fwd_e * cos_y + fwd_n * sin_y;
+        let rot_fwd_n = -fwd_e * sin_y + fwd_n * cos_y;
+
+        let fwd_len = (rot_fwd_e * rot_fwd_e + fwd_u * fwd_u + rot_fwd_n * rot_fwd_n).sqrt();
+        let normalized_fwd = if fwd_len < 1e-12 {
+            (0.0, 0.0, 1.0)
+        } else {
+            (rot_fwd_e / fwd_len, fwd_u / fwd_len, rot_fwd_n / fwd_len)
+        };
