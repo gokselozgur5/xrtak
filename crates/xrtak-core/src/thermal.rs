@@ -178,3 +178,19 @@ impl ThermalShaderConfig {
             palette_branch
         )
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sample_white_hot_bounds() {
+        let low = sample_white_hot(0.0);
+        let high = sample_white_hot(1.0);
+        assert_eq!(low.to_u8_array(), [0, 0, 0]);
+        assert_eq!(high.to_u8_array(), [255, 255, 255]);
+    }
+
+    #[test]
+    fn test_sample_black_hot_inverted() {
