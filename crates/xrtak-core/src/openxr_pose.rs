@@ -135,3 +135,14 @@ pub struct OpenXrPoseSample {
     pub tracking_flags: PoseTrackingFlags,
     pub timestamp_ns: i64,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct TacticalHeadPose {
+    pub head_enu: (f64, f64, f64),
+    pub forward_enu: (f64, f64, f64),
+    pub yaw_deg: f64,
+    pub pitch_deg: f64,
+    pub roll_deg: f64,
+    pub is_valid: bool,
+    pub timestamp_unix_ms: u64,
+}
