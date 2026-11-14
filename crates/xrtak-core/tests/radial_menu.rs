@@ -36,3 +36,15 @@ fn test_open_and_dismiss_flow() {
     menu.open();
     assert_eq!(menu.state, RadialMenuState::Active);
 }
+
+#[test]
+fn test_deadband_and_bounds_detection() {
+    let mut menu = fixture_menu();
+    menu.open();
+    menu.update_cursor(0.05, 0.0, 0.1);
+    assert_eq!(menu.selected_index, None);
+    menu.update_cursor(0.6, 0.0, 0.1);
+    assert_eq!(menu.selected_index, None);
+    menu.update_cursor(0.2, 0.0, 0.1);
+    assert_eq!(menu.selected_index, Some(0));
+}
