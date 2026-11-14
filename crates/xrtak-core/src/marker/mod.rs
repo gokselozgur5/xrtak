@@ -8,6 +8,7 @@ pub mod generator;
 pub mod geometry;
 pub mod mesh;
 pub mod pyramid_mesh;
+pub mod shape;
 pub mod spi_marker;
 
 pub use affiliation_color::color_for_affiliation;
