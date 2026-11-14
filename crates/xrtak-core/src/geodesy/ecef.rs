@@ -54,3 +54,27 @@ pub fn geodetic_to_ecef(geo: &GeodeticCoord) -> EcefCoord {
 
     EcefCoord::new(x, y, z)
 }
+
+/// Converts ECEF Cartesian coordinates to WGS84 geodetic coordinates (Bowring's algorithm).
+pub fn ecef_to_geodetic(ecef: &EcefCoord) -> GeodeticCoord {
+    let p = (ecef.x_m * ecef.x_m + ecef.y_m * ecef.y_m).sqrt();
+    if p < 1e-9 {
+        let lat = if ecef.z_m >= 0.0 { 90.0 } else { -90.0 };
+        return GeodeticCoord::new(lat, 0.0, ecef.z_m.abs() - WGS84_B);
+    }
+
+    let theta = (ecef.z_m * WGS84_A).atan2(p * WGS84_B);
+    let s_th = theta.sin();
+    let c_th = theta.cos();
+
+    let num = ecef.z_m + WGS84_E_PRIME2 * WGS84_B * s_th * s_th * s_th;
+    let den = p - WGS84_E2 * WGS84_A * c_th * c_th * c_th;
+    let lat_rad = num.atan2(den);
+    let lon_rad = ecef.y_m.atan2(ecef.x_m);
+
+    let sin_lat = lat_rad.sin();
+    let n = WGS84_A / (1.0 - WGS84_E2 * sin_lat * sin_lat).sqrt();
+    let alt_m = p / lat_rad.cos() - n;
+
+    GeodeticCoord::new(lat_rad.to_degrees(), lon_rad.to_degrees(), alt_m)
+}
