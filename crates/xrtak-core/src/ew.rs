@@ -157,6 +157,20 @@ pub struct BurnThroughAssessment {
     pub is_burned_through: bool,
 }
 
+/// Radar burn-through scenario configuration parameters.
+#[derive(Debug, Clone)]
+pub struct BurnThroughScenario<'a> {
+    pub radar_callsign: &'a str,
+    pub p_radar_w: f64,
+    pub g_radar_dbi: f64,
+    pub target_rcs_m2: f64,
+    pub jammer_callsign: &'a str,
+    pub p_jammer_w: f64,
+    pub g_jammer_dbi: f64,
+    pub distance_radar_to_jammer_m: f64,
+    pub current_target_range_m: f64,
+}
+
 /// Compute radar burn-through range R_BT where target echo power >= jammer noise.
 // TODO(XR-072): replace the argument list with a BurnThroughScenario struct.
 #[allow(clippy::too_many_arguments)]
