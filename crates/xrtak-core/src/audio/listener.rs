@@ -25,3 +25,12 @@ pub struct ListenerPose {
     pub position: AudioVec3,
     pub orientation: ListenerOrientation,
 }
+
+impl Default for ListenerPose {
+    fn default() -> Self {
+        Self {
+            position: AudioVec3::ZERO,
+            orientation: ListenerOrientation::default(),
+        }
+    }
+}
