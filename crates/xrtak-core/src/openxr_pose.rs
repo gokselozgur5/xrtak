@@ -290,3 +290,21 @@ mod tests {
         let f_invalid = PoseTrackingFlags::from_openxr_bits(0x00);
         assert!(!f_invalid.is_usable());
     }
+
+    #[test]
+    fn test_adapter_pose_transformation() {
+        let adapter = OpenXrPoseAdapter::new("OP-1", "VIPER", "Quest 3")
+            .with_table_transform((10.0, 1.5, 20.0), 0.0, 1.0);
+        let sample = OpenXrPoseSample {
+            position: PosePosition::new(0.0, 0.0, 0.0),
+            orientation: PoseOrientation::IDENTITY,
+            tracking_flags: PoseTrackingFlags::FULLY_TRACKED,
+            timestamp_ns: 50_000_000,
+        };
+        let pose = adapter.transform_pose(&sample);
+        assert!(pose.is_valid);
+        assert_eq!(pose.head_enu, (10.0, 1.5, 20.0));
+        assert_eq!(pose.timestamp_unix_ms, 50);
+        assert!((pose.forward_enu.2 - 1.0).abs() < 1e-4);
+        assert!(pose.yaw_deg.abs() < 1e-4);
+    }
