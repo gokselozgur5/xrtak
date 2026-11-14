@@ -181,3 +181,28 @@ impl OpenXrPoseAdapter {
         self.table_scale = scale.clamp(0.01, 100.0);
         self
     }
+
+    pub fn transform_pose(&self, sample: &OpenXrPoseSample) -> TacticalHeadPose {
+        let is_valid = sample.tracking_flags.is_usable();
+        let ts_ms = (sample.timestamp_ns / 1_000_000).max(0) as u64;
+
+        if !is_valid {
+            return TacticalHeadPose {
+                head_enu: self.table_anchor_enu,
+                forward_enu: (0.0, 0.0, 1.0),
+                yaw_deg: self.table_yaw_deg,
+                pitch_deg: 0.0,
+                roll_deg: 0.0,
+                is_valid: false,
+                timestamp_unix_ms: ts_ms,
+            };
+        }
+
+        let local_fwd = (0.0, 0.0, -1.0);
+        let rotated_fwd = sample.orientation.rotate_vector(local_fwd);
+        let (raw_e, raw_u, raw_n) = (
+            sample.position.x * self.table_scale,
+            sample.position.y * self.table_scale,
+            -sample.position.z * self.table_scale,
+        );
+        let (fwd_e, fwd_u, fwd_n) = (rotated_fwd.0, rotated_fwd.1, -rotated_fwd.2);
