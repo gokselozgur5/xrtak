@@ -1,5 +1,5 @@
-use crate::domain::Affiliation;
 use super::shape::MarkerShape;
+use crate::domain::Affiliation;
 
 pub fn shape_for_affiliation(affil: Affiliation) -> MarkerShape {
     match affil {

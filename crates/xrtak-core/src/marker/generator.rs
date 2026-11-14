@@ -1,4 +1,3 @@
-use crate::domain::Affiliation;
 use super::affiliation_color::color_for_affiliation;
 use super::affiliation_shape::shape_for_affiliation;
 use super::billboard_mesh::generate_billboard_quad_mesh;
@@ -6,6 +5,7 @@ use super::circle_mesh::generate_circle_marker_mesh;
 use super::diamond_mesh::generate_diamond_marker_mesh;
 use super::geometry::MarkerGeometry;
 use super::shape::MarkerShape;
+use crate::domain::Affiliation;
 
 pub fn generate_marker_geometry(affiliation: Affiliation, size: f32) -> MarkerGeometry {
     let shape = shape_for_affiliation(affiliation);

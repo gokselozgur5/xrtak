@@ -1,5 +1,5 @@
-use crate::domain::Affiliation;
 use super::color::MarkerColor;
+use crate::domain::Affiliation;
 
 pub fn color_for_affiliation(affil: Affiliation) -> MarkerColor {
     match affil {

@@ -1,6 +1,6 @@
+use super::color::MarkerColor;
 use super::geometry::MarkerGeometry;
 use super::pyramid_mesh::generate_pyramid_marker_mesh;
-use super::color::MarkerColor;
 use super::shape::MarkerShape;
 
 pub fn generate_spi_pin_marker_geometry(base_size: f32, height: f32) -> MarkerGeometry {

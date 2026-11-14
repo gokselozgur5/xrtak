@@ -11,9 +11,6 @@ pub fn generate_pyramid_marker_mesh(base_size: f32, height: f32) -> MarkerMesh {
         Vertex3D::new([half, -half, top], [0.5, -0.5, 0.5], [1.0, 0.0]),
         Vertex3D::new([-half, -half, top], [-0.5, -0.5, 0.5], [0.0, 0.0]),
     ];
-    let indices = vec![
-        0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1,
-        1, 3, 2, 1, 4, 3,
-    ];
+    let indices = vec![0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1, 1, 3, 2, 1, 4, 3];
     MarkerMesh { vertices, indices }
 }

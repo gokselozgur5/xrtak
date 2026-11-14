@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
 use super::color::MarkerColor;
 use super::mesh::MarkerMesh;
 use super::shape::MarkerShape;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MarkerGeometry {

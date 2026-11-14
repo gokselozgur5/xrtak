@@ -9,7 +9,11 @@ pub struct Vertex3D {
 
 impl Vertex3D {
     pub const fn new(position: [f32; 3], normal: [f32; 3], uv: [f32; 2]) -> Self {
-        Self { position, normal, uv }
+        Self {
+            position,
+            normal,
+            uv,
+        }
     }
 }
 
