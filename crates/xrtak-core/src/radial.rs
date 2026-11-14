@@ -56,3 +56,15 @@ pub struct RadialMenuStateMachine {
     pub selected_index: Option<usize>,
     pub dwell_timer_sec: f64,
 }
+
+impl RadialMenuStateMachine {
+    pub fn new(items: Vec<RadialMenuItem>, config: RadialMenuConfig) -> Self {
+        Self {
+            config,
+            items,
+            state: RadialMenuState::Closed,
+            selected_index: None,
+            dwell_timer_sec: 0.0,
+        }
+    }
+}
