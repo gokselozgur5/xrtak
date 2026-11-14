@@ -206,3 +206,13 @@ impl OpenXrPoseAdapter {
             -sample.position.z * self.table_scale,
         );
         let (fwd_e, fwd_u, fwd_n) = (rotated_fwd.0, rotated_fwd.1, -rotated_fwd.2);
+
+        let yaw_rad = self.table_yaw_deg.to_radians();
+        let cos_y = yaw_rad.cos();
+        let sin_y = yaw_rad.sin();
+        let rotated_e = raw_e * cos_y + raw_n * sin_y;
+        let rotated_n = -raw_e * sin_y + raw_n * cos_y;
+
+        let final_e = self.table_anchor_enu.0 + rotated_e;
+        let final_u = self.table_anchor_enu.1 + raw_u;
+        let final_n = self.table_anchor_enu.2 + rotated_n;
