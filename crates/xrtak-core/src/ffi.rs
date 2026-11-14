@@ -17,9 +17,11 @@ pub unsafe extern "C" fn xrtak_lla_to_enu(lat: f64, lon: f64, hae_m: f64, out_en
         return;
     }
     let (e, u, n) = GeoOrigin::default().lla_to_enu(lat, lon, hae_m);
-    *out_enu.add(0) = e;
-    *out_enu.add(1) = u;
-    *out_enu.add(2) = n;
+    unsafe {
+        *out_enu.add(0) = e;
+        *out_enu.add(1) = u;
+        *out_enu.add(2) = n;
+    }
 }
 
 #[cfg(test)]
