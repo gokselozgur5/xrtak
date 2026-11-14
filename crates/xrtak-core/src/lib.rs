@@ -466,7 +466,12 @@ impl TacticalWorld {
                 uid: "ZONE-ROZ-KILLBOX-1".to_string(),
                 name: "KILLBOX RED-ALPHA [ROZ]".to_string(),
                 affiliation: Affiliation::Hostile,
-                vertices_en: vec![(-380.0, -280.0), (60.0, -280.0), (90.0, 40.0), (-340.0, 60.0)],
+                vertices_en: vec![
+                    (-380.0, -280.0),
+                    (60.0, -280.0),
+                    (90.0, 40.0),
+                    (-340.0, 60.0),
+                ],
                 floor_m: 0.0,
                 ceiling_m: 380.0,
                 inside_uids: Vec::new(),
