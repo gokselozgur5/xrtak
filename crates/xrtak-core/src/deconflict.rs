@@ -74,6 +74,20 @@ impl CpaTrack {
             course_deg,
         }
     }
+
+    /// Evaluates CPA conflict geometry against another track.
+    pub fn compute_cpa(&self, other: &Self) -> AirspaceConflictReport {
+        compute_pairwise_cpa(
+            &self.uid,
+            self.pos,
+            self.speed_mps,
+            self.course_deg,
+            &other.uid,
+            other.pos,
+            other.speed_mps,
+            other.course_deg,
+        )
+    }
 }
 
 /// Calculates Closest Point of Approach (CPA) between two 3D moving entities.
