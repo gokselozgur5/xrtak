@@ -715,7 +715,9 @@ impl TacticalWorld {
             let north_m = 90.0 + 320.0 * (2.0 * a).sin() * 0.5;
             let ground_h = self.terrain.sample_relief_m(east_m, north_m);
             let up_m = ground_h + 240.0;
-            let course_deg = (a.cos().atan2((2.0 * a).cos())).to_degrees().rem_euclid(360.0);
+            let course_deg = (a.cos().atan2((2.0 * a).cos()))
+                .to_degrees()
+                .rem_euclid(360.0);
             let gimbal_az = (course_deg + (t * 0.6).sin() * 35.0).rem_euclid(360.0);
 
             self.upsert_sim_entity(
