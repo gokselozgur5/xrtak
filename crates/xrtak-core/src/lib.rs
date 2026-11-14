@@ -678,7 +678,9 @@ impl TacticalWorld {
             let dn = target_n - north_m;
             let dup = target_up - up_m;
             let horiz_dist = (de * de + dn * dn).sqrt().max(1.0);
-            let slant_range = (horiz_dist * horiz_dist + dup * dup).sqrt().clamp(150.0, 1400.0);
+            let slant_range = (horiz_dist * horiz_dist + dup * dup)
+                .sqrt()
+                .clamp(150.0, 1400.0);
             let gimbal_az = de.atan2(dn).to_degrees().rem_euclid(360.0);
             let gimbal_el = dup.atan2(horiz_dist).to_degrees();
 
