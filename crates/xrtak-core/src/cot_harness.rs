@@ -134,3 +134,12 @@ impl CotParseHarness {
         Ok(ParsedCotMessage { entity, raw_bytes_len: raw.payload.len(), parse_duration_micros: elapsed })
     }
 }
+
+impl CotParseHarness {
+    pub fn parse_batch(
+        &mut self,
+        messages: &[RawCotMessage],
+    ) -> Vec<Result<ParsedCotMessage, CotHarnessError>> {
+        messages.iter().map(|msg| self.parse_raw(msg)).collect()
+    }
+}
