@@ -68,7 +68,7 @@ fn test_dwell_confirmation_state() {
     menu.open();
     menu.update_cursor(0.2, 0.0, 0.1);
     assert_eq!(menu.state, RadialMenuState::Active);
-    menu.update_cursor(0.2, 0.0, 0.25);
+    menu.update_cursor(0.2, 0.0, 0.35);
     assert_eq!(menu.state, RadialMenuState::Confirming);
     menu.update_cursor(-0.2, 0.0, 0.05);
     assert_eq!(menu.selected_index, Some(1));
