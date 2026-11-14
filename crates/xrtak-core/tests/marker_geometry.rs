@@ -5,16 +5,21 @@ use xrtak_core::marker::{
 };
 
 #[test]
-fn test_marker_color_and_shape_mapping() {
-    assert_eq!(color_for_affiliation(Affiliation::Hostile), MarkerColor::RED);
-    assert_eq!(color_for_affiliation(Affiliation::Friendly), MarkerColor::BLUE);
-    assert_eq!(color_for_affiliation(Affiliation::Neutral), MarkerColor::GREEN);
-    assert_eq!(color_for_affiliation(Affiliation::Unknown), MarkerColor::YELLOW);
+fn test_marker_color_mapping() {
+    let r = color_for_affiliation(Affiliation::Hostile);
+    let b = color_for_affiliation(Affiliation::Friendly);
+    let g = color_for_affiliation(Affiliation::Neutral);
+    let y = color_for_affiliation(Affiliation::Unknown);
+    assert_eq!((r, b, g, y), (MarkerColor::RED, MarkerColor::BLUE, MarkerColor::GREEN, MarkerColor::YELLOW));
+}
 
-    assert_eq!(shape_for_affiliation(Affiliation::Hostile), MarkerShape::Diamond);
-    assert_eq!(shape_for_affiliation(Affiliation::Friendly), MarkerShape::Rectangle);
-    assert_eq!(shape_for_affiliation(Affiliation::Neutral), MarkerShape::Circle);
-    assert_eq!(shape_for_affiliation(Affiliation::Unknown), MarkerShape::Square);
+#[test]
+fn test_marker_shape_mapping() {
+    let d = shape_for_affiliation(Affiliation::Hostile);
+    let r = shape_for_affiliation(Affiliation::Friendly);
+    let c = shape_for_affiliation(Affiliation::Neutral);
+    let s = shape_for_affiliation(Affiliation::Unknown);
+    assert_eq!((d, r, c, s), (MarkerShape::Diamond, MarkerShape::Rectangle, MarkerShape::Circle, MarkerShape::Square));
 }
 
 #[test]
