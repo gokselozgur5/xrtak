@@ -28,3 +28,11 @@ pub enum RadialMenuState {
     Confirming,
     Dismissed,
 }
+
+/// Configuration parameters for radial menu geometry and thresholds.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RadialMenuConfig {
+    pub inner_deadband_radius: f64,
+    pub outer_radius: f64,
+    pub dwell_confirm_sec: f64,
+}
