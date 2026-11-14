@@ -168,3 +168,18 @@ pub struct MeshReassembler {
     pub buffers: HashMap<u32, FragmentReassemblyBuffer>,
     pub ttl_ms: u64,
 }
+
+impl MeshReassembler {
+    pub fn new(ttl_ms: u64) -> Self {
+        Self {
+            buffers: HashMap::new(),
+            ttl_ms,
+        }
+    }
+
+    pub fn prune_stale(&mut self, now_ms: u64) {
+        let ttl = self.ttl_ms;
+        self.buffers
+            .retain(|_, b| now_ms.saturating_sub(b.updated_unix_ms) <= ttl);
+    }
+}
