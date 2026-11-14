@@ -23,3 +23,14 @@ fn corridor_rings_are_closed() {
 }
 
 #[test]
+fn straight_corridor_area_matches_length_times_width() {
+    let line = vec![(0.0, 0.0), (2000.0, 0.0)];
+    let ring = build_buffered_corridor_polygon(&line, 100.0);
+    let expected = 2000.0 * 200.0;
+    let area = shoelace_area(&ring);
+    assert!(
+        (area - expected).abs() / expected < 0.01,
+        "area {area} vs {expected}"
+    );
+}
+
