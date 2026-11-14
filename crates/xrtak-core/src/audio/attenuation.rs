@@ -23,3 +23,14 @@ pub struct AttenuationParams {
     pub rolloff_factor: f64,
     pub model: AttenuationModel,
 }
+
+impl Default for AttenuationParams {
+    fn default() -> Self {
+        Self {
+            min_distance_m: 1.0,
+            max_distance_m: 500.0,
+            rolloff_factor: 1.0,
+            model: AttenuationModel::default(),
+        }
+    }
+}
