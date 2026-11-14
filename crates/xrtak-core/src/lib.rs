@@ -13,6 +13,7 @@ pub mod fires;
 pub mod geo;
 pub mod hud;
 pub mod manifest;
+pub mod marker;
 pub mod mesh_frag;
 pub mod mission;
 pub mod opord;
