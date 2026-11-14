@@ -51,7 +51,7 @@ pub use domain::{
 };
 pub use ew::{
     compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
-    EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
+    BurnThroughScenario, EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
 };
 pub use fires::{compute_ballistic_trajectory, BallisticSolution, MunitionType, TrajectoryPoint3d};
 pub use geo::{
