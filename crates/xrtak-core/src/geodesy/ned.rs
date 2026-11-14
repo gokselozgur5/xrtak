@@ -33,3 +33,23 @@ impl NedOrigin {
         Self { geodetic, ecef }
     }
 }
+
+/// Transforms an ECEF point to NED coordinates relative to the given origin.
+pub fn ecef_to_ned(point: &EcefCoord, origin: &NedOrigin) -> NedCoord {
+    let dx = point.x_m - origin.ecef.x_m;
+    let dy = point.y_m - origin.ecef.y_m;
+    let dz = point.z_m - origin.ecef.z_m;
+
+    let lat_rad = origin.geodetic.lat_deg.to_radians();
+    let lon_rad = origin.geodetic.lon_deg.to_radians();
+    let sin_lat = lat_rad.sin();
+    let cos_lat = lat_rad.cos();
+    let sin_lon = lon_rad.sin();
+    let cos_lon = lon_rad.cos();
+
+    let north = -sin_lat * cos_lon * dx - sin_lat * sin_lon * dy + cos_lat * dz;
+    let east = -sin_lon * dx + cos_lon * dy;
+    let down = -cos_lat * cos_lon * dx - cos_lat * sin_lon * dy - sin_lat * dz;
+
+    NedCoord::new(north, east, down)
+}
