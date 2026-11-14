@@ -164,6 +164,19 @@ fn compute_manifest_fnv1a_hex(
     format!("{hash:016x}")
 }
 
+/// Input parameters for building an offline mapset manifest (`REQ-MAN-01..02`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ManifestInput<'a> {
+    pub name: &'a str,
+    pub provider: ImageryProvider,
+    pub south_deg: f64,
+    pub west_deg: f64,
+    pub north_deg: f64,
+    pub east_deg: f64,
+    pub min_zoom: u8,
+    pub max_zoom: u8,
+}
+
 /// Build an offline mapset manifest (`MapsetManifest`) for the given WGS84 bounding box and zoom range (`ICD-18`).
 // TODO(XR-073): replace the argument list with an input struct.
 #[allow(clippy::too_many_arguments)]
