@@ -263,3 +263,19 @@ impl OpenXrPoseAdapter {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_quaternion_identity_and_euler() {
+        let q = PoseOrientation::IDENTITY;
+        assert_eq!(q.norm(), 1.0);
+        let (yaw, pitch, roll) = q.to_euler_deg();
+        assert!(yaw.abs() < 1e-4);
+        assert!(pitch.abs() < 1e-4);
+        assert!(roll.abs() < 1e-4);
+        let v = (1.0, 2.0, 3.0);
+        assert_eq!(q.rotate_vector(v), v);
+    }
