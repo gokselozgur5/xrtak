@@ -36,3 +36,12 @@ fn test_generate_marker_geometry_affiliations() {
     assert_eq!(neutral.color, MarkerColor::GREEN);
     assert!(neutral.mesh.vertices.len() >= 4);
 }
+
+#[test]
+fn test_generate_spi_pin_marker_geometry() {
+    let spi = generate_spi_pin_marker_geometry(1.0, 2.5);
+    assert_eq!(spi.color, MarkerColor::CYAN);
+    assert_eq!(spi.mesh.vertices.len(), 5);
+    assert_eq!(spi.mesh.indices.len(), 18);
+    assert_eq!(spi.mesh.vertices[0].position, [0.0, 0.0, 0.0]);
+}
