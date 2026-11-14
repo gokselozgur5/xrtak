@@ -61,3 +61,16 @@ fn test_sector_selection_and_disabled_branch() {
     assert_eq!(act, Some(RadialAction::SelectTool("measure".into())));
     assert_eq!(menu.state, RadialMenuState::Closed);
 }
+
+#[test]
+fn test_dwell_confirmation_state() {
+    let mut menu = fixture_menu();
+    menu.open();
+    menu.update_cursor(0.2, 0.0, 0.1);
+    assert_eq!(menu.state, RadialMenuState::Active);
+    menu.update_cursor(0.2, 0.0, 0.25);
+    assert_eq!(menu.state, RadialMenuState::Confirming);
+    menu.update_cursor(-0.2, 0.0, 0.05);
+    assert_eq!(menu.selected_index, Some(1));
+    assert_eq!(menu.state, RadialMenuState::Active);
+}
