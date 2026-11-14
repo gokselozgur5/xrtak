@@ -7,3 +7,13 @@ pub struct ListenerOrientation {
     pub pitch_rad: f64,
     pub roll_rad: f64,
 }
+
+impl Default for ListenerOrientation {
+    fn default() -> Self {
+        Self {
+            yaw_rad: 0.0,
+            pitch_rad: 0.0,
+            roll_rad: 0.0,
+        }
+    }
+}
