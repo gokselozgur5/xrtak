@@ -645,7 +645,8 @@ impl TacticalWorld {
         self.sim_time_sec += dt_sec;
         if !self.sim_enabled {
             self.refresh_threat_domes_and_zones();
-            self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
+            self.aar
+                .maybe_record(self.sim_time_sec, now_ms, &self.entities);
             return;
         }
         let t = self.sim_time_sec;
