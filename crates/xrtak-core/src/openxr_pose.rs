@@ -226,3 +226,19 @@ impl OpenXrPoseAdapter {
         } else {
             (rot_fwd_e / fwd_len, fwd_u / fwd_len, rot_fwd_n / fwd_len)
         };
+
+        let compass_yaw_deg = rot_fwd_e.atan2(rot_fwd_n).to_degrees().rem_euclid(360.0);
+        let horiz_range = (rot_fwd_e * rot_fwd_e + rot_fwd_n * rot_fwd_n).sqrt();
+        let pitch_deg = fwd_u.atan2(horiz_range.max(1e-6)).to_degrees();
+        let (_euler_yaw, _euler_pitch, roll_deg) = sample.orientation.to_euler_deg();
+
+        TacticalHeadPose {
+            head_enu: (final_e, final_u, final_n),
+            forward_enu: normalized_fwd,
+            yaw_deg: compass_yaw_deg,
+            pitch_deg,
+            roll_deg,
+            is_valid: true,
+            timestamp_unix_ms: ts_ms,
+        }
+    }
