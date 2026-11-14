@@ -146,3 +146,13 @@ pub struct TacticalHeadPose {
     pub is_valid: bool,
     pub timestamp_unix_ms: u64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenXrPoseAdapter {
+    pub operator_id: String,
+    pub callsign: String,
+    pub device_mode: String,
+    pub table_anchor_enu: (f64, f64, f64),
+    pub table_yaw_deg: f64,
+    pub table_scale: f64,
+}
