@@ -68,3 +68,14 @@ impl RadialMenuStateMachine {
         }
     }
 }
+
+impl RadialMenuStateMachine {
+    /// Opens the radial menu if currently closed.
+    pub fn open(&mut self) {
+        if self.state == RadialMenuState::Closed || self.state == RadialMenuState::Dismissed {
+            self.state = RadialMenuState::Active;
+            self.selected_index = None;
+            self.dwell_timer_sec = 0.0;
+        }
+    }
+}
