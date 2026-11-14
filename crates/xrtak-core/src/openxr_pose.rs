@@ -105,3 +105,25 @@ pub struct PoseTrackingFlags {
     pub orientation_tracked: bool,
     pub position_tracked: bool,
 }
+
+impl PoseTrackingFlags {
+    pub const FULLY_TRACKED: Self = Self {
+        orientation_valid: true,
+        position_valid: true,
+        orientation_tracked: true,
+        position_tracked: true,
+    };
+
+    pub fn from_openxr_bits(bits: u64) -> Self {
+        Self {
+            orientation_valid: (bits & 0x01) != 0,
+            position_valid: (bits & 0x02) != 0,
+            orientation_tracked: (bits & 0x04) != 0,
+            position_tracked: (bits & 0x08) != 0,
+        }
+    }
+
+    pub fn is_usable(&self) -> bool {
+        self.orientation_valid && self.position_valid
+    }
+}
