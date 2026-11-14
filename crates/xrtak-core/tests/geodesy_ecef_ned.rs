@@ -30,3 +30,12 @@ fn test_geodetic_to_ecef_roundtrip_ankara() {
     assert!((recovered.lon_deg - ankara.lon_deg).abs() < 1e-7);
     assert!((recovered.alt_m - ankara.alt_m).abs() < 1e-4);
 }
+
+#[test]
+fn test_ecef_to_ned_origin_displacement() {
+    let origin = NedOrigin::new(39.9208, 32.8541, 850.0);
+    let ned_origin = ecef_to_ned(&origin.ecef, &origin);
+    assert!(ned_origin.north_m.abs() < 1e-6);
+    assert!(ned_origin.east_m.abs() < 1e-6);
+    assert!(ned_origin.down_m.abs() < 1e-6);
+}
