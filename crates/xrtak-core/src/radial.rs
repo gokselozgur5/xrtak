@@ -18,3 +18,13 @@ pub struct RadialMenuItem {
     pub action: RadialAction,
     pub is_enabled: bool,
 }
+
+/// State of the radial menu interaction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RadialMenuState {
+    Closed,
+    Opening,
+    Active,
+    Confirming,
+    Dismissed,
+}
