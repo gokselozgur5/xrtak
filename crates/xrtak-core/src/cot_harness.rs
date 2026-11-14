@@ -117,3 +117,20 @@ impl CotParseHarness {
         self.metrics.total_success += 1;
     }
 }
+
+impl CotParseHarness {
+    pub fn parse_raw_with_provider(
+        &mut self,
+        raw: &RawCotMessage,
+        provider: &dyn ElevationProvider,
+    ) -> Result<ParsedCotMessage, CotHarnessError> {
+        self.metrics.total_processed += 1;
+        self.metrics.total_bytes_ingested += raw.payload.len();
+        let start = std::time::Instant::now();
+        let res = parse_cot_xml_with_provider(&raw.payload, &self.origin, provider, raw.received_unix_ms);
+        let elapsed = start.elapsed().as_micros() as u64;
+        let entity = res.map_err(|e| { self.metrics.total_failed += 1; Self::map_error(e) })?;
+        self.record_affiliation(entity.affiliation);
+        Ok(ParsedCotMessage { entity, raw_bytes_len: raw.payload.len(), parse_duration_micros: elapsed })
+    }
+}
