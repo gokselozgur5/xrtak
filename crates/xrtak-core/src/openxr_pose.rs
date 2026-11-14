@@ -41,3 +41,17 @@ impl PoseOrientation {
         (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
     }
 }
+
+    pub fn normalized(&self) -> Self {
+        let n = self.norm();
+        if n < 1e-12 {
+            Self::IDENTITY
+        } else {
+            Self {
+                x: self.x / n,
+                y: self.y / n,
+                z: self.z / n,
+                w: self.w / n,
+            }
+        }
+    }
