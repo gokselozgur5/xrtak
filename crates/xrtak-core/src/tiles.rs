@@ -290,6 +290,28 @@ impl LruTileCache {
     }
 }
 
+pub struct GeoPackageCachedLayer {
+    reader: GeoPackageMemoryReader,
+    cache: LruTileCache,
+}
+
+impl GeoPackageCachedLayer {
+    pub fn new(reader: GeoPackageMemoryReader, cache_capacity: usize) -> Self {
+        Self {
+            reader,
+            cache: LruTileCache::new(cache_capacity),
+        }
+    }
+
+    pub fn metadata(&self) -> Option<&GeoPackageTileMatrixMetadata> {
+        self.reader.metadata.as_ref()
+    }
+
+    pub fn cache_len(&self) -> usize {
+        self.cache.len()
+    }
+}
+
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
 /// aerial tile servers over open sea at high zoom levels (`REQ-MAP-02`).
 pub fn is_placeholder_rgb_tile(rgb_bytes: &[u8]) -> bool {
