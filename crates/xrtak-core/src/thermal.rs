@@ -194,3 +194,17 @@ mod tests {
 
     #[test]
     fn test_sample_black_hot_inverted() {
+        let low = sample_black_hot(0.0);
+        let high = sample_black_hot(1.0);
+        assert_eq!(low.to_u8_array(), [255, 255, 255]);
+        assert_eq!(high.to_u8_array(), [0, 0, 0]);
+    }
+
+    #[test]
+    fn test_lut_256_generation_length_and_endpoints() {
+        let lut = ThermalPalette::Ironbow.generate_lut_256();
+        assert_eq!(lut.len(), 256);
+        assert!(lut[255][0] > 200);
+    }
+
+    #[test]
