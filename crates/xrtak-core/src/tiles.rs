@@ -177,6 +177,34 @@ pub struct GeoPackageTileMatrixMetadata {
     pub max_y: f64,
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct GeoPackageMemoryReader {
+    pub metadata: Option<GeoPackageTileMatrixMetadata>,
+    tiles: std::collections::HashMap<TileCoord, Vec<u8>>,
+}
+
+impl GeoPackageMemoryReader {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_metadata(metadata: GeoPackageTileMatrixMetadata) -> Self {
+        Self {
+            metadata: Some(metadata),
+            tiles: std::collections::HashMap::new(),
+        }
+    }
+
+    pub fn insert_tile(&mut self, coord: TileCoord, tile_data: Vec<u8>) {
+        self.tiles.insert(coord, tile_data);
+    }
+
+    pub fn insert_tms_tile(&mut self, zoom: u8, tile_x: u32, tms_y: u32, tile_data: Vec<u8>) {
+        let coord = TileCoord::from_tms(zoom, tile_x, tms_y);
+        self.insert_tile(coord, tile_data);
+    }
+}
+
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
 /// aerial tile servers over open sea at high zoom levels (`REQ-MAP-02`).
 pub fn is_placeholder_rgb_tile(rgb_bytes: &[u8]) -> bool {
