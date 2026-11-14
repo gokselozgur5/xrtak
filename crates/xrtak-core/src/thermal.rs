@@ -162,3 +162,19 @@ impl ThermalShaderConfig {
             ThermalPalette::GreenHot => "    vec3 col = vec3(t * 0.15, t, t * 0.25);\n",
         };
         format!(
+            "shader_type canvas_item;\n\
+             uniform sampler2D ir_texture : hint_default_black;\n\
+             uniform float gain : hint_range(0.1, 5.0) = {:.4};\n\
+             void fragment() {{\n\
+                 float raw = texture(ir_texture, UV).r;\n\
+                 float norm = (raw - ({:.4})) / ({:.4});\n\
+                 float t = clamp(norm * gain, 0.0, 1.0);\n\
+             {}\
+                 COLOR = vec4(col, 1.0);\n\
+             }}\n",
+            self.gain,
+            self.min_temp_c,
+            (self.max_temp_c - self.min_temp_c).max(1e-4),
+            palette_branch
+        )
+    }
