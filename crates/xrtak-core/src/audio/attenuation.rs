@@ -8,3 +8,9 @@ pub enum AttenuationModel {
     Exponential,
     None,
 }
+
+impl Default for AttenuationModel {
+    fn default() -> Self {
+        Self::InverseDistance
+    }
+}
