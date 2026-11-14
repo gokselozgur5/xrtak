@@ -50,3 +50,18 @@ impl FragmentHeader {
         })
     }
 }
+
+impl MeshFragment {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(MESH_FRAGMENT_HEADER_SIZE + self.payload.len());
+        out.extend_from_slice(&self.header.to_bytes());
+        out.extend_from_slice(&self.payload);
+        out
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        let header = FragmentHeader::from_bytes(bytes)?;
+        let payload = bytes[MESH_FRAGMENT_HEADER_SIZE..].to_vec();
+        Some(Self { header, payload })
+    }
+}
