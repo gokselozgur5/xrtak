@@ -46,3 +46,13 @@ impl Default for RadialMenuConfig {
         }
     }
 }
+
+/// Tactical radial menu state machine managing gesture inputs.
+#[derive(Debug, Clone)]
+pub struct RadialMenuStateMachine {
+    pub config: RadialMenuConfig,
+    pub items: Vec<RadialMenuItem>,
+    pub state: RadialMenuState,
+    pub selected_index: Option<usize>,
+    pub dwell_timer_sec: f64,
+}
