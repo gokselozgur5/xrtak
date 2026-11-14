@@ -1,5 +1,4 @@
 use xrtak_core::cot_harness::*;
-use xrtak_core::GeoOrigin;
 
 #[test]
 fn test_cot_harness_happy_path_batch() {
