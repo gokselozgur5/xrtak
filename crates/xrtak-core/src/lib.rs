@@ -14,6 +14,7 @@ pub mod hud;
 pub mod manifest;
 pub mod mission;
 pub mod opord;
+pub mod radial;
 pub mod rf;
 pub mod sapient;
 pub mod tiles;
