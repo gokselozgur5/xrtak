@@ -854,7 +854,8 @@ impl TacticalWorld {
         }
 
         self.refresh_threat_domes_and_zones();
-        self.aar.maybe_record(self.sim_time_sec, now_ms, &self.entities);
+        self.aar
+            .maybe_record(self.sim_time_sec, now_ms, &self.entities);
     }
 
     /// Compute a terrain elevation cross-section profile across a polyline of `(east_m, north_m)` waypoints.
