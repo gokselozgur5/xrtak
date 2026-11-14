@@ -43,3 +43,17 @@ pub struct ColorRgb {
 
 impl ColorRgb {
     pub const fn new(r: f32, g: f32, b: f32) -> Self {
+        Self { r, g, b }
+    }
+
+    pub fn to_u8_array(self) -> [u8; 3] {
+        let cr = (self.r.clamp(0.0, 1.0) * 255.0).round() as u8;
+        let cg = (self.g.clamp(0.0, 1.0) * 255.0).round() as u8;
+        let cb = (self.b.clamp(0.0, 1.0) * 255.0).round() as u8;
+        [cr, cg, cb]
+    }
+}
+
+/// Samples a normalized temperature `t` in [0.0, 1.0] under WhiteHot palette.
+pub fn sample_white_hot(t: f32) -> ColorRgb {
+    let val = t.clamp(0.0, 1.0);
