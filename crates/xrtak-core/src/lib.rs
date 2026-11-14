@@ -16,6 +16,7 @@ pub mod manifest;
 pub mod marker;
 pub mod mesh_frag;
 pub mod mission;
+pub mod openxr_pose;
 pub mod opord;
 pub mod radial;
 pub mod rf;
@@ -25,7 +26,6 @@ pub mod tiles;
 pub mod tracker;
 pub mod viewshed;
 pub mod zones;
-pub mod openxr_pose;
 
 pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use battery::{
