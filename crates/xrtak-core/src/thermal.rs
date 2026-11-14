@@ -97,3 +97,17 @@ impl ThermalPalette {
             Self::WhiteHot => sample_white_hot(t),
             Self::BlackHot => sample_black_hot(t),
             Self::Ironbow => sample_ironbow(t),
+            Self::Rainbow => sample_rainbow(t),
+            Self::GreenHot => sample_green_hot(t),
+        }
+    }
+
+    /// Generates a discrete 256-color lookup table (LUT) as RGB triplets.
+    pub fn generate_lut_256(self) -> [[u8; 3]; 256] {
+        let mut lut = [[0u8; 3]; 256];
+        let mut i = 0;
+        while i < 256 {
+            let t = (i as f32) / 255.0;
+            lut[i] = self.sample_color(t).to_u8_array();
+            i += 1;
+        }
