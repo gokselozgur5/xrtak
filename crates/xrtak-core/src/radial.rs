@@ -119,3 +119,21 @@ impl RadialMenuStateMachine {
         self.handle_sector_hover(target_idx, dt_sec);
     }
 }
+
+impl RadialMenuStateMachine {
+    fn handle_sector_hover(&mut self, target_idx: Option<usize>, dt_sec: f64) {
+        match (self.selected_index, target_idx) {
+            (Some(cur), Some(tgt)) if cur == tgt => {
+                self.dwell_timer_sec += dt_sec;
+                if self.dwell_timer_sec >= self.config.dwell_confirm_sec {
+                    self.state = RadialMenuState::Confirming;
+                }
+            }
+            _ => {
+                self.selected_index = target_idx;
+                self.dwell_timer_sec = 0.0;
+                self.state = RadialMenuState::Active;
+            }
+        }
+    }
+}
