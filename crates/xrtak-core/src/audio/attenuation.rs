@@ -14,3 +14,12 @@ impl Default for AttenuationModel {
         Self::InverseDistance
     }
 }
+
+/// Parameters controlling spatial distance attenuation.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct AttenuationParams {
+    pub min_distance_m: f64,
+    pub max_distance_m: f64,
+    pub rolloff_factor: f64,
+    pub model: AttenuationModel,
+}
