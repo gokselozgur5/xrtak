@@ -23,3 +23,18 @@ impl std::fmt::Display for CotHarnessError {
 }
 
 impl std::error::Error for CotHarnessError {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RawCotMessage {
+    pub payload: String,
+    pub received_unix_ms: u64,
+}
+
+impl RawCotMessage {
+    pub fn new(payload: impl Into<String>, received_unix_ms: u64) -> Self {
+        Self {
+            payload: payload.into(),
+            received_unix_ms,
+        }
+    }
+}
