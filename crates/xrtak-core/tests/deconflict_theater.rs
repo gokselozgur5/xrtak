@@ -1,16 +1,16 @@
 use xrtak_core::deconflict::*;
 
+type TrackTuple<'a> = (&'a str, (f64, f64, f64), f64, f64);
+
 #[test]
 fn theater_pair_count_matches_combination_formula() {
-    let empty: [(&str, (f64, f64, f64), f64, f64); 0] = [];
+    let empty: [TrackTuple; 0] = [];
     let single = [("U1", (0.0, 0.0, 100.0), 20.0, 0.0)];
     let pair = [
         ("U1", (0.0, 0.0, 100.0), 20.0, 0.0),
         ("U2", (0.0, 1000.0, 100.0), 20.0, 180.0),
     ];
-    let count = |arr: &[(&str, (f64, f64, f64), f64, f64)]| {
-        evaluate_theater_deconfliction(arr).total_evaluated_pairs
-    };
+    let count = |arr: &[TrackTuple]| evaluate_theater_deconfliction(arr).total_evaluated_pairs;
     assert_eq!(count(&empty), 0);
     assert_eq!(count(&single), 0);
     assert_eq!(count(&pair), 1);
@@ -43,7 +43,7 @@ fn cpa(id: &str, dx: f64) -> AirspaceConflictReport {
 
 #[test]
 fn theater_conflicts_ordering_by_risk_and_separation() {
-    let mut v = vec![cpa("ADV", 500.0), cpa("CRIT-B", 150.0), cpa("CRIT-A", 50.0)];
+    let mut v = [cpa("ADV", 500.0), cpa("CRIT-B", 150.0), cpa("CRIT-A", 50.0)];
     let rank = |r| match r {
         CpaRiskLevel::Critical => 0,
         _ => 1,
