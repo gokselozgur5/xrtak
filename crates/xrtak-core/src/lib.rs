@@ -666,12 +666,7 @@ impl TacticalWorld {
             // otherwise track the hostile armor in the valley.
             let (target_e, target_up, target_n, lock_label) =
                 if let Some(&(se, sup, sn)) = self.spi_locks.get("UAV-FALCON-01") {
-                    (
-                        se,
-                        sup,
-                        sn,
-                        format!("SPI LOCK [E:{:.0}m N:{:.0}m]", se, sn),
-                    )
+                    (se, sup, sn, format!("SPI LOCK [E:{:.0}m N:{:.0}m]", se, sn))
                 } else {
                     let te = -180.0 + (t * 0.08).sin() * 260.0;
                     let tn = -120.0 + (t * 0.08).cos() * 190.0;
