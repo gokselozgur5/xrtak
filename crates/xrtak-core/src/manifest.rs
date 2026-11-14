@@ -177,6 +177,22 @@ pub struct ManifestInput<'a> {
     pub max_zoom: u8,
 }
 
+impl<'a> ManifestInput<'a> {
+    /// Build an offline mapset manifest from this input specification (`REQ-MAN-01..02`).
+    pub fn build(&self) -> MapsetManifest {
+        build_mapset_manifest(
+            self.name,
+            self.provider,
+            self.south_deg,
+            self.west_deg,
+            self.north_deg,
+            self.east_deg,
+            self.min_zoom,
+            self.max_zoom,
+        )
+    }
+}
+
 /// Build an offline mapset manifest (`MapsetManifest`) for the given WGS84 bounding box and zoom range (`ICD-18`).
 // TODO(XR-073): replace the argument list with an input struct.
 #[allow(clippy::too_many_arguments)]
