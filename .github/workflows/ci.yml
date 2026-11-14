@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Cache cargo registry and target
         uses: actions/cache@v4
         with:
@@ -30,7 +30,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install pinned toolchain
         run: rustup show active-toolchain || rustup toolchain install
       - name: Check formatting
@@ -39,7 +39,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install pinned toolchain
         run: rustup show active-toolchain || rustup toolchain install
       - name: Run clippy
