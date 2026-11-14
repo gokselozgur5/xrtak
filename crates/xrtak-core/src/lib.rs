@@ -582,10 +582,8 @@ impl TacticalWorld {
         // If this incoming CoT is an SPI (`b-m-p-s-p-i`) with a parent UAV link, lock that UAV's gimbal!
         if entity.cot_type.starts_with("b-m-p-s-p-i") {
             if let Some(ref parent) = entity.parent_uid {
-                self.spi_locks.insert(
-                    parent.clone(),
-                    (entity.east_m, entity.up_m, entity.north_m),
-                );
+                self.spi_locks
+                    .insert(parent.clone(), (entity.east_m, entity.up_m, entity.north_m));
             }
         }
         self.entities.insert(entity.uid.clone(), entity.clone());
