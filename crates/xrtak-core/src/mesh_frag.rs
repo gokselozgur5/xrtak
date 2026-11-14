@@ -132,4 +132,17 @@ impl FragmentReassemblyBuffer {
     pub fn is_complete(&self) -> bool {
         self.received_fragments.len() == self.total_fragments as usize
     }
+
+    pub fn insert_fragment(&mut self, frag: MeshFragment, now_ms: u64) -> bool {
+        if frag.header.message_id != self.message_id {
+            return false;
+        }
+        if frag.header.fragment_index >= self.total_fragments {
+            return false;
+        }
+        self.updated_unix_ms = now_ms;
+        self.received_fragments
+            .insert(frag.header.fragment_index, frag.payload);
+        true
+    }
 }
