@@ -54,6 +54,10 @@ pub use geo::{
     ProceduralReliefModel, RasterDemProvider,
 };
 pub use hud::{compute_hud_cue, HudCue};
+pub use hud_telemetry::battery::BatteryTelemetry;
+pub use hud_telemetry::connection::ConnectionTelemetry;
+pub use hud_telemetry::element::HudTelemetryElement;
+pub use hud_telemetry::types::{BatteryState, ConnectionQuality};
 pub use manifest::{
     build_mapset_manifest, copernicus_glo30_cells_for_bounds, estimate_tiles_for_bounds,
     format_copernicus_glo30_cell_id, CopernicusDemCell, MapsetManifest, ZoomTileEstimate,
