@@ -544,7 +544,11 @@ impl TacticalWorld {
     }
 
     /// Switch the active terrain provider and re-clamp ground entities to the new relief surface (`REQ-DEM-04`).
-    pub fn set_terrain_provider(&mut self, name: impl Into<String>, provider: Box<dyn ElevationProvider>) {
+    pub fn set_terrain_provider(
+        &mut self,
+        name: impl Into<String>,
+        provider: Box<dyn ElevationProvider>,
+    ) {
         self.terrain_name = name.into();
         self.terrain = provider;
         for ent in self.entities.values_mut() {
