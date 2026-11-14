@@ -34,3 +34,12 @@ impl Default for ThermalShaderConfig {
 }
 
 /// RGB color with float components in [0.0, 1.0].
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ColorRgb {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+}
+
+impl ColorRgb {
+    pub const fn new(r: f32, g: f32, b: f32) -> Self {
