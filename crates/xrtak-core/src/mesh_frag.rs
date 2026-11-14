@@ -23,3 +23,14 @@ pub struct MeshFragment {
     pub header: FragmentHeader,
     pub payload: Vec<u8>,
 }
+
+impl FragmentHeader {
+    pub fn to_bytes(&self) -> [u8; MESH_FRAGMENT_HEADER_SIZE] {
+        let mut buf = [0u8; MESH_FRAGMENT_HEADER_SIZE];
+        buf[0..4].copy_from_slice(&self.message_id.to_be_bytes());
+        buf[4..6].copy_from_slice(&self.fragment_index.to_be_bytes());
+        buf[6..8].copy_from_slice(&self.total_fragments.to_be_bytes());
+        buf[8..12].copy_from_slice(&self.total_length.to_be_bytes());
+        buf
+    }
+}
