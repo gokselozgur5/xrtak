@@ -20,4 +20,14 @@ impl AudioEmitter {
             attenuation: AttenuationParams::default(),
         }
     }
+
+    pub fn with_volume(mut self, volume: f64) -> Self {
+        self.volume = volume.clamp(0.0, 2.0);
+        self
+    }
+
+    pub fn with_attenuation(mut self, attenuation: AttenuationParams) -> Self {
+        self.attenuation = attenuation;
+        self
+    }
 }
