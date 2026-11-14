@@ -203,6 +203,23 @@ impl GeoPackageMemoryReader {
         let coord = TileCoord::from_tms(zoom, tile_x, tms_y);
         self.insert_tile(coord, tile_data);
     }
+
+    pub fn get_tile(&self, coord: TileCoord) -> Option<&[u8]> {
+        self.tiles.get(&coord).map(|v| v.as_slice())
+    }
+
+    pub fn get_tms_tile(&self, zoom: u8, tile_x: u32, tms_y: u32) -> Option<&[u8]> {
+        let coord = TileCoord::from_tms(zoom, tile_x, tms_y);
+        self.get_tile(coord)
+    }
+
+    pub fn contains_tile(&self, coord: TileCoord) -> bool {
+        self.tiles.contains_key(&coord)
+    }
+
+    pub fn tile_count(&self) -> usize {
+        self.tiles.len()
+    }
 }
 
 /// Detects uniform light-beige / low-variance `no-tile` placeholder imagery returned by
