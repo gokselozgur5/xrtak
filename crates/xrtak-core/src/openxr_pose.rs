@@ -308,3 +308,24 @@ mod tests {
         assert!((pose.forward_enu.2 - 1.0).abs() < 1e-4);
         assert!(pose.yaw_deg.abs() < 1e-4);
     }
+
+    #[test]
+    fn test_project_gaze_to_ground() {
+        let adapter = OpenXrPoseAdapter::new("OP-1", "VIPER", "Quest 3");
+        let pose = TacticalHeadPose {
+            head_enu: (0.0, 10.0, 0.0),
+            forward_enu: (0.0, -1.0, 0.0),
+            yaw_deg: 0.0,
+            pitch_deg: -90.0,
+            roll_deg: 0.0,
+            is_valid: true,
+            timestamp_unix_ms: 1000,
+        };
+        let ground = adapter.project_gaze_to_ground(&pose, 0.0);
+        assert!(ground.is_some());
+        let (e, u, n) = ground.unwrap();
+        assert!(e.abs() < 1e-4);
+        assert!(u.abs() < 1e-4);
+        assert!(n.abs() < 1e-4);
+    }
+}
