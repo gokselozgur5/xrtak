@@ -145,4 +145,19 @@ impl FragmentReassemblyBuffer {
             .insert(frag.header.fragment_index, frag.payload);
         true
     }
+
+    pub fn try_reassemble(&self) -> Option<Vec<u8>> {
+        if !self.is_complete() {
+            return None;
+        }
+        let mut assembled = Vec::with_capacity(self.total_length as usize);
+        for idx in 0..self.total_fragments {
+            let part = self.received_fragments.get(&idx)?;
+            assembled.extend_from_slice(part);
+        }
+        if assembled.len() != self.total_length as usize {
+            return None;
+        }
+        Some(assembled)
+    }
 }
