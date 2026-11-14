@@ -89,7 +89,7 @@ pub use tiles::{
 };
 pub use tracker::{
     compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
-    TrackPredictRequest, TrackPrediction, TrackPredictionPoint,
+    TrackPredictInput, TrackPredictRequest, TrackPrediction, TrackPredictionPoint,
 };
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
 pub use zones::{
