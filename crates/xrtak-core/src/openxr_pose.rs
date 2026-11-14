@@ -55,3 +55,23 @@ impl PoseOrientation {
             }
         }
     }
+
+    pub fn to_euler_deg(&self) -> (f64, f64, f64) {
+        let q = self.normalized();
+        let sinr_cosp = 2.0 * (q.w * q.x + q.y * q.z);
+        let cosr_cosp = 1.0 - 2.0 * (q.x * q.x + q.y * q.y);
+        let roll_deg = sinr_cosp.atan2(cosr_cosp).to_degrees();
+
+        let sinp = 2.0 * (q.w * q.y - q.z * q.x);
+        let pitch_deg = if sinp.abs() >= 1.0 {
+            sinp.signum() * 90.0
+        } else {
+            sinp.asin().to_degrees()
+        };
+
+        let siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
+        let cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+        let yaw_deg = siny_cosp.atan2(cosy_cosp).to_degrees().rem_euclid(360.0);
+
+        (yaw_deg, pitch_deg, roll_deg)
+    }
