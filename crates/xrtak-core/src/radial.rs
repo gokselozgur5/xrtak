@@ -137,3 +137,27 @@ impl RadialMenuStateMachine {
         }
     }
 }
+
+impl RadialMenuStateMachine {
+    /// Commits selection if hovering an enabled item, closing menu.
+    pub fn select(&mut self) -> Option<RadialAction> {
+        if self.state != RadialMenuState::Active && self.state != RadialMenuState::Confirming {
+            return None;
+        }
+        let action = self.selected_index.and_then(|idx| {
+            self.items.get(idx).and_then(|item| {
+                if item.is_enabled {
+                    Some(item.action.clone())
+                } else {
+                    None
+                }
+            })
+        });
+        if action.is_some() {
+            self.state = RadialMenuState::Closed;
+            self.selected_index = None;
+            self.dwell_timer_sec = 0.0;
+        }
+        action
+    }
+}
