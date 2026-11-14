@@ -75,3 +75,25 @@ impl PoseOrientation {
 
         (yaw_deg, pitch_deg, roll_deg)
     }
+
+    pub fn rotate_vector(&self, v: (f64, f64, f64)) -> (f64, f64, f64) {
+        let q = self.normalized();
+        let u = (q.x, q.y, q.z);
+        let s = q.w;
+        let u_cross_v = (
+            u.1 * v.2 - u.2 * v.1,
+            u.2 * v.0 - u.0 * v.2,
+            u.0 * v.1 - u.1 * v.0,
+        );
+        let u_cross_uv = (
+            u.1 * u_cross_v.2 - u.2 * u_cross_v.1,
+            u.2 * u_cross_v.0 - u.0 * u_cross_v.2,
+            u.0 * u_cross_v.1 - u.1 * u_cross_v.0,
+        );
+        (
+            v.0 + 2.0 * (s * u_cross_v.0 + u_cross_uv.0),
+            v.1 + 2.0 * (s * u_cross_v.1 + u_cross_uv.1),
+            v.2 + 2.0 * (s * u_cross_v.2 + u_cross_uv.2),
+        )
+    }
+}
