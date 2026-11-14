@@ -10,3 +10,14 @@ pub struct AudioEmitter {
     pub volume: f64,
     pub attenuation: AttenuationParams,
 }
+
+impl AudioEmitter {
+    pub fn new(id: impl Into<String>, position: AudioVec3) -> Self {
+        Self {
+            id: id.into(),
+            position,
+            volume: 1.0,
+            attenuation: AttenuationParams::default(),
+        }
+    }
+}
