@@ -82,3 +82,17 @@ impl CotParseHarness {
         self.metrics = CotParseMetrics::default();
     }
 }
+
+impl CotParseHarness {
+    fn map_error(err_str: String) -> CotHarnessError {
+        if err_str.contains("missing point") || err_str.contains("point") {
+            CotHarnessError::MissingPoint
+        } else if err_str.contains("missing uid") {
+            CotHarnessError::MissingUid
+        } else if err_str.contains("range") || err_str.contains("coordinate") {
+            CotHarnessError::CoordinateRange(err_str)
+        } else {
+            CotHarnessError::InvalidXml(err_str)
+        }
+    }
+}
