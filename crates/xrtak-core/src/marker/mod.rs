@@ -9,3 +9,16 @@ pub mod geometry;
 pub mod mesh;
 pub mod pyramid_mesh;
 pub mod spi_marker;
+
+pub use affiliation_color::color_for_affiliation;
+pub use affiliation_shape::shape_for_affiliation;
+pub use billboard_mesh::generate_billboard_quad_mesh;
+pub use circle_mesh::generate_circle_marker_mesh;
+pub use color::MarkerColor;
+pub use diamond_mesh::generate_diamond_marker_mesh;
+pub use generator::generate_marker_geometry;
+pub use geometry::MarkerGeometry;
+pub use mesh::{MarkerMesh, Vertex3D};
+pub use pyramid_mesh::generate_pyramid_marker_mesh;
+pub use shape::MarkerShape;
+pub use spi_marker::generate_spi_pin_marker_geometry;
