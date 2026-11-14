@@ -431,4 +431,20 @@ mod tests {
         let from_tms = TileCoord::from_tms(z, x, tms_y);
         assert_eq!(from_tms, coord);
     }
+
+    #[test]
+    fn test_geopackage_reader_and_cache_eviction() {
+        let mut reader = GeoPackageMemoryReader::new();
+        reader.insert_tile(TileCoord::new(1, 0, 0), vec![1, 2, 3]);
+        reader.insert_tile(TileCoord::new(1, 0, 1), vec![4, 5, 6]);
+
+        let mut layer = GeoPackageCachedLayer::new(reader, 1);
+        let t1 = layer.get_tile(TileCoord::new(1, 0, 0));
+        assert_eq!(t1, Some(vec![1, 2, 3]));
+        assert_eq!(layer.cache_len(), 1);
+
+        let t2 = layer.get_tile(TileCoord::new(1, 0, 1));
+        assert_eq!(t2, Some(vec![4, 5, 6]));
+        assert_eq!(layer.cache_len(), 1);
+    }
 }
