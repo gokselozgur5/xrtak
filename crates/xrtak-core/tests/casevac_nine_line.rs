@@ -36,14 +36,14 @@ fn test_nine_line_order_and_content() {
     let lines: Vec<&str> = text.lines().collect();
 
     assert_eq!(lines[0], "--- NATO 9-LINE MEDEVAC REQUEST ---");
-    for i in 1..=9 {
-        let prefix = format!("LINE {i}");
+    for (idx, line) in lines.iter().enumerate().take(10).skip(1) {
+        let prefix = format!("LINE {idx}");
         assert!(
-            lines[i].starts_with(&prefix),
+            line.starts_with(&prefix),
             "Expected line {} to start with {}, got {}",
-            i,
+            idx,
             prefix,
-            lines[i]
+            line
         );
     }
 }
