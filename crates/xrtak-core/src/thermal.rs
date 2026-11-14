@@ -70,3 +70,13 @@ pub fn sample_black_hot(t: f32) -> ColorRgb {
 pub fn sample_ironbow(t: f32) -> ColorRgb {
     let x = t.clamp(0.0, 1.0);
     let r = (x * 2.0).clamp(0.0, 1.0);
+    let g = ((x - 0.25) * 2.0).clamp(0.0, 1.0);
+    let b = ((x - 0.7) * 3.33).max(0.0) + (1.0 - (x * 4.0).min(1.0)) * 0.5;
+    ColorRgb::new(r, g, b.clamp(0.0, 1.0))
+}
+
+/// Samples a normalized temperature `t` in [0.0, 1.0] under Rainbow palette.
+pub fn sample_rainbow(t: f32) -> ColorRgb {
+    let x = t.clamp(0.0, 1.0);
+    let r = (2.0 * x - 0.5).clamp(0.0, 1.0);
+    let g = (1.0 - (2.0 * x - 1.0).abs()).clamp(0.0, 1.0);
