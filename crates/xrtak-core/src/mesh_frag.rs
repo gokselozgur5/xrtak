@@ -86,3 +86,22 @@ pub fn fragment_payload(
     }
     split_payload(msg_id, payload, chunk_sz)
 }
+
+fn split_payload(msg_id: u32, payload: &[u8], chunk_sz: usize) -> Vec<MeshFragment> {
+    let chunks: Vec<&[u8]> = payload.chunks(chunk_sz).collect();
+    let total = chunks.len() as u16;
+    let len = payload.len() as u32;
+    chunks
+        .into_iter()
+        .enumerate()
+        .map(|(idx, chunk)| MeshFragment {
+            header: FragmentHeader {
+                message_id: msg_id,
+                fragment_index: idx as u16,
+                total_fragments: total,
+                total_length: len,
+            },
+            payload: chunk.to_vec(),
+        })
+        .collect()
+}
