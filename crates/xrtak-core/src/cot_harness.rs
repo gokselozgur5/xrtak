@@ -96,3 +96,12 @@ impl CotParseHarness {
         }
     }
 }
+
+impl CotParseHarness {
+    pub fn parse_raw(
+        &mut self,
+        raw: &RawCotMessage,
+    ) -> Result<ParsedCotMessage, CotHarnessError> {
+        self.parse_raw_with_provider(raw, &ProceduralReliefModel)
+    }
+}
