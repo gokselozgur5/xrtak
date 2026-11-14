@@ -156,3 +156,16 @@ pub struct OpenXrPoseAdapter {
     pub table_yaw_deg: f64,
     pub table_scale: f64,
 }
+
+impl OpenXrPoseAdapter {
+    pub fn new(operator_id: &str, callsign: &str, device_mode: &str) -> Self {
+        Self {
+            operator_id: operator_id.to_string(),
+            callsign: callsign.to_string(),
+            device_mode: device_mode.to_string(),
+            table_anchor_enu: (0.0, 0.0, 0.0),
+            table_yaw_deg: 0.0,
+            table_scale: 1.0,
+        }
+    }
+}
