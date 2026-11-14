@@ -18,3 +18,21 @@ fn test_track_predict_input_construction() {
     assert_eq!(input.speed_mps, 20.0);
     assert!(input.is_stale);
 }
+
+#[test]
+fn test_track_predict_input_predict_method() {
+    let horizons = [15.0, 30.0, 60.0];
+    let input = TrackPredictInput::new(
+        "UAV-01",
+        "FALCON",
+        (0.0, 0.0, 100.0),
+        20.0,
+        45.0,
+        true,
+        5.0,
+        &horizons,
+    );
+    let pred = input.predict();
+    assert_eq!(pred.uid, "UAV-01");
+    assert_eq!(pred.points.len(), 3);
+}
