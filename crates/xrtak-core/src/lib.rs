@@ -562,7 +562,8 @@ impl TacticalWorld {
     }
 
     pub fn ingest_cot_xml(&mut self, xml: &str, now_ms: u64) -> Result<TacticalEntity, String> {
-        let mut entity = parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
+        let mut entity =
+            parse_cot_xml_with_provider(xml, &self.origin, self.terrain.as_ref(), now_ms)?;
         if self.auto_recenter_on_next_live_cot && !entity.uid.starts_with("XR-") {
             self.auto_recenter_on_next_live_cot = false;
             self.recenter_origin(GeoOrigin {
