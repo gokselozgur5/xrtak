@@ -126,3 +126,21 @@ impl ThermalShaderConfig {
             }
             ThermalPalette::Rainbow => {
                 "    float r = clamp(2.0 * t - 0.5, 0.0, 1.0);\n    float g = clamp(1.0 - abs(2.0 * t - 1.0), 0.0, 1.0);\n    float b = clamp(1.0 - 2.0 * t, 0.0, 1.0);\n    vec3 col = vec3(r, g, b);\n"
+            }
+            ThermalPalette::GreenHot => "    vec3 col = vec3(t * 0.15, t, t * 0.25);\n",
+        };
+        format!(
+            "precision mediump float;\n\
+             uniform sampler2D u_ir_texture;\n\
+             uniform float u_gain;\n\
+             varying vec2 v_uv;\n\
+             void main() {{\n\
+                 float raw = texture2D(u_ir_texture, v_uv).r;\n\
+                 float norm = (raw - ({:.4})) / ({:.4});\n\
+                 float t = clamp(norm * ({:.4}) * u_gain, 0.0, 1.0);\n\
+             {}\
+                 gl_FragColor = vec4(col, 1.0);\n\
+             }}\n",
+            self.min_temp_c,
+            (self.max_temp_c - self.min_temp_c).max(1e-4),
+            self.gain,
