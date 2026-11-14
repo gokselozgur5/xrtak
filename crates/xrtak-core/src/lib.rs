@@ -42,7 +42,7 @@ pub use corridor::{
 };
 pub use deconflict::{
     compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction,
-    AirspaceConflictReport, CpaRiskLevel, DeconflictionResult,
+    AirspaceConflictReport, CpaRiskLevel, CpaTrack, DeconflictionResult,
 };
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
