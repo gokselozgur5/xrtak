@@ -144,13 +144,21 @@ pub struct TileCoord {
 
 impl TileCoord {
     pub const fn new(zoom: u8, tile_x: u32, tile_y: u32) -> Self {
-        Self { zoom, tile_x, tile_y }
+        Self {
+            zoom,
+            tile_x,
+            tile_y,
+        }
     }
 
     /// Converts TMS tile coordinates (`tms_y = (1 << zoom) - 1 - tile_y`) to XYZ tile coordinates.
     pub const fn from_tms(zoom: u8, tile_x: u32, tms_y: u32) -> Self {
         let max_idx = (1u32 << zoom).saturating_sub(1);
-        Self { zoom, tile_x, tile_y: max_idx.saturating_sub(tms_y) }
+        Self {
+            zoom,
+            tile_x,
+            tile_y: max_idx.saturating_sub(tms_y),
+        }
     }
 
     /// Converts XYZ tile coordinates to TMS tile coordinates.
