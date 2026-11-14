@@ -17,3 +17,21 @@ fn test_burn_through_scenario_construction() {
     assert_eq!(scenario.jammer_callsign, "KRASUKHA");
     assert_eq!(scenario.p_radar_w, 10_000.0);
 }
+
+#[test]
+fn test_burn_through_scenario_evaluate_method() {
+    let scenario = BurnThroughScenario::new(
+        "AN-MPQ-64",
+        10_000.0,
+        30.0,
+        1.0,
+        "KRASUKHA",
+        200.0,
+        10.0,
+        50_000.0,
+        15_000.0,
+    );
+    let assessment = scenario.evaluate();
+    assert_eq!(assessment.radar_callsign, "AN-MPQ-64");
+    assert!(assessment.burn_through_range_m > 0.0);
+}
