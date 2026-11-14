@@ -24,3 +24,20 @@ pub struct PoseOrientation {
     pub z: f64,
     pub w: f64,
 }
+
+impl PoseOrientation {
+    pub const IDENTITY: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        w: 1.0,
+    };
+
+    pub const fn new(x: f64, y: f64, z: f64, w: f64) -> Self {
+        Self { x, y, z, w }
+    }
+
+    pub fn norm(&self) -> f64 {
+        (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
+    }
+}
