@@ -33,4 +33,20 @@ impl FragmentHeader {
         buf[8..12].copy_from_slice(&self.total_length.to_be_bytes());
         buf
     }
+
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() < MESH_FRAGMENT_HEADER_SIZE {
+            return None;
+        }
+        let message_id = u32::from_be_bytes(bytes[0..4].try_into().ok()?);
+        let fragment_index = u16::from_be_bytes(bytes[4..6].try_into().ok()?);
+        let total_fragments = u16::from_be_bytes(bytes[6..8].try_into().ok()?);
+        let total_length = u32::from_be_bytes(bytes[8..12].try_into().ok()?);
+        Some(Self {
+            message_id,
+            fragment_index,
+            total_fragments,
+            total_length,
+        })
+    }
 }
