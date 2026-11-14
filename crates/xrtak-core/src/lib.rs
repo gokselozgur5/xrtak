@@ -870,9 +870,7 @@ impl TacticalWorld {
     ) -> (Vec<ThreatDome>, Vec<TacticalZone>) {
         let mut emitters: Vec<&TacticalEntity> = entities
             .iter()
-            .filter(|e| {
-                e.cot_type.starts_with("a-h-G-E-S") || e.cot_type.starts_with("a-h-G-E-W")
-            })
+            .filter(|e| e.cot_type.starts_with("a-h-G-E-S") || e.cot_type.starts_with("a-h-G-E-W"))
             .collect();
         emitters.sort_by(|a, b| a.uid.cmp(&b.uid));
 
