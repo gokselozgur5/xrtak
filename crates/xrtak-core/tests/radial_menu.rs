@@ -23,3 +23,16 @@ pub fn fixture_menu() -> RadialMenuStateMachine {
     };
     RadialMenuStateMachine::new(items, cfg)
 }
+
+#[test]
+fn test_open_and_dismiss_flow() {
+    let mut menu = fixture_menu();
+    assert_eq!(menu.state, RadialMenuState::Closed);
+    menu.open();
+    assert_eq!(menu.state, RadialMenuState::Active);
+    assert_eq!(menu.selected_index, None);
+    menu.dismiss();
+    assert_eq!(menu.state, RadialMenuState::Dismissed);
+    menu.open();
+    assert_eq!(menu.state, RadialMenuState::Active);
+}
