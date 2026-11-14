@@ -73,7 +73,9 @@ pub use rf::{
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
 pub use tiles::{
     bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy,
-    resolve_tile_with_fallback, tile_xy_to_quadkey, ImageryProvider, ResolvedTileSpec,
+    resolve_tile_with_fallback, tile_xy_to_quadkey, GeoPackageCachedLayer,
+    GeoPackageMemoryReader, GeoPackageTileEntry, GeoPackageTileMatrixMetadata, ImageryProvider,
+    LruTileCache, ResolvedTileSpec, TileCoord,
 };
 pub use tracker::{
     compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
