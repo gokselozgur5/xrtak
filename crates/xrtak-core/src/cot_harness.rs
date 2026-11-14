@@ -57,3 +57,28 @@ pub struct CotParseMetrics {
     pub neutral_count: usize,
     pub unknown_count: usize,
 }
+
+#[derive(Debug, Clone)]
+pub struct CotParseHarness {
+    pub origin: GeoOrigin,
+    pub metrics: CotParseMetrics,
+}
+
+impl Default for CotParseHarness {
+    fn default() -> Self {
+        Self::new(GeoOrigin::default())
+    }
+}
+
+impl CotParseHarness {
+    pub fn new(origin: GeoOrigin) -> Self {
+        Self {
+            origin,
+            metrics: CotParseMetrics::default(),
+        }
+    }
+
+    pub fn reset_metrics(&mut self) {
+        self.metrics = CotParseMetrics::default();
+    }
+}
