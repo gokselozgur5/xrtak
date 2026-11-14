@@ -37,3 +37,20 @@ impl EcefCoord {
         Self { x_m, y_m, z_m }
     }
 }
+
+/// Converts WGS84 geodetic coordinates to ECEF Cartesian coordinates.
+pub fn geodetic_to_ecef(geo: &GeodeticCoord) -> EcefCoord {
+    let lat_rad = geo.lat_deg.to_radians();
+    let lon_rad = geo.lon_deg.to_radians();
+    let sin_lat = lat_rad.sin();
+    let cos_lat = lat_rad.cos();
+    let sin_lon = lon_rad.sin();
+    let cos_lon = lon_rad.cos();
+
+    let n = WGS84_A / (1.0 - WGS84_E2 * sin_lat * sin_lat).sqrt();
+    let x = (n + geo.alt_m) * cos_lat * cos_lon;
+    let y = (n + geo.alt_m) * cos_lat * sin_lon;
+    let z = (n * (1.0 - WGS84_E2) + geo.alt_m) * sin_lat;
+
+    EcefCoord::new(x, y, z)
+}
