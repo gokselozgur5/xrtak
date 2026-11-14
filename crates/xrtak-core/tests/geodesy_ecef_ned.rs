@@ -39,3 +39,15 @@ fn test_ecef_to_ned_origin_displacement() {
     assert!(ned_origin.east_m.abs() < 1e-6);
     assert!(ned_origin.down_m.abs() < 1e-6);
 }
+
+#[test]
+fn test_ned_ecef_roundtrip_and_cardinal_offsets() {
+    let origin = NedOrigin::new(39.9208, 32.8541, 850.0);
+    let original_ned = NedCoord::new(1500.0, -800.0, -250.0);
+    let ecef = ned_to_ecef(&original_ned, &origin);
+    let recovered_ned = ecef_to_ned(&ecef, &origin);
+
+    assert!((recovered_ned.north_m - original_ned.north_m).abs() < 1e-4);
+    assert!((recovered_ned.east_m - original_ned.east_m).abs() < 1e-4);
+    assert!((recovered_ned.down_m - original_ned.down_m).abs() < 1e-4);
+}
