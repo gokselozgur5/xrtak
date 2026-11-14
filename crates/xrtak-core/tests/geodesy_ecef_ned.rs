@@ -51,3 +51,11 @@ fn test_ned_ecef_roundtrip_and_cardinal_offsets() {
     assert!((recovered_ned.east_m - original_ned.east_m).abs() < 1e-4);
     assert!((recovered_ned.down_m - original_ned.down_m).abs() < 1e-4);
 }
+
+#[test]
+fn test_ecef_coord_direct_usage() {
+    let p = EcefCoord::new(100.0, 200.0, 300.0);
+    assert_eq!(p.x_m, 100.0);
+    assert_eq!(p.y_m, 200.0);
+    assert_eq!(p.z_m, 300.0);
+}
