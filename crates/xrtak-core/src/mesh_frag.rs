@@ -117,3 +117,19 @@ pub struct FragmentReassemblyBuffer {
     pub received_fragments: HashMap<u16, Vec<u8>>,
     pub updated_unix_ms: u64,
 }
+
+impl FragmentReassemblyBuffer {
+    pub fn new(header: &FragmentHeader, now_ms: u64) -> Self {
+        Self {
+            message_id: header.message_id,
+            total_fragments: header.total_fragments,
+            total_length: header.total_length,
+            received_fragments: HashMap::new(),
+            updated_unix_ms: now_ms,
+        }
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.received_fragments.len() == self.total_fragments as usize
+    }
+}
