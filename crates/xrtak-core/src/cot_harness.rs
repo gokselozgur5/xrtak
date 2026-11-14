@@ -10,3 +10,16 @@ pub enum CotHarnessError {
     MissingUid,
     CoordinateRange(String),
 }
+
+impl std::fmt::Display for CotHarnessError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidXml(e) => write!(f, "Invalid XML: {e}"),
+            Self::MissingPoint => write!(f, "Missing point element"),
+            Self::MissingUid => write!(f, "Missing uid attribute"),
+            Self::CoordinateRange(e) => write!(f, "Coordinate out of range: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for CotHarnessError {}
