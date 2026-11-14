@@ -144,3 +144,21 @@ impl ThermalShaderConfig {
             self.min_temp_c,
             (self.max_temp_c - self.min_temp_c).max(1e-4),
             self.gain,
+            palette_branch
+        )
+    }
+
+    /// Generates Godot VisualServer/RenderingServer compliant shader code.
+    pub fn generate_godot_shader(&self) -> String {
+        let palette_branch = match self.palette {
+            ThermalPalette::WhiteHot => "    vec3 col = vec3(t);\n",
+            ThermalPalette::BlackHot => "    vec3 col = vec3(1.0 - t);\n",
+            ThermalPalette::Ironbow => {
+                "    float r = clamp(t * 2.0, 0.0, 1.0);\n    float g = clamp((t - 0.25) * 2.0, 0.0, 1.0);\n    float b = clamp(max((t - 0.7) * 3.33, 0.0) + (1.0 - min(t * 4.0, 1.0)) * 0.5, 0.0, 1.0);\n    vec3 col = vec3(r, g, b);\n"
+            }
+            ThermalPalette::Rainbow => {
+                "    float r = clamp(2.0 * t - 0.5, 0.0, 1.0);\n    float g = clamp(1.0 - abs(2.0 * t - 1.0), 0.0, 1.0);\n    float b = clamp(1.0 - 2.0 * t, 0.0, 1.0);\n    vec3 col = vec3(r, g, b);\n"
+            }
+            ThermalPalette::GreenHot => "    vec3 col = vec3(t * 0.15, t, t * 0.25);\n",
+        };
+        format!(
