@@ -34,3 +34,13 @@ fn straight_corridor_area_matches_length_times_width() {
     );
 }
 
+#[test]
+fn swath_width_matches_trigonometry_across_altitudes() {
+    for fov in [40.0_f64, 60.0, 90.0] {
+        for h in [50.0_f64, 100.0, 250.0, 500.0] {
+            let w = compute_camera_swath_width_m(h, Some(fov), None, None);
+            let expected = 2.0 * h * (fov.to_radians() / 2.0).tan();
+            assert!((w - expected).abs() < 1e-3, "h={h} fov={fov}: {w} vs {expected}");
+        }
+    }
+}
