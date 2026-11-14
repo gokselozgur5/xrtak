@@ -16,3 +16,10 @@ pub struct FragmentHeader {
     pub total_fragments: u16,
     pub total_length: u32,
 }
+
+/// Complete mesh fragment holding header and slice data.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MeshFragment {
+    pub header: FragmentHeader,
+    pub payload: Vec<u8>,
+}
