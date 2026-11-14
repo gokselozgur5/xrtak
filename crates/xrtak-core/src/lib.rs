@@ -18,6 +18,7 @@ pub mod mission;
 pub mod opord;
 pub mod rf;
 pub mod sapient;
+pub mod thermal;
 pub mod tiles;
 pub mod tracker;
 pub mod viewshed;
