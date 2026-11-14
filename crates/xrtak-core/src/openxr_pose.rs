@@ -279,3 +279,14 @@ mod tests {
         let v = (1.0, 2.0, 3.0);
         assert_eq!(q.rotate_vector(v), v);
     }
+
+    #[test]
+    fn test_tracking_flags_usable() {
+        let f = PoseTrackingFlags::from_openxr_bits(0x0F);
+        assert!(f.is_usable());
+        assert!(f.orientation_tracked);
+        assert!(f.position_tracked);
+
+        let f_invalid = PoseTrackingFlags::from_openxr_bits(0x00);
+        assert!(!f_invalid.is_usable());
+    }
