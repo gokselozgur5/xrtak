@@ -208,3 +208,10 @@ mod tests {
     }
 
     #[test]
+    fn test_shader_generators_output_valid_strings() {
+        let cfg = ThermalShaderConfig::default();
+        let glsl = cfg.generate_glsl_fragment_shader();
+        let godot = cfg.generate_godot_shader();
+        assert!(glsl.contains("gl_FragColor"));
+        assert!(godot.contains("shader_type canvas_item"));
+    }
