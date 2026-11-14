@@ -57,3 +57,16 @@ impl ColorRgb {
 /// Samples a normalized temperature `t` in [0.0, 1.0] under WhiteHot palette.
 pub fn sample_white_hot(t: f32) -> ColorRgb {
     let val = t.clamp(0.0, 1.0);
+    ColorRgb::new(val, val, val)
+}
+
+/// Samples a normalized temperature `t` in [0.0, 1.0] under BlackHot palette.
+pub fn sample_black_hot(t: f32) -> ColorRgb {
+    let val = 1.0 - t.clamp(0.0, 1.0);
+    ColorRgb::new(val, val, val)
+}
+
+/// Samples a normalized temperature `t` in [0.0, 1.0] under Ironbow palette.
+pub fn sample_ironbow(t: f32) -> ColorRgb {
+    let x = t.clamp(0.0, 1.0);
+    let r = (x * 2.0).clamp(0.0, 1.0);
