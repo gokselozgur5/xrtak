@@ -169,3 +169,15 @@ impl OpenXrPoseAdapter {
         }
     }
 }
+
+    pub fn with_table_transform(
+        mut self,
+        anchor_enu: (f64, f64, f64),
+        yaw_deg: f64,
+        scale: f64,
+    ) -> Self {
+        self.table_anchor_enu = anchor_enu;
+        self.table_yaw_deg = yaw_deg.rem_euclid(360.0);
+        self.table_scale = scale.clamp(0.01, 100.0);
+        self
+    }
