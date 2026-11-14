@@ -928,7 +928,10 @@ impl TacticalWorld {
     }
 
     /// Compute First-Person AR Visor HUD angular/slant-range cues relative to an observer track (`Phase 3 HUD`).
-    pub fn compute_visor_hud_cues(&self, observer_uid: &str) -> Vec<(String, String, Affiliation, HudCue)> {
+    pub fn compute_visor_hud_cues(
+        &self,
+        observer_uid: &str,
+    ) -> Vec<(String, String, Affiliation, HudCue)> {
         let obs_enu = self
             .entities
             .get(observer_uid)
