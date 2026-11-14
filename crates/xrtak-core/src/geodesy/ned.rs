@@ -53,3 +53,23 @@ pub fn ecef_to_ned(point: &EcefCoord, origin: &NedOrigin) -> NedCoord {
 
     NedCoord::new(north, east, down)
 }
+
+/// Transforms a NED point back to ECEF coordinates using the given origin.
+pub fn ned_to_ecef(ned: &NedCoord, origin: &NedOrigin) -> EcefCoord {
+    let lat_rad = origin.geodetic.lat_deg.to_radians();
+    let lon_rad = origin.geodetic.lon_deg.to_radians();
+    let sin_lat = lat_rad.sin();
+    let cos_lat = lat_rad.cos();
+    let sin_lon = lon_rad.sin();
+    let cos_lon = lon_rad.cos();
+
+    let dx = -sin_lat * cos_lon * ned.north_m - sin_lon * ned.east_m - cos_lat * cos_lon * ned.down_m;
+    let dy = -sin_lat * sin_lon * ned.north_m + cos_lon * ned.east_m - cos_lat * sin_lon * ned.down_m;
+    let dz = cos_lat * ned.north_m - sin_lat * ned.down_m;
+
+    EcefCoord::new(
+        origin.ecef.x_m + dx,
+        origin.ecef.y_m + dy,
+        origin.ecef.z_m + dz,
+    )
+}
