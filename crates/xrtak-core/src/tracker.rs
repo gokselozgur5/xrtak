@@ -224,4 +224,13 @@ mod tests {
         assert!((pt_west.1 - 100.0).abs() < 1e-3);
         assert!((pt_west.2 - 70.0).abs() < 1e-3);
     }
+
+    #[test]
+    fn test_cep_radius_min_clamping_and_zero_dt() {
+        let cep_clamped = compute_cep_radius_m(0.5, 20.0, 0.0);
+        assert!((cep_clamped - 2.0).abs() < 1e-6);
+
+        let cep_nominal = compute_cep_radius_m(10.0, 0.0, 0.0);
+        assert!((cep_nominal - 10.0).abs() < 1e-6);
+    }
 }
