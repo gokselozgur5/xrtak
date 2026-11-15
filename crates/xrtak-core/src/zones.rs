@@ -117,8 +117,7 @@ pub fn point_in_polygon_en(east_m: f64, north_m: f64, vertices: &[(f64, f64)]) -
     }
     let mut inside = false;
     let mut j = vertices.len() - 1;
-    for i in 0..vertices.len() {
-        let (ei, ni) = vertices[i];
+    for (i, &(ei, ni)) in vertices.iter().enumerate() {
         let (ej, nj) = vertices[j];
         if ((ni > north_m) != (nj > north_m))
             && (east_m < (ej - ei) * (north_m - ni) / (nj - ni) + ei)
