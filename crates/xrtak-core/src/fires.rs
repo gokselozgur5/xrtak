@@ -168,4 +168,11 @@ mod tests {
         assert!(sol.is_crest_cleared);
         assert!(sol.max_ordinate_m > sol.min_crest_clearance_m);
     }
+
+    #[test]
+    fn test_munition_type_default_and_velocities() {
+        assert_eq!(MunitionType::default(), MunitionType::Artillery155mm);
+        assert!((MunitionType::TacticalRocket.nominal_velocity_mps() - 820.0).abs() < 1e-6);
+        assert!((MunitionType::LoiteringMunition.nominal_velocity_mps() - 65.0).abs() < 1e-6);
+    }
 }
