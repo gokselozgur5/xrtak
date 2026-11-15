@@ -251,4 +251,16 @@ mod tests {
         assert_eq!(pred.current_enu, (10.0, 20.0, 30.0));
         assert!(pred.points.is_empty());
     }
+
+    #[test]
+    fn test_track_predict_request_serde() {
+        let req = TrackPredictRequest {
+            horizons_sec: Some(vec![5.0, 15.0]),
+            stale_threshold_sec: Some(30.0),
+        };
+        let json = serde_json::to_string(&req).expect("serialize req");
+        let de: TrackPredictRequest = serde_json::from_str(&json).expect("deserialize req");
+        assert_eq!(de.horizons_sec, Some(vec![5.0, 15.0]));
+        assert_eq!(de.stale_threshold_sec, Some(30.0));
+    }
 }
