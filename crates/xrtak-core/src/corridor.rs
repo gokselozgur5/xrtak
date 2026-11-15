@@ -149,6 +149,10 @@ fn polygon_area_m2(ring_en: &[(f64, f64)]) -> f64 {
     for i in 0..(ring_en.len() - 1) {
         sum += ring_en[i].0 * ring_en[i + 1].1 - ring_en[i + 1].0 * ring_en[i].1;
     }
+    if ring_en.first() != ring_en.last() {
+        let last = ring_en.len() - 1;
+        sum += ring_en[last].0 * ring_en[0].1 - ring_en[0].0 * ring_en[last].1;
+    }
     (sum * 0.5).abs()
 }
 
