@@ -1,3 +1,6 @@
+// crates/xrtak-core/src/cog.rs
+//! Cloud-Optimized GeoTIFF (COG) and GeoTIFF DSM Ingestion Engine (ICD-26, REQ-COG-01).
+
 use crate::geo::RasterDemProvider;
 use serde::{Deserialize, Serialize};
 
