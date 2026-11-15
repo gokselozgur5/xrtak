@@ -1133,4 +1133,16 @@ mod tests {
         assert!(!cues.is_empty());
         assert!(cues.iter().all(|(_, _, _, c)| c.slant_range_m > 0.0));
     }
+
+    #[test]
+    fn test_tactical_world_clear_spi_and_profile() {
+        let mut world = TacticalWorld::new(GeoOrigin::default());
+        let _ = world.slew_sensor_to_spi("UAV-FALCON-01", 320.0, -240.0, 1000);
+        world.clear_spi_lock("UAV-FALCON-01");
+        assert!(!world.spi_locks.contains_key("UAV-FALCON-01"));
+        assert!(!world.entities.contains_key("UAV-FALCON-01.SPI1"));
+
+        let profile = world.compute_elevation_profile(&[(0.0, 0.0), (100.0, 100.0)]);
+        assert_eq!(profile.samples.len(), 29);
+    }
 }
