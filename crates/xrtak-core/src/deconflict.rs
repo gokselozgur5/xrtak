@@ -70,7 +70,12 @@ pub struct CpaTrack {
 }
 
 impl CpaTrack {
-    pub fn new(uid: impl Into<String>, pos: (f64, f64, f64), speed_mps: f64, course_deg: f64) -> Self {
+    pub fn new(
+        uid: impl Into<String>,
+        pos: (f64, f64, f64),
+        speed_mps: f64,
+        course_deg: f64,
+    ) -> Self {
         Self {
             uid: uid.into(),
             pos,
