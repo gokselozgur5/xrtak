@@ -447,4 +447,15 @@ mod tests {
         let names: Vec<&str> = raw.iter().map(|w| w.name.as_str()).collect();
         assert_eq!(names, ["WP-1", "WP-2", "WP-3"]);
     }
+
+    #[test]
+    fn test_kml_multi_placemark_waypoint_indexing() {
+        let kml = "<kml><Document>\
+            <Placemark><name>Leg1</name><LineString><coordinates>1.0,2.0,10 1.1,2.1,10</coordinates></LineString></Placemark>\
+            <Placemark><name>Leg2</name><LineString><coordinates>1.2,2.2,10 1.3,2.3,10</coordinates></LineString></Placemark>\
+            </Document></kml>";
+        let (_, raw) = parse_kml_mission(kml).expect("valid KML");
+        let names: Vec<&str> = raw.iter().map(|w| w.name.as_str()).collect();
+        assert_eq!(names, ["WP-1", "WP-2", "WP-3", "WP-4"]);
+    }
 }
