@@ -233,4 +233,22 @@ mod tests {
         let cep_nominal = compute_cep_radius_m(10.0, 0.0, 0.0);
         assert!((cep_nominal - 10.0).abs() < 1e-6);
     }
+
+    #[test]
+    fn test_predict_entity_trajectory_empty_horizons() {
+        let pred = predict_entity_trajectory(
+            "UAV-EMPTY",
+            "GHOST",
+            (10.0, 20.0, 30.0),
+            0.0,
+            0.0,
+            false,
+            2.0,
+            &[],
+        );
+        assert_eq!(pred.uid, "UAV-EMPTY");
+        assert_eq!(pred.callsign, "GHOST");
+        assert_eq!(pred.current_enu, (10.0, 20.0, 30.0));
+        assert!(pred.points.is_empty());
+    }
 }
