@@ -190,4 +190,24 @@ mod tests {
         assert_eq!(pred.points.len(), 3);
         assert!(pred.is_stale);
     }
+
+    #[test]
+    fn test_track_predict_input_predict() {
+        let horizons = [10.0, 20.0];
+        let input = TrackPredictInput::new(
+            "UAV-02",
+            "HAWK",
+            (100.0, 200.0, 50.0),
+            15.0,
+            90.0,
+            false,
+            3.0,
+            &horizons,
+        );
+        let pred = input.predict();
+        assert_eq!(pred.uid, "UAV-02");
+        assert_eq!(pred.callsign, "HAWK");
+        assert!(!pred.is_stale);
+        assert_eq!(pred.points.len(), 2);
+    }
 }
