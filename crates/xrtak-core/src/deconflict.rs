@@ -185,6 +185,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_compute_raw_t_cpa_type_alias() {
+        let res: RawCpaResult = compute_raw_t_cpa(
+            (0.0, 0.0, 100.0),
+            (20.0, 0.0, 0.0),
+            (200.0, 0.0, 100.0),
+            (-20.0, 0.0, 0.0),
+        );
+        assert!((res.0 - 5.0).abs() < 1e-6);
+        assert_eq!(res.1, (40.0, 0.0, 0.0));
+    }
+
+    #[test]
     fn test_head_on_critical_cpa() {
         // UAV-A at (0, 0, 100), heading North (0 deg) at 20 m/s
         // UAV-B at (0, 600, 100), heading South (180 deg) at 20 m/s
