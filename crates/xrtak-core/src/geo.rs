@@ -433,4 +433,12 @@ mod tests {
         assert!((prof.max_asl_m - 950.0).abs() < 1e-6);
         assert!(prof.samples.len() >= 21);
     }
+
+    #[test]
+    fn test_srtm_i16_be_chunking_exact_alignment() {
+        let raw: [i16; 4] = [200, 300, 100, 400];
+        let bytes: Vec<u8> = raw.iter().flat_map(|v| v.to_be_bytes()).collect();
+        let dem = RasterDemProvider::from_srtm_i16_be("chunks", 2, 2, 100.0, &bytes).unwrap();
+        assert_eq!(dem.heights_m, vec![100.0, 200.0, 0.0, 300.0]);
+    }
 }
