@@ -294,4 +294,11 @@ mod tests {
         assert!(bt.burn_through_range_m > 1000.0);
         assert!(bt.target_rcs_dbsm > 0.0);
     }
+
+    #[test]
+    fn test_compute_fspl_db_clamps_frequency_range() {
+        let fspl_high = compute_fspl_db(1000.0, 200_000.0);
+        let fspl_clamped = compute_fspl_db(1000.0, 100_000.0);
+        assert_eq!(fspl_high, fspl_clamped);
+    }
 }
