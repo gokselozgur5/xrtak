@@ -5,9 +5,10 @@ use crate::geo::ElevationProvider;
 use serde::{Deserialize, Serialize};
 
 /// Fire support munition / trajectory profile.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 pub enum MunitionType {
     /// 155mm Howitzer / Artillery shell (high angle or low angle)
+    #[default]
     Artillery155mm,
     /// 120mm Heavy Mortar (high angle plunging)
     Mortar120mm,
