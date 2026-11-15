@@ -174,4 +174,26 @@ mod tests {
         let sol = compute_uav_endurance(&state, &wind, 16);
         assert!(sol.is_bingo_critical);
     }
+
+    #[test]
+    fn test_depleted_battery_is_bingo_critical() {
+        let state = UavBatteryState {
+            callsign: "VALKYRIE-3".to_string(),
+            battery_remaining_pct: 0.0,
+            battery_capacity_wh: 100.0,
+            current_power_draw_w: 150.0,
+            reserve_margin_pct: 10.0,
+            cruise_airspeed_mps: 15.0,
+            current_east_m: 500.0,
+            current_north_m: 500.0,
+            current_up_m: 50.0,
+            home_east_m: 0.0,
+            home_north_m: 0.0,
+            home_up_m: 0.0,
+        };
+        let wind = WindVector::default();
+        let sol = compute_uav_endurance(&state, &wind, 16);
+        assert!(sol.is_bingo_critical);
+        assert_eq!(sol.remaining_flight_sec, 0.0);
+    }
 }
