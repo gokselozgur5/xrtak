@@ -205,4 +205,24 @@ mod tests {
         assert!(suitability.is_threat_clear);
         assert!(suitability.min_threat_distance_m > 1000.0);
     }
+
+    #[test]
+    fn test_evaluate_hlz_unsuitable_red() {
+        let model = ProceduralReliefModel;
+        let domes = vec![ThreatDome {
+            uid: "SA-15".to_string(),
+            callsign: "TOR-M2".to_string(),
+            affiliation: Affiliation::Hostile,
+            east_m: 100.0,
+            up_m: 100.0,
+            north_m: 100.0,
+            radius_m: 50.0,
+            ceiling_m: 4000.0,
+            engaged_uids: vec![],
+        }];
+        let suitability = evaluate_hlz_suitability(0.0, 0.0, 25.0, &model, &domes);
+        assert!(!suitability.is_threat_clear);
+        assert!(!suitability.is_slope_acceptable);
+        assert_eq!(suitability.overall_suitability, "RED - UNSUITABLE");
+    }
 }
