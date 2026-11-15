@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_compute_ballistic_trajectory_mortar_plunging() {
-        let model = ProceduralReliefModel;
+        let model = ProceduralReliefModel::default();
         let sol = compute_ballistic_trajectory(
             (0.0, 0.0, 50.0),
             (1500.0, 1500.0, 80.0),
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_compute_ballistic_trajectory_artillery_crest_clearance() {
-        let model = ProceduralReliefModel;
+        let model = ProceduralReliefModel::default();
         let sol = compute_ballistic_trajectory(
             (-1000.0, -1000.0, 100.0),
             (1000.0, 1000.0, 120.0),
