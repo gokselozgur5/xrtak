@@ -355,4 +355,11 @@ mod tests {
         // North-East corner (+1000, +1000) corresponds to North row col 1 = 930m ASL -> 80m relief
         assert!((res.dem.sample_relief_m(1000.0, 1000.0) - 80.0).abs() < 1e-6);
     }
+
+    #[test]
+    fn test_parse_geotiff_metadata_header_too_short() {
+        let res = parse_geotiff_metadata(b"II*");
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("shorter than 8-byte"));
+    }
 }
