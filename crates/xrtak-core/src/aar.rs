@@ -72,8 +72,8 @@ impl AarTimeline {
         AarSummary {
             frame_count: self.frames.len(),
             max_frames: self.max_frames,
-            min_time_sec: self.frames.front().map(|f| f.sim_time_sec).unwrap_or(0.0),
-            max_time_sec: self.frames.back().map(|f| f.sim_time_sec).unwrap_or(0.0),
+            min_time_sec: self.frames.front().map_or(0.0, |f| f.sim_time_sec),
+            max_time_sec: self.frames.back().map_or(0.0, |f| f.sim_time_sec),
         }
     }
 
