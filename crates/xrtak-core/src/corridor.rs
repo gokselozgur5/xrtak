@@ -259,4 +259,11 @@ mod tests {
         assert!(res.kml_polygon.contains("<Polygon>"));
         assert!(res.polygon_ring_en.len() >= 5);
     }
+
+    #[test]
+    fn test_polygon_area_unclosed_ring() {
+        let rect = vec![(10.0, 10.0), (110.0, 10.0), (110.0, 60.0), (10.0, 60.0)];
+        let area = polygon_area_m2(&rect);
+        assert!((area - 5000.0).abs() < 1e-4);
+    }
 }
