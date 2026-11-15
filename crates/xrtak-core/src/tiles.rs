@@ -431,6 +431,16 @@ mod tests {
     }
 
     #[test]
+    fn test_placeholder_rgb_tile_trailing_bytes() {
+        let mut beige = Vec::with_capacity(64 * 3 + 2);
+        for _ in 0..64 {
+            beige.extend_from_slice(&[245, 243, 239]);
+        }
+        beige.extend_from_slice(&[245, 243]);
+        assert!(is_placeholder_rgb_tile(&beige));
+    }
+
+    #[test]
     fn test_tile_coord_tms_roundtrip() {
         let coord = TileCoord::new(10, 512, 340);
         let (z, x, tms_y) = coord.to_tms();
