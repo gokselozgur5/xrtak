@@ -357,7 +357,7 @@ pub fn is_placeholder_rgb_tile(rgb_bytes: &[u8]) -> bool {
     let mut sumsq_g = 0u64;
     let mut sumsq_b = 0u64;
 
-    for px in rgb_bytes.windows(3).step_by(3) {
+    for px in rgb_bytes.chunks_exact(3) {
         let (r, g, b) = (px[0], px[1], px[2]);
         min_r = min_r.min(r);
         max_r = max_r.max(r);
@@ -416,7 +416,7 @@ mod tests {
         for _ in 0..64 {
             beige.extend_from_slice(&[245, 243, 239]);
         }
-        assert!(is_placeholder_rgb_rgb(&beige));
+        assert!(is_placeholder_rgb_tile(&beige));
 
         // Real deep blue sea / coastal variation tile
         let mut sea = Vec::with_capacity(64 * 3);
@@ -424,10 +424,6 @@ mod tests {
             sea.extend_from_slice(&[12, 45 + (i % 20), 95 + (i % 30)]);
         }
         assert!(!is_placeholder_rgb_tile(&sea));
-    }
-
-    fn is_placeholder_rgb_rgb(b: &[u8]) -> bool {
-        is_placeholder_rgb_tile(b)
     }
 
     #[test]
