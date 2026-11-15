@@ -69,7 +69,7 @@ pub fn watts_to_dbm(watts: f64) -> f64 {
 /// Free-space path loss in dB: FSPL = 20*log10(d_km) + 20*log10(f_mhz) + 32.44
 pub fn compute_fspl_db(distance_m: f64, frequency_mhz: f64) -> f64 {
     let d_km = (distance_m / 1000.0).max(0.001);
-    let f_mhz = frequency_mhz.max(1.0);
+    let f_mhz = frequency_mhz.clamp(1.0, 100_000.0);
     20.0 * d_km.log10() + 20.0 * f_mhz.log10() + 32.44
 }
 
