@@ -307,4 +307,14 @@ mod tests {
         assert_eq!(m1.copernicus_dem_cells.len(), 1);
         assert!(m1.total_package_bytes > m1.total_imagery_bytes);
     }
+
+    #[test]
+    fn test_manifest_fnv1a_hex_determinism() {
+        let h1 =
+            compute_manifest_fnv1a_hex(ImageryProvider::OpenTopoMap, 10.0, 20.0, 11.0, 21.0, 1, 5);
+        let h2 =
+            compute_manifest_fnv1a_hex(ImageryProvider::OpenTopoMap, 10.0, 20.0, 11.0, 21.0, 1, 5);
+        assert_eq!(h1, h2);
+        assert_eq!(h1.len(), 16);
+    }
 }
