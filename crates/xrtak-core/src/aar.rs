@@ -216,4 +216,16 @@ mod tests {
         assert!((summary.min_time_sec - 0.0).abs() < 1e-6);
         assert!((summary.max_time_sec - 0.0).abs() < 1e-6);
     }
+
+    #[test]
+    fn test_aar_timeline_default_and_summary_empty() {
+        let timeline = AarTimeline::default();
+        assert_eq!(timeline.max_frames, 720);
+        assert!((timeline.min_capture_interval_sec - 0.5).abs() < 1e-6);
+        assert!(timeline.frames.is_empty());
+        let summary = timeline.summary();
+        assert_eq!(summary.frame_count, 0);
+        assert_eq!(summary.max_frames, 720);
+        assert!(timeline.sample_at(5.0).is_none());
+    }
 }
