@@ -210,4 +210,18 @@ mod tests {
         assert!(!pred.is_stale);
         assert_eq!(pred.points.len(), 2);
     }
+
+    #[test]
+    fn test_kinematic_extrapolation_vertical_and_headings() {
+        let origin = (100.0, 100.0, 50.0);
+        let pt = compute_kinematic_extrapolation(origin, 10.0, 180.0, -2.0, 10.0);
+        assert!((pt.0 - 100.0).abs() < 1e-3);
+        assert!((pt.1 - 0.0).abs() < 1e-3);
+        assert!((pt.2 - 30.0).abs() < 1e-3);
+
+        let pt_west = compute_kinematic_extrapolation(origin, 5.0, 270.0, 1.0, 20.0);
+        assert!((pt_west.0 - 0.0).abs() < 1e-3);
+        assert!((pt_west.1 - 100.0).abs() < 1e-3);
+        assert!((pt_west.2 - 70.0).abs() < 1e-3);
+    }
 }
