@@ -36,13 +36,17 @@ pub struct DeconflictionResult {
     pub total_evaluated_pairs: usize,
 }
 
+/// Raw CPA calculation result: (time to closest approach in seconds, relative velocity vector).
+pub type RawCpaResult = (f64, (f64, f64, f64));
+pub type RawCpa = RawCpaResult;
+
 /// Computes raw time to closest approach (t_cpa) and relative velocity vector.
 pub fn compute_raw_t_cpa(
     pos_a: (f64, f64, f64),
     va: (f64, f64, f64),
     pos_b: (f64, f64, f64),
     vb: (f64, f64, f64),
-) -> (f64, (f64, f64, f64)) {
+) -> RawCpaResult {
     let rx = pos_a.0 - pos_b.0;
     let ry = pos_a.1 - pos_b.1;
     let rz = pos_a.2 - pos_b.2;
