@@ -213,7 +213,7 @@ impl GeoPackageMemoryReader {
     }
 
     pub fn get_tile(&self, coord: TileCoord) -> Option<&[u8]> {
-        self.tiles.get(&coord).map(|v| v.as_slice())
+        self.tiles.get(&coord).map(Vec::as_slice)
     }
 
     pub fn get_tms_tile(&self, zoom: u8, tile_x: u32, tms_y: u32) -> Option<&[u8]> {
@@ -264,13 +264,13 @@ impl LruTileCache {
                 let item = self.entries.remove(pos).unwrap();
                 self.entries.push_back(item);
             }
-            return self.tiles.get(coord).map(|v| v.as_slice());
+            return self.tiles.get(coord).map(Vec::as_slice);
         }
         None
     }
 
     pub fn peek(&self, coord: &TileCoord) -> Option<&[u8]> {
-        self.tiles.get(coord).map(|v| v.as_slice())
+        self.tiles.get(coord).map(Vec::as_slice)
     }
 
     pub fn put(&mut self, coord: TileCoord, data: Vec<u8>) {
