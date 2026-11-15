@@ -12,7 +12,7 @@ pub struct AarFrame {
 }
 
 /// Metadata summary of the active 4D AAR ring-buffer (`REQ-AAR-02`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct AarSummary {
     pub frame_count: usize,
     pub max_frames: usize,
