@@ -263,4 +263,29 @@ mod tests {
         assert_eq!(de.horizons_sec, Some(vec![5.0, 15.0]));
         assert_eq!(de.stale_threshold_sec, Some(30.0));
     }
+
+    #[test]
+    fn test_track_prediction_serde() {
+        let pt = TrackPredictionPoint {
+            dt_sec: 10.0,
+            east_m: 100.0,
+            north_m: 200.0,
+            up_m: 300.0,
+            cep_radius_m: 4.5,
+        };
+        let pred = TrackPrediction {
+            uid: "UAV-SERDE".into(),
+            callsign: "VIPER".into(),
+            current_enu: (0.0, 0.0, 0.0),
+            speed_mps: 20.0,
+            course_deg: 90.0,
+            is_stale: false,
+            points: vec![pt],
+        };
+        let json = serde_json::to_string(&pred).expect("serialize pred");
+        let de: TrackPrediction = serde_json::from_str(&json).expect("deserialize pred");
+        assert_eq!(de.uid, "UAV-SERDE");
+        assert_eq!(de.points.len(), 1);
+        assert!((de.points[0].cep_radius_m - 4.5).abs() < 1e-6);
+    }
 }
