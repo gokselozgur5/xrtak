@@ -207,4 +207,13 @@ mod tests {
         assert!((e.east_m - 50.0).abs() < 1e-6);
         assert!(e.course_deg.abs() < 1e-6 || (e.course_deg - 360.0).abs() < 1e-6);
     }
+
+    #[test]
+    fn test_aar_summary_default() {
+        let summary = AarSummary::default();
+        assert_eq!(summary.frame_count, 0);
+        assert_eq!(summary.max_frames, 0);
+        assert!((summary.min_time_sec - 0.0).abs() < 1e-6);
+        assert!((summary.max_time_sec - 0.0).abs() < 1e-6);
+    }
 }
