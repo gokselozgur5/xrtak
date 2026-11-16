@@ -174,3 +174,25 @@ impl CommsChannelPacket {
     pub fn with_primary_channel(mut self, channel_id: u32) -> Self {
         self.primary_channel_id = Some(channel_id);
         self
+    }
+
+    pub fn with_emergency_channel(mut self, channel_id: u32) -> Self {
+        self.emergency_channel_id = Some(channel_id);
+        self
+    }
+
+    pub fn primary_channel(&self) -> Option<&RadioChannel> {
+        self.primary_channel_id
+            .and_then(|id| self.channels.iter().find(|c| c.id == id))
+    }
+
+    pub fn emergency_channel(&self) -> Option<&RadioChannel> {
+        self.emergency_channel_id
+            .and_then(|id| self.channels.iter().find(|c| c.id == id))
+    }
+
+    pub fn find_channel(&self, id: u32) -> Option<&RadioChannel> {
+        self.channels.iter().find(|c| c.id == id)
+    }
+
+    /// Serializes to Cursor-on-Target XML with `<radioChannels>` detail.
