@@ -361,3 +361,27 @@ pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorSt
                     }
                 }
             }
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"feed" => break,
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(SensorStreamError::InvalidXml(e.to_string())),
+            _ => {}
+        }
+        buf.clear();
+    }
+    if !in_feed {
+        return Err(SensorStreamError::MissingFeedTag);
+    }
+    let u = url.ok_or(SensorStreamError::MissingAttribute("url"))?;
+    let a = alias.unwrap_or_else(|| "Video Stream".to_string());
+    let su = uid.unwrap_or_else(|| format!("feed-{}", &a));
+    Ok(VideoStreamConnection {
+        url: u,
+        stream_uid: su,
+        alias: a,
+        rover_port,
+        rtsp_reliable,
+        ignore_embedded_klv: ignore_klv,
+        buffer_ms,
+        preferred_uid,
+    })
+}
