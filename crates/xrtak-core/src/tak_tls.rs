@@ -104,3 +104,12 @@ pub struct TakTlsConfig {
     pub handshake_timeout_ms: u64,
     pub cipher_suites: Vec<String>,
 }
+
+impl TakTlsConfig {
+    pub fn builder(server_host: impl Into<String>, server_port: u16) -> TakTlsConfigBuilder {
+        TakTlsConfigBuilder::new(server_host, server_port)
+    }
+
+    pub fn is_mtls(&self) -> bool {
+        self.client_auth == ClientAuthMode::Required && self.client_cert.is_some()
+    }
