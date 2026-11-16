@@ -438,3 +438,25 @@ mod tests {
         .with_coordinates(34.0522, -118.2437, 120.0)
         .add_channel(ch1)
         .add_channel(ch2)
+        .with_primary_channel(1)
+        .with_emergency_channel(2);
+
+        let xml = packet.to_cot_xml();
+        assert!(xml.contains("radioChannels primary=\"1\" emergency=\"2\""));
+        assert!(xml.contains("TAC-1 Primary"));
+
+        let parsed = CommsChannelPacket::from_cot_xml(&xml).expect("Failed to parse roundtrip XML");
+        assert_eq!(parsed.uid, "COMMS-PLAN-001");
+        assert_eq!(parsed.callsign, "ALPHA-TOC");
+        assert_eq!(parsed.channels.len(), 2);
+        assert_eq!(parsed.primary_channel_id, Some(1));
+        assert_eq!(parsed.emergency_channel_id, Some(2));
+
+        let p_ch = parsed.primary_channel().expect("primary channel should exist");
+        assert_eq!(p_ch.name, "TAC-1 Primary");
+        assert_eq!(p_ch.frequency_hz, 225_500_000);
+        assert_eq!(p_ch.mode, RadioMode::FrequencyHopping);
+        assert_eq!(p_ch.tx_power_watts, Some(10.0));
+        assert_eq!(p_ch.net_preset.as_deref(), Some("Alpha-Net"));
+        assert_eq!(p_ch.encryption.as_deref(), Some("AES-256"));
+
