@@ -394,3 +394,14 @@ mod tests {
         let k = 1.0005;
         let grid = ground_to_grid_distance(ground, k);
         assert_eq!(grid, 1000.5);
+        assert_eq!(grid_to_ground_distance(grid, k), ground);
+    }
+
+    #[test]
+    fn test_invalid_inputs() {
+        assert!(calculate_utm(95.0, 0.0, None).is_err());
+        assert!(calculate_utm(0.0, 200.0, None).is_err());
+        assert!(calculate_utm(0.0, 0.0, Some(0)).is_err());
+        assert!(calculate_ups(50.0, 0.0).is_err());
+    }
+}
