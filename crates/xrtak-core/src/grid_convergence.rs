@@ -358,3 +358,21 @@ mod tests {
         let sol = calculate_ups(-85.0, 60.0).unwrap();
         assert_eq!(sol.system, GridSystem::UpsSouth);
         assert!((sol.convergence_deg - (-60.0)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_auto_grid_selection() {
+        let utm_sol = calculate_grid_convergence(38.8951, -77.0364).unwrap();
+        assert!(matches!(
+            utm_sol.system,
+            GridSystem::Utm {
+                zone: 18,
+                north: true
+            }
+        ));
+
+        let ups_sol = calculate_grid_convergence(85.0, 10.0).unwrap();
+        assert_eq!(ups_sol.system, GridSystem::UpsNorth);
+    }
+
+    #[test]
