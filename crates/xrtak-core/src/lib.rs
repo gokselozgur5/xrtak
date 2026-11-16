@@ -26,6 +26,7 @@ pub mod openxr_pose;
 pub mod opord;
 pub mod radial;
 pub mod rf;
+pub mod route_sequencer;
 pub mod sapient;
 pub mod thermal;
 pub mod tiles;
