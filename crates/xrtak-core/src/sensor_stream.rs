@@ -516,3 +516,19 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
         parent_uid,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sensor_stream_defaults_and_builder() {
+        let conn = VideoStreamConnection::new("rtsp://10.0.0.1/live", "UAV-Cam");
+        let desc = SensorStreamDescriptor::new("DESC-1", "RECON-1", 39.9, 32.8, 1200.0, conn)
+            .with_parent_uid("UAV-LEAD");
+        assert_eq!(desc.callsign, "RECON-1");
+        assert_eq!(desc.parent_uid.as_deref(), Some("UAV-LEAD"));
+        assert_eq!(desc.video.alias, "UAV-Cam");
+        assert_eq!(desc.sensor.model, "GENERIC-EO");
+    }
+}
