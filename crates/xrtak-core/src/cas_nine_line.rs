@@ -279,3 +279,23 @@ fn run_parser_loop(mut reader: Reader<&[u8]>, res: &mut CasNineLine) -> Result<(
     }
     Ok(flags)
 }
+
+impl CasNineLine {
+    /// Parses an ATAK CoT XML string into a CasNineLine.
+    pub fn from_cot_xml(xml: &str) -> Result<Self, CasNineLineError> {
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+        let mut res = Self::new("", "");
+        let (found_event, found_point, found_cas) = run_parser_loop(reader, &mut res)?;
+        if !found_event {
+            return Err(CasNineLineError::MissingEventTag);
+        }
+        if !found_point {
+            return Err(CasNineLineError::MissingPointTag);
+        }
+        if !found_cas {
+            return Err(CasNineLineError::MissingCasTag);
+        }
+        Ok(res)
+    }
+}
