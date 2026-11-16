@@ -196,3 +196,23 @@ fn match_tag(name: &[u8]) -> CasTag {
         _ => CasTag::None,
     }
 }
+
+fn parse_cas_attributes(e: &quick_xml::events::BytesStart, b: &mut CasNineLine) {
+    for a in e.attributes().flatten() {
+        let val = String::from_utf8_lossy(&a.value).into_owned();
+        match a.key.as_ref() {
+            b"line1" => b.line1_ip_bp = val,
+            b"line2" => b.line2_heading = val,
+            b"line3" => b.line3_distance = val,
+            b"line4" => b.line4_elevation = val,
+            b"line5" => b.line5_description = val,
+            b"line6" => b.line6_location = val,
+            b"line7" => b.line7_mark_type = val,
+            b"line8" => b.line8_friendlies = val,
+            b"line9" => b.line9_egress = val,
+            b"remarks" => b.remarks = val,
+            b"jtac" => b.jtac_callsign = val,
+            _ => {}
+        }
+    }
+}
