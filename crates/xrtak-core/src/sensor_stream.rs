@@ -487,3 +487,29 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                     }
                 }
             }
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"event" => break,
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(SensorStreamError::InvalidXml(e.to_string())),
+            _ => {}
+        }
+        buf.clear();
+    }
+    let u = uid.ok_or(SensorStreamError::MissingEventTag)?;
+    let la = lat.ok_or(SensorStreamError::MissingPointTag)?;
+    let lo = lon.ok_or(SensorStreamError::MissingPointTag)?;
+    let v = video_conn.ok_or(SensorStreamError::MissingVideoTag)?;
+    let cs = callsign.unwrap_or_else(|| u.clone());
+    Ok(SensorStreamDescriptor {
+        uid: u,
+        callsign: cs,
+        cot_type,
+        lat: la,
+        lon: lo,
+        hae,
+        time_iso,
+        stale_iso,
+        video: v,
+        sensor: sensor_gimbal,
+        parent_uid,
+    })
+}
