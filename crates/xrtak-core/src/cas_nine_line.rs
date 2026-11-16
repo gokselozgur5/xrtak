@@ -263,3 +263,19 @@ fn handle_start_empty(e: &quick_xml::events::BytesStart, res: &mut CasNineLine, 
     parse_event_point(e, res, name);
     match_tag(name)
 }
+
+fn run_parser_loop(mut reader: Reader<&[u8]>, res: &mut CasNineLine) -> Result<(bool, bool, bool), CasNineLineError> {
+    let mut flags = (false, false, false);
+    let mut tag = CasTag::None;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => tag = handle_start_empty(e, res, &mut flags),
+            Ok(Event::Text(ref e)) => apply_text_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res),
+            Ok(Event::End(_)) => tag = CasTag::None,
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(CasNineLineError::InvalidXml(e.to_string())),
+            _ => {}
+        }
+    }
+    Ok(flags)
+}
