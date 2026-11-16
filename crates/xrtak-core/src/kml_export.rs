@@ -190,3 +190,22 @@ impl Default for KmlExportConfig {
         }
     }
 }
+
+/// Formats a single Placemark LineString for a given track.
+fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) -> String {
+    let mut xml = String::with_capacity(512);
+    xml.push_str("    <Placemark>\n");
+    xml.push_str(&format!("      <name>{} Track</name>\n", track.callsign));
+    xml.push_str(&format!(
+        "      <description>UID: {} | Type: {} | Points: {}</description>\n",
+        track.uid, track.cot_type, track.points.len()
+    ));
+    xml.push_str(&format!("      <styleUrl>#style-{}</styleUrl>\n", track.uid));
+    xml.push_str("      <LineString>\n");
+    xml.push_str("        <extrude>1</extrude>\n");
+    xml.push_str("        <tessellate>1</tessellate>\n");
+    xml.push_str(&format!(
+        "        <altitudeMode>{}</altitudeMode>\n",
+        config.altitude_mode
+    ));
+    xml.push_str("        <coordinates>\n");
