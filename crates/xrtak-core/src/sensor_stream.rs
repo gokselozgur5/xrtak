@@ -127,3 +127,21 @@ pub struct VideoStreamConnection {
     pub buffer_ms: u32,
     pub preferred_uid: Option<String>,
 }
+
+impl VideoStreamConnection {
+    pub fn new(url: impl Into<String>, alias: impl Into<String>) -> Self {
+        let u = url.into();
+        let a = alias.into();
+        let su = format!("feed-{}", &a);
+        Self {
+            url: u,
+            stream_uid: su,
+            alias: a,
+            rover_port: None,
+            rtsp_reliable: true,
+            ignore_embedded_klv: false,
+            buffer_ms: 500,
+            preferred_uid: None,
+        }
+    }
+}
