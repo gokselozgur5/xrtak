@@ -20,3 +20,25 @@ pub enum RadioMode {
 impl RadioMode {
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::Am => "AM",
+            Self::Fm => "FM",
+            Self::NarrowbandFm => "FMN",
+            Self::FrequencyHopping => "FH",
+            Self::Digital => "DIGITAL",
+        }
+    }
+
+    pub fn from_mode_str(s: &str) -> Self {
+        match s.to_ascii_uppercase().as_str() {
+            "AM" => Self::Am,
+            "FMN" | "NFM" | "NARROWBAND_FM" => Self::NarrowbandFm,
+            "FH" | "FREQ_HOPPING" => Self::FrequencyHopping,
+            "DIGITAL" | "DMR" | "P25" => Self::Digital,
+            _ => Self::Fm,
+        }
+    }
+}
+
+/// Tactical radio channel allocation entry.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RadioChannel {
