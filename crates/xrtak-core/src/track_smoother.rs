@@ -220,3 +220,12 @@ impl TrackSmoother {
         next_state
     }
 }
+
+/// Smooths a sequential slice of track observations into trajectory states.
+pub fn smooth_trajectory(
+    observations: &[TrackObservation],
+    config: Option<TrackSmootherConfig>,
+) -> Vec<SmoothedTrackState> {
+    let mut smoother = TrackSmoother::new(config.unwrap_or_default());
+    observations.iter().map(|obs| smoother.update(obs)).collect()
+}
