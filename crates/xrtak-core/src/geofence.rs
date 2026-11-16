@@ -77,3 +77,13 @@ impl GeofencePolygon {
         self.ceiling_m = ceiling_m;
         self
     }
+    /// Tests 2D point containment using Jordan curve ray-casting.
+    pub fn contains_2d(&self, x: f64, y: f64) -> bool {
+        if self.vertices.len() < 3 {
+            return false;
+        }
+        if let Some(ref bbox) = self.bbox {
+            if !bbox.contains_2d(x, y) {
+                return false;
+            }
+        }
