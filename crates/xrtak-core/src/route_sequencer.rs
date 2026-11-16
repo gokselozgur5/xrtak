@@ -58,3 +58,14 @@ pub fn along_track_distance_m(p_lat: f64, p_lon: f64, a_lat: f64, a_lon: f64, b_
         at * EARTH_RADIUS_M
     }
 }
+
+/// Planned mission waypoint representation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RouteWaypoint {
+    pub name: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae_m: f64,
+    pub planned_speed_mps: Option<f64>,
+    pub loiter_sec: f64,
+}
