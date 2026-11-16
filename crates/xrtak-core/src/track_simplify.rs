@@ -537,3 +537,16 @@ mod tests {
         let json_cfg = serde_json::to_string(&cfg).expect("serialize cfg");
         let de_cfg: TrackSimplifyConfig = serde_json::from_str(&json_cfg).expect("deserialize cfg");
         assert_eq!(cfg, de_cfg);
+
+        let res = TrackSimplifyResult {
+            points: vec![TrackPoint::new(39.0, 32.0, 100.0)],
+            original_count: 10,
+            simplified_count: 1,
+            reduction_ratio: 0.9,
+            max_error_m: 4.25,
+        };
+        let json_res = serde_json::to_string(&res).expect("serialize res");
+        let de_res: TrackSimplifyResult = serde_json::from_str(&json_res).expect("deserialize res");
+        assert_eq!(res, de_res);
+    }
+}
