@@ -141,3 +141,16 @@ mod tests {
         let poly2 = GeofencePolygon::new("poly-1", "TwoPts", two_pts);
         assert!(!poly2.contains_2d(0.5, 0.5));
     }
+    #[test]
+    fn test_convex_polygon_containment() {
+        let vertices = vec![
+            GeofencePoint::new_2d(0.0, 0.0),
+            GeofencePoint::new_2d(10.0, 0.0),
+            GeofencePoint::new_2d(10.0, 10.0),
+            GeofencePoint::new_2d(0.0, 10.0),
+        ];
+        let poly = GeofencePolygon::new("box-1", "Box", vertices);
+        assert!(poly.contains_2d(5.0, 5.0));
+        assert!(!poly.contains_2d(15.0, 5.0));
+        assert!(!poly.contains_2d(-1.0, 5.0));
+    }
