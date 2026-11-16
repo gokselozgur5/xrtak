@@ -218,9 +218,10 @@ impl CotHeartbeatManager {
 impl CotHeartbeatManager {
     /// Process incoming pong matching ref_uid or sequence number.
     pub fn handle_pong(&mut self, ref_uid: &str, seq: Option<u64>, now_ms: u64) -> Option<u64> {
-        let idx = self.pending_pings.iter().position(|p| {
-            p.ping_uid == ref_uid || seq.map_or(false, |s| s == p.seq)
-        })?;
+        let idx = self
+            .pending_pings
+            .iter()
+            .position(|p| p.ping_uid == ref_uid || seq.map_or(false, |s| s == p.seq))?;
         let ping = self.pending_pings.remove(idx);
         let rtt = now_ms.saturating_sub(ping.sent_unix_ms);
         self.last_pong_received_ms = Some(now_ms);
@@ -259,7 +260,9 @@ impl CotHeartbeatManager {
             }
         } else if cot_type == "t-x-c-t" || (cot_type == "t-x-d-d" && xml.contains("ping")) {
             let ping_uid = extract_attr(xml, "uid").unwrap_or("unknown-ping");
-            let seq = extract_attr(xml, "seq").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let seq = extract_attr(xml, "seq")
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(0);
             let pong_xml = build_pong_cot(&self.config.client_uid, ping_uid, seq, now_ms);
             return HeartbeatAction::RespondWithPong(pong_xml);
         }
@@ -358,7 +361,10 @@ mod tests {
         );
         let action = mgr.process_incoming_cot(&pong_xml, 5_030);
         match action {
-            HeartbeatAction::PongAcknowledged { seq: ack_seq, rtt_ms } => {
+            HeartbeatAction::PongAcknowledged {
+                seq: ack_seq,
+                rtt_ms,
+            } => {
                 assert_eq!(ack_seq, seq);
                 assert_eq!(rtt_ms, 30);
             }
