@@ -43,3 +43,21 @@ impl TrackPoint {
         self
     }
 }
+
+/// Configuration parameters for track polyline simplification.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrackSimplifyConfig {
+    pub epsilon_m: f64,
+    pub include_elevation: bool,
+    pub max_time_gap_sec: Option<f64>,
+}
+
+impl Default for TrackSimplifyConfig {
+    fn default() -> Self {
+        Self {
+            epsilon_m: 5.0,
+            include_elevation: false,
+            max_time_gap_sec: None,
+        }
+    }
+}
