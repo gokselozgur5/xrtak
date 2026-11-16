@@ -50,3 +50,26 @@ pub fn haversine_distance_m(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let c = 2.0 * a.sqrt().asin();
     R * c
 }
+
+/// CoT tactical event track history for KML document generation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CotTrack {
+    pub uid: String,
+    pub callsign: String,
+    pub cot_type: String,
+    pub points: Vec<KmlTrackPoint>,
+}
+
+impl CotTrack {
+    pub fn new(
+        uid: impl Into<String>,
+        callsign: impl Into<String>,
+        cot_type: impl Into<String>,
+    ) -> Self {
+        Self {
+            uid: uid.into(),
+            callsign: callsign.into(),
+            cot_type: cot_type.into(),
+            points: Vec::new(),
+        }
+    }
