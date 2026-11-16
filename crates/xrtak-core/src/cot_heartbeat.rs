@@ -221,7 +221,7 @@ impl CotHeartbeatManager {
         let idx = self
             .pending_pings
             .iter()
-            .position(|p| p.ping_uid == ref_uid || seq.map_or(false, |s| s == p.seq))?;
+            .position(|p| p.ping_uid == ref_uid || seq == Some(p.seq))?;
         let ping = self.pending_pings.remove(idx);
         let rtt = now_ms.saturating_sub(ping.sent_unix_ms);
         self.last_pong_received_ms = Some(now_ms);
