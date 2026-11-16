@@ -142,3 +142,14 @@ impl GeoChatPacket {
                             }
                         }
                     }
+                    b"__chat" => {
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"senderCallsign" => sender_callsign = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"chatroom" => chatroom = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"messageId" => message_id = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"parent" => parent_group = String::from_utf8_lossy(&a.value).into_owned(),
+                                _ => {}
+                            }
+                        }
+                    }
