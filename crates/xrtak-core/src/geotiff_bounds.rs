@@ -98,3 +98,18 @@ impl GeoRasterExtent {
             || self.min_y > other.max_y)
     }
 }
+
+/// Parses a 6-parameter ESRI World File text string.
+pub fn parse_world_file(content: &str) -> Result<WorldFileTransform, String> {
+    let tokens: Vec<&str> = content
+        .split_whitespace()
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if tokens.len() != 6 {
+        return Err(format!("Expected 6 numerical values, found {}", tokens.len()));
+    }
+
+    let parse_val = |idx: usize, name: &'static str| -> Result<f64, String> {
+        tokens[idx].parse::<f64>().map_err(|e| format!("{}: {}", name, e))
+    };
