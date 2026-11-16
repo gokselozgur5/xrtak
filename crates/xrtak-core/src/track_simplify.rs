@@ -148,3 +148,26 @@ pub fn perpendicular_distance_to_segment_m(
         cross_dist
     }
 }
+
+fn rdp_recursive(
+    points: &[TrackPoint],
+    epsilon_m: f64,
+    include_elevation: bool,
+    max_err: &mut f64,
+) -> Vec<TrackPoint> {
+    if points.len() <= 2 {
+        return points.to_vec();
+    }
+    let first = &points[0];
+    let last = &points[points.len() - 1];
+
+    let mut max_dist = 0.0;
+    let mut split_idx = 0usize;
+
+    for (i, pt) in points.iter().enumerate().take(points.len() - 1).skip(1) {
+        let dist = perpendicular_distance_to_segment_m(pt, first, last, include_elevation);
+        if dist > max_dist {
+            max_dist = dist;
+            split_idx = i;
+        }
+    }
