@@ -176,3 +176,12 @@ impl GeoChatPacket {
                 Err(e) => return Err(GeoChatError::InvalidXml(e.to_string())),
             }
         }
+        if !found_event { return Err(GeoChatError::MissingEventTag); }
+        if message_id.is_empty() { return Err(GeoChatError::MissingMessageId); }
+        if sender_uid.is_empty() { return Err(GeoChatError::MissingSenderUid); }
+        Ok(Self {
+            sender_uid, sender_callsign, chatroom, message_id,
+            message_text, timestamp_iso, lat, lon, hae, parent_group,
+        })
+    }
+}
