@@ -531,4 +531,18 @@ mod tests {
         assert_eq!(desc.video.alias, "UAV-Cam");
         assert_eq!(desc.sensor.model, "GENERIC-EO");
     }
+
+    #[test]
+    fn test_feed_entry_xml_generation_and_roundtrip() {
+        let mut conn = VideoStreamConnection::new("rtsp://192.168.1.100:8554/live", "Thermal-1");
+        conn.rover_port = Some(49152);
+        conn.preferred_uid = Some("UAV-DRONE-99".to_string());
+        let desc = SensorStreamDescriptor::new("DESC-2", "TH-1", 40.0, 30.0, 500.0, conn);
+        let xml = desc.to_feed_entry_xml();
+        let parsed = parse_feed_entry_xml(&xml).expect("feed parse succeeds");
+        assert_eq!(parsed.url, "rtsp://192.168.1.100:8554/live");
+        assert_eq!(parsed.alias, "Thermal-1");
+        assert_eq!(parsed.rover_port, Some(49152));
+        assert_eq!(parsed.preferred_uid.as_deref(), Some("UAV-DRONE-99"));
+    }
 }
