@@ -31,3 +31,15 @@ impl TrackPoint {
             course_deg: None,
         }
     }
+
+    pub fn with_time(mut self, timestamp_ms: u64) -> Self {
+        self.timestamp_ms = Some(timestamp_ms);
+        self
+    }
+
+    pub fn with_kinematics(mut self, speed_mps: f64, course_deg: f64) -> Self {
+        self.speed_mps = Some(speed_mps);
+        self.course_deg = Some(course_deg);
+        self
+    }
+}
