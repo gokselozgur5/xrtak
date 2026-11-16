@@ -572,4 +572,17 @@ mod tests {
         assert_eq!(parsed.sensor.model, "TRILLIUM-HD80");
         assert_eq!(parsed.parent_uid.as_deref(), Some("UAV-DRONE-ALPHA"));
     }
+
+    #[test]
+    fn test_video_connections_catalog() {
+        let conn1 = VideoStreamConnection::new("rtsp://10.0.0.1/live", "Feed-1");
+        let desc1 = SensorStreamDescriptor::new("D1", "C1", 10.0, 20.0, 100.0, conn1);
+        let conn2 = VideoStreamConnection::new("rtsp://10.0.0.2/live", "Feed-2");
+        let desc2 = SensorStreamDescriptor::new("D2", "C2", 11.0, 21.0, 200.0, conn2);
+        let catalog = to_video_connections_xml(&[desc1, desc2]);
+        assert!(catalog.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"));
+        assert!(catalog.contains("<videoConnections>"));
+        assert!(catalog.contains("Feed-1"));
+        assert!(catalog.contains("Feed-2"));
+    }
 }
