@@ -16,3 +16,16 @@ impl TlsVersion {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ClientAuthMode {
+    None,
+    Optional,
+    Required,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CertificateFormat {
+    Pem,
+    Pkcs12,
+}
