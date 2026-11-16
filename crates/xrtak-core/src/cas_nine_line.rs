@@ -251,3 +251,15 @@ fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, nam
         }
     }
 }
+
+fn handle_start_empty(e: &quick_xml::events::BytesStart, res: &mut CasNineLine, flags: &mut (bool, bool, bool)) -> CasTag {
+    let name = e.name().into_inner();
+    if name == b"event" { flags.0 = true; }
+    if name == b"point" { flags.1 = true; }
+    if name == b"cas9line" || name == b"cas" || name == b"nine_line" {
+        flags.2 = true;
+        parse_cas_attributes(e, res);
+    }
+    parse_event_point(e, res, name);
+    match_tag(name)
+}
