@@ -451,3 +451,15 @@ mod tests {
         assert_eq!(simplified[0].lat, points[0].lat);
         assert_eq!(simplified[1].lat, points[10].lat);
     }
+
+    #[test]
+    fn test_rdp_preserves_salient_turns() {
+        let a = TrackPoint::new(39.0, 32.0, 100.0);
+        let corner = TrackPoint::new(39.05, 32.05, 100.0);
+        let b = TrackPoint::new(39.10, 32.0, 100.0);
+        let points = vec![a.clone(), corner.clone(), b.clone()];
+
+        let simplified = simplify_track_rdp(&points, 10.0);
+        assert_eq!(simplified.len(), 3);
+        assert_eq!(simplified[1].lat, corner.lat);
+    }
