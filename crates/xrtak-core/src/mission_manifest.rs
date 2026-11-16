@@ -99,3 +99,11 @@ impl MissionPackageManifest {
         self.contents.len()
     }
 }
+
+pub(crate) fn escape_xml_attr(val: &str) -> String {
+    val.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
