@@ -128,3 +128,24 @@ pub fn cot_type_to_kml_color(cot_type: &str) -> &'static str {
         "ffffffff"
     }
 }
+
+/// Converts Unix millisecond timestamp to ISO 8601 UTC string.
+pub fn format_iso8601_utc(unix_ms: u64) -> String {
+    let total_secs = unix_ms / 1000;
+    let millis = unix_ms % 1000;
+
+    let sec = total_secs % 60;
+    let total_mins = total_secs / 60;
+    let min = total_mins % 60;
+    let total_hours = total_mins / 60;
+    let hour = total_hours % 24;
+    let mut days = total_hours / 24;
+
+    let mut year = 1970u64;
+    loop {
+        let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        let days_in_year = if leap { 366 } else { 365 };
+        if days < days_in_year { break; }
+        days -= days_in_year;
+        year += 1;
+    }
