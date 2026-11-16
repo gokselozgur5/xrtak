@@ -284,3 +284,20 @@ mod tests {
         assert!(config.verify_server_hostname);
         assert!(!config.is_mtls());
     }
+
+    #[test]
+    fn test_mtls_valid_configuration() {
+        let pem_data = b"-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----\n";
+        let cert = TlsCertificate::from_pem(pem_data.to_vec());
+        assert_eq!(cert.count_pem_certificates(), 1);
+
+        let config = TakTlsConfig::builder("tak.domain.mil", 8089)
+            .client_auth(ClientAuthMode::Required)
+            .client_cert(cert)
+            .sni_hostname("custom-sni.mil")
+            .build()
+            .unwrap();
+
+        assert!(config.is_mtls());
+        assert_eq!(config.sni_hostname.as_deref(), Some("custom-sni.mil"));
+    }
