@@ -206,7 +206,7 @@ impl MissionPackageManifest {
         };
         for line in xml[start..end].lines() {
             if let Some(ze) = extract_attr(line, "zipEntry") {
-                let ignore = extract_attr(line, "ignore").map_or(false, |v| v == "true");
+                let ignore = extract_attr(line, "ignore") == Some("true");
                 self.add_content(ze, ignore);
             }
         }
