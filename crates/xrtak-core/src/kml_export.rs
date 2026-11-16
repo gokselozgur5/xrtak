@@ -112,3 +112,19 @@ impl CotTrack {
         total
     }
 }
+
+/// Resolves KML aabbggrr hex color from CoT type string.
+pub fn cot_type_to_kml_color(cot_type: &str) -> &'static str {
+    let lower = cot_type.to_lowercase();
+    if lower.starts_with("a-f") {
+        "ff00ff00"
+    } else if lower.starts_with("a-h") {
+        "ff0000ff"
+    } else if lower.starts_with("a-n") {
+        "ffff0000"
+    } else if lower.starts_with("a-u") {
+        "ff00ffff"
+    } else {
+        "ffffffff"
+    }
+}
