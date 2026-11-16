@@ -15,3 +15,16 @@ pub enum GeoChatError {
     MissingSenderUid,
     MissingMessageId,
 }
+
+impl fmt::Display for GeoChatError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidXml(e) => write!(f, "Invalid XML: {}", e),
+            Self::MissingEventTag => write!(f, "Missing event tag"),
+            Self::MissingChatTag => write!(f, "Missing chat tag"),
+            Self::MissingRemarks => write!(f, "Missing remarks"),
+            Self::MissingSenderUid => write!(f, "Missing sender UID"),
+            Self::MissingMessageId => write!(f, "Missing messageId"),
+        }
+    }
+}
