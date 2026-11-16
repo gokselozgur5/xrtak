@@ -284,3 +284,25 @@ impl CommsChannelPacket {
                                 b"lat" => lat = parse_f64(&a.value).unwrap_or(0.0),
                                 b"lon" => lon = parse_f64(&a.value).unwrap_or(0.0),
                                 b"hae" => hae = parse_f64(&a.value).unwrap_or(0.0),
+                                _ => {}
+                            }
+                        }
+                    }
+                    b"contact" => {
+                        for a in e.attributes().flatten() {
+                            if a.key.as_ref() == b"callsign" {
+                                callsign = String::from_utf8_lossy(&a.value).into_owned();
+                            }
+                        }
+                    }
+                    b"radioChannels" => {
+                        found_radio_channels = true;
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"primary" => primary_id = parse_u32(&a.value),
+                                b"emergency" => emergency_id = parse_u32(&a.value),
+                                _ => {}
+                            }
+                        }
+                    }
+                    b"channel" => {
