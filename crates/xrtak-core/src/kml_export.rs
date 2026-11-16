@@ -264,3 +264,11 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
         kml.push_str("      </LineStyle>\n");
         kml.push_str("    </Style>\n");
     }
+
+    for track in tracks {
+        if !track.points.is_empty() {
+            kml.push_str(&build_track_linestring_placemark(track, config));
+
+            if config.include_gx_track && track.points.iter().any(|p| p.timestamp_ms.is_some()) {
+                kml.push_str(&build_gx_track_placemark(track));
+            }
