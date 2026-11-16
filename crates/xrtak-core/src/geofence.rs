@@ -72,3 +72,8 @@ impl GeofencePolygon {
             bbox,
         }
     }
+    pub fn with_altitude_bounds(mut self, floor_m: Option<f64>, ceiling_m: Option<f64>) -> Self {
+        self.floor_m = floor_m;
+        self.ceiling_m = ceiling_m;
+        self
+    }
