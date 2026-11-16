@@ -396,3 +396,20 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
 
     Ok(points)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_track_point_builder() {
+        let pt = TrackPoint::new(39.92, 32.85, 950.0)
+            .with_time(1700000000000)
+            .with_kinematics(15.5, 45.0);
+        assert!((pt.lat - 39.92).abs() < 1e-6);
+        assert!((pt.lon - 32.85).abs() < 1e-6);
+        assert!((pt.hae_m - 950.0).abs() < 1e-6);
+        assert_eq!(pt.timestamp_ms, Some(1700000000000));
+        assert_eq!(pt.speed_mps, Some(15.5));
+        assert_eq!(pt.course_deg, Some(45.0));
+    }
