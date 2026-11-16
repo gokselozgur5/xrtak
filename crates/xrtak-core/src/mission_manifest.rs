@@ -158,3 +158,23 @@ pub(crate) fn extract_attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
     let end = tag[start..].find('"')? + start;
     Some(&tag[start..end])
 }
+
+impl MissionPackageManifest {
+    /// Parse a TAK Mission Package `manifest.xml` document.
+    pub fn parse_xml(xml: &str) -> Result<Self, String> {
+        let version = extract_attr(xml, "version")
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(2);
+        let mut manifest = Self {
+            version,
+            uid: String::new(),
+            name: String::new(),
+            on_receive_delete: false,
+            parameters: Vec::new(),
+            contents: Vec::new(),
+        };
+        manifest.parse_config_block(xml);
+        manifest.parse_contents_block(xml);
+        Ok(manifest)
+    }
+}
