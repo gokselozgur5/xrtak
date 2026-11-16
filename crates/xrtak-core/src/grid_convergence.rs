@@ -142,3 +142,21 @@ pub fn calculate_utm(
         dlam_deg += 360.0;
     }
 
+    let phi = lat_deg.to_radians();
+    let dlam = dlam_deg.to_radians();
+
+    let sin_p = phi.sin();
+    let cos_p = phi.cos();
+    let tan_p = phi.tan();
+    let eta2 = WGS84_EP2 * cos_p * cos_p;
+
+    // Series expansion for Transverse Mercator convergence (Snyder eq. 8-16 / DMA TM 8358.1):
+    let t1 = dlam * sin_p;
+    let t2 = (dlam.powi(3) / 3.0) * sin_p * cos_p.powi(2) * (1.0 + 3.0 * eta2 + 2.0 * eta2.powi(2));
+    let t3 = (dlam.powi(5) / 15.0)
+        * sin_p
+        * cos_p.powi(4)
+        * (2.0 - tan_p.powi(2) + 15.0 * eta2 + 35.0 * eta2.powi(2) - 15.0 * tan_p.powi(2) * eta2);
+    let gamma_rad = t1 + t2 + t3;
+    let gamma_deg = gamma_rad.to_degrees();
+
