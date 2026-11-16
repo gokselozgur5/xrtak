@@ -130,3 +130,24 @@ impl MissionPackageManifest {
         out
     }
 }
+
+impl MissionPackageManifest {
+    fn append_contents_xml(&self, out: &mut String) {
+        out.push_str("  <Contents>\n");
+        for c in &self.contents {
+            let ze = escape_xml_attr(&c.zip_entry);
+            if c.parameters.is_empty() {
+                out.push_str(&format!("    <Content zipEntry=\"{ze}\" ignore=\"{}\"/>\n", c.ignore));
+            } else {
+                out.push_str(&format!("    <Content zipEntry=\"{ze}\" ignore=\"{}\">\n", c.ignore));
+                for p in &c.parameters {
+                    let k = escape_xml_attr(&p.name);
+                    let v = escape_xml_attr(&p.value);
+                    out.push_str(&format!("      <Parameter name=\"{k}\" value=\"{v}\"/>\n"));
+                }
+                out.push_str("    </Content>\n");
+            }
+        }
+        out.push_str("  </Contents>\n");
+    }
+}
