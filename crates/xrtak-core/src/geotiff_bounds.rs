@@ -73,3 +73,16 @@ pub struct GeoRasterExtent {
     pub bottom_left: (f64, f64),
     pub bottom_right: (f64, f64),
 }
+
+impl GeoRasterExtent {
+    pub fn center(&self) -> (f64, f64) {
+        ((self.min_x + self.max_x) * 0.5, (self.min_y + self.max_y) * 0.5)
+    }
+
+    pub fn span_x(&self) -> f64 {
+        self.max_x - self.min_x
+    }
+
+    pub fn span_y(&self) -> f64 {
+        self.max_y - self.min_y
+    }
