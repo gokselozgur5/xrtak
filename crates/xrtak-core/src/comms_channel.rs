@@ -504,3 +504,13 @@ mod tests {
         let bad_xml = "<invalid_xml";
         assert!(matches!(CommsChannelPacket::from_cot_xml(bad_xml), Err(CommsChannelError::InvalidXml(_))));
 
+        let missing_event = "<someOtherRoot></someOtherRoot>";
+        assert_eq!(CommsChannelPacket::from_cot_xml(missing_event), Err(CommsChannelError::MissingEventTag));
+
+        let missing_uid = "<event version=\"2.0\"><detail><radioChannels/></detail></event>";
+        assert_eq!(CommsChannelPacket::from_cot_xml(missing_uid), Err(CommsChannelError::MissingUid));
+
+        let missing_channels = "<event version=\"2.0\" uid=\"U1\"><detail></detail></event>";
+        assert_eq!(CommsChannelPacket::from_cot_xml(missing_channels), Err(CommsChannelError::MissingRadioChannelsTag));
+    }
+}
