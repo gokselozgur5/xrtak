@@ -116,3 +116,24 @@ impl CotHeartbeatManager {
         self.status() == HeartbeatStatus::Connected
     }
 }
+
+impl CotHeartbeatManager {
+    /// Return the exponentially smoothed round-trip time in milliseconds.
+    pub fn smoothed_rtt_ms(&self) -> f32 {
+        self.smoothed_rtt_ms
+    }
+
+    /// Return the most recent instantaneous round-trip time in milliseconds.
+    pub fn last_rtt_ms(&self) -> Option<u64> {
+        self.last_rtt_ms
+    }
+
+    /// Return packet loss percentage based on total sent and lost pongs.
+    pub fn packet_loss_pct(&self) -> f32 {
+        if self.total_pings_sent == 0 {
+            0.0
+        } else {
+            (self.total_pongs_lost as f32 / self.total_pings_sent as f32) * 100.0
+        }
+    }
+}
