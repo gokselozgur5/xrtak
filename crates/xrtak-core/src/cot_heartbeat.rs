@@ -12,3 +12,16 @@ pub enum HeartbeatStatus {
     /// Timed out or exceeded maximum missed ping count.
     Disconnected,
 }
+
+/// Configuration parameters for CoT ping/pong heartbeat keepalive.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CotHeartbeatConfig {
+    /// Interval between ping heartbeat broadcasts in milliseconds.
+    pub interval_ms: u64,
+    /// Timeout to wait for a pong response before considering it lost.
+    pub timeout_ms: u64,
+    /// Maximum consecutive missed pongs before marking connection Disconnected.
+    pub max_missed_pongs: u32,
+    /// Unique client identifier for CoT event attribution.
+    pub client_uid: String,
+}
