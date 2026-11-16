@@ -250,3 +250,20 @@ mod tests {
         assert!((heading_delta_deg(90.0, 180.0) - 90.0).abs() < 1e-9);
         assert!((heading_delta_deg(180.0, 90.0) - (-90.0)).abs() < 1e-9);
     }
+
+    #[test]
+    fn test_smooth_heading_boundary() {
+        let smoothed = smooth_heading_deg(350.0, 10.0, 0.5);
+        assert!((smoothed - 0.0).abs() < 1e-9 || (smoothed - 360.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_stationary_jitter_suppression() {
+        let mut smoother = TrackSmoother::default();
+        let obs1 = TrackObservation::with_kinematics(0.0, 0.0, 0.0, 10.0, 0.0, 90.0);
+        smoother.update(&obs1);
+
+        let obs2 = TrackObservation::new(1.0, 0.05, 0.02, 10.0);
+        let s2 = smoother.update(&obs2);
+        assert_eq!(s2.course_deg, 90.0);
+    }
