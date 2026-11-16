@@ -58,3 +58,18 @@ impl WorldFileTransform {
         )
     }
 }
+
+/// Geographic bounding box and 4-corner footprint of a raster image.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct GeoRasterExtent {
+    pub min_x: f64,
+    pub max_x: f64,
+    pub min_y: f64,
+    pub max_y: f64,
+    pub width_px: usize,
+    pub height_px: usize,
+    pub top_left: (f64, f64),
+    pub top_right: (f64, f64),
+    pub bottom_left: (f64, f64),
+    pub bottom_right: (f64, f64),
+}
