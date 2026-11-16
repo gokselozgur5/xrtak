@@ -16,6 +16,7 @@ pub mod geo;
 pub mod geopackage;
 pub mod geofence;
 pub mod geochat;
+pub mod grid_convergence;
 pub mod geotiff_bounds;
 pub mod geodesy;
 pub mod hud;
