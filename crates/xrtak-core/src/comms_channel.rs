@@ -328,3 +328,25 @@ impl CommsChannelPacket {
                                 b"power" => ch_pwr = parse_f64(&a.value),
                                 b"netPreset" => {
                                     ch_preset = Some(unescape_xml(&String::from_utf8_lossy(&a.value)))
+                                }
+                                b"encryption" => {
+                                    ch_enc = Some(unescape_xml(&String::from_utf8_lossy(&a.value)))
+                                }
+                                _ => {}
+                            }
+                        }
+                        channels.push(RadioChannel {
+                            id: ch_id,
+                            name: ch_name,
+                            frequency_hz: ch_freq,
+                            bandwidth_hz: ch_bw,
+                            mode: ch_mode,
+                            tx_power_watts: ch_pwr,
+                            net_preset: ch_preset,
+                            encryption: ch_enc,
+                        });
+                    }
+                    _ => {}
+                },
+                Ok(Event::Eof) => break,
+                Err(e) => return Err(CommsChannelError::InvalidXml(e.to_string())),
