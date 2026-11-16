@@ -177,3 +177,13 @@ pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
             eta_epoch_sec: ((plan.start_time_epoch_sec + cum_time) * 10.0).round() / 10.0,
         });
     }
+
+    SequencedRouteResult {
+        route_uid: plan.route_uid.clone(),
+        callsign: plan.callsign.clone(),
+        total_distance_m: (cum_dist * 10.0).round() / 10.0,
+        total_duration_sec: (cum_time * 10.0).round() / 10.0,
+        estimated_completion_epoch_sec: ((plan.start_time_epoch_sec + cum_time) * 10.0).round() / 10.0,
+        legs,
+    }
+}
