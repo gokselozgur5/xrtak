@@ -48,3 +48,14 @@ impl BoundingBox {
         x >= self.min_x && x <= self.max_x && y >= self.min_y && y <= self.max_y
     }
 }
+
+/// Polygonal geofence volume with optional altitude limits.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GeofencePolygon {
+    pub id: String,
+    pub name: String,
+    pub vertices: Vec<GeofencePoint>,
+    pub floor_m: Option<f64>,
+    pub ceiling_m: Option<f64>,
+    pub bbox: Option<BoundingBox>,
+}
