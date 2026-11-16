@@ -146,3 +146,18 @@ fn format_cas_detail_xml(b: &CasNineLine) -> String {
 </cas9line><remarks>{rem}</remarks></detail>"
     )
 }
+
+impl CasNineLine {
+    /// Serializes CAS 9-Line briefing into CoT XML string.
+    pub fn to_cot_xml(&self) -> String {
+        let uid = escape_xml(&self.cot_uid);
+        let t = &self.time_iso;
+        let detail = format_cas_detail_xml(self);
+        format!(
+            "<event version=\"2.0\" uid=\"{uid}\" type=\"b-m-p-s-p-loc\" how=\"m-g\" time=\"{t}\" start=\"{t}\" stale=\"{t}\">\
+<point lat=\"{:.6}\" lon=\"{:.6}\" hae=\"{:.1}\" ce=\"9999999.0\" le=\"9999999.0\"/>\
+{detail}</event>",
+            self.lat, self.lon, self.hae
+        )
+    }
+}
