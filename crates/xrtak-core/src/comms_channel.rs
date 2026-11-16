@@ -86,3 +86,25 @@ impl RadioChannel {
         self.encryption = Some(encryption.into());
         self
     }
+}
+
+/// Errors during CoT radio channel packet parsing or validation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CommsChannelError {
+    InvalidXml(String),
+    MissingEventTag,
+    MissingUid,
+    MissingCallsign,
+    MissingRadioChannelsTag,
+    EmptyChannelList,
+    ChannelNotFound(u32),
+}
+
+impl fmt::Display for CommsChannelError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidXml(e) => write!(f, "Invalid XML: {}", e),
+            Self::MissingEventTag => write!(f, "Missing event tag"),
+            Self::MissingUid => write!(f, "Missing event UID"),
+            Self::MissingCallsign => write!(f, "Missing contact callsign"),
+            Self::MissingRadioChannelsTag => write!(f, "Missing radioChannels tag"),
