@@ -210,3 +210,21 @@ pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPack
         4 => 64,
         _ => return Err(GeoPackageError::InvalidGeometryBlob("invalid envelope indicator".into())),
     };
+
+    let wkb_offset = 8 + envelope_len;
+    if blob.len() < wkb_offset + 5 {
+        return Err(GeoPackageError::InvalidGeometryBlob(
+            "wkb payload truncated".into(),
+        ));
+    }
+
+    let wkb_bytes = &blob[wkb_offset..];
+    let wkb_le = wkb_bytes[0] == 1;
+
+    let read_u32 = |slice: &[u8]| -> u32 {
+        if wkb_le {
+            u32::from_le_bytes([slice[0], slice[1], slice[2], slice[3]])
+        } else {
+            u32::from_be_bytes([slice[0], slice[1], slice[2], slice[3]])
+        }
+    };
