@@ -301,3 +301,19 @@ pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult
         links = links,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_haversine_and_bearing_cardinals() {
+        let dist = haversine_distance_m(0.0, 0.0, 0.0, 1.0);
+        assert!((dist - 111_195.0).abs() < 500.0);
+
+        let brg_east = initial_bearing_deg(0.0, 0.0, 0.0, 1.0);
+        assert!((brg_east - 90.0).abs() < 1e-4);
+
+        let brg_north = initial_bearing_deg(0.0, 0.0, 1.0, 0.0);
+        assert!((brg_north - 0.0).abs() < 1e-4);
+    }
