@@ -116,3 +116,15 @@ impl GeofencePolygon {
         }
         true
     }
+    /// Filters tracks that breach the geofence perimeter.
+    pub fn find_breaching_tracks<'a>(
+        &self,
+        tracks: &'a [(String, GeofencePoint)],
+    ) -> Vec<&'a str> {
+        tracks
+            .iter()
+            .filter(|(_, pt)| self.contains_point(pt))
+            .map(|(uid, _)| uid.as_str())
+            .collect()
+    }
+}
