@@ -128,3 +128,16 @@ impl GeofencePolygon {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_degenerate_polygon() {
+        let empty = GeofencePolygon::new("poly-0", "Empty", vec![]);
+        assert!(!empty.contains_2d(0.0, 0.0));
+        let two_pts = vec![GeofencePoint::new_2d(0.0, 0.0), GeofencePoint::new_2d(1.0, 1.0)];
+        let poly2 = GeofencePolygon::new("poly-1", "TwoPts", two_pts);
+        assert!(!poly2.contains_2d(0.5, 0.5));
+    }
