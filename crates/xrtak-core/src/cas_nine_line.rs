@@ -233,3 +233,21 @@ fn apply_text_to_field(tag: CasTag, text: &str, b: &mut CasNineLine) {
         CasTag::None => {}
     }
 }
+
+fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, name: &[u8]) {
+    for a in e.attributes().flatten() {
+        if name == b"event" {
+            if a.key.as_ref() == b"uid" { b.cot_uid = String::from_utf8_lossy(&a.value).into_owned(); }
+            if a.key.as_ref() == b"time" { b.time_iso = String::from_utf8_lossy(&a.value).into_owned(); }
+        } else if name == b"point" {
+            match a.key.as_ref() {
+                b"lat" => b.lat = parse_f64(&a.value).unwrap_or(0.0),
+                b"lon" => b.lon = parse_f64(&a.value).unwrap_or(0.0),
+                b"hae" => b.hae = parse_f64(&a.value).unwrap_or(0.0),
+                _ => {}
+            }
+        } else if name == b"contact" && a.key.as_ref() == b"callsign" {
+            b.jtac_callsign = String::from_utf8_lossy(&a.value).into_owned();
+        }
+    }
+}
