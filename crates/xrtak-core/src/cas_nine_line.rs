@@ -305,9 +305,19 @@ mod tests {
     use super::*;
 
     fn sample_brief() -> CasNineLine {
-        CasNineLine::new("CAS-001", "WARRIOR 21")
+        let mut b = CasNineLine::new("CAS-001", "WARRIOR 21")
             .with_coordinates(34.123456, -117.654321, 1200.0)
             .with_time("2026-11-16T09:00:00Z")
-            .with_remarks("Final Attack Heading 180-210. Danger close 600m.")
+            .with_remarks("FAH 180-210. Danger close 600m.");
+        b.line1_ip_bp = "VIPER".to_string();
+        b.line2_heading = "185".to_string();
+        b.line3_distance = "12.4nm".to_string();
+        b.line4_elevation = "3400MSL".to_string();
+        b.line5_description = "2x T-72 tanks".to_string();
+        b.line6_location = "38SMB12345678".to_string();
+        b.line7_mark_type = "WP Smoke / Laser 1688".to_string();
+        b.line8_friendlies = "1200m South".to_string();
+        b.line9_egress = "Egress East to PULL".to_string();
+        b
     }
 }
