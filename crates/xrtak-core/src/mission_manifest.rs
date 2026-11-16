@@ -35,3 +35,14 @@ impl ManifestContentEntry {
         }
     }
 }
+
+impl ManifestContentEntry {
+    pub fn with_param(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.parameters.push(ManifestParameter::new(name, value));
+        self
+    }
+
+    pub fn add_param(&mut self, name: impl Into<String>, value: impl Into<String>) {
+        self.parameters.push(ManifestParameter::new(name, value));
+    }
+}
