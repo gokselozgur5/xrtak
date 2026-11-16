@@ -151,3 +151,29 @@ pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
         let h_dist = haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon);
         let s_dist = slant_distance_3d_m(prev.lat, prev.lon, prev.hae_m, curr.lat, curr.lon, curr.hae_m);
         let brg = initial_bearing_deg(prev.lat, prev.lon, curr.lat, curr.lon);
+
+        let spd = curr.planned_speed_mps.unwrap_or(default_spd).max(0.1);
+        let transit_time = s_dist / spd;
+        let loiter_time = curr.loiter_sec;
+        let leg_time = transit_time + loiter_time;
+
+        cum_dist += s_dist;
+        cum_time += leg_time;
+
+        legs.push(SequencedLeg {
+            from_index: i - 1,
+            to_index: i,
+            from_name: prev.name.clone(),
+            to_name: curr.name.clone(),
+            distance_m: (h_dist * 10.0).round() / 10.0,
+            slant_distance_m: (s_dist * 10.0).round() / 10.0,
+            bearing_deg: (brg * 10.0).round() / 10.0,
+            speed_mps: spd,
+            transit_time_sec: (transit_time * 10.0).round() / 10.0,
+            loiter_time_sec: loiter_time,
+            total_leg_time_sec: (leg_time * 10.0).round() / 10.0,
+            cumulative_dist_m: (cum_dist * 10.0).round() / 10.0,
+            cumulative_ete_sec: (cum_time * 10.0).round() / 10.0,
+            eta_epoch_sec: ((plan.start_time_epoch_sec + cum_time) * 10.0).round() / 10.0,
+        });
+    }
