@@ -61,3 +61,12 @@ impl TlsCertificate {
         text.matches("-----BEGIN CERTIFICATE-----").count()
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TakTlsError {
+    InvalidHost(String),
+    InvalidPort(u16),
+    MissingClientCertificate,
+    IncompatibleVersion { min: TlsVersion, max: TlsVersion },
+    InvalidCertificateData(String),
+}
