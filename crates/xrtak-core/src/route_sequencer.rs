@@ -268,3 +268,23 @@ pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult
     };
 
     let mut links = String::new();
+
+    for (i, wp) in plan.waypoints.iter().enumerate() {
+        let eta_str = if i == 0 {
+            format!("{:.0}", plan.start_time_epoch_sec)
+        } else {
+            let leg = &sequenced.legs[i - 1];
+            format!("{:.0}", leg.eta_epoch_sec)
+        };
+
+        links.push_str(&format!(
+            r#"<link uid="{uid}-WP{idx}" callsign="{name}" type="b-m-p-w" point="{lat:.6},{lon:.6},{hae:.1}" relation="c" eta="{eta}"/>"#,
+            uid = plan.route_uid,
+            idx = i + 1,
+            name = wp.name,
+            lat = wp.lat,
+            lon = wp.lon,
+            hae = wp.hae_m,
+            eta = eta_str,
+        ));
+    }
