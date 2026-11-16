@@ -236,3 +236,29 @@ impl SensorStreamDescriptor {
         )
     }
 }
+
+impl SensorStreamDescriptor {
+    fn format_video_tag(&self) -> String {
+        let rover = self
+            .video
+            .rover_port
+            .map(|p| format!(" roverPort=\"{p}\""))
+            .unwrap_or_default();
+        let pref = self
+            .video
+            .preferred_uid
+            .as_deref()
+            .or(self.parent_uid.as_deref())
+            .map(|u| format!(" preferredUid=\"{u}\""))
+            .unwrap_or_default();
+        format!(
+            "<__video url=\"{}\" uid=\"{}\" sensor=\"{}\" alias=\"{}\" rtspReliable=\"{}\" ignoreEmbeddedKLV=\"{}\"{rover}{pref}/>",
+            self.video.url,
+            self.video.stream_uid,
+            self.sensor.sensor_type.as_str(),
+            self.video.alias,
+            if self.video.rtsp_reliable { 1 } else { 0 },
+            self.video.ignore_embedded_klv,
+        )
+    }
+}
