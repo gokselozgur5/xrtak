@@ -229,3 +229,16 @@ pub fn smooth_trajectory(
     let mut smoother = TrackSmoother::new(config.unwrap_or_default());
     observations.iter().map(|obs| smoother.update(obs)).collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_wrap_heading_deg() {
+        assert_eq!(wrap_heading_deg(0.0), 0.0);
+        assert_eq!(wrap_heading_deg(360.0), 0.0);
+        assert_eq!(wrap_heading_deg(720.0), 0.0);
+        assert!((wrap_heading_deg(-90.0) - 270.0).abs() < 1e-9);
+        assert!((wrap_heading_deg(450.0) - 90.0).abs() < 1e-9);
+    }
