@@ -89,3 +89,30 @@ impl CasNineLine {
         self
     }
 }
+
+/// Formats standard voice readback text for CAS 9-Line briefing.
+pub fn format_cas_nine_line_text(b: &CasNineLine) -> String {
+    format!(
+        "--- 9-LINE CAS BRIEF ---\n\
+         1. IP/BP: {}\n\
+         2. Heading: {}\n\
+         3. Distance: {}\n\
+         4. Elevation: {}\n\
+         5. Description: {}\n\
+         6. Location: {}\n\
+         7. Mark: {}\n\
+         8. Friendlies: {}\n\
+         9. Egress: {}\n\
+         Remarks: {}",
+        b.line1_ip_bp,
+        b.line2_heading,
+        b.line3_distance,
+        b.line4_elevation,
+        b.line5_description,
+        b.line6_location,
+        b.line7_mark_type,
+        b.line8_friendlies,
+        b.line9_egress,
+        b.remarks
+    )
+}
