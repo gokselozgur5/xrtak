@@ -370,4 +370,16 @@ mod tests {
         assert_eq!(parsed.line6_location, "38SMC99887766");
         assert_eq!(parsed.remarks, "Type 2 Control");
     }
+
+    #[test]
+    fn test_cas_parser_errors() {
+        let no_event = "<data><point lat=\"0\" lon=\"0\"/></data>";
+        assert_eq!(CasNineLine::from_cot_xml(no_event).unwrap_err(), CasNineLineError::MissingEventTag);
+
+        let no_point = "<event uid=\"1\"><detail><cas9line/></detail></event>";
+        assert_eq!(CasNineLine::from_cot_xml(no_point).unwrap_err(), CasNineLineError::MissingPointTag);
+
+        let no_cas = "<event uid=\"1\"><point lat=\"0\" lon=\"0\"/><detail></detail></event>";
+        assert_eq!(CasNineLine::from_cot_xml(no_cas).unwrap_err(), CasNineLineError::MissingCasTag);
+    }
 }
