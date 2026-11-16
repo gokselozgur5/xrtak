@@ -138,6 +138,13 @@ pub use tracker::{
     compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
     TrackPredictInput, TrackPredictRequest, TrackPrediction, TrackPredictionPoint,
 };
+pub use track_simplify::{
+    generate_cot_track_history_xml, haversine_distance_m as track_haversine_distance_m,
+    initial_bearing_deg as track_initial_bearing_deg, parse_cot_track_history_xml,
+    perpendicular_distance_to_segment_m, simplify_coordinates_rdp, simplify_track_rdp,
+    simplify_track_with_config, TrackPoint, TrackSimplifyConfig, TrackSimplifyResult,
+    WGS84_EARTH_RADIUS_M,
+};
 pub use track_smoother::{
     heading_delta_deg, smooth_heading_deg, smooth_scalar, smooth_trajectory, wrap_heading_deg,
     SmoothedTrackState, TrackObservation, TrackSmoother, TrackSmootherConfig,
