@@ -36,3 +36,22 @@ impl Default for CotHeartbeatConfig {
         }
     }
 }
+
+/// Record of an active ping transmitted and awaiting pong acknowledgement.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PingRecord {
+    pub seq: u64,
+    pub ping_uid: String,
+    pub sent_unix_ms: u64,
+}
+
+/// Action determined by processing an incoming CoT message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HeartbeatAction {
+    /// Incoming message was a ping; respond with generated pong CoT XML.
+    RespondWithPong(String),
+    /// Incoming message was a pong acknowledging a pending ping.
+    PongAcknowledged { seq: u64, rtt_ms: u64 },
+    /// Message is not a heartbeat event or did not match pending pings.
+    Ignored,
+}
