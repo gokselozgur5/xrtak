@@ -244,3 +244,17 @@ pub fn evaluate_route_progress(
     }
 
     let reached = dist_to_next <= capture_radius_m;
+
+    Some(ActiveTrackProgress {
+        active_leg_index: active_leg_idx,
+        next_waypoint_name: to_wp.name.clone(),
+        distance_to_next_m: (dist_to_next * 10.0).round() / 10.0,
+        bearing_to_next_deg: (brg_to_next * 10.0).round() / 10.0,
+        cross_track_error_m: (xte * 10.0).round() / 10.0,
+        time_to_go_sec: (ttg * 10.0).round() / 10.0,
+        next_wp_eta_epoch_sec: (next_eta * 10.0).round() / 10.0,
+        remaining_route_dist_m: (remaining_dist * 10.0).round() / 10.0,
+        remaining_route_time_sec: (remaining_time * 10.0).round() / 10.0,
+        has_reached_waypoint: reached,
+    })
+}
