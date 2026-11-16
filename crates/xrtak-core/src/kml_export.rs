@@ -340,3 +340,22 @@ mod tests {
         assert_eq!(track.duration_sec(), Some(2.0));
         assert!(track.path_length_m() > 100.0);
     }
+
+    #[test]
+    fn test_cot_type_color_mapping() {
+        assert_eq!(cot_type_to_kml_color("a-f-A"), "ff00ff00");
+        assert_eq!(cot_type_to_kml_color("a-h-G"), "ff0000ff");
+        assert_eq!(cot_type_to_kml_color("a-n-A"), "ffff0000");
+        assert_eq!(cot_type_to_kml_color("a-u-A"), "ff00ffff");
+        assert_eq!(cot_type_to_kml_color("other"), "ffffffff");
+    }
+
+    #[test]
+    fn test_iso8601_formatter() {
+        let iso = format_iso8601_utc(0);
+        assert_eq!(iso, "1970-01-01T00:00:00.000Z");
+
+        let iso2 = format_iso8601_utc(1_700_000_000_000);
+        assert!(iso2.starts_with("2023-11-14T"));
+        assert!(iso2.ends_with("Z"));
+    }
