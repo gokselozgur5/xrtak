@@ -252,3 +252,28 @@ mod tests {
         assert!(ext2.overlaps(&ext1));
         assert!(!ext1.overlaps(&ext3));
     }
+
+    #[test]
+    fn test_geotiff_model_transform_4x4() {
+        let matrix = [
+            1.5, 0.0, 0.0, 32.0,
+            0.0, -1.5, 0.0, 40.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        ];
+        let tf = parse_geotiff_model_transform_4x4(&matrix).expect("valid 4x4 matrix");
+        assert_eq!(tf.a, 1.5);
+        assert_eq!(tf.e, -1.5);
+        assert_eq!(tf.c, 32.0);
+        assert_eq!(tf.f, 40.0);
+        assert!(tf.is_north_up());
+    }
+
+    #[test]
+    fn test_to_world_file_content_serialization() {
+        let tf = WorldFileTransform::new(0.25, 0.0, 0.0, -0.25, 50.0, 60.0);
+        let str_rep = tf.to_world_file_content();
+        let parsed = parse_world_file(&str_rep).expect("roundtrip parse");
+        assert_eq!(tf, parsed);
+    }
+}
