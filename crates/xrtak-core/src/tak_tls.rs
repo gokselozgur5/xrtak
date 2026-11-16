@@ -223,3 +223,12 @@ impl TakTlsConfigBuilder {
         self.alpn_protocols = protocols;
         self
     }
+    pub fn handshake_timeout_ms(mut self, timeout_ms: u64) -> Self {
+        self.handshake_timeout_ms = timeout_ms;
+        self
+    }
+
+    pub fn cipher_suites(mut self, suites: Vec<String>) -> Self {
+        self.cipher_suites = suites;
+        self
+    }
