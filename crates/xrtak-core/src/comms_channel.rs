@@ -482,3 +482,25 @@ mod tests {
         let ch = RadioChannel::new(1, "Ops & Intel <Air>", 450_000_000, 12500, RadioMode::NarrowbandFm)
             .with_net_preset("Preset \"X\"")
             .with_encryption("Type-1 & Suite-B");
+
+        let packet = CommsChannelPacket::new("PLAN-ESC", "TOC <Leader>", "2026-11-16T10:00:00Z", "2026-11-16T11:00:00Z")
+            .add_channel(ch);
+
+        let xml = packet.to_cot_xml();
+        assert!(xml.contains("Ops &amp; Intel &lt;Air&gt;"));
+        assert!(xml.contains("Preset &quot;X&quot;"));
+        assert!(xml.contains("TOC &lt;Leader&gt;"));
+
+        let parsed = CommsChannelPacket::from_cot_xml(&xml).expect("parsed escaped xml");
+        assert_eq!(parsed.callsign, "TOC <Leader>");
+        let ch_parsed = parsed.find_channel(1).unwrap();
+        assert_eq!(ch_parsed.name, "Ops & Intel <Air>");
+        assert_eq!(ch_parsed.net_preset.as_deref(), Some("Preset \"X\""));
+        assert_eq!(ch_parsed.encryption.as_deref(), Some("Type-1 & Suite-B"));
+    }
+
+    #[test]
+    fn test_error_handling() {
+        let bad_xml = "<invalid_xml";
+        assert!(matches!(CommsChannelPacket::from_cot_xml(bad_xml), Err(CommsChannelError::InvalidXml(_))));
+
