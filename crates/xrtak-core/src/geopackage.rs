@@ -471,3 +471,22 @@ mod tests {
         let invalid = GeoPackageWaypoint::new("Bad", 195.0, 45.0);
         assert!(invalid.validate().is_err());
     }
+
+    #[test]
+    fn test_point_2d_roundtrip() {
+        let blob = encode_point_geom(35.1234, 32.5678, None, 4326).unwrap();
+        assert_eq!(&blob[0..2], &[0x47, 0x50]);
+        let (lon, lat, elev) = decode_point_geom(&blob).unwrap();
+        assert!((lon - 35.1234).abs() < 1e-7);
+        assert!((lat - 32.5678).abs() < 1e-7);
+        assert!(elev.is_none());
+    }
+
+    #[test]
+    fn test_point_3d_roundtrip() {
+        let blob = encode_point_geom(-118.2437, 34.0522, Some(88.5), 4326).unwrap();
+        let (lon, lat, elev) = decode_point_geom(&blob).unwrap();
+        assert!((lon - (-118.2437)).abs() < 1e-7);
+        assert!((lat - 34.0522).abs() < 1e-7);
+        assert_eq!(elev, Some(88.5));
+    }
