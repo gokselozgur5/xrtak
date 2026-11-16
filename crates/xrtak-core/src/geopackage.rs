@@ -342,3 +342,26 @@ impl GeoPackageFeatureDataset {
                  srs_id INTEGER,\n\
                  CONSTRAINT fk_gc_r_srs_id FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id)\n\
              );\n\
+             CREATE TABLE IF NOT EXISTS gpkg_geometry_columns (\n\
+                 table_name TEXT NOT NULL,\n\
+                 column_name TEXT NOT NULL,\n\
+                 geometry_type_name TEXT NOT NULL,\n\
+                 srs_id INTEGER NOT NULL,\n\
+                 z TINYINT NOT NULL,\n\
+                 m TINYINT NOT NULL,\n\
+                 CONSTRAINT pk_geom_cols PRIMARY KEY (table_name, column_name),\n\
+                 CONSTRAINT fk_gc_srs FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id)\n\
+             );\n\
+             CREATE TABLE IF NOT EXISTS {table} (\n\
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
+                 geom BLOB NOT NULL,\n\
+                 name TEXT NOT NULL,\n\
+                 callsign TEXT,\n\
+                 cot_type TEXT,\n\
+                 elevation REAL,\n\
+                 time TEXT,\n\
+                 remarks TEXT\n\
+             );",
+            table = self.table_name
+        )
+    }
