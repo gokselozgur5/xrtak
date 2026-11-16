@@ -137,3 +137,15 @@ impl CotHeartbeatManager {
         }
     }
 }
+
+impl CotHeartbeatManager {
+    /// Return the count of currently unacknowledged pending pings.
+    pub fn pending_count(&self) -> usize {
+        self.pending_pings.len()
+    }
+
+    /// Return the consecutive number of missed pong timeouts.
+    pub fn consecutive_missed(&self) -> u32 {
+        self.consecutive_missed
+    }
+}
