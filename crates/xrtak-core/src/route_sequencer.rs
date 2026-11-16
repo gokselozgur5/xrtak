@@ -372,3 +372,27 @@ mod tests {
         let prog_arrived = evaluate_route_progress(&plan, &seq, 0, 0.0, 0.1, 10.0, 2000.0, 50.0).unwrap();
         assert!(prog_arrived.has_reached_waypoint);
     }
+
+    #[test]
+    fn test_cot_route_xml_generation() {
+        let wps = vec![
+            RouteWaypoint::new("START", 35.0, -115.0, 500.0),
+            RouteWaypoint::new("LZ", 35.05, -115.05, 520.0),
+        ];
+        let plan = RoutePlan {
+            route_uid: "RT-COT-TEST".into(),
+            callsign: "EAGLE-1".into(),
+            default_speed_mps: 20.0,
+            start_time_epoch_sec: 1710000000.0,
+            waypoints: wps,
+        };
+        let seq = sequence_route_plan(&plan);
+        let xml = generate_cot_route_xml(&plan, &seq);
+
+        assert!(xml.contains(r#"type="b-m-r""#));
+        assert!(xml.contains(r#"uid="RT-COT-TEST""#));
+        assert!(xml.contains(r#"<link uid="RT-COT-TEST-WP1""#));
+        assert!(xml.contains(r#"<link uid="RT-COT-TEST-WP2""#));
+        assert!(xml.contains(r#"callsign="LZ""#));
+    }
+}
