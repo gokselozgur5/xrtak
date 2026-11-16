@@ -526,3 +526,14 @@ mod tests {
         assert_eq!(parsed[0].timestamp_ms, Some(1700000001000));
         assert_eq!(parsed[1].speed_mps, Some(14.0));
     }
+
+    #[test]
+    fn test_track_simplify_config_and_result_serde() {
+        let cfg = TrackSimplifyConfig {
+            epsilon_m: 7.5,
+            include_elevation: true,
+            max_time_gap_sec: Some(30.0),
+        };
+        let json_cfg = serde_json::to_string(&cfg).expect("serialize cfg");
+        let de_cfg: TrackSimplifyConfig = serde_json::from_str(&json_cfg).expect("deserialize cfg");
+        assert_eq!(cfg, de_cfg);
