@@ -306,3 +306,25 @@ impl CommsChannelPacket {
                         }
                     }
                     b"channel" => {
+                        let mut ch_id = 0u32;
+                        let mut ch_name = String::new();
+                        let mut ch_freq = 0u64;
+                        let mut ch_bw = 25000u32;
+                        let mut ch_mode = RadioMode::Fm;
+                        let mut ch_pwr = None;
+                        let mut ch_preset = None;
+                        let mut ch_enc = None;
+
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"id" => ch_id = parse_u32(&a.value).unwrap_or(0),
+                                b"name" => ch_name = unescape_xml(&String::from_utf8_lossy(&a.value)),
+                                b"frequency" => ch_freq = parse_u64(&a.value).unwrap_or(0),
+                                b"bandwidth" => ch_bw = parse_u32(&a.value).unwrap_or(25000),
+                                b"mode" => {
+                                    let m_str = String::from_utf8_lossy(&a.value);
+                                    ch_mode = RadioMode::from_mode_str(&m_str);
+                                }
+                                b"power" => ch_pwr = parse_f64(&a.value),
+                                b"netPreset" => {
+                                    ch_preset = Some(unescape_xml(&String::from_utf8_lossy(&a.value)))
