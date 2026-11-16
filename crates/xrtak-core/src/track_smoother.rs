@@ -201,3 +201,22 @@ impl TrackSmoother {
                 let s_east = smooth_scalar(prev.east_m + s_vx * dt, obs.east_m, self.config.alpha_pos);
                 let s_north = smooth_scalar(prev.north_m + s_vy * dt, obs.north_m, self.config.alpha_pos);
                 let s_up = smooth_scalar(prev.up_m + s_vz * dt, obs.up_m, self.config.alpha_pos);
+
+                SmoothedTrackState {
+                    timestamp_sec: obs.timestamp_sec,
+                    east_m: s_east,
+                    north_m: s_north,
+                    up_m: s_up,
+                    vel_east_mps: s_vx,
+                    vel_north_mps: s_vy,
+                    vel_up_mps: s_vz,
+                    speed_mps: speed,
+                    course_deg: course,
+                }
+            }
+        };
+
+        self.state = Some(next_state.clone());
+        next_state
+    }
+}
