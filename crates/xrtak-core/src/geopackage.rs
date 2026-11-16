@@ -29,3 +29,17 @@ impl std::fmt::Display for GeoPackageError {
 }
 
 impl std::error::Error for GeoPackageError {}
+
+/// Tactical waypoint feature record for GeoPackage export.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GeoPackageWaypoint {
+    pub id: Option<i64>,
+    pub name: String,
+    pub callsign: Option<String>,
+    pub cot_type: Option<String>,
+    pub lon: f64,
+    pub lat: f64,
+    pub elevation: Option<f64>,
+    pub time: Option<String>,
+    pub remarks: Option<String>,
+}
