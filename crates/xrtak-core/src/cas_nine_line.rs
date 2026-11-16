@@ -199,7 +199,7 @@ fn match_tag(name: &[u8]) -> CasTag {
 
 fn parse_cas_attributes(e: &quick_xml::events::BytesStart, b: &mut CasNineLine) {
     for a in e.attributes().flatten() {
-        let val = String::from_utf8_lossy(&a.value).into_owned();
+        let val = unescape_xml(&String::from_utf8_lossy(&a.value));
         match a.key.as_ref() {
             b"line1" => b.line1_ip_bp = val,
             b"line2" => b.line2_heading = val,
@@ -247,7 +247,7 @@ fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, nam
                 _ => {}
             }
         } else if name == b"contact" && a.key.as_ref() == b"callsign" {
-            b.jtac_callsign = String::from_utf8_lossy(&a.value).into_owned();
+            b.jtac_callsign = unescape_xml(&String::from_utf8_lossy(&a.value));
         }
     }
 }
