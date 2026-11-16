@@ -57,3 +57,21 @@ pub struct MissionPackageManifest {
     pub parameters: Vec<ManifestParameter>,
     pub contents: Vec<ManifestContentEntry>,
 }
+
+impl MissionPackageManifest {
+    pub fn new(uid: impl Into<String>, name: impl Into<String>) -> Self {
+        Self {
+            version: 2,
+            uid: uid.into(),
+            name: name.into(),
+            on_receive_delete: false,
+            parameters: Vec::new(),
+            contents: Vec::new(),
+        }
+    }
+
+    pub fn with_on_receive_delete(mut self, on_receive_delete: bool) -> Self {
+        self.on_receive_delete = on_receive_delete;
+        self
+    }
+}
