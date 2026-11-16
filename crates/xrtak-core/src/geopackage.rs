@@ -43,3 +43,24 @@ pub struct GeoPackageWaypoint {
     pub time: Option<String>,
     pub remarks: Option<String>,
 }
+
+impl GeoPackageWaypoint {
+    /// Construct a new waypoint at geographic coordinates (lon, lat in degrees).
+    pub fn new(name: impl Into<String>, lon: f64, lat: f64) -> Self {
+        Self {
+            id: None,
+            name: name.into(),
+            callsign: None,
+            cot_type: None,
+            lon,
+            lat,
+            elevation: None,
+            time: None,
+            remarks: None,
+        }
+    }
+
+    pub fn with_id(mut self, id: i64) -> Self {
+        self.id = Some(id);
+        self
+    }
