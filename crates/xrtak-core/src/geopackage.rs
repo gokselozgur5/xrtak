@@ -241,3 +241,31 @@ pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPack
             ])
         }
     };
+
+    match geom_type {
+        WKB_POINT_2D => {
+            if wkb_bytes.len() < 21 {
+                return Err(GeoPackageError::InvalidGeometryBlob(
+                    "2d point bytes truncated".into(),
+                ));
+            }
+            let lon = read_f64(&wkb_bytes[5..13]);
+            let lat = read_f64(&wkb_bytes[13..21]);
+            Ok((lon, lat, None))
+        }
+        WKB_POINT_Z => {
+            if wkb_bytes.len() < 29 {
+                return Err(GeoPackageError::InvalidGeometryBlob(
+                    "3d point bytes truncated".into(),
+                ));
+            }
+            let lon = read_f64(&wkb_bytes[5..13]);
+            let lat = read_f64(&wkb_bytes[13..21]);
+            let z = read_f64(&wkb_bytes[21..29]);
+            Ok((lon, lat, Some(z)))
+        }
+        other => Err(GeoPackageError::InvalidGeometryBlob(format!(
+            "unsupported geometry type: {other}"
+        ))),
+    }
+}
