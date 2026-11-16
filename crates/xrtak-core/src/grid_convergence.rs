@@ -268,3 +268,21 @@ pub fn true_to_grid_azimuth(true_azimuth_deg: f64, convergence_deg: f64) -> f64 
         grid_azimuth -= 360.0;
     }
     grid_azimuth
+}
+
+/// Convert grid azimuth (degrees from Grid North) to true azimuth (degrees from True North).
+///
+/// Formula: True Azimuth = Grid Azimuth + Convergence Angle.
+pub fn grid_to_true_azimuth(grid_azimuth_deg: f64, convergence_deg: f64) -> f64 {
+    let mut true_azimuth = grid_azimuth_deg + convergence_deg;
+    while true_azimuth < 0.0 {
+        true_azimuth += 360.0;
+    }
+    while true_azimuth >= 360.0 {
+        true_azimuth -= 360.0;
+    }
+    true_azimuth
+}
+
+/// Apply scale factor to ground distance to get projected grid distance in meters.
+pub fn ground_to_grid_distance(ground_distance_m: f64, scale_factor: f64) -> f64 {
