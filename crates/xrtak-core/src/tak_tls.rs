@@ -129,3 +129,27 @@ impl TakTlsConfig {
             self.handshake_timeout_ms
         )
     }
+    pub fn export_preference_xml(&self) -> String {
+        let sni = self.sni_hostname.as_deref().unwrap_or(&self.server_host);
+        let client_auth = match self.client_auth {
+            ClientAuthMode::Required => "true",
+            _ => "false",
+        };
+        format!(
+            "<preference version=\"1\" name=\"cot_stream_tls\">\n\
+               <entry key=\"serverHost\">{}</entry>\n\
+               <entry key=\"serverPort\">{}</entry>\n\
+               <entry key=\"serverSni\">{}</entry>\n\
+               <entry key=\"clientAuth\">{}</entry>\n\
+               <entry key=\"verifyHost\">{}</entry>\n\
+               <entry key=\"timeoutMs\">{}</entry>\n\
+             </preference>",
+            self.server_host,
+            self.server_port,
+            sni,
+            client_auth,
+            self.verify_server_hostname,
+            self.handshake_timeout_ms
+        )
+    }
+}
