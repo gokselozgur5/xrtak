@@ -162,3 +162,17 @@ impl TrackSmoother {
                     course_deg: course,
                 }
             }
+
+            Some(prev) => {
+                let dt = (obs.timestamp_sec - prev.timestamp_sec).max(1e-4);
+                let raw_vx = (obs.east_m - prev.east_m) / dt;
+                let raw_vy = (obs.north_m - prev.north_m) / dt;
+                let raw_vz = (obs.up_m - prev.up_m) / dt;
+
+                let (target_vx, target_vy) = match (obs.measured_speed_mps, obs.measured_course_deg) {
+                    (Some(spd), Some(crs)) => {
+                        let rad = crs.to_radians();
+                        (0.5 * raw_vx + 0.5 * spd * rad.sin(), 0.5 * raw_vy + 0.5 * spd * rad.cos())
+                    }
+                    _ => (raw_vx, raw_vy),
+                };
