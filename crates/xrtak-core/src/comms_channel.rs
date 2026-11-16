@@ -42,3 +42,25 @@ impl RadioMode {
 /// Tactical radio channel allocation entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RadioChannel {
+    pub id: u32,
+    pub name: String,
+    pub frequency_hz: u64,
+    pub bandwidth_hz: u32,
+    pub mode: RadioMode,
+    pub tx_power_watts: Option<f64>,
+    pub net_preset: Option<String>,
+    pub encryption: Option<String>,
+}
+
+impl RadioChannel {
+    pub fn new(
+        id: u32,
+        name: impl Into<String>,
+        frequency_hz: u64,
+        bandwidth_hz: u32,
+        mode: RadioMode,
+    ) -> Self {
+        Self {
+            id,
+            name: name.into(),
+            frequency_hz,
