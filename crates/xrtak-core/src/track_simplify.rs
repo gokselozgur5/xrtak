@@ -195,3 +195,16 @@ pub fn simplify_track_rdp(points: &[TrackPoint], epsilon_m: f64) -> Vec<TrackPoi
     };
     simplify_track_with_config(points, &config).points
 }
+
+/// Simplifies a slice of 2D coordinates (lat, lon) using Ramer-Douglas-Peucker.
+pub fn simplify_coordinates_rdp(coords: &[(f64, f64)], epsilon_m: f64) -> Vec<(f64, f64)> {
+    if coords.len() <= 2 {
+        return coords.to_vec();
+    }
+    let pts: Vec<TrackPoint> = coords
+        .iter()
+        .map(|&(lat, lon)| TrackPoint::new(lat, lon, 0.0))
+        .collect();
+    let simplified = simplify_track_rdp(&pts, epsilon_m);
+    simplified.into_iter().map(|p| (p.lat, p.lon)).collect()
+}
