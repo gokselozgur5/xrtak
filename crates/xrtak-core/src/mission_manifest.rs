@@ -230,4 +230,16 @@ mod tests {
         assert_eq!(entry.parameters.len(), 1);
         assert_eq!(entry.parameters[0].name, "uid");
     }
+
+    #[test]
+    fn test_manifest_defaults_and_builders() {
+        let mut manifest = MissionPackageManifest::new("PKG-001", "Op Spear")
+            .with_on_receive_delete(true);
+        manifest.add_parameter("tool", "public");
+        assert_eq!(manifest.version, 2);
+        assert_eq!(manifest.uid, "PKG-001");
+        assert_eq!(manifest.name, "Op Spear");
+        assert!(manifest.on_receive_delete);
+        assert_eq!(manifest.parameters.len(), 1);
+    }
 }
