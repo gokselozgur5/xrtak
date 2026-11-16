@@ -84,3 +84,20 @@ impl GeoPackageWaypoint {
         self.time = Some(time.into());
         self
     }
+
+    pub fn with_remarks(mut self, remarks: impl Into<String>) -> Self {
+        self.remarks = Some(remarks.into());
+        self
+    }
+
+    /// Validate coordinate ranges (-180..=180 longitude, -90..=90 latitude).
+    pub fn validate(&self) -> Result<(), GeoPackageError> {
+        if !(-180.0..=180.0).contains(&self.lon) || !(-90.0..=90.0).contains(&self.lat) {
+            return Err(GeoPackageError::InvalidCoordinates {
+                lon: self.lon,
+                lat: self.lat,
+            });
+        }
+        Ok(())
+    }
+}
