@@ -322,3 +322,18 @@ pub fn to_video_connections_xml(descriptors: &[SensorStreamDescriptor]) -> Strin
     out.push_str("</videoConnections>");
     out
 }
+
+/// Parses a TAK `<feed>` entry XML string into a VideoStreamConnection.
+pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorStreamError> {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(true);
+    let mut buf = Vec::new();
+    let mut in_feed = false;
+    let mut uid = None;
+    let mut alias = None;
+    let mut url = None;
+    let mut rover_port = None;
+    let mut rtsp_reliable = true;
+    let mut ignore_klv = false;
+    let mut buffer_ms = 500u32;
+    let mut preferred_uid = None;
