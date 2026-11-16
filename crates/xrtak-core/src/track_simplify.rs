@@ -79,8 +79,7 @@ pub fn haversine_distance_m(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let r_lat1 = lat1.to_radians();
     let r_lat2 = lat2.to_radians();
 
-    let a = (d_lat / 2.0).sin().powi(2)
-        + r_lat1.cos() * r_lat2.cos() * (d_lon / 2.0).sin().powi(2);
+    let a = (d_lat / 2.0).sin().powi(2) + r_lat1.cos() * r_lat2.cos() * (d_lon / 2.0).sin().powi(2);
     let c = 2.0 * a.sqrt().asin();
     WGS84_EARTH_RADIUS_M * c
 }
@@ -250,7 +249,12 @@ pub fn simplify_track_with_config(
 
         let mut combined: Vec<TrackPoint> = Vec::new();
         for seg in segments {
-            let seg_res = rdp_recursive(&seg, config.epsilon_m, config.include_elevation, &mut max_err);
+            let seg_res = rdp_recursive(
+                &seg,
+                config.epsilon_m,
+                config.include_elevation,
+                &mut max_err,
+            );
             if combined.is_empty() {
                 combined.extend(seg_res);
             } else {
@@ -259,7 +263,12 @@ pub fn simplify_track_with_config(
         }
         combined
     } else {
-        rdp_recursive(points, config.epsilon_m, config.include_elevation, &mut max_err)
+        rdp_recursive(
+            points,
+            config.epsilon_m,
+            config.include_elevation,
+            &mut max_err,
+        )
     };
 
     let simp_count = simplified_points.len();
