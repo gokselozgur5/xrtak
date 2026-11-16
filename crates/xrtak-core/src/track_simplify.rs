@@ -506,3 +506,23 @@ mod tests {
         let res = simplify_coordinates_rdp(&coords, 5.0);
         assert_eq!(res.len(), 2);
     }
+
+    #[test]
+    fn test_cot_track_history_xml_roundtrip() {
+        let pts = vec![
+            TrackPoint::new(39.920, 32.850, 950.0)
+                .with_time(1700000001000)
+                .with_kinematics(12.0, 90.0),
+            TrackPoint::new(39.925, 32.855, 960.0)
+                .with_time(1700000002000)
+                .with_kinematics(14.0, 45.0),
+        ];
+        let xml = generate_cot_track_history_xml("TRACK-01", "VIPER", &pts);
+        assert!(xml.contains("b-t-f"));
+        assert!(xml.contains("track_history"));
+        let parsed = parse_cot_track_history_xml(&xml).expect("parse track history");
+        assert_eq!(parsed.len(), 2);
+        assert!((parsed[0].lat - 39.920).abs() < 1e-5);
+        assert_eq!(parsed[0].timestamp_ms, Some(1700000001000));
+        assert_eq!(parsed[1].speed_mps, Some(14.0));
+    }
