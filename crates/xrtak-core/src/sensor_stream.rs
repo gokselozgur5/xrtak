@@ -585,4 +585,25 @@ mod tests {
         assert!(catalog.contains("Feed-1"));
         assert!(catalog.contains("Feed-2"));
     }
+
+    #[test]
+    fn test_error_handling_on_invalid_xml_or_missing_tags() {
+        let empty_feed = "<feed></feed>";
+        assert!(matches!(
+            parse_feed_entry_xml(empty_feed),
+            Err(SensorStreamError::MissingAttribute("url"))
+        ));
+
+        let non_feed = "<root><child/></root>";
+        assert!(matches!(
+            parse_feed_entry_xml(non_feed),
+            Err(SensorStreamError::MissingFeedTag)
+        ));
+
+        let no_video_cot = r#"<event uid="U1" type="b-i-v"><point lat="1" lon="2"/><detail></detail></event>"#;
+        assert!(matches!(
+            parse_sensor_stream_cot_xml(no_video_cot),
+            Err(SensorStreamError::MissingVideoTag)
+        ));
+    }
 }
