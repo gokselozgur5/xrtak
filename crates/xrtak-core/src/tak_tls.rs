@@ -209,3 +209,17 @@ impl TakTlsConfigBuilder {
         self.ca_cert = Some(cert);
         self
     }
+    pub fn verify_server_hostname(mut self, verify: bool) -> Self {
+        self.verify_server_hostname = verify;
+        self
+    }
+
+    pub fn sni_hostname(mut self, sni: impl Into<String>) -> Self {
+        self.sni_hostname = Some(sni.into());
+        self
+    }
+
+    pub fn alpn_protocols(mut self, protocols: Vec<String>) -> Self {
+        self.alpn_protocols = protocols;
+        self
+    }
