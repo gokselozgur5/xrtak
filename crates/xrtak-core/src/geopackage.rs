@@ -271,7 +271,7 @@ pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPack
 }
 
 fn escape_sql_string(val: &str) -> String {
-    val.replace(''', "''")
+    val.replace('\'', "''")
 }
 
 pub fn bytes_to_hex_literal(bytes: &[u8]) -> String {
@@ -281,7 +281,7 @@ pub fn bytes_to_hex_literal(bytes: &[u8]) -> String {
         use std::fmt::Write;
         let _ = write!(s, "{:02X}", b);
     }
-    s.push(''');
+    s.push('\'');
     s
 }
 
