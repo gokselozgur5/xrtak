@@ -60,6 +60,10 @@ pub use ew::{
     BurnThroughScenario, EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
 };
 pub use fires::{compute_ballistic_trajectory, BallisticSolution, MunitionType, TrajectoryPoint3d};
+pub use geopackage::{
+    bytes_to_hex_literal, decode_point_geom, encode_point_geom, GeoPackageBounds,
+    GeoPackageError, GeoPackageFeatureDataset, GeoPackageWaypoint,
+};
 pub use geo::{
     compute_elevation_profile, ElevationProfileResult, ElevationProfileSample, ElevationProvider,
     ProceduralReliefModel, RasterDemProvider,
