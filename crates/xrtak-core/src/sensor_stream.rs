@@ -262,3 +262,27 @@ impl SensorStreamDescriptor {
         )
     }
 }
+
+impl SensorStreamDescriptor {
+    fn format_sensor_tag(&self) -> String {
+        format!(
+            "<sensor model=\"{}\" type=\"{}\" fov=\"{:.1}\" vfov=\"{:.1}\" range=\"{:.1}\" azimuth=\"{:.1}\" elevation=\"{:.1}\" roll=\"{:.1}\" zoom=\"{:.2}\"/>",
+            self.sensor.model,
+            self.sensor.sensor_type.as_str(),
+            self.sensor.fov_horizontal_deg,
+            self.sensor.fov_vertical_deg,
+            self.sensor.slant_range_m,
+            self.sensor.azimuth_deg,
+            self.sensor.elevation_deg,
+            self.sensor.roll_deg,
+            self.sensor.zoom_ratio,
+        )
+    }
+
+    fn format_link_tag(&self) -> String {
+        self.parent_uid
+            .as_deref()
+            .map(|p| format!("<link relation=\"p-p\" uid=\"{p}\" type=\"a-f-G-U-C\"/>"))
+            .unwrap_or_default()
+    }
+}
