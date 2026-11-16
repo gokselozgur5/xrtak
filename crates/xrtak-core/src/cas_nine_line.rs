@@ -354,4 +354,20 @@ mod tests {
         assert!(txt.contains("9. Egress: Egress East to PULL"));
         assert!(txt.contains("Remarks: FAH 180-210"));
     }
+
+    #[test]
+    fn test_parse_cas_child_tags() {
+        let xml = "<event version=\"2.0\" uid=\"CAS-002\" time=\"2026-11-16T10:00:00Z\">\
+<point lat=\"32.0\" lon=\"-115.0\" hae=\"500.0\"/>\
+<detail><contact callsign=\"HAWK 11\"/>\
+<cas9line><line1>EAGLE</line1><line5>Bunker</line5><line6>38SMC99887766</line6>\
+<remarks>Type 2 Control</remarks></cas9line></detail></event>";
+        let parsed = CasNineLine::from_cot_xml(xml).expect("parse child tags failed");
+        assert_eq!(parsed.cot_uid, "CAS-002");
+        assert_eq!(parsed.jtac_callsign, "HAWK 11");
+        assert_eq!(parsed.line1_ip_bp, "EAGLE");
+        assert_eq!(parsed.line5_description, "Bunker");
+        assert_eq!(parsed.line6_location, "38SMC99887766");
+        assert_eq!(parsed.remarks, "Type 2 Control");
+    }
 }
