@@ -284,3 +284,24 @@ pub fn bytes_to_hex_literal(bytes: &[u8]) -> String {
     s.push(''');
     s
 }
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GeoPackageFeatureDataset {
+    pub table_name: String,
+    pub srs_id: i32,
+    pub waypoints: Vec<GeoPackageWaypoint>,
+}
+
+impl GeoPackageFeatureDataset {
+    pub fn new(table_name: impl Into<String>) -> Self {
+        Self {
+            table_name: table_name.into(),
+            srs_id: WGS84_SRS_ID,
+            waypoints: Vec::new(),
+        }
+    }
+
+    pub fn with_srs_id(mut self, srs_id: i32) -> Self {
+        self.srs_id = srs_id;
+        self
+    }
