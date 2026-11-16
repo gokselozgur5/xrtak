@@ -545,4 +545,31 @@ mod tests {
         assert_eq!(parsed.rover_port, Some(49152));
         assert_eq!(parsed.preferred_uid.as_deref(), Some("UAV-DRONE-99"));
     }
+
+    #[test]
+    fn test_cot_xml_generation_and_roundtrip() {
+        let conn = VideoStreamConnection::new("rtsp://192.168.2.50:554/ch0", "Cam-EO");
+        let gimbal = SensorGimbal {
+            sensor_type: SensorType::DualEoIr,
+            model: "TRILLIUM-HD80".to_string(),
+            fov_horizontal_deg: 35.5,
+            fov_vertical_deg: 22.0,
+            slant_range_m: 2500.0,
+            azimuth_deg: 185.0,
+            elevation_deg: -30.0,
+            roll_deg: 2.5,
+            zoom_ratio: 4.0,
+        };
+        let desc = SensorStreamDescriptor::new("DESC-COT-1", "DRONE-ALPHA", 41.01, 28.97, 850.0, conn)
+            .with_sensor(gimbal)
+            .with_parent_uid("UAV-DRONE-ALPHA");
+        let xml = desc.to_cot_xml();
+        let parsed = parse_sensor_stream_cot_xml(&xml).expect("cot parse succeeds");
+        assert_eq!(parsed.uid, "DESC-COT-1");
+        assert_eq!(parsed.callsign, "DRONE-ALPHA");
+        assert_eq!(parsed.lat, 41.01);
+        assert_eq!(parsed.sensor.sensor_type, SensorType::DualEoIr);
+        assert_eq!(parsed.sensor.model, "TRILLIUM-HD80");
+        assert_eq!(parsed.parent_uid.as_deref(), Some("UAV-DRONE-ALPHA"));
+    }
 }
