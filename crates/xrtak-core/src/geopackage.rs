@@ -318,3 +318,27 @@ impl GeoPackageFeatureDataset {
         }
         Some(b)
     }
+
+    pub fn generate_schema_ddl(&self) -> String {
+        format!(
+            "CREATE TABLE IF NOT EXISTS gpkg_spatial_ref_sys (\n\
+                 srs_name TEXT NOT NULL,\n\
+                 srs_id INTEGER NOT NULL PRIMARY KEY,\n\
+                 organization TEXT NOT NULL,\n\
+                 organization_coordsys_id INTEGER NOT NULL,\n\
+                 definition TEXT NOT NULL,\n\
+                 description TEXT\n\
+             );\n\
+             CREATE TABLE IF NOT EXISTS gpkg_contents (\n\
+                 table_name TEXT NOT NULL PRIMARY KEY,\n\
+                 data_type TEXT NOT NULL,\n\
+                 identifier TEXT,\n\
+                 description TEXT DEFAULT '',\n\
+                 last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),\n\
+                 min_x DOUBLE,\n\
+                 min_y DOUBLE,\n\
+                 max_x DOUBLE,\n\
+                 max_y DOUBLE,\n\
+                 srs_id INTEGER,\n\
+                 CONSTRAINT fk_gc_r_srs_id FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id)\n\
+             );\n\
