@@ -529,3 +529,12 @@ mod tests {
         assert!(script.contains("450.00"));
         assert!(script.contains("COMMIT;"));
     }
+
+    #[test]
+    fn test_invalid_blob_header() {
+        let invalid = vec![0x00, 0x01, 0x02];
+        assert!(decode_point_geom(&invalid).is_err());
+        let bad_magic = vec![0x41, 0x42, 0x00, 0x01, 0x06, 0x11, 0x00, 0x00];
+        assert_eq!(decode_point_geom(&bad_magic), Err(GeoPackageError::InvalidMagic));
+    }
+}
