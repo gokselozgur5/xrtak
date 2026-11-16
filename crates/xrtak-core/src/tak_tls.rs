@@ -311,3 +311,14 @@ mod tests {
 
         assert_eq!(err, TakTlsError::MissingClientCertificate);
     }
+
+    #[test]
+    fn test_invalid_host_and_port() {
+        let err_host = TakTlsConfig::builder("   ", 8089).build().unwrap_err();
+        assert!(matches!(err_host, TakTlsError::InvalidHost(_)));
+
+        let err_port = TakTlsConfig::builder("tak.domain.mil", 0)
+            .build()
+            .unwrap_err();
+        assert_eq!(err_port, TakTlsError::InvalidPort(0));
+    }
