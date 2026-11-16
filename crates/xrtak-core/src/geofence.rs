@@ -28,3 +28,11 @@ pub struct BoundingBox {
     pub max_x: f64,
     pub max_y: f64,
 }
+
+impl BoundingBox {
+    pub fn from_points(points: &[GeofencePoint]) -> Option<Self> {
+        let first = points.first()?;
+        let mut min_x = first.x;
+        let mut max_x = first.x;
+        let mut min_y = first.y;
+        let mut max_y = first.y;
