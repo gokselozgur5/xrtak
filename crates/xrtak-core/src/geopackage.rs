@@ -101,3 +101,26 @@ impl GeoPackageWaypoint {
         Ok(())
     }
 }
+
+/// 2D/3D Geographic Bounding Envelope for GeoPackage contents and headers.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GeoPackageBounds {
+    pub min_lon: f64,
+    pub min_lat: f64,
+    pub max_lon: f64,
+    pub max_lat: f64,
+    pub min_elev: Option<f64>,
+    pub max_elev: Option<f64>,
+}
+
+impl GeoPackageBounds {
+    pub fn from_point(lon: f64, lat: f64, elev: Option<f64>) -> Self {
+        Self {
+            min_lon: lon,
+            min_lat: lat,
+            max_lon: lon,
+            max_lat: lat,
+            min_elev: elev,
+            max_elev: elev,
+        }
+    }
