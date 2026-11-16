@@ -218,3 +218,25 @@ impl CommsChannelPacket {
         if let Some(pri) = self.primary_channel_id {
             radio_attr.push_str(&format!(" primary=\"{pri}\""));
         }
+        if let Some(emg) = self.emergency_channel_id {
+            radio_attr.push_str(&format!(" emergency=\"{emg}\""));
+        }
+
+        out.push_str(&format!("<radioChannels{radio_attr}>"));
+        for ch in &self.channels {
+            let ch_name = escape_xml(&ch.name);
+            let mode_str = ch.mode.as_str();
+            let mut ch_xml = format!(
+                "<channel id=\"{}\" name=\"{}\" frequency=\"{}\" bandwidth=\"{}\" mode=\"{}\"",
+                ch.id, ch_name, ch.frequency_hz, ch.bandwidth_hz, mode_str
+            );
+            if let Some(pwr) = ch.tx_power_watts {
+                ch_xml.push_str(&format!(" power=\"{:.1}\"", pwr));
+            }
+            if let Some(preset) = &ch.net_preset {
+                ch_xml.push_str(&format!(" netPreset=\"{}\"", escape_xml(preset)));
+            }
+            if let Some(enc) = &ch.encryption {
+                ch_xml.push_str(&format!(" encryption=\"{}\"", escape_xml(enc)));
+            }
+            ch_xml.push_str("/>");
