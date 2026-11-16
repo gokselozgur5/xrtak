@@ -281,4 +281,16 @@ mod tests {
         assert_eq!(mgr.smoothed_rtt_ms(), 0.0);
         assert_eq!(mgr.packet_loss_pct(), 0.0);
     }
+
+    #[test]
+    fn test_ping_pong_cot_xml_generation() {
+        let ping_xml = build_ping_cot("ALPHA", 42, 1_000_000);
+        assert!(ping_xml.contains("type=\"t-x-c-t\""));
+        assert!(ping_xml.contains("uid=\"ALPHA-ping-42\""));
+        assert!(ping_xml.contains("time=\"1000000\""));
+
+        let pong_xml = build_pong_cot("ALPHA", "BETA-ping-7", 7, 1_000_050);
+        assert!(pong_xml.contains("type=\"t-x-c-t-r\""));
+        assert!(pong_xml.contains("ref_uid=\"BETA-ping-7\""));
+    }
 }
