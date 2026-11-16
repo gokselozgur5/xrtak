@@ -217,3 +217,22 @@ mod tests {
         assert!((r_px - px).abs() < 1e-6);
         assert!((r_py - py).abs() < 1e-6);
     }
+
+    #[test]
+    fn test_singular_transform_error() {
+        let singular = WorldFileTransform::new(0.0, 0.0, 0.0, 0.0, 10.0, 10.0);
+        assert!(singular.world_to_pixel(10.0, 10.0).is_err());
+    }
+
+    #[test]
+    fn test_compute_raster_extent() {
+        let tf = WorldFileTransform::from_scale_and_origin(1.0, 1.0, 100.0, 200.0);
+        let ext = compute_raster_extent(&tf, 100, 50).expect("valid extent");
+
+        assert_eq!(ext.width_px, 100);
+        assert_eq!(ext.height_px, 50);
+        assert!(ext.span_x() > 99.0);
+        assert!(ext.span_y() > 49.0);
+        assert!(ext.contains(150.0, 175.0));
+        assert!(!ext.contains(50.0, 250.0));
+    }
