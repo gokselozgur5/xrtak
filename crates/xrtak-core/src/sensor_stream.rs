@@ -385,3 +385,21 @@ pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorSt
         preferred_uid,
     })
 }
+
+/// Parses a TAK CoT `b-i-v` XML event into a SensorStreamDescriptor.
+pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, SensorStreamError> {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(true);
+    let mut buf = Vec::new();
+    let mut uid = None;
+    let mut cot_type = "b-i-v".to_string();
+    let mut time_iso = String::new();
+    let mut stale_iso = String::new();
+    let mut lat = None;
+    let mut lon = None;
+    let mut hae = 0.0;
+    let mut callsign = None;
+    let mut parent_uid = None;
+    let mut video_conn: Option<VideoStreamConnection> = None;
+    let mut sensor_gimbal = SensorGimbal::default();
+    let mut in_detail = false;
