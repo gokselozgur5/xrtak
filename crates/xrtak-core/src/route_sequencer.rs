@@ -348,3 +348,27 @@ mod tests {
         assert_eq!(seq.legs[1].speed_mps, 25.0);
         assert!(seq.estimated_completion_epoch_sec > 1700000000.0);
     }
+
+    #[test]
+    fn test_active_route_progress() {
+        let wps = vec![
+            RouteWaypoint::new("WP1", 0.0, 0.0, 0.0),
+            RouteWaypoint::new("WP2", 0.0, 0.1, 0.0).with_speed(10.0),
+        ];
+        let plan = RoutePlan {
+            route_uid: "RT-PROG".into(),
+            callsign: "PROGRESS".into(),
+            default_speed_mps: 10.0,
+            start_time_epoch_sec: 1000.0,
+            waypoints: wps,
+        };
+        let seq = sequence_route_plan(&plan);
+
+        let prog = evaluate_route_progress(&plan, &seq, 0, 0.0, 0.01, 10.0, 1010.0, 50.0).unwrap();
+        assert_eq!(prog.next_waypoint_name, "WP2");
+        assert!(!prog.has_reached_waypoint);
+        assert!(prog.distance_to_next_m > 9_000.0);
+
+        let prog_arrived = evaluate_route_progress(&plan, &seq, 0, 0.0, 0.1, 10.0, 2000.0, 50.0).unwrap();
+        assert!(prog_arrived.has_reached_waypoint);
+    }
