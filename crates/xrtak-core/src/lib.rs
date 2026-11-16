@@ -57,6 +57,9 @@ pub use casevac::{
     evaluate_hlz_suitability, format_nato_nine_line_text, HlzSuitability, MedevacReport,
     PatientPrecedence,
 };
+pub use cas_nine_line::{
+    format_cas_nine_line_text, CasNineLine, CasNineLineError,
+};
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
 pub use comms_channel::{CommsChannelError, CommsChannelPacket, RadioChannel, RadioMode};
