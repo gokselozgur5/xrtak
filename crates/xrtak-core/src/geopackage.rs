@@ -124,3 +124,23 @@ impl GeoPackageBounds {
             max_elev: elev,
         }
     }
+
+    pub fn update(&mut self, lon: f64, lat: f64, elev: Option<f64>) {
+        if lon < self.min_lon {
+            self.min_lon = lon;
+        }
+        if lon > self.max_lon {
+            self.max_lon = lon;
+        }
+        if lat < self.min_lat {
+            self.min_lat = lat;
+        }
+        if lat > self.max_lat {
+            self.max_lat = lat;
+        }
+        if let Some(z) = elev {
+            self.min_elev = Some(self.min_elev.map_or(z, |cur| cur.min(z)));
+            self.max_elev = Some(self.max_elev.map_or(z, |cur| cur.max(z)));
+        }
+    }
+}
