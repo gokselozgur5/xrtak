@@ -304,3 +304,24 @@ pub fn export_single_track_kml(track: &CotTrack, config: &KmlExportConfig) -> St
 pub fn export_tracks_to_kml(tracks: &[CotTrack]) -> String {
     export_cot_tracks_kml(tracks, &KmlExportConfig::default())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_track_point_builder() {
+        let pt = KmlTrackPoint::new(39.9200, 32.8500, 850.0)
+            .with_time(1_700_000_000_000)
+            .with_kinematics(15.5, 90.0);
+        assert!((pt.lat - 39.9200).abs() < 1e-6);
+        assert_eq!(pt.timestamp_ms, Some(1_700_000_000_000));
+        assert_eq!(pt.speed_mps, Some(15.5));
+        assert_eq!(pt.course_deg, Some(90.0));
+    }
+
+    #[test]
+    fn test_haversine_distance() {
+        let d = haversine_distance_m(0.0, 0.0, 1.0, 0.0);
+        assert!((d - 111_195.0).abs() < 500.0);
+    }
