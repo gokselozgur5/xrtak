@@ -482,3 +482,20 @@ mod tests {
         let res_3d = simplify_track_with_config(&points, &config_3d);
         assert_eq!(res_3d.points.len(), 3);
     }
+
+    #[test]
+    fn test_rdp_time_gap_segmentation() {
+        let p1 = TrackPoint::new(39.0, 32.0, 100.0).with_time(1000);
+        let p2 = TrackPoint::new(39.01, 32.0, 100.0).with_time(2000);
+        let p3 = TrackPoint::new(39.02, 32.0, 100.0).with_time(50000);
+        let p4 = TrackPoint::new(39.03, 32.0, 100.0).with_time(51000);
+        let points = vec![p1, p2, p3, p4];
+
+        let config = TrackSimplifyConfig {
+            epsilon_m: 10.0,
+            include_elevation: false,
+            max_time_gap_sec: Some(10.0),
+        };
+        let res = simplify_track_with_config(&points, &config);
+        assert!(res.points.len() >= 3);
+    }
