@@ -397,3 +397,15 @@ impl GeoPackageFeatureDataset {
             table = self.table_name
         ))
     }
+
+    pub fn export_sql_script(&self) -> Result<String, GeoPackageError> {
+        let mut script = String::new();
+        script.push_str("PRAGMA application_id = 1196444487;\n");
+        script.push_str("PRAGMA user_version = 10200;\n");
+        script.push_str("BEGIN TRANSACTION;\n");
+        script.push_str(&self.generate_schema_ddl());
+        script.push('\n');
+
+        script.push_str(
+            "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('WGS 84', 4326, 'EPSG', 4326,              'GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]]',              'WGS 84 geodetic coordinate reference system');\n"
+        );
