@@ -262,3 +262,25 @@ impl CommsChannelPacket {
         let mut primary_id = None;
         let mut emergency_id = None;
         let mut channels = Vec::new();
+
+        loop {
+            match reader.read_event() {
+                Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => match e.name().as_ref() {
+                    b"event" => {
+                        found_event = true;
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"uid" => uid = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"type" => cot_type = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"time" => time_str = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"stale" => stale_str = String::from_utf8_lossy(&a.value).into_owned(),
+                                _ => {}
+                            }
+                        }
+                    }
+                    b"point" => {
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"lat" => lat = parse_f64(&a.value).unwrap_or(0.0),
+                                b"lon" => lon = parse_f64(&a.value).unwrap_or(0.0),
+                                b"hae" => hae = parse_f64(&a.value).unwrap_or(0.0),
