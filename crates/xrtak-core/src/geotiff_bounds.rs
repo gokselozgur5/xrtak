@@ -123,3 +123,22 @@ pub fn parse_world_file(content: &str) -> Result<WorldFileTransform, String> {
 
     Ok(WorldFileTransform::new(a, d, b, e, c, f))
 }
+
+/// Calculates spatial 4-corner footprint and bounding box from affine transform.
+pub fn compute_raster_extent(
+    transform: &WorldFileTransform,
+    width_px: usize,
+    height_px: usize,
+) -> Result<GeoRasterExtent, String> {
+    if width_px == 0 || height_px == 0 {
+        return Err("Raster dimensions must be greater than zero".to_string());
+    }
+
+    let min_p = -0.5;
+    let max_px = width_px as f64 - 0.5;
+    let max_py = height_px as f64 - 0.5;
+
+    let top_left = transform.pixel_to_world(min_p, min_p);
+    let top_right = transform.pixel_to_world(max_px, min_p);
+    let bottom_left = transform.pixel_to_world(min_p, max_py);
+    let bottom_right = transform.pixel_to_world(max_px, max_py);
