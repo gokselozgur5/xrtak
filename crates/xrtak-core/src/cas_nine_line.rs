@@ -382,4 +382,18 @@ mod tests {
         let no_cas = "<event uid=\"1\"><point lat=\"0\" lon=\"0\"/><detail></detail></event>";
         assert_eq!(CasNineLine::from_cot_xml(no_cas).unwrap_err(), CasNineLineError::MissingCasTag);
     }
+
+    #[test]
+    fn test_xml_escaping() {
+        let mut b = CasNineLine::new("CAS-ESC", "VIPER & CO");
+        b.line5_description = "HQ <Command> & 'Bunker'".to_string();
+        b.remarks = "Watch out for \"SAM\" & AAA".to_string();
+        let xml = b.to_cot_xml();
+        assert!(xml.contains("VIPER &amp; CO"));
+        assert!(xml.contains("&lt;Command&gt;"));
+        let parsed = CasNineLine::from_cot_xml(&xml).expect("parse escaped xml failed");
+        assert_eq!(parsed.jtac_callsign, "VIPER & CO");
+        assert_eq!(parsed.line5_description, "HQ <Command> & 'Bunker'");
+        assert_eq!(parsed.remarks, "Watch out for \"SAM\" & AAA");
+    }
 }
