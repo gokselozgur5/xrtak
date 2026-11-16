@@ -86,3 +86,15 @@ impl GeoRasterExtent {
     pub fn span_y(&self) -> f64 {
         self.max_y - self.min_y
     }
+
+    pub fn contains(&self, x: f64, y: f64) -> bool {
+        x >= self.min_x && x <= self.max_x && y >= self.min_y && y <= self.max_y
+    }
+
+    pub fn overlaps(&self, other: &GeoRasterExtent) -> bool {
+        !(self.max_x < other.min_x
+            || self.min_x > other.max_x
+            || self.max_y < other.min_y
+            || self.min_y > other.max_y)
+    }
+}
