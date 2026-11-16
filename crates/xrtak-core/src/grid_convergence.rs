@@ -214,3 +214,21 @@ pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridErr
         let denom = (((1.0 + e).powf(1.0 + e)) * ((1.0 - e).powf(1.0 - e))).sqrt();
         let rho = 2.0 * WGS84_A * UPS_K0 * t / denom;
         rho / (WGS84_A * m)
+    };
+
+    let (system, convergence_deg, cm_deg) = if is_north {
+        // North UPS: Grid North along 180th meridian, gamma = lon
+        let mut conv = lon_deg;
+        while conv > 180.0 {
+            conv -= 360.0;
+        }
+        while conv < -180.0 {
+            conv += 360.0;
+        }
+        (GridSystem::UpsNorth, conv, 0.0)
+    } else {
+        // South UPS: Grid North along Prime Meridian, gamma = -lon
+        let mut conv = -lon_deg;
+        while conv > 180.0 {
+            conv -= 360.0;
+        }
