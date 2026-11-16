@@ -277,3 +277,26 @@ pub fn simplify_track_with_config(
         max_error_m: (max_err * 100.0).round() / 100.0,
     }
 }
+
+/// Generates ATAK CoT Track History breadcrumb XML (`b-t-f`) for simplified track.
+pub fn generate_cot_track_history_xml(uid: &str, callsign: &str, points: &[TrackPoint]) -> String {
+    let (first_lat, first_lon, first_hae) = if let Some(p) = points.first() {
+        (p.lat, p.lon, p.hae_m)
+    } else {
+        (0.0, 0.0, 0.0)
+    };
+
+    let mut crumbs = String::new();
+    for (i, p) in points.iter().enumerate() {
+        let time_attr = match p.timestamp_ms {
+            Some(t) => format!(r#" time="{}""#, t),
+            None => String::new(),
+        };
+        let speed_attr = match p.speed_mps {
+            Some(s) => format!(r#" speed="{:.2}""#, s),
+            None => String::new(),
+        };
+        let course_attr = match p.course_deg {
+            Some(c) => format!(r#" course="{:.1}""#, c),
+            None => String::new(),
+        };
