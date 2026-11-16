@@ -15,6 +15,7 @@ pub mod geofence;
 pub mod geodesy;
 pub mod hud;
 pub mod hud_telemetry;
+pub mod kml_export;
 pub mod manifest;
 pub mod marker;
 pub mod mesh_frag;
