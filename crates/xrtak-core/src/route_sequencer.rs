@@ -132,3 +132,22 @@ pub struct SequencedRouteResult {
     pub estimated_completion_epoch_sec: f64,
     pub legs: Vec<SequencedLeg>,
 }
+
+/// Sequences waypoints along a route plan, calculating distances, bearings, and ETAs.
+pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
+    let mut legs = Vec::new();
+    let mut cum_dist = 0.0;
+    let mut cum_time = 0.0;
+    let default_spd = if plan.default_speed_mps > 0.1 {
+        plan.default_speed_mps
+    } else {
+        15.0
+    };
+
+    for i in 1..plan.waypoints.len() {
+        let prev = &plan.waypoints[i - 1];
+        let curr = &plan.waypoints[i];
+
+        let h_dist = haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon);
+        let s_dist = slant_distance_3d_m(prev.lat, prev.lon, prev.hae_m, curr.lat, curr.lon, curr.hae_m);
+        let brg = initial_bearing_deg(prev.lat, prev.lon, curr.lat, curr.lon);
