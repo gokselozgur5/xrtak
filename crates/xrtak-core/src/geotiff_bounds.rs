@@ -113,3 +113,13 @@ pub fn parse_world_file(content: &str) -> Result<WorldFileTransform, String> {
     let parse_val = |idx: usize, name: &'static str| -> Result<f64, String> {
         tokens[idx].parse::<f64>().map_err(|e| format!("{}: {}", name, e))
     };
+
+    let a = parse_val(0, "Line 1")?;
+    let d = parse_val(1, "Line 2")?;
+    let b = parse_val(2, "Line 3")?;
+    let e = parse_val(3, "Line 4")?;
+    let c = parse_val(4, "Line 5")?;
+    let f = parse_val(5, "Line 6")?;
+
+    Ok(WorldFileTransform::new(a, d, b, e, c, f))
+}
