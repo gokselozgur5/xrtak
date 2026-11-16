@@ -73,3 +73,25 @@ impl CotTrack {
             points: Vec::new(),
         }
     }
+
+    pub fn add_point(&mut self, point: KmlTrackPoint) {
+        self.points.push(point);
+    }
+
+    pub fn point_count(&self) -> usize {
+        self.points.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.points.is_empty()
+    }
+
+    pub fn duration_sec(&self) -> Option<f64> {
+        let first = self.points.first()?.timestamp_ms?;
+        let last = self.points.last()?.timestamp_ms?;
+        if last >= first {
+            Some((last - first) as f64 / 1000.0)
+        } else {
+            None
+        }
+    }
