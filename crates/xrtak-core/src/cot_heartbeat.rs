@@ -266,3 +266,19 @@ impl CotHeartbeatManager {
         HeartbeatAction::Ignored
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_heartbeat_config_and_default_manager() {
+        let mgr = CotHeartbeatManager::default();
+        assert_eq!(mgr.status(), HeartbeatStatus::Disconnected);
+        assert!(!mgr.is_connected());
+        assert_eq!(mgr.consecutive_missed(), 0);
+        assert_eq!(mgr.pending_count(), 0);
+        assert_eq!(mgr.smoothed_rtt_ms(), 0.0);
+        assert_eq!(mgr.packet_loss_pct(), 0.0);
+    }
+}
