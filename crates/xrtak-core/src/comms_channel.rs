@@ -130,3 +130,25 @@ pub struct CommsChannelPacket {
     pub channels: Vec<RadioChannel>,
     pub primary_channel_id: Option<u32>,
     pub emergency_channel_id: Option<u32>,
+}
+
+impl CommsChannelPacket {
+    pub fn new(
+        uid: impl Into<String>,
+        callsign: impl Into<String>,
+        timestamp_iso: impl Into<String>,
+        stale_iso: impl Into<String>,
+    ) -> Self {
+        Self {
+            uid: uid.into(),
+            cot_type: "a-f-G-U-C".to_string(),
+            callsign: callsign.into(),
+            timestamp_iso: timestamp_iso.into(),
+            stale_iso: stale_iso.into(),
+            lat: 0.0,
+            lon: 0.0,
+            hae: 0.0,
+            channels: Vec::new(),
+            primary_channel_id: None,
+            emergency_channel_id: None,
+        }
