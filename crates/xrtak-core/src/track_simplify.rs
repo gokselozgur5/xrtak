@@ -425,3 +425,16 @@ mod tests {
         let brg = initial_bearing_deg(lat1, lon1, lat2, lon2);
         assert!((brg - 90.0).abs() < 2.0);
     }
+
+    #[test]
+    fn test_perpendicular_distance_collinear_and_offset() {
+        let a = TrackPoint::new(0.0, 0.0, 100.0);
+        let b = TrackPoint::new(0.0, 1.0, 100.0);
+        let p_on = TrackPoint::new(0.0, 0.5, 100.0);
+        let d_on = perpendicular_distance_to_segment_m(&p_on, &a, &b, false);
+        assert!(d_on < 1.0);
+
+        let p_off = TrackPoint::new(0.001, 0.5, 100.0);
+        let d_off = perpendicular_distance_to_segment_m(&p_off, &a, &b, false);
+        assert!(d_off > 100.0 && d_off < 120.0);
+    }
