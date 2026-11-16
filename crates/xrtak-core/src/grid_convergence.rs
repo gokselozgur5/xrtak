@@ -88,3 +88,21 @@ pub struct GridSolution {
 pub fn utm_zone_from_lon(lon_deg: f64) -> u8 {
     let mut normalized_lon = lon_deg;
     while normalized_lon < -180.0 {
+        normalized_lon += 360.0;
+    }
+    while normalized_lon >= 180.0 {
+        normalized_lon -= 360.0;
+    }
+    let zone = ((normalized_lon + 180.0) / 6.0).floor() as i32 + 1;
+    zone.clamp(1, 60) as u8
+}
+
+/// Determine the central meridian longitude in decimal degrees for a UTM zone (1..=60).
+pub fn utm_central_meridian_deg(zone: u8) -> Result<f64, GridError> {
+    if !(1..=60).contains(&zone) {
+        return Err(GridError::InvalidUtmZone(zone));
+    }
+    Ok(f64::from(zone) * 6.0 - 183.0)
+}
+
+/// Compute UTM grid convergence angle and point scale factor for given latitude and longitude.
