@@ -92,6 +92,9 @@ pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
     parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
 };
+pub use mission_manifest::{
+    ManifestContentEntry, ManifestParameter, MissionPackageManifest,
+};
 pub use openxr_pose::{
     OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition, PoseTrackingFlags,
     TacticalHeadPose,
