@@ -242,4 +242,15 @@ mod tests {
         assert!(manifest.on_receive_delete);
         assert_eq!(manifest.parameters.len(), 1);
     }
+
+    #[test]
+    fn test_generate_xml_basic_structure() {
+        let mut manifest = MissionPackageManifest::new("UID-99", "Alpha Recon");
+        manifest.add_content("MANIFEST/manifest.xml", false);
+        manifest.add_content("routes/primary.cot", false);
+        let xml = manifest.generate_xml();
+        assert!(xml.contains("<MissionPackageManifest version=\"2\">"));
+        assert!(xml.contains("<Parameter name=\"uid\" value=\"UID-99\"/>"));
+        assert!(xml.contains("<Content zipEntry=\"routes/primary.cot\" ignore=\"false\"/>"));
+    }
 }
