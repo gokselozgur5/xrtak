@@ -14,6 +14,7 @@ pub mod fires;
 pub mod geo;
 pub mod geopackage;
 pub mod geofence;
+pub mod geochat;
 pub mod geotiff_bounds;
 pub mod geodesy;
 pub mod hud;
