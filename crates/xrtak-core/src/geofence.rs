@@ -101,3 +101,18 @@ impl GeofencePolygon {
         }
         inside
     }
+    /// Checks if a 3D point is contained within polygon and altitude bounds.
+    pub fn contains_point(&self, point: &GeofencePoint) -> bool {
+        if !self.contains_2d(point.x, point.y) {
+            return false;
+        }
+        if let Some(z) = point.z {
+            if let Some(floor) = self.floor_m {
+                if z < floor { return false; }
+            }
+            if let Some(ceiling) = self.ceiling_m {
+                if z > ceiling { return false; }
+            }
+        }
+        true
+    }
