@@ -447,3 +447,27 @@ impl GeoPackageFeatureDataset {
         Ok(script)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_waypoint_builder_and_validation() {
+        let wp = GeoPackageWaypoint::new("HQ", 34.5, 31.2)
+            .with_callsign("VIPER-1")
+            .with_cot_type("a-f-G-U-C")
+            .with_elevation(125.5)
+            .with_remarks("Main base");
+
+        assert_eq!(wp.name, "HQ");
+        assert_eq!(wp.lon, 34.5);
+        assert_eq!(wp.lat, 31.2);
+        assert_eq!(wp.callsign.as_deref(), Some("VIPER-1"));
+        assert_eq!(wp.cot_type.as_deref(), Some("a-f-G-U-C"));
+        assert_eq!(wp.elevation, Some(125.5));
+        assert!(wp.validate().is_ok());
+
+        let invalid = GeoPackageWaypoint::new("Bad", 195.0, 45.0);
+        assert!(invalid.validate().is_err());
+    }
