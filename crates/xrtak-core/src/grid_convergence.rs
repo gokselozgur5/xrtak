@@ -322,3 +322,21 @@ mod tests {
         let sol = calculate_utm(30.0, -72.0, Some(18)).unwrap();
         // At 3 deg east, convergence is approx dlam * sin(lat) ~ 3 * 0.5 = 1.5 deg
         assert!((sol.convergence_deg - 1.501).abs() < 0.01);
+        assert!(sol.scale_factor > UTM_K0);
+    }
+
+    #[test]
+    fn test_utm_southern_hemisphere_convergence() {
+        let sol = calculate_utm(-30.0, -72.0, Some(18)).unwrap();
+        assert!((sol.convergence_deg - (-1.501)).abs() < 0.01);
+        assert_eq!(
+            sol.system,
+            GridSystem::Utm {
+                zone: 18,
+                north: false
+            }
+        );
+    }
+
+    #[test]
+    fn test_ups_north_pole_scale_and_convergence() {
