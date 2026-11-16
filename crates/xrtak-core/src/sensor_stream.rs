@@ -357,6 +357,9 @@ pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorSt
                         "url" => url = Some(v),
                         "roverPort" => rover_port = v.parse::<u16>().ok(),
                         "rtspReliable" => rtsp_reliable = v == "1" || v.eq_ignore_ascii_case("true"),
+                        "ignoreEmbeddedKLV" => ignore_klv = v.eq_ignore_ascii_case("true"),
+                        "bufferTime" => buffer_ms = v.parse::<u32>().unwrap_or(500),
+                        "preferredUid" => preferred_uid = Some(v),
                         _ => {}
                     }
                 }
