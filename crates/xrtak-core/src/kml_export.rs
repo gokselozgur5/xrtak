@@ -325,3 +325,18 @@ mod tests {
         let d = haversine_distance_m(0.0, 0.0, 1.0, 0.0);
         assert!((d - 111_195.0).abs() < 500.0);
     }
+
+    #[test]
+    fn test_track_metrics() {
+        let mut track = CotTrack::new("UAV-1", "VIPER", "a-f-A-M-F-Q");
+        assert!(track.is_empty());
+        assert_eq!(track.point_count(), 0);
+
+        track.add_point(KmlTrackPoint::new(39.9200, 32.8500, 850.0).with_time(1_000));
+        track.add_point(KmlTrackPoint::new(39.9210, 32.8500, 860.0).with_time(3_000));
+
+        assert_eq!(track.point_count(), 2);
+        assert!(!track.is_empty());
+        assert_eq!(track.duration_sec(), Some(2.0));
+        assert!(track.path_length_m() > 100.0);
+    }
