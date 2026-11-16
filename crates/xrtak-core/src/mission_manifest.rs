@@ -151,3 +151,10 @@ impl MissionPackageManifest {
         out.push_str("  </Contents>\n");
     }
 }
+
+pub(crate) fn extract_attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let key = format!("{name}=\"");
+    let start = tag.find(&key)? + key.len();
+    let end = tag[start..].find('"')? + start;
+    Some(&tag[start..end])
+}
