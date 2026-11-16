@@ -25,3 +25,22 @@ fn test_integration_cas_nine_line_pipeline() {
     let text = format_cas_nine_line_text(&parsed);
     assert!(text.contains("1. IP/BP: FORD"));
 }
+
+#[test]
+fn test_integration_cas_atak_xml_variants() {
+    let raw_xml = r#"<event version="2.0" uid="ATAK-CAS-99" type="b-m-p-s-p-loc" time="2026-11-16T12:00:00Z">
+<point lat="36.5" lon="-115.5" hae="800.0"/>
+<detail>
+  <contact callsign="ANVIL 22"/>
+  <cas9line line1="DODGE" line2="270" line3="5nm" line4="1500" line5="BMP-2" line6="11SMD99881122"
+            line7="IR" line8="None" line9="North" remarks="Danger Close 300m"/>
+</detail>
+</event>"#;
+    let cas = CasNineLine::from_cot_xml(raw_xml).expect("parse failed");
+    assert_eq!(cas.cot_uid, "ATAK-CAS-99");
+    assert_eq!(cas.jtac_callsign, "ANVIL 22");
+    assert_eq!(cas.line1_ip_bp, "DODGE");
+    assert_eq!(cas.line5_description, "BMP-2");
+    assert_eq!(cas.remarks, "Danger Close 300m");
+    assert_eq!(cas.lat, 36.5);
+}
