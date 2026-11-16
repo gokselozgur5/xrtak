@@ -124,3 +124,21 @@ pub fn calculate_utm(
     }
 
     let zone = match zone_override {
+        Some(z) => {
+            if !(1..=60).contains(&z) {
+                return Err(GridError::InvalidUtmZone(z));
+            }
+            z
+        }
+        None => utm_zone_from_lon(lon_deg),
+    };
+
+    let cm_deg = utm_central_meridian_deg(zone)?;
+    let mut dlam_deg = lon_deg - cm_deg;
+    while dlam_deg > 180.0 {
+        dlam_deg -= 360.0;
+    }
+    while dlam_deg < -180.0 {
+        dlam_deg += 360.0;
+    }
+
