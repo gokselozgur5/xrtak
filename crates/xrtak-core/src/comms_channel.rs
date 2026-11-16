@@ -350,3 +350,25 @@ impl CommsChannelPacket {
                 },
                 Ok(Event::Eof) => break,
                 Err(e) => return Err(CommsChannelError::InvalidXml(e.to_string())),
+                _ => {}
+            }
+        }
+
+        if !found_event {
+            return Err(CommsChannelError::MissingEventTag);
+        }
+        if uid.is_empty() {
+            return Err(CommsChannelError::MissingUid);
+        }
+        if !found_radio_channels {
+            return Err(CommsChannelError::MissingRadioChannelsTag);
+        }
+
+        Ok(Self {
+            uid,
+            cot_type,
+            callsign: unescape_xml(&callsign),
+            timestamp_iso: time_str,
+            stale_iso: stale_str,
+            lat,
+            lon,
