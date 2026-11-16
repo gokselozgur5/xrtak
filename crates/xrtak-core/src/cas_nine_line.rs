@@ -320,4 +320,21 @@ mod tests {
         b.line9_egress = "Egress East to PULL".to_string();
         b
     }
+
+    #[test]
+    fn test_cas_nine_line_roundtrip_xml() {
+        let b = sample_brief();
+        let xml = b.to_cot_xml();
+        assert!(xml.contains("<event version=\"2.0\""));
+        assert!(xml.contains("uid=\"CAS-001\""));
+        assert!(xml.contains("<cas9line"));
+        let parsed = CasNineLine::from_cot_xml(&xml).expect("parse failed");
+        assert_eq!(parsed.cot_uid, b.cot_uid);
+        assert_eq!(parsed.jtac_callsign, b.jtac_callsign);
+        assert_eq!(parsed.line1_ip_bp, b.line1_ip_bp);
+        assert_eq!(parsed.line5_description, b.line5_description);
+        assert_eq!(parsed.line6_location, b.line6_location);
+        assert_eq!(parsed.remarks, b.remarks);
+        assert!((parsed.lat - b.lat).abs() < 1e-5);
+    }
 }
