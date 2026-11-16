@@ -236,3 +236,19 @@ mod tests {
         assert!(ext.contains(150.0, 175.0));
         assert!(!ext.contains(50.0, 250.0));
     }
+
+    #[test]
+    fn test_extent_overlap() {
+        let tf1 = WorldFileTransform::from_scale_and_origin(1.0, 1.0, 0.0, 10.0);
+        let ext1 = compute_raster_extent(&tf1, 10, 10).expect("valid ext1");
+
+        let tf2 = WorldFileTransform::from_scale_and_origin(1.0, 1.0, 5.0, 5.0);
+        let ext2 = compute_raster_extent(&tf2, 10, 10).expect("valid ext2");
+
+        let tf3 = WorldFileTransform::from_scale_and_origin(1.0, 1.0, 50.0, 50.0);
+        let ext3 = compute_raster_extent(&tf3, 10, 10).expect("valid ext3");
+
+        assert!(ext1.overlaps(&ext2));
+        assert!(ext2.overlaps(&ext1));
+        assert!(!ext1.overlaps(&ext3));
+    }
