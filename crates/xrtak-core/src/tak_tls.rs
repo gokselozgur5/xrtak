@@ -29,3 +29,27 @@ pub enum CertificateFormat {
     Pem,
     Pkcs12,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TlsCertificate {
+    pub format: CertificateFormat,
+    pub raw_data: Vec<u8>,
+    pub passphrase: Option<String>,
+}
+
+impl TlsCertificate {
+    pub fn from_pem(data: impl Into<Vec<u8>>) -> Self {
+        Self {
+            format: CertificateFormat::Pem,
+            raw_data: data.into(),
+            passphrase: None,
+        }
+    }
+
+    pub fn from_pkcs12(data: impl Into<Vec<u8>>, passphrase: Option<String>) -> Self {
+        Self {
+            format: CertificateFormat::Pkcs12,
+            raw_data: data.into(),
+            passphrase,
+        }
+    }
