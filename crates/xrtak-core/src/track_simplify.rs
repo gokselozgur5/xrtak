@@ -463,3 +463,22 @@ mod tests {
         assert_eq!(simplified.len(), 3);
         assert_eq!(simplified[1].lat, corner.lat);
     }
+
+    #[test]
+    fn test_rdp_3d_elevation_preservation() {
+        let a = TrackPoint::new(39.0, 32.0, 100.0);
+        let peak = TrackPoint::new(39.0005, 32.0, 600.0);
+        let b = TrackPoint::new(39.0010, 32.0, 100.0);
+        let points = vec![a.clone(), peak.clone(), b.clone()];
+
+        let flat_simp = simplify_track_rdp(&points, 10.0);
+        assert_eq!(flat_simp.len(), 2);
+
+        let config_3d = TrackSimplifyConfig {
+            epsilon_m: 10.0,
+            include_elevation: true,
+            max_time_gap_sec: None,
+        };
+        let res_3d = simplify_track_with_config(&points, &config_3d);
+        assert_eq!(res_3d.points.len(), 3);
+    }
