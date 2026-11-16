@@ -307,3 +307,18 @@ impl SensorStreamDescriptor {
         )
     }
 }
+
+/// Serializes a slice of sensor stream descriptors to TAK `<videoConnections>` document.
+pub fn to_video_connections_xml(descriptors: &[SensorStreamDescriptor]) -> String {
+    let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<videoConnections>\n");
+    for desc in descriptors {
+        let entry = desc.to_feed_entry_xml();
+        for line in entry.lines() {
+            out.push_str("  ");
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out.push_str("</videoConnections>");
+    out
+}
