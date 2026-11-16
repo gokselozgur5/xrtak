@@ -68,3 +68,14 @@ impl GeoChatPacket {
             parent_group: "RootContactGroup".to_string(),
         }
     }
+    pub fn with_coordinates(mut self, lat: f64, lon: f64, hae: f64) -> Self {
+        self.lat = lat;
+        self.lon = lon;
+        self.hae = hae;
+        self
+    }
+
+    pub fn with_parent_group(mut self, group: impl Into<String>) -> Self {
+        self.parent_group = group.into();
+        self
+    }
