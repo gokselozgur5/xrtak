@@ -365,3 +365,17 @@ impl GeoPackageFeatureDataset {
             table = self.table_name
         )
     }
+
+    pub fn generate_insert_sql(&self, wp: &GeoPackageWaypoint) -> Result<String, GeoPackageError> {
+        wp.validate()?;
+        let blob = encode_point_geom(wp.lon, wp.lat, wp.elevation, self.srs_id)?;
+        let hex_geom = bytes_to_hex_literal(&blob);
+        let name_esc = escape_sql_string(&wp.name);
+        let callsign_val = match &wp.callsign {
+            Some(c) => format!("'{}'", escape_sql_string(c)),
+            None => "NULL".into(),
+        };
+        let cot_type_val = match &wp.cot_type {
+            Some(t) => format!("'{}'", escape_sql_string(t)),
+            None => "NULL".into(),
+        };
