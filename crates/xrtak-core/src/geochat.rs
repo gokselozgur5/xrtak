@@ -236,3 +236,24 @@ mod tests {
         assert_eq!(parsed.message_text, "Target location identified & verified.");
         assert_eq!(parsed.lat, 34.123456);
     }
+    #[test]
+    fn test_xml_escaping_in_message() {
+        let pkt = GeoChatPacket::new(
+            "UID-1", "LEAD", "HQ", "M-1",
+            "Danger: <Enemy> & Alert!",
+            "2026-11-16T12:00:00Z",
+        );
+        let xml = pkt.to_cot_xml();
+        assert!(xml.contains("&lt;Enemy&gt;"));
+        assert!(xml.contains("&amp;"));
+        let parsed = GeoChatPacket::from_cot_xml(&xml).unwrap();
+        assert_eq!(parsed.message_text, "Danger: <Enemy> & Alert!");
+    }
+
+    #[test]
+    fn test_missing_fields_validation() {
+        let bad_xml = "<event version=\"2.0\"></event>";
+        let err = GeoChatPacket::from_cot_xml(bad_xml).unwrap_err();
+        assert_eq!(err, GeoChatError::MissingMessageId);
+    }
+}
