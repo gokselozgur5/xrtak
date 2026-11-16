@@ -108,3 +108,25 @@ impl fmt::Display for CommsChannelError {
             Self::MissingUid => write!(f, "Missing event UID"),
             Self::MissingCallsign => write!(f, "Missing contact callsign"),
             Self::MissingRadioChannelsTag => write!(f, "Missing radioChannels tag"),
+            Self::EmptyChannelList => write!(f, "Channel allocation list is empty"),
+            Self::ChannelNotFound(id) => write!(f, "Channel id {} not found", id),
+        }
+    }
+}
+
+impl std::error::Error for CommsChannelError {}
+
+/// Tactical radio communications frequency & channel allocation packet.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CommsChannelPacket {
+    pub uid: String,
+    pub cot_type: String,
+    pub callsign: String,
+    pub timestamp_iso: String,
+    pub stale_iso: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae: f64,
+    pub channels: Vec<RadioChannel>,
+    pub primary_channel_id: Option<u32>,
+    pub emergency_channel_id: Option<u32>,
