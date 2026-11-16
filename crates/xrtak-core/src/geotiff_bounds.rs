@@ -28,3 +28,13 @@ impl WorldFileTransform {
             f: origin_y,
         }
     }
+
+    pub fn is_north_up(&self) -> bool {
+        self.b.abs() < 1e-12 && self.d.abs() < 1e-12 && self.e < 0.0
+    }
+
+    pub fn pixel_to_world(&self, px: f64, py: f64) -> (f64, f64) {
+        let wx = self.a * px + self.b * py + self.c;
+        let wy = self.d * px + self.e * py + self.f;
+        (wx, wy)
+    }
