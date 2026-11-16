@@ -111,3 +111,24 @@ pub struct SequencedLeg {
     pub cumulative_ete_sec: f64,
     pub eta_epoch_sec: f64,
 }
+
+/// Route plan specification.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RoutePlan {
+    pub route_uid: String,
+    pub callsign: String,
+    pub default_speed_mps: f64,
+    pub start_time_epoch_sec: f64,
+    pub waypoints: Vec<RouteWaypoint>,
+}
+
+/// Computed sequence and timing schedule for a route plan.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SequencedRouteResult {
+    pub route_uid: String,
+    pub callsign: String,
+    pub total_distance_m: f64,
+    pub total_duration_sec: f64,
+    pub estimated_completion_epoch_sec: f64,
+    pub legs: Vec<SequencedLeg>,
+}
