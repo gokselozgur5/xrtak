@@ -193,3 +193,24 @@ impl CotHeartbeatManager {
         (xml, seq)
     }
 }
+
+impl CotHeartbeatManager {
+    /// Check for unacknowledged pings that exceeded the timeout interval.
+    pub fn check_timeouts(&mut self, now_ms: u64) -> u32 {
+        let timeout = self.config.timeout_ms;
+        let mut expired = 0;
+        self.pending_pings.retain(|p| {
+            if now_ms.saturating_sub(p.sent_unix_ms) > timeout {
+                expired += 1;
+                false
+            } else {
+                true
+            }
+        });
+        if expired > 0 {
+            self.consecutive_missed = self.consecutive_missed.saturating_add(expired);
+            self.total_pongs_lost = self.total_pongs_lost.saturating_add(expired as u64);
+        }
+        expired
+    }
+}
