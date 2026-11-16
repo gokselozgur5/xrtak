@@ -63,3 +63,16 @@ pub struct TrackObservation {
     pub measured_speed_mps: Option<f64>,
     pub measured_course_deg: Option<f64>,
 }
+
+impl TrackObservation {
+    pub fn new(timestamp_sec: f64, east_m: f64, north_m: f64, up_m: f64) -> Self {
+        Self {
+            timestamp_sec,
+            east_m,
+            north_m,
+            up_m,
+            measured_speed_mps: None,
+            measured_course_deg: None,
+        }
+    }
+}
