@@ -242,3 +242,11 @@ mod tests {
         assert!((wrap_heading_deg(-90.0) - 270.0).abs() < 1e-9);
         assert!((wrap_heading_deg(450.0) - 90.0).abs() < 1e-9);
     }
+
+    #[test]
+    fn test_heading_delta_deg() {
+        assert!((heading_delta_deg(350.0, 10.0) - 20.0).abs() < 1e-9);
+        assert!((heading_delta_deg(10.0, 350.0) - (-20.0)).abs() < 1e-9);
+        assert!((heading_delta_deg(90.0, 180.0) - 90.0).abs() < 1e-9);
+        assert!((heading_delta_deg(180.0, 90.0) - (-90.0)).abs() < 1e-9);
+    }
