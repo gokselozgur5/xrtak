@@ -387,3 +387,12 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
                 }
                 _ => {}
             },
+
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(format!("XML parse error: {}", e)),
+            _ => {}
+        }
+    }
+
+    Ok(points)
+}
