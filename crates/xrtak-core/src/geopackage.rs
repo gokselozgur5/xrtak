@@ -508,3 +508,24 @@ mod tests {
         assert_eq!(b.min_elev, Some(50.0));
         assert_eq!(b.max_elev, Some(200.0));
     }
+
+    #[test]
+    fn test_sql_script_export() {
+        let mut ds = GeoPackageFeatureDataset::new("waypoints");
+        ds.add_waypoint(
+            GeoPackageWaypoint::new("Observation Post", 36.2, 33.5)
+                .with_callsign("OP-ALPHA")
+                .with_elevation(450.0)
+                .with_remarks("Hilltop sightline"),
+        );
+
+        let script = ds.export_sql_script().unwrap();
+        assert!(script.contains("BEGIN TRANSACTION;"));
+        assert!(script.contains("CREATE TABLE IF NOT EXISTS waypoints"));
+        assert!(script.contains("INSERT OR REPLACE INTO gpkg_contents"));
+        assert!(script.contains("INSERT INTO waypoints"));
+        assert!(script.contains("'Observation Post'"));
+        assert!(script.contains("'OP-ALPHA'"));
+        assert!(script.contains("450.00"));
+        assert!(script.contains("COMMIT;"));
+    }
