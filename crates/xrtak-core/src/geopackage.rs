@@ -305,3 +305,16 @@ impl GeoPackageFeatureDataset {
         self.srs_id = srs_id;
         self
     }
+
+    pub fn add_waypoint(&mut self, waypoint: GeoPackageWaypoint) {
+        self.waypoints.push(waypoint);
+    }
+
+    pub fn bounds(&self) -> Option<GeoPackageBounds> {
+        let first = self.waypoints.first()?;
+        let mut b = GeoPackageBounds::from_point(first.lon, first.lat, first.elevation);
+        for wp in &self.waypoints[1..] {
+            b.update(wp.lon, wp.lat, wp.elevation);
+        }
+        Some(b)
+    }
