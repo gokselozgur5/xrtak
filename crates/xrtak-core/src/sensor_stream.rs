@@ -35,3 +35,31 @@ impl fmt::Display for SensorStreamError {
 }
 
 impl std::error::Error for SensorStreamError {}
+
+/// Type of optical or imaging sensor payload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SensorType {
+    ElectroOptical,
+    Infrared,
+    ShortWaveInfrared,
+    MidWaveInfrared,
+    LongWaveInfrared,
+    DualEoIr,
+    SyntheticApertureRadar,
+    Other(String),
+}
+
+impl SensorType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::ElectroOptical => "EO",
+            Self::Infrared => "IR",
+            Self::ShortWaveInfrared => "SWIR",
+            Self::MidWaveInfrared => "MWIR",
+            Self::LongWaveInfrared => "LWIR",
+            Self::DualEoIr => "EO/IR",
+            Self::SyntheticApertureRadar => "SAR",
+            Self::Other(s) => s.as_str(),
+        }
+    }
+}
