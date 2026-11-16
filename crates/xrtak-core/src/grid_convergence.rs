@@ -196,3 +196,21 @@ pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridErr
     if !is_north && !is_south {
         return Err(GridError::LatitudeOutOfUpsRange(format!(
             "latitude {lat_deg} is outside UPS coverage (>=84N or <=-80S)"
+        )));
+    }
+
+    let e = WGS84_E2.sqrt();
+    let phi_abs = lat_deg.abs().to_radians();
+
+    // Point scale factor for ellipsoidal polar stereographic (Snyder eq. 21-17, DMA TM 8358.1):
+    let scale_factor = if phi_abs >= (PI / 2.0 - 1e-12) {
+        UPS_K0
+    } else {
+        let sin_p = phi_abs.sin();
+        let cos_p = phi_abs.cos();
+        let t = (PI / 4.0 - phi_abs / 2.0).tan()
+            / (((1.0 - e * sin_p) / (1.0 + e * sin_p)).powf(e / 2.0));
+        let m = cos_p / (1.0 - WGS84_E2 * sin_p * sin_p).sqrt();
+        let denom = (((1.0 + e).powf(1.0 + e)) * ((1.0 - e).powf(1.0 - e))).sqrt();
+        let rho = 2.0 * WGS84_A * UPS_K0 * t / denom;
+        rho / (WGS84_A * m)
