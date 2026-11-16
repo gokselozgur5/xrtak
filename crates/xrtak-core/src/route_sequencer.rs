@@ -226,3 +226,21 @@ pub fn evaluate_route_progress(
     let dist_to_next = haversine_distance_m(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
     let brg_to_next = initial_bearing_deg(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
     let xte = cross_track_error_m(cur_lat, cur_lon, from_wp.lat, from_wp.lon, to_wp.lat, to_wp.lon);
+
+    let spd = if cur_speed_mps > 0.5 {
+        cur_speed_mps
+    } else {
+        leg.speed_mps
+    };
+
+    let ttg = dist_to_next / spd;
+    let next_eta = cur_time_sec + ttg;
+
+    let mut remaining_dist = dist_to_next;
+    let mut remaining_time = ttg;
+    for future_leg in &sequenced.legs[active_leg_idx + 1..] {
+        remaining_dist += future_leg.slant_distance_m;
+        remaining_time += future_leg.total_leg_time_sec;
+    }
+
+    let reached = dist_to_next <= capture_radius_m;
