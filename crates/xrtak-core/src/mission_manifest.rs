@@ -178,3 +178,22 @@ impl MissionPackageManifest {
         Ok(manifest)
     }
 }
+
+impl MissionPackageManifest {
+    fn parse_config_block(&mut self, xml: &str) {
+        let (start, end) = match (xml.find("<Configuration>"), xml.find("</Configuration>")) {
+            (Some(s), Some(e)) => (s + 15, e),
+            _ => return,
+        };
+        for line in xml[start..end].lines() {
+            if let (Some(k), Some(v)) = (extract_attr(line, "name"), extract_attr(line, "value")) {
+                match k {
+                    "uid" => self.uid = v.to_string(),
+                    "name" => self.name = v.to_string(),
+                    "onReceiveDelete" => self.on_receive_delete = v == "true",
+                    _ => self.add_parameter(k, v),
+                }
+            }
+        }
+    }
+}
