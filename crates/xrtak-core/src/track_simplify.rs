@@ -84,3 +84,15 @@ pub fn haversine_distance_m(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let c = 2.0 * a.sqrt().asin();
     WGS84_EARTH_RADIUS_M * c
 }
+
+/// Initial true bearing from coordinate 1 to coordinate 2 in degrees [0, 360).
+pub fn initial_bearing_deg(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+    let r_lat1 = lat1.to_radians();
+    let r_lat2 = lat2.to_radians();
+    let d_lon = (lon2 - lon1).to_radians();
+
+    let y = d_lon.sin() * r_lat2.cos();
+    let x = r_lat1.cos() * r_lat2.sin() - r_lat1.sin() * r_lat2.cos() * d_lon.cos();
+    let brg = y.atan2(x).to_degrees();
+    (brg + 360.0) % 360.0
+}
