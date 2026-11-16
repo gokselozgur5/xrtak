@@ -409,3 +409,23 @@ impl GeoPackageFeatureDataset {
         script.push_str(
             "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('WGS 84', 4326, 'EPSG', 4326,              'GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]]',              'WGS 84 geodetic coordinate reference system');\n"
         );
+
+        let bounds = self.bounds().unwrap_or(GeoPackageBounds {
+            min_lon: -180.0,
+            min_lat: -90.0,
+            max_lon: 180.0,
+            max_lat: 90.0,
+            min_elev: None,
+            max_elev: None,
+        });
+
+        let contents_sql = format!(
+            "INSERT OR REPLACE INTO gpkg_contents              (table_name, data_type, identifier, description, min_x, min_y, max_x, max_y, srs_id)              VALUES ('{table}', 'features', '{table}', 'TAK Waypoint Features', {min_x:.6}, {min_y:.6}, {max_x:.6}, {max_y:.6}, {srs});\n",
+            table = self.table_name,
+            min_x = bounds.min_lon,
+            min_y = bounds.min_lat,
+            max_x = bounds.max_lon,
+            max_y = bounds.max_lat,
+            srs = self.srs_id
+        );
+        script.push_str(&contents_sql);
