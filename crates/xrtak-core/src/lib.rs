@@ -24,6 +24,7 @@ pub mod manifest;
 pub mod marker;
 pub mod mesh_frag;
 pub mod mission;
+pub mod mission_manifest;
 pub mod openxr_pose;
 pub mod opord;
 pub mod radial;
