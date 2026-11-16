@@ -128,3 +128,12 @@ pub fn perpendicular_distance_to_segment_m(
             d
         };
     }
+
+    if along_dist >= seg_dist {
+        let d = haversine_distance_m(p.lat, p.lon, b.lat, b.lon);
+        return if include_elevation {
+            (d.powi(2) + (p.hae_m - b.hae_m).powi(2)).sqrt()
+        } else {
+            d
+        };
+    }
