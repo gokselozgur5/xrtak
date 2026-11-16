@@ -320,4 +320,18 @@ mod tests {
         assert!(mgr.is_connected());
         assert_eq!(mgr.pending_count(), 0);
     }
+
+    #[test]
+    fn test_timeout_and_degraded_status() {
+        let mut mgr = CotHeartbeatManager::default();
+        let (_xml, seq) = mgr.generate_ping(1_000);
+        let _ = mgr.handle_pong("XRTAK-CLIENT-ping-1", Some(seq), 1_020);
+        assert_eq!(mgr.status(), HeartbeatStatus::Connected);
+
+        let (_xml2, _seq2) = mgr.generate_ping(16_000);
+        let expired = mgr.check_timeouts(22_000);
+        assert_eq!(expired, 1);
+        assert_eq!(mgr.consecutive_missed(), 1);
+        assert_eq!(mgr.status(), HeartbeatStatus::Degraded);
+    }
 }
