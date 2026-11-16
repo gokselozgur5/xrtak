@@ -28,3 +28,20 @@ impl fmt::Display for GeoChatError {
         }
     }
 }
+
+impl std::error::Error for GeoChatError {}
+
+/// Tactical instant message GeoChat packet.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GeoChatPacket {
+    pub sender_uid: String,
+    pub sender_callsign: String,
+    pub chatroom: String,
+    pub message_id: String,
+    pub message_text: String,
+    pub timestamp_iso: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae: f64,
+    pub parent_group: String,
+}
