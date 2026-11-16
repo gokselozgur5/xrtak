@@ -427,3 +427,32 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                 }
             }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"detail" => in_detail = true,
+            Ok(Event::Empty(ref e)) if in_detail && (e.name().as_ref() == b"__video" || e.name().as_ref() == b"video") => {
+                let mut url = None;
+                let mut stream_uid = None;
+                let mut alias = None;
+                let mut rover_port = None;
+                let mut rtsp_reliable = true;
+                let mut ignore_klv = false;
+                let mut pref = None;
+                for a in e.attributes().flatten() {
+                    match a.key.as_ref() {
+                        b"url" => url = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                        b"uid" => stream_uid = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                        b"alias" => alias = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                        b"roverPort" => rover_port = String::from_utf8_lossy(&a.value).parse::<u16>().ok(),
+                        b"rtspReliable" => rtsp_reliable = a.value.as_ref() == b"1" || a.value.as_ref() == b"true",
+                        b"ignoreEmbeddedKLV" => ignore_klv = a.value.as_ref() == b"true",
+                        b"preferredUid" => pref = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                        _ => {}
+                    }
+                }
+                if let Some(u) = url {
+                    let a = alias.unwrap_or_else(|| "Video Stream".to_string());
+                    let su = stream_uid.unwrap_or_else(|| format!("feed-{}", &a));
+                    video_conn = Some(VideoStreamConnection {
+                        url: u, stream_uid: su, alias: a, rover_port, rtsp_reliable,
+                        ignore_embedded_klv: ignore_klv, buffer_ms: 500, preferred_uid: pref,
+                    });
+                }
+            }
