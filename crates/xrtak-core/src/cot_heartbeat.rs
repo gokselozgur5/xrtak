@@ -71,3 +71,28 @@ pub struct CotHeartbeatManager {
     pub(crate) total_pongs_lost: u64,
     pub(crate) pending_pings: Vec<PingRecord>,
 }
+
+impl Default for CotHeartbeatManager {
+    fn default() -> Self {
+        Self::new(CotHeartbeatConfig::default())
+    }
+}
+
+impl CotHeartbeatManager {
+    /// Create a new heartbeat manager with specified configuration.
+    pub fn new(config: CotHeartbeatConfig) -> Self {
+        Self {
+            config,
+            seq: 0,
+            last_ping_sent_ms: None,
+            last_pong_received_ms: None,
+            last_rtt_ms: None,
+            smoothed_rtt_ms: 0.0,
+            consecutive_missed: 0,
+            total_pings_sent: 0,
+            total_pongs_received: 0,
+            total_pongs_lost: 0,
+            pending_pings: Vec::new(),
+        }
+    }
+}
