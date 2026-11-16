@@ -149,3 +149,12 @@ impl CotHeartbeatManager {
         self.consecutive_missed
     }
 }
+
+/// Build a standard TAK Cursor-on-Target ping event XML (`t-x-c-t`).
+pub fn build_ping_cot(client_uid: &str, seq: u64, now_ms: u64) -> String {
+    let uid = format!("{client_uid}-ping-{seq}");
+    let stale_ms = now_ms.saturating_add(10_000);
+    format!(
+        r#"<event version="2.0" uid="{uid}" type="t-x-c-t" how="m-g" time="{now_ms}" start="{now_ms}" stale="{stale_ms}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><ping seq="{seq}" client="{client_uid}"/></detail></event>"#
+    )
+}
