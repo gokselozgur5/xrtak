@@ -167,3 +167,29 @@ pub fn build_pong_cot(client_uid: &str, ping_uid: &str, seq: u64, now_ms: u64) -
         r#"<event version="2.0" uid="{uid}" type="t-x-c-t-r" how="m-g" time="{now_ms}" start="{now_ms}" stale="{stale_ms}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><pong seq="{seq}" ref_uid="{ping_uid}"/></detail></event>"#
     )
 }
+
+impl CotHeartbeatManager {
+    /// Check whether elapsed duration requires sending another ping.
+    pub fn should_send_ping(&self, now_ms: u64) -> bool {
+        match self.last_ping_sent_ms {
+            None => true,
+            Some(last) => now_ms.saturating_sub(last) >= self.config.interval_ms,
+        }
+    }
+
+    /// Generate an outgoing ping event and queue record in pending list.
+    pub fn generate_ping(&mut self, now_ms: u64) -> (String, u64) {
+        self.seq = self.seq.saturating_add(1);
+        let seq = self.seq;
+        let ping_uid = format!("{}-ping-{seq}", self.config.client_uid);
+        let xml = build_ping_cot(&self.config.client_uid, seq, now_ms);
+        self.pending_pings.push(PingRecord {
+            seq,
+            ping_uid,
+            sent_unix_ms: now_ms,
+        });
+        self.last_ping_sent_ms = Some(now_ms);
+        self.total_pings_sent = self.total_pings_sent.saturating_add(1);
+        (xml, seq)
+    }
+}
