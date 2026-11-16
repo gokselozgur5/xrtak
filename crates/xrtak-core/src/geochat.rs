@@ -45,3 +45,26 @@ pub struct GeoChatPacket {
     pub hae: f64,
     pub parent_group: String,
 }
+
+impl GeoChatPacket {
+    pub fn new(
+        sender_uid: impl Into<String>,
+        sender_callsign: impl Into<String>,
+        chatroom: impl Into<String>,
+        message_id: impl Into<String>,
+        message_text: impl Into<String>,
+        timestamp_iso: impl Into<String>,
+    ) -> Self {
+        Self {
+            sender_uid: sender_uid.into(),
+            sender_callsign: sender_callsign.into(),
+            chatroom: chatroom.into(),
+            message_id: message_id.into(),
+            message_text: message_text.into(),
+            timestamp_iso: timestamp_iso.into(),
+            lat: 0.0,
+            lon: 0.0,
+            hae: 9999999.0,
+            parent_group: "RootContactGroup".to_string(),
+        }
+    }
