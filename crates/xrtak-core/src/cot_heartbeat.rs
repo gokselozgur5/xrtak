@@ -365,4 +365,20 @@ mod tests {
             _ => panic!("Expected PongAcknowledged"),
         }
     }
+
+    #[test]
+    fn test_packet_loss_and_max_missed_disconnect() {
+        let mut mgr = CotHeartbeatManager::default();
+        let (_xml1, _s1) = mgr.generate_ping(1_000);
+        let _ = mgr.check_timeouts(10_000);
+        let (_xml2, _s2) = mgr.generate_ping(16_000);
+        let _ = mgr.check_timeouts(25_000);
+        let (_xml3, _s3) = mgr.generate_ping(31_000);
+        let _ = mgr.check_timeouts(40_000);
+
+        assert_eq!(mgr.consecutive_missed(), 3);
+        assert_eq!(mgr.status(), HeartbeatStatus::Disconnected);
+        assert!(!mgr.is_connected());
+        assert!((mgr.packet_loss_pct() - 100.0).abs() < 1e-4);
+    }
 }
