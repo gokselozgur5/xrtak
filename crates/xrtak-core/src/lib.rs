@@ -31,6 +31,7 @@ pub mod radial;
 pub mod rf;
 pub mod route_sequencer;
 pub mod sapient;
+pub mod sensor_stream;
 pub mod tak_tls;
 pub mod thermal;
 pub mod tiles;
