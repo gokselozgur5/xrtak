@@ -372,3 +372,25 @@ impl CommsChannelPacket {
             stale_iso: stale_str,
             lat,
             lon,
+            hae,
+            channels,
+            primary_channel_id: primary_id,
+            emergency_channel_id: emergency_id,
+        })
+    }
+}
+
+fn parse_f64(bytes: &[u8]) -> Option<f64> {
+    std::str::from_utf8(bytes).ok()?.parse().ok()
+}
+
+fn parse_u32(bytes: &[u8]) -> Option<u32> {
+    std::str::from_utf8(bytes).ok()?.parse().ok()
+}
+
+fn parse_u64(bytes: &[u8]) -> Option<u64> {
+    std::str::from_utf8(bytes).ok()?.parse().ok()
+}
+
+fn escape_xml(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
