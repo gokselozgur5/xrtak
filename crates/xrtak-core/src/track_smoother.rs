@@ -176,3 +176,17 @@ impl TrackSmoother {
                     }
                     _ => (raw_vx, raw_vy),
                 };
+
+                let mut s_vx = smooth_scalar(prev.vel_east_mps, target_vx, self.config.alpha_vel);
+                let mut s_vy = smooth_scalar(prev.vel_north_mps, target_vy, self.config.alpha_vel);
+                let s_vz = smooth_scalar(prev.vel_up_mps, raw_vz, self.config.alpha_vel);
+
+                let mut speed = (s_vx.powi(2) + s_vy.powi(2)).sqrt();
+                if let Some(clamp) = self.config.max_speed_clamp_mps {
+                    if speed > clamp && speed > 1e-6 {
+                        let ratio = clamp / speed;
+                        s_vx *= ratio;
+                        s_vy *= ratio;
+                        speed = clamp;
+                    }
+                }
