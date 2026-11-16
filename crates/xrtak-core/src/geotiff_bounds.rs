@@ -181,3 +181,26 @@ pub fn parse_geotiff_model_transform_4x4(matrix: &[f64; 16]) -> Result<WorldFile
 
     Ok(WorldFileTransform::new(a, d, b, e, c, f))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_world_file_parsing_standard() {
+        let content = "0.5\n0.0\n0.0\n-0.5\n32.85\n39.92\n";
+        let tf = parse_world_file(content).expect("valid tfw");
+        assert_eq!(tf.a, 0.5);
+        assert_eq!(tf.d, 0.0);
+        assert_eq!(tf.b, 0.0);
+        assert_eq!(tf.e, -0.5);
+        assert_eq!(tf.c, 32.85);
+        assert_eq!(tf.f, 39.92);
+        assert!(tf.is_north_up());
+    }
+
+    #[test]
+    fn test_world_file_parsing_invalid() {
+        assert!(parse_world_file("0.5 0.0 0.0").is_err());
+        assert!(parse_world_file("0.5 0.0 0.0 -0.5 32.85 bad_float").is_err());
+    }
