@@ -123,3 +123,19 @@ impl Default for TrackSmoother {
         Self::new(TrackSmootherConfig::default())
     }
 }
+
+impl TrackSmoother {
+    pub fn new(config: TrackSmootherConfig) -> Self {
+        Self {
+            config,
+            state: None,
+        }
+    }
+
+    pub fn current_state(&self) -> Option<&SmoothedTrackState> {
+        self.state.as_ref()
+    }
+
+    pub fn reset(&mut self) {
+        self.state = None;
+    }
