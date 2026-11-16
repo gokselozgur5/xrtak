@@ -41,6 +41,11 @@ pub mod track_smoother;
 pub mod viewshed;
 pub mod zones;
 
+pub use grid_convergence::{
+    calculate_grid_convergence, calculate_ups, calculate_utm, grid_to_ground_distance,
+    grid_to_true_azimuth, ground_to_grid_distance, true_to_grid_azimuth, utm_central_meridian_deg,
+    utm_zone_from_lon, GridError, GridSolution, GridSystem,
+};
 pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use battery::{
     compute_uav_endurance, RthPolygonVertex, UavBatteryState, UavEnduranceSolution, WindVector,
