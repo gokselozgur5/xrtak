@@ -154,3 +154,18 @@ mod tests {
         assert!(!poly.contains_2d(15.0, 5.0));
         assert!(!poly.contains_2d(-1.0, 5.0));
     }
+    #[test]
+    fn test_concave_polygon_containment() {
+        let vertices = vec![
+            GeofencePoint::new_2d(0.0, 0.0),
+            GeofencePoint::new_2d(10.0, 0.0),
+            GeofencePoint::new_2d(10.0, 5.0),
+            GeofencePoint::new_2d(5.0, 5.0),
+            GeofencePoint::new_2d(5.0, 10.0),
+            GeofencePoint::new_2d(0.0, 10.0),
+        ];
+        let poly = GeofencePolygon::new("l-1", "L-Shape", vertices);
+        assert!(poly.contains_2d(2.0, 2.0));
+        assert!(poly.contains_2d(2.0, 8.0));
+        assert!(!poly.contains_2d(8.0, 8.0));
+    }
