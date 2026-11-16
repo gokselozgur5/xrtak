@@ -160,3 +160,21 @@ pub fn calculate_utm(
     let gamma_rad = t1 + t2 + t3;
     let gamma_deg = gamma_rad.to_degrees();
 
+    // Scale factor k (Snyder eq. 8-15 / DMA TM 8358.1):
+    let k_term1 = 1.0;
+    let k_term2 = 0.5 * dlam.powi(2) * cos_p.powi(2) * (1.0 + eta2);
+    let k_term3 = (dlam.powi(4) / 24.0)
+        * cos_p.powi(4)
+        * (5.0 - 4.0 * tan_p.powi(2) + 14.0 * eta2 + 13.0 * eta2.powi(2)
+            - 28.0 * tan_p.powi(2) * eta2);
+    let scale_factor = UTM_K0 * (k_term1 + k_term2 + k_term3);
+
+    Ok(GridSolution {
+        system: GridSystem::Utm {
+            zone,
+            north: lat_deg >= 0.0,
+        },
+        convergence_deg: gamma_deg,
+        convergence_rad: gamma_rad,
+        scale_factor,
+        central_meridian_deg: cm_deg,
