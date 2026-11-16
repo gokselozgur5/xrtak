@@ -228,3 +228,16 @@ pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPack
             u32::from_be_bytes([slice[0], slice[1], slice[2], slice[3]])
         }
     };
+
+    let geom_type = read_u32(&wkb_bytes[1..5]);
+    let read_f64 = |slice: &[u8]| -> f64 {
+        if wkb_le {
+            f64::from_le_bytes([
+                slice[0], slice[1], slice[2], slice[3], slice[4], slice[5], slice[6], slice[7],
+            ])
+        } else {
+            f64::from_be_bytes([
+                slice[0], slice[1], slice[2], slice[3], slice[4], slice[5], slice[6], slice[7],
+            ])
+        }
+    };
