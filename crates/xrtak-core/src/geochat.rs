@@ -88,3 +88,11 @@ impl GeoChatPacket {
         let mid = escape_xml(&self.message_id);
         let e_uid = format!("GeoChat.{}.{}.{}", uid, room, mid);
         let t = &self.timestamp_iso;
+        let mut out = String::new();
+        out.push_str(&format!(
+            "<event version=\"2.0\" uid=\"{e_uid}\" type=\"b-t-f\" how=\"h-g-i-g-o\" time=\"{t}\" start=\"{t}\" stale=\"{t}\">"
+        ));
+        out.push_str(&format!(
+            "<point lat=\"{:.6}\" lon=\"{:.6}\" hae=\"{:.1}\" ce=\"9999999.0\" le=\"9999999.0\"/>",
+            self.lat, self.lon, self.hae
+        ));
