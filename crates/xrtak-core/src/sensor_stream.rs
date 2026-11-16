@@ -161,3 +161,28 @@ pub struct SensorStreamDescriptor {
     pub sensor: SensorGimbal,
     pub parent_uid: Option<String>,
 }
+
+impl SensorStreamDescriptor {
+    pub fn new(
+        uid: impl Into<String>,
+        callsign: impl Into<String>,
+        lat: f64,
+        lon: f64,
+        hae: f64,
+        video: VideoStreamConnection,
+    ) -> Self {
+        Self {
+            uid: uid.into(),
+            callsign: callsign.into(),
+            cot_type: "b-i-v".to_string(),
+            lat,
+            lon,
+            hae,
+            time_iso: "2026-11-16T12:00:00Z".to_string(),
+            stale_iso: "2026-11-16T12:05:00Z".to_string(),
+            video,
+            sensor: SensorGimbal::default(),
+            parent_uid: None,
+        }
+    }
+}
