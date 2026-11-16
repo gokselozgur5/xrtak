@@ -132,3 +132,13 @@ impl GeoChatPacket {
                             }
                         }
                     }
+                    b"point" => {
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"lat" => lat = parse_f64(&a.value).unwrap_or(0.0),
+                                b"lon" => lon = parse_f64(&a.value).unwrap_or(0.0),
+                                b"hae" => hae = parse_f64(&a.value).unwrap_or(9999999.0),
+                                _ => {}
+                            }
+                        }
+                    }
