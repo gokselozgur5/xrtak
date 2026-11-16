@@ -337,4 +337,21 @@ mod tests {
         assert_eq!(parsed.remarks, b.remarks);
         assert!((parsed.lat - b.lat).abs() < 1e-5);
     }
+
+    #[test]
+    fn test_format_cas_nine_line_text() {
+        let b = sample_brief();
+        let txt = format_cas_nine_line_text(&b);
+        assert!(txt.contains("--- 9-LINE CAS BRIEF ---"));
+        assert!(txt.contains("1. IP/BP: VIPER"));
+        assert!(txt.contains("2. Heading: 185"));
+        assert!(txt.contains("3. Distance: 12.4nm"));
+        assert!(txt.contains("4. Elevation: 3400MSL"));
+        assert!(txt.contains("5. Description: 2x T-72 tanks"));
+        assert!(txt.contains("6. Location: 38SMB12345678"));
+        assert!(txt.contains("7. Mark: WP Smoke / Laser 1688"));
+        assert!(txt.contains("8. Friendlies: 1200m South"));
+        assert!(txt.contains("9. Egress: Egress East to PULL"));
+        assert!(txt.contains("Remarks: FAH 180-210"));
+    }
 }
