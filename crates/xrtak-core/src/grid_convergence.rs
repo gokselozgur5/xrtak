@@ -34,3 +34,21 @@ pub enum GridSystem {
     /// Universal Transverse Mercator with zone (1..=60) and hemisphere.
     Utm { zone: u8, north: bool },
     /// Universal Polar Stereographic (North polar cap, >= 80N).
+    UpsNorth,
+    /// Universal Polar Stereographic (South polar cap, <= -80S).
+    UpsSouth,
+}
+
+/// Errors during grid convergence and scale factor computation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum GridError {
+    /// Latitude exceeds [-90.0, 90.0] degrees.
+    InvalidLatitude(String),
+    /// Longitude exceeds [-180.0, 180.0] degrees.
+    InvalidLongitude(String),
+    /// UTM zone is outside 1..=60.
+    InvalidUtmZone(u8),
+    /// Latitude is outside the valid UTM band (-80.0S to 84.0N).
+    LatitudeOutOfUtmRange(String),
+    /// Latitude is outside the valid UPS band.
+    LatitudeOutOfUpsRange(String),
