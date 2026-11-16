@@ -379,3 +379,21 @@ impl GeoPackageFeatureDataset {
             Some(t) => format!("'{}'", escape_sql_string(t)),
             None => "NULL".into(),
         };
+        let elev_val = match wp.elevation {
+            Some(e) => format!("{e:.2}"),
+            None => "NULL".into(),
+        };
+        let time_val = match &wp.time {
+            Some(t) => format!("'{}'", escape_sql_string(t)),
+            None => "NULL".into(),
+        };
+        let remarks_val = match &wp.remarks {
+            Some(r) => format!("'{}'", escape_sql_string(r)),
+            None => "NULL".into(),
+        };
+
+        Ok(format!(
+            "INSERT INTO {table} (geom, name, callsign, cot_type, elevation, time, remarks)              VALUES ({hex_geom}, '{name_esc}', {callsign_val}, {cot_type_val}, {elev_val}, {time_val}, {remarks_val});",
+            table = self.table_name
+        ))
+    }
