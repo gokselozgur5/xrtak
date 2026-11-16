@@ -174,6 +174,7 @@ impl GeoChatPacket {
                 }
                 Ok(Event::Eof) => break,
                 Err(e) => return Err(GeoChatError::InvalidXml(e.to_string())),
+                _ => {}
             }
         }
         if !found_event { return Err(GeoChatError::MissingEventTag); }
