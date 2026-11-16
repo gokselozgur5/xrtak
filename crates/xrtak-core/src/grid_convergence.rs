@@ -340,3 +340,21 @@ mod tests {
 
     #[test]
     fn test_ups_north_pole_scale_and_convergence() {
+        let sol = calculate_ups(90.0, 45.0).unwrap();
+        assert_eq!(sol.system, GridSystem::UpsNorth);
+        assert!((sol.scale_factor - UPS_K0).abs() < 1e-6);
+        assert!((sol.convergence_deg - 45.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_ups_true_scale_latitude() {
+        // At ~81.1145 deg, UPS scale factor should equal 1.000000
+        let sol = calculate_ups(81.1145, 0.0).unwrap();
+        assert!((sol.scale_factor - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_ups_south_convergence() {
+        let sol = calculate_ups(-85.0, 60.0).unwrap();
+        assert_eq!(sol.system, GridSystem::UpsSouth);
+        assert!((sol.convergence_deg - (-60.0)).abs() < 1e-6);
