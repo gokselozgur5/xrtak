@@ -377,3 +377,23 @@ mod tests {
         assert!(kml.contains("HAWK-1 Start"));
         assert!(kml.contains("HAWK-1 Current"));
     }
+
+    #[test]
+    fn test_export_empty_and_multi_track() {
+        let empty_track = CotTrack::new("UID-EMPTY", "NONE", "a-u-G");
+        let kml = export_single_track_kml(&empty_track, &KmlExportConfig::default());
+        assert!(kml.contains("<Document>"));
+        assert!(!kml.contains("<LineString>"));
+
+        let mut t1 = CotTrack::new("U1", "ALPHA", "a-f-A");
+        t1.add_point(KmlTrackPoint::new(10.0, 20.0, 30.0));
+        let mut t2 = CotTrack::new("U2", "BRAVO", "a-h-G");
+        t2.add_point(KmlTrackPoint::new(11.0, 21.0, 31.0));
+
+        let multi_kml = export_tracks_to_kml(&[t1, t2]);
+        assert!(multi_kml.contains("ALPHA Track"));
+        assert!(multi_kml.contains("BRAVO Track"));
+        assert!(multi_kml.contains("ff00ff00"));
+        assert!(multi_kml.contains("ff0000ff"));
+    }
+}
