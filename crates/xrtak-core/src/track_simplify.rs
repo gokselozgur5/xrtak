@@ -208,3 +208,21 @@ pub fn simplify_coordinates_rdp(coords: &[(f64, f64)], epsilon_m: f64) -> Vec<(f
     let simplified = simplify_track_rdp(&pts, epsilon_m);
     simplified.into_iter().map(|p| (p.lat, p.lon)).collect()
 }
+
+/// Simplifies a track according to configuration parameters and returns summary metrics.
+pub fn simplify_track_with_config(
+    points: &[TrackPoint],
+    config: &TrackSimplifyConfig,
+) -> TrackSimplifyResult {
+    let orig_count = points.len();
+    if orig_count <= 2 {
+        return TrackSimplifyResult {
+            points: points.to_vec(),
+            original_count: orig_count,
+            simplified_count: orig_count,
+            reduction_ratio: 0.0,
+            max_error_m: 0.0,
+        };
+    }
+
+    let mut max_err = 0.0f64;
