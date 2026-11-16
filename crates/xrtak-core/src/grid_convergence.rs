@@ -52,3 +52,21 @@ pub enum GridError {
     LatitudeOutOfUtmRange(String),
     /// Latitude is outside the valid UPS band.
     LatitudeOutOfUpsRange(String),
+}
+
+impl std::fmt::Display for GridError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidLatitude(msg) => write!(f, "invalid latitude: {}", msg),
+            Self::InvalidLongitude(msg) => write!(f, "invalid longitude: {}", msg),
+            Self::InvalidUtmZone(z) => write!(f, "invalid UTM zone: {} (must be 1..=60)", z),
+            Self::LatitudeOutOfUtmRange(msg) => write!(f, "latitude out of UTM range: {}", msg),
+            Self::LatitudeOutOfUpsRange(msg) => write!(f, "latitude out of UPS range: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for GridError {}
+
+/// Result of grid convergence and scale factor calculation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
