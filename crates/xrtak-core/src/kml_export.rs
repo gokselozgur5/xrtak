@@ -209,3 +209,14 @@ fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) 
         config.altitude_mode
     ));
     xml.push_str("        <coordinates>\n");
+    for pt in &track.points {
+        xml.push_str(&format!(
+            "          {:.6},{:.6},{:.1}\n",
+            pt.lon, pt.lat, pt.hae_m
+        ));
+    }
+    xml.push_str("        </coordinates>\n");
+    xml.push_str("      </LineString>\n");
+    xml.push_str("    </Placemark>\n");
+    xml
+}
