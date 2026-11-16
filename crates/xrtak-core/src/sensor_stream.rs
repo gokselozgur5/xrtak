@@ -63,3 +63,24 @@ impl SensorType {
         }
     }
 }
+
+impl SensorType {
+    pub fn from_str_name(s: &str) -> Self {
+        match s.trim().to_uppercase().as_str() {
+            "EO" => Self::ElectroOptical,
+            "IR" => Self::Infrared,
+            "SWIR" => Self::ShortWaveInfrared,
+            "MWIR" => Self::MidWaveInfrared,
+            "LWIR" => Self::LongWaveInfrared,
+            "EO/IR" | "EOIR" => Self::DualEoIr,
+            "SAR" => Self::SyntheticApertureRadar,
+            other => Self::Other(other.to_string()),
+        }
+    }
+}
+
+impl Default for SensorType {
+    fn default() -> Self {
+        Self::ElectroOptical
+    }
+}
