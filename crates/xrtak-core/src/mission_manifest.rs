@@ -46,3 +46,14 @@ impl ManifestContentEntry {
         self.parameters.push(ManifestParameter::new(name, value));
     }
 }
+
+/// Top-level TAK Mission Package manifest (`MANIFEST/manifest.xml`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissionPackageManifest {
+    pub version: u32,
+    pub uid: String,
+    pub name: String,
+    pub on_receive_delete: bool,
+    pub parameters: Vec<ManifestParameter>,
+    pub contents: Vec<ManifestContentEntry>,
+}
