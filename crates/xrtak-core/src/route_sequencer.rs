@@ -202,3 +202,27 @@ pub struct ActiveTrackProgress {
     pub remaining_route_time_sec: f64,
     pub has_reached_waypoint: bool,
 }
+
+/// Evaluates progress of an entity along the active route leg.
+#[allow(clippy::too_many_arguments)]
+pub fn evaluate_route_progress(
+    plan: &RoutePlan,
+    sequenced: &SequencedRouteResult,
+    active_leg_idx: usize,
+    cur_lat: f64,
+    cur_lon: f64,
+    cur_speed_mps: f64,
+    cur_time_sec: f64,
+    capture_radius_m: f64,
+) -> Option<ActiveTrackProgress> {
+    if active_leg_idx >= sequenced.legs.len() {
+        return None;
+    }
+
+    let leg = &sequenced.legs[active_leg_idx];
+    let to_wp = &plan.waypoints[leg.to_index];
+    let from_wp = &plan.waypoints[leg.from_index];
+
+    let dist_to_next = haversine_distance_m(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
+    let brg_to_next = initial_bearing_deg(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
+    let xte = cross_track_error_m(cur_lat, cur_lon, from_wp.lat, from_wp.lon, to_wp.lat, to_wp.lon);
