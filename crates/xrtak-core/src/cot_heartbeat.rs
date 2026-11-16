@@ -55,3 +55,19 @@ pub enum HeartbeatAction {
     /// Message is not a heartbeat event or did not match pending pings.
     Ignored,
 }
+
+/// State machine managing CoT ping/pong keepalive cycles and latency.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CotHeartbeatManager {
+    pub config: CotHeartbeatConfig,
+    pub(crate) seq: u64,
+    pub(crate) last_ping_sent_ms: Option<u64>,
+    pub(crate) last_pong_received_ms: Option<u64>,
+    pub(crate) last_rtt_ms: Option<u64>,
+    pub(crate) smoothed_rtt_ms: f32,
+    pub(crate) consecutive_missed: u32,
+    pub(crate) total_pings_sent: u64,
+    pub(crate) total_pongs_received: u64,
+    pub(crate) total_pongs_lost: u64,
+    pub(crate) pending_pings: Vec<PingRecord>,
+}
