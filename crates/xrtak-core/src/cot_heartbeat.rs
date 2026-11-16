@@ -293,4 +293,17 @@ mod tests {
         assert!(pong_xml.contains("type=\"t-x-c-t-r\""));
         assert!(pong_xml.contains("ref_uid=\"BETA-ping-7\""));
     }
+
+    #[test]
+    fn test_generate_ping_and_pending_tracking() {
+        let mut mgr = CotHeartbeatManager::default();
+        assert!(mgr.should_send_ping(1_000));
+
+        let (xml, seq) = mgr.generate_ping(1_000);
+        assert_eq!(seq, 1);
+        assert!(xml.contains("uid=\"XRTAK-CLIENT-ping-1\""));
+        assert_eq!(mgr.pending_count(), 1);
+        assert!(!mgr.should_send_ping(5_000));
+        assert!(mgr.should_send_ping(20_000));
+    }
 }
