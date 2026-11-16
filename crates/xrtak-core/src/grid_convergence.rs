@@ -376,3 +376,21 @@ mod tests {
     }
 
     #[test]
+    fn test_azimuth_conversions() {
+        let conv = 2.5;
+        let true_az = 10.0;
+        let grid_az = true_to_grid_azimuth(true_az, conv);
+        assert_eq!(grid_az, 7.5);
+        let back_true = grid_to_true_azimuth(grid_az, conv);
+        assert_eq!(back_true, true_az);
+
+        // Wrap around 360
+        assert_eq!(true_to_grid_azimuth(1.0, 2.0), 359.0);
+    }
+
+    #[test]
+    fn test_distance_conversions() {
+        let ground = 1000.0;
+        let k = 1.0005;
+        let grid = ground_to_grid_distance(ground, k);
+        assert_eq!(grid, 1000.5);
