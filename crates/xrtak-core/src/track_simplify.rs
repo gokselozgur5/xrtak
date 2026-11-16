@@ -226,3 +226,24 @@ pub fn simplify_track_with_config(
     }
 
     let mut max_err = 0.0f64;
+
+    let simplified_points = if let Some(gap_sec) = config.max_time_gap_sec {
+        let gap_ms = (gap_sec * 1000.0) as u64;
+        let mut segments: Vec<Vec<TrackPoint>> = Vec::new();
+        let mut current_segment: Vec<TrackPoint> = vec![points[0].clone()];
+
+        for i in 1..points.len() {
+            let prev = &points[i - 1];
+            let curr = &points[i];
+            let is_gap = match (prev.timestamp_ms, curr.timestamp_ms) {
+                (Some(t0), Some(t1)) => t1.saturating_sub(t0) > gap_ms,
+                _ => false,
+            };
+            if is_gap {
+                segments.push(current_segment);
+                current_segment = vec![curr.clone()];
+            } else {
+                current_segment.push(curr.clone());
+            }
+        }
+        segments.push(current_segment);
