@@ -261,3 +261,19 @@ pub fn simplify_track_with_config(
     } else {
         rdp_recursive(points, config.epsilon_m, config.include_elevation, &mut max_err)
     };
+
+    let simp_count = simplified_points.len();
+    let ratio = if orig_count > 0 {
+        1.0 - (simp_count as f64 / orig_count as f64)
+    } else {
+        0.0
+    };
+
+    TrackSimplifyResult {
+        points: simplified_points,
+        original_count: orig_count,
+        simplified_count: simp_count,
+        reduction_ratio: ratio,
+        max_error_m: (max_err * 100.0).round() / 100.0,
+    }
+}
