@@ -79,3 +79,12 @@ impl GeoChatPacket {
         self.parent_group = group.into();
         self
     }
+    /// Serializes packet to ATAK CoT XML string.
+    pub fn to_cot_xml(&self) -> String {
+        let msg = escape_xml(&self.message_text);
+        let cs = escape_xml(&self.sender_callsign);
+        let room = escape_xml(&self.chatroom);
+        let uid = escape_xml(&self.sender_uid);
+        let mid = escape_xml(&self.message_id);
+        let e_uid = format!("GeoChat.{}.{}.{}", uid, room, mid);
+        let t = &self.timestamp_iso;
