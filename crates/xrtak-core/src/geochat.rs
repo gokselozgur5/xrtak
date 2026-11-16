@@ -107,3 +107,17 @@ impl GeoChatPacket {
         out.push_str("</detail></event>");
         out
     }
+    /// Parses an ATAK CoT XML message into a GeoChatPacket.
+    pub fn from_cot_xml(xml: &str) -> Result<Self, GeoChatError> {
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+        let mut in_remarks = false;
+        let mut found_event = false;
+        let mut sender_uid = String::new();
+        let mut sender_callsign = String::new();
+        let mut chatroom = String::new();
+        let mut message_id = String::new();
+        let mut message_text = String::new();
+        let mut timestamp_iso = String::new();
+        let mut parent_group = "RootContactGroup".to_string();
+        let (mut lat, mut lon, mut hae) = (0.0, 0.0, 9999999.0);
