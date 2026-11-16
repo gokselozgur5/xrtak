@@ -438,3 +438,16 @@ mod tests {
         let d_off = perpendicular_distance_to_segment_m(&p_off, &a, &b, false);
         assert!(d_off > 100.0 && d_off < 120.0);
     }
+
+    #[test]
+    fn test_rdp_straight_line_reduction() {
+        let mut points = Vec::new();
+        for i in 0..=10 {
+            let frac = i as f64 / 10.0;
+            points.push(TrackPoint::new(39.0 + frac * 0.1, 32.0, 500.0));
+        }
+        let simplified = simplify_track_rdp(&points, 10.0);
+        assert_eq!(simplified.len(), 2);
+        assert_eq!(simplified[0].lat, points[0].lat);
+        assert_eq!(simplified[1].lat, points[10].lat);
+    }
