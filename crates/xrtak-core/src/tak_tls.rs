@@ -88,3 +88,19 @@ impl std::fmt::Display for TakTlsError {
 }
 
 impl std::error::Error for TakTlsError {}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TakTlsConfig {
+    pub server_host: String,
+    pub server_port: u16,
+    pub min_version: TlsVersion,
+    pub max_version: TlsVersion,
+    pub client_auth: ClientAuthMode,
+    pub client_cert: Option<TlsCertificate>,
+    pub ca_cert: Option<TlsCertificate>,
+    pub verify_server_hostname: bool,
+    pub sni_hostname: Option<String>,
+    pub alpn_protocols: Vec<String>,
+    pub handshake_timeout_ms: u64,
+    pub cipher_suites: Vec<String>,
+}
