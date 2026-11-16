@@ -212,3 +212,27 @@ fn unescape_xml(s: &str) -> String {
         .replace("&apos;", "'")
         .replace("&amp;", "&")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_geochat_roundtrip() {
+        let pkt = GeoChatPacket::new(
+            "UID-VIPER-1",
+            "VIPER-1",
+            "Alpha-Squad",
+            "MSG-9901",
+            "Target location identified & verified.",
+            "2026-11-16T12:00:00Z",
+        ).with_coordinates(34.123456, -118.654321, 150.0);
+
+        let xml = pkt.to_cot_xml();
+        let parsed = GeoChatPacket::from_cot_xml(&xml).expect("roundtrip parse failed");
+        assert_eq!(parsed.sender_uid, "UID-VIPER-1");
+        assert_eq!(parsed.sender_callsign, "VIPER-1");
+        assert_eq!(parsed.chatroom, "Alpha-Squad");
+        assert_eq!(parsed.message_text, "Target location identified & verified.");
+        assert_eq!(parsed.lat, 34.123456);
+    }
