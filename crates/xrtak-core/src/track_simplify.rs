@@ -61,3 +61,13 @@ impl Default for TrackSimplifyConfig {
         }
     }
 }
+
+/// Result of track polyline simplification including compression statistics.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrackSimplifyResult {
+    pub points: Vec<TrackPoint>,
+    pub original_count: usize,
+    pub simplified_count: usize,
+    pub reduction_ratio: f64,
+    pub max_error_m: f64,
+}
