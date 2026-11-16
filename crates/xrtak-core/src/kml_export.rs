@@ -294,3 +294,13 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
     kml.push_str("  </Document>\n</kml>\n");
     kml
 }
+
+/// Convenience export for a single track.
+pub fn export_single_track_kml(track: &CotTrack, config: &KmlExportConfig) -> String {
+    export_cot_tracks_kml(std::slice::from_ref(track), config)
+}
+
+/// Convenience export with default configuration.
+pub fn export_tracks_to_kml(tracks: &[CotTrack]) -> String {
+    export_cot_tracks_kml(tracks, &KmlExportConfig::default())
+}
