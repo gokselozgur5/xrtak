@@ -89,3 +89,13 @@ impl MissionPackageManifest {
         self.contents.iter().find(|c| c.zip_entry == zip_entry)
     }
 }
+
+impl MissionPackageManifest {
+    pub fn active_entries(&self) -> Vec<&ManifestContentEntry> {
+        self.contents.iter().filter(|c| !c.ignore).collect()
+    }
+
+    pub fn content_count(&self) -> usize {
+        self.contents.len()
+    }
+}
