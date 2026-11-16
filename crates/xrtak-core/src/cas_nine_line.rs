@@ -132,3 +132,17 @@ fn unescape_xml(s: &str) -> String {
         .replace("&gt;", ">")
         .replace("&amp;", "&")
 }
+
+fn format_cas_detail_xml(b: &CasNineLine) -> String {
+    let (cs, rem) = (escape_xml(&b.jtac_callsign), escape_xml(&b.remarks));
+    let (l1, l2, l3) = (escape_xml(&b.line1_ip_bp), escape_xml(&b.line2_heading), escape_xml(&b.line3_distance));
+    let (l4, l5, l6) = (escape_xml(&b.line4_elevation), escape_xml(&b.line5_description), escape_xml(&b.line6_location));
+    let (l7, l8, l9) = (escape_xml(&b.line7_mark_type), escape_xml(&b.line8_friendlies), escape_xml(&b.line9_egress));
+    format!(
+        "<detail><contact callsign=\"{cs}\"/>\
+<cas9line line1=\"{l1}\" line2=\"{l2}\" line3=\"{l3}\" line4=\"{l4}\" line5=\"{l5}\" line6=\"{l6}\" line7=\"{l7}\" line8=\"{l8}\" line9=\"{l9}\" remarks=\"{rem}\">\
+<line1>{l1}</line1><line2>{l2}</line2><line3>{l3}</line3><line4>{l4}</line4><line5>{l5}</line5>\
+<line6>{l6}</line6><line7>{l7}</line7><line8>{l8}</line8><line9>{l9}</line9><remarks>{rem}</remarks>\
+</cas9line><remarks>{rem}</remarks></detail>"
+    )
+}
