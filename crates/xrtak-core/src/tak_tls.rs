@@ -70,3 +70,21 @@ pub enum TakTlsError {
     IncompatibleVersion { min: TlsVersion, max: TlsVersion },
     InvalidCertificateData(String),
 }
+
+impl std::fmt::Display for TakTlsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidHost(h) => write!(f, "invalid TAK server host: {h}"),
+            Self::InvalidPort(p) => write!(f, "invalid TAK server port: {p}"),
+            Self::MissingClientCertificate => {
+                write!(f, "mTLS required but no client certificate provided")
+            }
+            Self::IncompatibleVersion { min, max } => {
+                write!(f, "min version ({:?}) exceeds max version ({:?})", min, max)
+            }
+            Self::InvalidCertificateData(msg) => write!(f, "invalid certificate: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for TakTlsError {}
