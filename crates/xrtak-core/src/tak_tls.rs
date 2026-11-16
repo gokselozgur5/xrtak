@@ -113,3 +113,19 @@ impl TakTlsConfig {
     pub fn is_mtls(&self) -> bool {
         self.client_auth == ClientAuthMode::Required && self.client_cert.is_some()
     }
+    pub fn summary(&self) -> String {
+        let auth_str = match self.client_auth {
+            ClientAuthMode::Required => "mTLS",
+            ClientAuthMode::Optional => "TLS-OptionalAuth",
+            ClientAuthMode::None => "TLS-ServerAuth",
+        };
+        format!(
+            "{} {}:{} ({}..{}, timeout={}ms)",
+            auth_str,
+            self.server_host,
+            self.server_port,
+            self.min_version.as_str(),
+            self.max_version.as_str(),
+            self.handshake_timeout_ms
+        )
+    }
