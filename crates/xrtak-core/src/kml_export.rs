@@ -168,3 +168,25 @@ pub fn format_iso8601_utc(unix_ms: u64) -> String {
         year, month, day, hour, min, sec, millis
     )
 }
+
+/// KML export configuration options.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KmlExportConfig {
+    pub doc_name: String,
+    pub line_width: f32,
+    pub altitude_mode: String,
+    pub include_placemarks: bool,
+    pub include_gx_track: bool,
+}
+
+impl Default for KmlExportConfig {
+    fn default() -> Self {
+        Self {
+            doc_name: "XR-TAK Exported Tracks".to_string(),
+            line_width: 3.0,
+            altitude_mode: "absolute".to_string(),
+            include_placemarks: true,
+            include_gx_track: true,
+        }
+    }
+}
