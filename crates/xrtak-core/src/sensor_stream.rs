@@ -145,3 +145,19 @@ impl VideoStreamConnection {
         }
     }
 }
+
+/// Complete TAK sensor video stream descriptor packet.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SensorStreamDescriptor {
+    pub uid: String,
+    pub callsign: String,
+    pub cot_type: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae: f64,
+    pub time_iso: String,
+    pub stale_iso: String,
+    pub video: VideoStreamConnection,
+    pub sensor: SensorGimbal,
+    pub parent_uid: Option<String>,
+}
