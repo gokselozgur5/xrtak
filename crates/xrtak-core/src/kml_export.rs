@@ -272,3 +272,25 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
             if config.include_gx_track && track.points.iter().any(|p| p.timestamp_ms.is_some()) {
                 kml.push_str(&build_gx_track_placemark(track));
             }
+
+            if config.include_placemarks {
+                if let Some(first) = track.points.first() {
+                    kml.push_str("    <Placemark>\n");
+                    kml.push_str(&format!("      <name>{} Start</name>\n", track.callsign));
+                    kml.push_str("      <Point>\n");
+                    kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", first.lon, first.lat, first.hae_m));
+                    kml.push_str("      </Point>\n    </Placemark>\n");
+                }
+                if let Some(last) = track.points.last() {
+                    kml.push_str("    <Placemark>\n");
+                    kml.push_str(&format!("      <name>{} Current</name>\n", track.callsign));
+                    kml.push_str("      <Point>\n");
+                    kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", last.lon, last.lat, last.hae_m));
+                    kml.push_str("      </Point>\n    </Placemark>\n");
+                }
+            }
+        }
+    }
+    kml.push_str("  </Document>\n</kml>\n");
+    kml
+}
