@@ -150,3 +150,24 @@ const GPKG_FLAG_ENVELOPE_NONE: u8 = 0x00;
 const WGS84_SRS_ID: i32 = 4326;
 const WKB_POINT_2D: u32 = 1;
 const WKB_POINT_Z: u32 = 1001;
+
+/// Encode point geometry to standard OGC GeoPackage binary geometry BLOB.
+pub fn encode_point_geom(
+    lon: f64,
+    lat: f64,
+    elev: Option<f64>,
+    srs_id: i32,
+) -> Result<Vec<u8>, GeoPackageError> {
+    if !(-180.0..=180.0).contains(&lon) || !(-90.0..=90.0).contains(&lat) {
+        return Err(GeoPackageError::InvalidCoordinates { lon, lat });
+    }
+
+    let is_3d = elev.is_some();
+    let cap = if is_3d { 8 + 1 + 4 + 24 } else { 8 + 1 + 4 + 16 };
+    let mut blob = Vec::with_capacity(cap);
+
+    blob.push(0x47);
+    blob.push(0x50);
+    blob.push(0x00);
+    blob.push(GPKG_FLAG_LITTLE_ENDIAN | GPKG_FLAG_ENVELOPE_NONE);
+    blob.extend_from_slice(&srs_id.to_le_bytes());
