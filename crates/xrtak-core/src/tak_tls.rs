@@ -53,3 +53,11 @@ impl TlsCertificate {
             passphrase,
         }
     }
+    pub fn count_pem_certificates(&self) -> usize {
+        if self.format != CertificateFormat::Pem {
+            return 0;
+        }
+        let text = String::from_utf8_lossy(&self.raw_data);
+        text.matches("-----BEGIN CERTIFICATE-----").count()
+    }
+}
