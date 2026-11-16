@@ -323,3 +323,28 @@ mod tests {
         let xte = cross_track_error_m(0.01, 1.0, 0.0, 0.0, 0.0, 2.0);
         assert!(xte < -1000.0 && xte > -1200.0);
     }
+
+    #[test]
+    fn test_route_sequencing_and_eta() {
+        let wps = vec![
+            RouteWaypoint::new("ALPHA", 34.0, -118.0, 100.0),
+            RouteWaypoint::new("BRAVO", 34.0, -117.9, 100.0).with_speed(20.0).with_loiter(60.0),
+            RouteWaypoint::new("CHARLIE", 34.1, -117.9, 200.0).with_speed(25.0),
+        ];
+
+        let plan = RoutePlan {
+            route_uid: "RT-01".into(),
+            callsign: "VIPER-ROUTE".into(),
+            default_speed_mps: 15.0,
+            start_time_epoch_sec: 1700000000.0,
+            waypoints: wps,
+        };
+
+        let seq = sequence_route_plan(&plan);
+        assert_eq!(seq.legs.len(), 2);
+        assert!(seq.total_distance_m > 15_000.0);
+        assert_eq!(seq.legs[0].loiter_time_sec, 60.0);
+        assert_eq!(seq.legs[0].speed_mps, 20.0);
+        assert_eq!(seq.legs[1].speed_mps, 25.0);
+        assert!(seq.estimated_completion_epoch_sec > 1700000000.0);
+    }
