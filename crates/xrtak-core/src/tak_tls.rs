@@ -153,3 +153,18 @@ impl TakTlsConfig {
         )
     }
 }
+
+pub struct TakTlsConfigBuilder {
+    server_host: String,
+    server_port: u16,
+    min_version: TlsVersion,
+    max_version: TlsVersion,
+    client_auth: ClientAuthMode,
+    client_cert: Option<TlsCertificate>,
+    ca_cert: Option<TlsCertificate>,
+    verify_server_hostname: bool,
+    sni_hostname: Option<String>,
+    alpn_protocols: Vec<String>,
+    handshake_timeout_ms: u64,
+    cipher_suites: Vec<String>,
+}
