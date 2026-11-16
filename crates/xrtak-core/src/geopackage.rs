@@ -490,3 +490,21 @@ mod tests {
         assert!((lat - 34.0522).abs() < 1e-7);
         assert_eq!(elev, Some(88.5));
     }
+
+    #[test]
+    fn test_bounds_computation() {
+        let mut ds = GeoPackageFeatureDataset::new("waypoints");
+        assert!(ds.bounds().is_none());
+
+        ds.add_waypoint(GeoPackageWaypoint::new("A", 10.0, 20.0).with_elevation(100.0));
+        ds.add_waypoint(GeoPackageWaypoint::new("B", 15.0, 25.0).with_elevation(200.0));
+        ds.add_waypoint(GeoPackageWaypoint::new("C", 5.0, 18.0).with_elevation(50.0));
+
+        let b = ds.bounds().unwrap();
+        assert_eq!(b.min_lon, 5.0);
+        assert_eq!(b.max_lon, 15.0);
+        assert_eq!(b.min_lat, 18.0);
+        assert_eq!(b.max_lat, 25.0);
+        assert_eq!(b.min_elev, Some(50.0));
+        assert_eq!(b.max_elev, Some(200.0));
+    }
