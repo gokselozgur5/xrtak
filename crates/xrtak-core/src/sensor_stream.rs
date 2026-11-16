@@ -403,3 +403,27 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
     let mut video_conn: Option<VideoStreamConnection> = None;
     let mut sensor_gimbal = SensorGimbal::default();
     let mut in_detail = false;
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"event" => {
+                for a in e.attributes().flatten() {
+                    match a.key.as_ref() {
+                        b"uid" => uid = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                        b"type" => cot_type = String::from_utf8_lossy(&a.value).into_owned(),
+                        b"time" => time_iso = String::from_utf8_lossy(&a.value).into_owned(),
+                        b"stale" => stale_iso = String::from_utf8_lossy(&a.value).into_owned(),
+                        _ => {}
+                    }
+                }
+            }
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"point" => {
+                for a in e.attributes().flatten() {
+                    match a.key.as_ref() {
+                        b"lat" => lat = String::from_utf8_lossy(&a.value).parse::<f64>().ok(),
+                        b"lon" => lon = String::from_utf8_lossy(&a.value).parse::<f64>().ok(),
+                        b"hae" => hae = String::from_utf8_lossy(&a.value).parse::<f64>().unwrap_or(0.0),
+                        _ => {}
+                    }
+                }
+            }
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"detail" => in_detail = true,
