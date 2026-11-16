@@ -152,3 +152,25 @@ impl CommsChannelPacket {
             primary_channel_id: None,
             emergency_channel_id: None,
         }
+    }
+
+    pub fn with_coordinates(mut self, lat: f64, lon: f64, hae: f64) -> Self {
+        self.lat = lat;
+        self.lon = lon;
+        self.hae = hae;
+        self
+    }
+
+    pub fn with_cot_type(mut self, cot_type: impl Into<String>) -> Self {
+        self.cot_type = cot_type.into();
+        self
+    }
+
+    pub fn add_channel(mut self, channel: RadioChannel) -> Self {
+        self.channels.push(channel);
+        self
+    }
+
+    pub fn with_primary_channel(mut self, channel_id: u32) -> Self {
+        self.primary_channel_id = Some(channel_id);
+        self
