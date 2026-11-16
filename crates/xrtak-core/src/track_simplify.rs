@@ -318,3 +318,20 @@ pub fn generate_cot_track_history_xml(uid: &str, callsign: &str, points: &[Track
         crumbs = crumbs,
     )
 }
+
+/// Parses track points from an ATAK CoT Track History (`b-t-f`) XML document.
+pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String> {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(true);
+    let mut points = Vec::new();
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => match e.name().as_ref() {
+                b"crumb" => {
+                    let mut lat = 0.0f64;
+                    let mut lon = 0.0f64;
+                    let mut hae = 0.0f64;
+                    let mut time_ms: Option<u64> = None;
+                    let mut speed: Option<f64> = None;
+                    let mut course: Option<f64> = None;
