@@ -76,3 +76,23 @@ impl TrackObservation {
         }
     }
 }
+
+impl TrackObservation {
+    pub fn with_kinematics(
+        timestamp_sec: f64,
+        east_m: f64,
+        north_m: f64,
+        up_m: f64,
+        speed_mps: f64,
+        course_deg: f64,
+    ) -> Self {
+        Self {
+            timestamp_sec,
+            east_m,
+            north_m,
+            up_m,
+            measured_speed_mps: Some(speed_mps),
+            measured_course_deg: Some(wrap_heading_deg(course_deg)),
+        }
+    }
+}
