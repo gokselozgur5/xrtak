@@ -337,3 +337,27 @@ pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorSt
     let mut ignore_klv = false;
     let mut buffer_ms = 500u32;
     let mut preferred_uid = None;
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"feed" => in_feed = true,
+            Ok(Event::Empty(ref e)) if in_feed && e.name().as_ref() == b"entry" => {
+                let mut k = None;
+                let mut v = None;
+                for attr in e.attributes().flatten() {
+                    match attr.key.as_ref() {
+                        b"key" => k = Some(String::from_utf8_lossy(&attr.value).into_owned()),
+                        b"value" => v = Some(String::from_utf8_lossy(&attr.value).into_owned()),
+                        _ => {}
+                    }
+                }
+                if let (Some(k), Some(v)) = (k, v) {
+                    match k.as_str() {
+                        "uid" => uid = Some(v),
+                        "alias" => alias = Some(v),
+                        "url" => url = Some(v),
+                        "roverPort" => rover_port = v.parse::<u16>().ok(),
+                        "rtspReliable" => rtsp_reliable = v == "1" || v.eq_ignore_ascii_case("true"),
+                        _ => {}
+                    }
+                }
+            }
