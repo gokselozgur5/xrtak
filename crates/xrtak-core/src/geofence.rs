@@ -19,3 +19,12 @@ impl GeofencePoint {
         Self { x, y, z: Some(z) }
     }
 }
+
+/// 2D axis-aligned bounding box for fast containment pre-filtering.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct BoundingBox {
+    pub min_x: f64,
+    pub min_y: f64,
+    pub max_x: f64,
+    pub max_y: f64,
+}
