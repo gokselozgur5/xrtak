@@ -178,3 +178,21 @@ pub fn calculate_utm(
         convergence_rad: gamma_rad,
         scale_factor,
         central_meridian_deg: cm_deg,
+    })
+}
+
+/// Compute UPS grid convergence angle and point scale factor for polar latitudes.
+pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridError> {
+    if !(-90.0..=90.0).contains(&lat_deg) {
+        return Err(GridError::InvalidLatitude(format!("{lat_deg}")));
+    }
+    if !(-180.0..=180.0).contains(&lon_deg) {
+        return Err(GridError::InvalidLongitude(format!("{lon_deg}")));
+    }
+
+    let is_north = lat_deg >= 80.0;
+    let is_south = lat_deg <= -80.0;
+
+    if !is_north && !is_south {
+        return Err(GridError::LatitudeOutOfUpsRange(format!(
+            "latitude {lat_deg} is outside UPS coverage (>=84N or <=-80S)"
