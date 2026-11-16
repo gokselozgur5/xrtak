@@ -142,3 +142,26 @@ pub fn compute_raster_extent(
     let top_right = transform.pixel_to_world(max_px, min_p);
     let bottom_left = transform.pixel_to_world(min_p, max_py);
     let bottom_right = transform.pixel_to_world(max_px, max_py);
+
+    let xs = [top_left.0, top_right.0, bottom_left.0, bottom_right.0];
+    let ys = [top_left.1, top_right.1, bottom_left.1, bottom_right.1];
+
+    let mut min_x = xs[0];
+    let mut max_x = xs[0];
+    let mut min_y = ys[0];
+    let mut max_y = ys[0];
+
+    for &x in &xs[1..] {
+        if x < min_x { min_x = x; }
+        if x > max_x { max_x = x; }
+    }
+    for &y in &ys[1..] {
+        if y < min_y { min_y = y; }
+        if y > max_y { max_y = y; }
+    }
+
+    Ok(GeoRasterExtent {
+        min_x, max_x, min_y, max_y, width_px, height_px,
+        top_left, top_right, bottom_left, bottom_right,
+    })
+}
