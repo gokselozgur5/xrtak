@@ -258,3 +258,13 @@ pub fn evaluate_route_progress(
         has_reached_waypoint: reached,
     })
 }
+
+/// Generates ATAK CoT Route XML (b-m-r) from a sequenced route result and plan.
+pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult) -> String {
+    let (first_lat, first_lon, first_hae) = if let Some(first_wp) = plan.waypoints.first() {
+        (first_wp.lat, first_wp.lon, first_wp.hae_m)
+    } else {
+        (0.0, 0.0, 0.0)
+    };
+
+    let mut links = String::new();
