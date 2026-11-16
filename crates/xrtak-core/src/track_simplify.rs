@@ -413,3 +413,15 @@ mod tests {
         assert_eq!(pt.speed_mps, Some(15.5));
         assert_eq!(pt.course_deg, Some(45.0));
     }
+
+    #[test]
+    fn test_haversine_and_bearing() {
+        let lat1 = 39.0;
+        let lon1 = 32.0;
+        let lat2 = 39.0;
+        let lon2 = 33.0;
+        let dist = haversine_distance_m(lat1, lon1, lat2, lon2);
+        assert!(dist > 80_000.0 && dist < 90_000.0);
+        let brg = initial_bearing_deg(lat1, lon1, lat2, lon2);
+        assert!((brg - 90.0).abs() < 2.0);
+    }
