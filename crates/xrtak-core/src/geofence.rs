@@ -59,3 +59,16 @@ pub struct GeofencePolygon {
     pub ceiling_m: Option<f64>,
     pub bbox: Option<BoundingBox>,
 }
+
+impl GeofencePolygon {
+    pub fn new(id: impl Into<String>, name: impl Into<String>, vertices: Vec<GeofencePoint>) -> Self {
+        let bbox = BoundingBox::from_points(&vertices);
+        Self {
+            id: id.into(),
+            name: name.into(),
+            vertices,
+            floor_m: None,
+            ceiling_m: None,
+            bbox,
+        }
+    }
