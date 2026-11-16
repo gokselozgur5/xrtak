@@ -243,3 +243,26 @@ pub(crate) fn extract_attr<'a>(xml: &'a str, attr_name: &str) -> Option<&'a str>
     let end = xml[start..].find('"')? + start;
     Some(&xml[start..end])
 }
+
+impl CotHeartbeatManager {
+    /// Process an incoming Cursor-on-Target XML packet for heartbeat handling.
+    pub fn process_incoming_cot(&mut self, xml: &str, now_ms: u64) -> HeartbeatAction {
+        let cot_type = extract_attr(xml, "type").unwrap_or("");
+        if cot_type == "t-x-c-t-r" || (cot_type == "t-x-d-d" && xml.contains("pong")) {
+            let ref_uid = extract_attr(xml, "ref_uid").unwrap_or("");
+            let seq = extract_attr(xml, "seq").and_then(|s| s.parse::<u64>().ok());
+            if let Some(rtt) = self.handle_pong(ref_uid, seq, now_ms) {
+                return HeartbeatAction::PongAcknowledged {
+                    seq: seq.unwrap_or(0),
+                    rtt_ms: rtt,
+                };
+            }
+        } else if cot_type == "t-x-c-t" || (cot_type == "t-x-d-d" && xml.contains("ping")) {
+            let ping_uid = extract_attr(xml, "uid").unwrap_or("unknown-ping");
+            let seq = extract_attr(xml, "seq").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let pong_xml = build_pong_cot(&self.config.client_uid, ping_uid, seq, now_ms);
+            return HeartbeatAction::RespondWithPong(pong_xml);
+        }
+        HeartbeatAction::Ignored
+    }
+}
