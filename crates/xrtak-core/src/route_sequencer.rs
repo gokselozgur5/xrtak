@@ -92,3 +92,22 @@ impl RouteWaypoint {
         self
     }
 }
+
+/// Sequenced leg between consecutive waypoints.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SequencedLeg {
+    pub from_index: usize,
+    pub to_index: usize,
+    pub from_name: String,
+    pub to_name: String,
+    pub distance_m: f64,
+    pub slant_distance_m: f64,
+    pub bearing_deg: f64,
+    pub speed_mps: f64,
+    pub transit_time_sec: f64,
+    pub loiter_time_sec: f64,
+    pub total_leg_time_sec: f64,
+    pub cumulative_dist_m: f64,
+    pub cumulative_ete_sec: f64,
+    pub eta_epoch_sec: f64,
+}
