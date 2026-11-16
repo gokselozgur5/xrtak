@@ -36,3 +36,11 @@ impl BoundingBox {
         let mut max_x = first.x;
         let mut min_y = first.y;
         let mut max_y = first.y;
+        for p in points.iter().skip(1) {
+            if p.x < min_x { min_x = p.x; }
+            if p.x > max_x { max_x = p.x; }
+            if p.y < min_y { min_y = p.y; }
+            if p.y > max_y { max_y = p.y; }
+        }
+        Some(Self { min_x, min_y, max_x, max_y })
+    }
