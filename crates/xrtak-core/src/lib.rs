@@ -5,6 +5,7 @@ pub mod cog;
 pub mod collab;
 pub mod corridor;
 pub mod cot_harness;
+pub mod cot_heartbeat;
 pub mod deconflict;
 pub mod domain;
 pub mod ew;
