@@ -38,6 +38,7 @@ pub mod tak_tls;
 pub mod thermal;
 pub mod tiles;
 pub mod tracker;
+pub mod track_simplify;
 pub mod track_smoother;
 pub mod viewshed;
 pub mod zones;
