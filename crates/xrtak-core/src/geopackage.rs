@@ -186,3 +186,27 @@ pub fn encode_point_geom(
 
     Ok(blob)
 }
+
+/// Decode standard OGC GeoPackage binary geometry BLOB into (lon, lat, Option<elev>).
+pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPackageError> {
+    if blob.len() < 8 {
+        return Err(GeoPackageError::InvalidGeometryBlob(
+            "header truncated".into(),
+        ));
+    }
+    if blob[0] != 0x47 || blob[1] != 0x50 {
+        return Err(GeoPackageError::InvalidMagic);
+    }
+    if blob[2] != 0x00 {
+        return Err(GeoPackageError::UnsupportedVersion(blob[2]));
+    }
+
+    let flags = blob[3];
+    let envelope_code = (flags >> 1) & 0x07;
+    let envelope_len = match envelope_code {
+        0 => 0,
+        1 => 32,
+        2 | 3 => 48,
+        4 => 64,
+        _ => return Err(GeoPackageError::InvalidGeometryBlob("invalid envelope indicator".into())),
+    };
