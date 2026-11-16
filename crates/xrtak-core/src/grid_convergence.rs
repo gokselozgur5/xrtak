@@ -304,3 +304,21 @@ mod tests {
 
     #[test]
     fn test_utm_zone_and_cm() {
+        assert_eq!(utm_zone_from_lon(-75.0), 18);
+        assert_eq!(utm_central_meridian_deg(18).unwrap(), -75.0);
+        assert_eq!(utm_zone_from_lon(0.0), 31);
+        assert_eq!(utm_central_meridian_deg(31).unwrap(), 3.0);
+    }
+
+    #[test]
+    fn test_utm_central_meridian_convergence_and_scale() {
+        let sol = calculate_utm(30.0, -75.0, Some(18)).unwrap();
+        assert!((sol.convergence_deg).abs() < 1e-10);
+        assert!((sol.scale_factor - UTM_K0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_utm_off_meridian_convergence() {
+        let sol = calculate_utm(30.0, -72.0, Some(18)).unwrap();
+        // At 3 deg east, convergence is approx dlam * sin(lat) ~ 3 * 0.5 = 1.5 deg
+        assert!((sol.convergence_deg - 1.501).abs() < 0.01);
