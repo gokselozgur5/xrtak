@@ -212,3 +212,22 @@ impl MissionPackageManifest {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_manifest_parameter_and_entry_construction() {
+        let p = ManifestParameter::new("tool", "public");
+        assert_eq!(p.name, "tool");
+        assert_eq!(p.value, "public");
+
+        let entry = ManifestContentEntry::new("overlays/perimeter.kml", false)
+            .with_param("uid", "PERIM-1");
+        assert_eq!(entry.zip_entry, "overlays/perimeter.kml");
+        assert!(!entry.ignore);
+        assert_eq!(entry.parameters.len(), 1);
+        assert_eq!(entry.parameters[0].name, "uid");
+    }
+}
