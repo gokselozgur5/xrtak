@@ -429,3 +429,21 @@ impl GeoPackageFeatureDataset {
             srs = self.srs_id
         );
         script.push_str(&contents_sql);
+
+        let geom_cols_sql = format!(
+            "INSERT OR REPLACE INTO gpkg_geometry_columns              (table_name, column_name, geometry_type_name, srs_id, z, m)              VALUES ('{table}', 'geom', 'POINT', {srs}, 1, 0);\n",
+            table = self.table_name,
+            srs = self.srs_id
+        );
+        script.push_str(&geom_cols_sql);
+
+        for wp in &self.waypoints {
+            let insert_sql = self.generate_insert_sql(wp)?;
+            script.push_str(&insert_sql);
+            script.push('\n');
+        }
+
+        script.push_str("COMMIT;\n");
+        Ok(script)
+    }
+}
