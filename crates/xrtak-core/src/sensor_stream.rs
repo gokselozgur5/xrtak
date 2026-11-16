@@ -114,3 +114,16 @@ impl Default for SensorGimbal {
         }
     }
 }
+
+/// Video stream connection and transport parameters for TAK.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VideoStreamConnection {
+    pub url: String,
+    pub stream_uid: String,
+    pub alias: String,
+    pub rover_port: Option<u16>,
+    pub rtsp_reliable: bool,
+    pub ignore_embedded_klv: bool,
+    pub buffer_ms: u32,
+    pub preferred_uid: Option<String>,
+}
