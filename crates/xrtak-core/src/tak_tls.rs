@@ -168,3 +168,21 @@ pub struct TakTlsConfigBuilder {
     handshake_timeout_ms: u64,
     cipher_suites: Vec<String>,
 }
+
+impl TakTlsConfigBuilder {
+    pub fn new(server_host: impl Into<String>, server_port: u16) -> Self {
+        Self {
+            server_host: server_host.into(),
+            server_port,
+            min_version: TlsVersion::Tls12,
+            max_version: TlsVersion::Tls13,
+            client_auth: ClientAuthMode::None,
+            client_cert: None,
+            ca_cert: None,
+            verify_server_hostname: true,
+            sni_hostname: None,
+            alpn_protocols: vec!["cot/1.0".into()],
+            handshake_timeout_ms: 10_000,
+            cipher_suites: Vec::new(),
+        }
+    }
