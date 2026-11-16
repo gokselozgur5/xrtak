@@ -70,3 +70,21 @@ impl std::error::Error for GridError {}
 
 /// Result of grid convergence and scale factor calculation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GridSolution {
+    /// Grid projection system (UTM zone or UPS polar aspect).
+    pub system: GridSystem,
+    /// Grid convergence angle in decimal degrees (Grid North - True North).
+    /// Positive when Grid North is clockwise (East) of True North.
+    pub convergence_deg: f64,
+    /// Grid convergence angle in radians.
+    pub convergence_rad: f64,
+    /// Point scale factor k (grid length / ellipsoidal surface length).
+    pub scale_factor: f64,
+    /// Central meridian longitude in decimal degrees.
+    pub central_meridian_deg: f64,
+}
+
+/// Determine the standard UTM zone number (1..=60) for a given longitude in degrees.
+pub fn utm_zone_from_lon(lon_deg: f64) -> u8 {
+    let mut normalized_lon = lon_deg;
+    while normalized_lon < -180.0 {
