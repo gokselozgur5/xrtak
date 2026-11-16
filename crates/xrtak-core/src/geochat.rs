@@ -121,3 +121,14 @@ impl GeoChatPacket {
         let mut timestamp_iso = String::new();
         let mut parent_group = "RootContactGroup".to_string();
         let (mut lat, mut lon, mut hae) = (0.0, 0.0, 9999999.0);
+        loop {
+            match reader.read_event() {
+                Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => match e.name().as_ref() {
+                    b"event" => {
+                        found_event = true;
+                        for a in e.attributes().flatten() {
+                            if a.key.as_ref() == b"time" {
+                                timestamp_iso = String::from_utf8_lossy(&a.value).into_owned();
+                            }
+                        }
+                    }
