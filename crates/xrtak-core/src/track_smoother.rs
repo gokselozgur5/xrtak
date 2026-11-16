@@ -190,3 +190,14 @@ impl TrackSmoother {
                         speed = clamp;
                     }
                 }
+
+                let course = if speed >= self.config.min_velocity_threshold_mps {
+                    let raw_course = wrap_heading_deg(s_vx.atan2(s_vy).to_degrees());
+                    smooth_heading_deg(prev.course_deg, raw_course, self.config.alpha_heading)
+                } else {
+                    prev.course_deg
+                };
+
+                let s_east = smooth_scalar(prev.east_m + s_vx * dt, obs.east_m, self.config.alpha_pos);
+                let s_north = smooth_scalar(prev.north_m + s_vy * dt, obs.north_m, self.config.alpha_pos);
+                let s_up = smooth_scalar(prev.up_m + s_vz * dt, obs.up_m, self.config.alpha_pos);
