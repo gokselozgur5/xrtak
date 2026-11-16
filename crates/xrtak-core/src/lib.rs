@@ -101,6 +101,11 @@ pub use rf::{
     compute_knife_edge_diffraction_db, evaluate_rf_link, evaluate_rf_propagation, RfBand,
     RfLinkResult,
 };
+pub use route_sequencer::{
+    along_track_distance_m, cross_track_error_m, evaluate_route_progress, generate_cot_route_xml,
+    initial_bearing_deg, sequence_route_plan, slant_distance_3d_m, ActiveTrackProgress, RoutePlan,
+    RouteWaypoint, SequencedLeg, SequencedRouteResult,
+};
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
 pub use tiles::{
     bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy,
