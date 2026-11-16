@@ -106,3 +106,21 @@ pub fn utm_central_meridian_deg(zone: u8) -> Result<f64, GridError> {
 }
 
 /// Compute UTM grid convergence angle and point scale factor for given latitude and longitude.
+pub fn calculate_utm(
+    lat_deg: f64,
+    lon_deg: f64,
+    zone_override: Option<u8>,
+) -> Result<GridSolution, GridError> {
+    if !(-90.0..=90.0).contains(&lat_deg) {
+        return Err(GridError::InvalidLatitude(format!("{lat_deg}")));
+    }
+    if !(-180.0..=180.0).contains(&lon_deg) {
+        return Err(GridError::InvalidLongitude(format!("{lon_deg}")));
+    }
+    if lat_deg < -80.0 || lat_deg > 84.0 {
+        return Err(GridError::LatitudeOutOfUtmRange(format!(
+            "latitude {lat_deg} is outside UTM coverage (-80 to 84)"
+        )));
+    }
+
+    let zone = match zone_override {
