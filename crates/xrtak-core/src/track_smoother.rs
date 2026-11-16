@@ -30,3 +30,25 @@ pub fn smooth_scalar(prev: f64, new_val: f64, alpha: f64) -> f64 {
     let a = alpha.clamp(0.0, 1.0);
     prev + a * (new_val - prev)
 }
+
+/// Configuration parameters for track velocity and heading filter.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrackSmootherConfig {
+    pub alpha_pos: f64,
+    pub alpha_vel: f64,
+    pub alpha_heading: f64,
+    pub min_velocity_threshold_mps: f64,
+    pub max_speed_clamp_mps: Option<f64>,
+}
+
+impl Default for TrackSmootherConfig {
+    fn default() -> Self {
+        Self {
+            alpha_pos: 0.35,
+            alpha_vel: 0.25,
+            alpha_heading: 0.20,
+            min_velocity_threshold_mps: 0.5,
+            max_speed_clamp_mps: Some(150.0),
+        }
+    }
+}
