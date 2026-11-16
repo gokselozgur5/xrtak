@@ -50,3 +50,11 @@ impl WorldFileTransform {
         let py = (-self.d * dx + self.a * dy) / det;
         Ok((px, py))
     }
+
+    pub fn to_world_file_content(&self) -> String {
+        format!(
+            "{:.10}\n{:.10}\n{:.10}\n{:.10}\n{:.10}\n{:.10}\n",
+            self.a, self.d, self.b, self.e, self.c, self.f
+        )
+    }
+}
