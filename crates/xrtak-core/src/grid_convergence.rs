@@ -250,3 +250,21 @@ pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridErr
 /// Automatically select between UTM and UPS based on latitude, and compute grid solution.
 pub fn calculate_grid_convergence(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridError> {
     if lat_deg >= 80.0 || lat_deg <= -80.0 {
+        calculate_ups(lat_deg, lon_deg)
+    } else {
+        calculate_utm(lat_deg, lon_deg, None)
+    }
+}
+
+/// Convert true azimuth (degrees from True North) to grid azimuth (degrees from Grid North).
+///
+/// Formula: Grid Azimuth = True Azimuth - Convergence Angle.
+pub fn true_to_grid_azimuth(true_azimuth_deg: f64, convergence_deg: f64) -> f64 {
+    let mut grid_azimuth = true_azimuth_deg - convergence_deg;
+    while grid_azimuth < 0.0 {
+        grid_azimuth += 360.0;
+    }
+    while grid_azimuth >= 360.0 {
+        grid_azimuth -= 360.0;
+    }
+    grid_azimuth
