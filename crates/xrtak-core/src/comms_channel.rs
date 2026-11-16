@@ -416,3 +416,25 @@ fn unescape_xml(s: &str) -> String {
 }
 
 #[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_comms_channel_roundtrip() {
+        let ch1 = RadioChannel::new(1, "TAC-1 Primary", 225_500_000, 25000, RadioMode::FrequencyHopping)
+            .with_tx_power(10.0)
+            .with_net_preset("Alpha-Net")
+            .with_encryption("AES-256");
+
+        let ch2 = RadioChannel::new(2, "GUARD Air Distress", 121_500_000, 12500, RadioMode::Am)
+            .with_tx_power(5.0);
+
+        let packet = CommsChannelPacket::new(
+            "COMMS-PLAN-001",
+            "ALPHA-TOC",
+            "2026-11-16T10:00:00Z",
+            "2026-11-16T12:00:00Z",
+        )
+        .with_coordinates(34.0522, -118.2437, 120.0)
+        .add_channel(ch1)
+        .add_channel(ch2)
