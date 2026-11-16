@@ -245,3 +245,22 @@ fn build_gx_track_placemark(track: &CotTrack) -> String {
     xml.push_str("    </Placemark>\n");
     xml
 }
+
+/// Exports multiple CoT event tracks into a valid KML 2.2 document.
+pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> String {
+    let mut kml = String::with_capacity(4096);
+    kml.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    kml.push_str("<kml xmlns=\"http://www.opengis.net/kml/2.2\" ");
+    kml.push_str("xmlns:gx=\"http://www.google.com/kml/ext/2.2\">\n");
+    kml.push_str("  <Document>\n");
+    kml.push_str(&format!("    <name>{}</name>\n", config.doc_name));
+
+    for track in tracks {
+        let color = cot_type_to_kml_color(&track.cot_type);
+        kml.push_str(&format!("    <Style id=\"style-{}\">\n", track.uid));
+        kml.push_str("      <LineStyle>\n");
+        kml.push_str(&format!("        <color>{}</color>\n", color));
+        kml.push_str(&format!("        <width>{:.1}</width>\n", config.line_width));
+        kml.push_str("      </LineStyle>\n");
+        kml.push_str("    </Style>\n");
+    }
