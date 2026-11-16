@@ -144,3 +144,9 @@ impl GeoPackageBounds {
         }
     }
 }
+
+const GPKG_FLAG_LITTLE_ENDIAN: u8 = 0x01;
+const GPKG_FLAG_ENVELOPE_NONE: u8 = 0x00;
+const WGS84_SRS_ID: i32 = 4326;
+const WKB_POINT_2D: u32 = 1;
+const WKB_POINT_Z: u32 = 1001;
