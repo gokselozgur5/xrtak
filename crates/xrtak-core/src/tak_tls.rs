@@ -249,3 +249,19 @@ impl TakTlsConfigBuilder {
         if self.client_auth == ClientAuthMode::Required && self.client_cert.is_none() {
             return Err(TakTlsError::MissingClientCertificate);
         }
+        Ok(TakTlsConfig {
+            server_host: host.to_string(),
+            server_port: self.server_port,
+            min_version: self.min_version,
+            max_version: self.max_version,
+            client_auth: self.client_auth,
+            client_cert: self.client_cert,
+            ca_cert: self.ca_cert,
+            verify_server_hostname: self.verify_server_hostname,
+            sni_hostname: self.sni_hostname,
+            alpn_protocols: self.alpn_protocols,
+            handshake_timeout_ms: self.handshake_timeout_ms,
+            cipher_suites: self.cipher_suites,
+        })
+    }
+}
