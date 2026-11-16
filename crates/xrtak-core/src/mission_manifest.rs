@@ -107,3 +107,26 @@ pub(crate) fn escape_xml_attr(val: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
 }
+
+impl MissionPackageManifest {
+    /// Generate a compliant TAK `manifest.xml` file.
+    pub fn generate_xml(&self) -> String {
+        let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
+        out.push_str(&format!("<MissionPackageManifest version=\"{}\">\n", self.version));
+        out.push_str("  <Configuration>\n");
+        let uid = escape_xml_attr(&self.uid);
+        let name = escape_xml_attr(&self.name);
+        out.push_str(&format!("    <Parameter name=\"uid\" value=\"{uid}\"/>\n"));
+        out.push_str(&format!("    <Parameter name=\"name\" value=\"{name}\"/>\n"));
+        out.push_str(&format!("    <Parameter name=\"onReceiveDelete\" value=\"{}\"/>\n", self.on_receive_delete));
+        for p in &self.parameters {
+            let k = escape_xml_attr(&p.name);
+            let v = escape_xml_attr(&p.value);
+            out.push_str(&format!("    <Parameter name=\"{k}\" value=\"{v}\"/>\n"));
+        }
+        out.push_str("  </Configuration>\n");
+        self.append_contents_xml(&mut out);
+        out.push_str("</MissionPackageManifest>\n");
+        out
+    }
+}
