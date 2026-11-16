@@ -163,3 +163,16 @@ impl GeoChatPacket {
                     b"remarks" => in_remarks = true,
                     _ => {}
                 },
+                Ok(Event::Text(ref e)) => {
+                    if in_remarks {
+                        let raw = String::from_utf8_lossy(e.as_ref());
+                        message_text.push_str(&unescape_xml(&raw));
+                    }
+                }
+                Ok(Event::End(ref e)) => {
+                    if e.name().as_ref() == b"remarks" { in_remarks = false; }
+                }
+                Ok(Event::Eof) => break,
+                Err(e) => return Err(GeoChatError::InvalidXml(e.to_string())),
+            }
+        }
