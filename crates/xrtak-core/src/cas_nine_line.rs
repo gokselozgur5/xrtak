@@ -180,3 +180,19 @@ enum CasTag {
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
     std::str::from_utf8(bytes).ok()?.trim().parse().ok()
 }
+
+fn match_tag(name: &[u8]) -> CasTag {
+    match name {
+        b"line1" => CasTag::Line1,
+        b"line2" => CasTag::Line2,
+        b"line3" => CasTag::Line3,
+        b"line4" => CasTag::Line4,
+        b"line5" => CasTag::Line5,
+        b"line6" => CasTag::Line6,
+        b"line7" => CasTag::Line7,
+        b"line8" => CasTag::Line8,
+        b"line9" => CasTag::Line9,
+        b"remarks" => CasTag::Remarks,
+        _ => CasTag::None,
+    }
+}
