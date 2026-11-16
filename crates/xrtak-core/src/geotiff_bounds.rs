@@ -38,3 +38,15 @@ impl WorldFileTransform {
         let wy = self.d * px + self.e * py + self.f;
         (wx, wy)
     }
+
+    pub fn world_to_pixel(&self, wx: f64, wy: f64) -> Result<(f64, f64), String> {
+        let det = self.a * self.e - self.b * self.d;
+        if det.abs() < 1e-14 {
+            return Err("Singular non-invertible affine transform matrix".to_string());
+        }
+        let dx = wx - self.c;
+        let dy = wy - self.f;
+        let px = (self.e * dx - self.b * dy) / det;
+        let py = (-self.d * dx + self.a * dy) / det;
+        Ok((px, py))
+    }
