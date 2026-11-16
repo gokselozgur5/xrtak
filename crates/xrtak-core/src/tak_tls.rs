@@ -322,3 +322,20 @@ mod tests {
             .unwrap_err();
         assert_eq!(err_port, TakTlsError::InvalidPort(0));
     }
+
+    #[test]
+    fn test_incompatible_tls_versions() {
+        let err = TakTlsConfig::builder("tak.domain.mil", 8089)
+            .min_version(TlsVersion::Tls13)
+            .max_version(TlsVersion::Tls12)
+            .build()
+            .unwrap_err();
+
+        assert_eq!(
+            err,
+            TakTlsError::IncompatibleVersion {
+                min: TlsVersion::Tls13,
+                max: TlsVersion::Tls12
+            }
+        );
+    }
