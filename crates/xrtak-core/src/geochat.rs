@@ -153,3 +153,13 @@ impl GeoChatPacket {
                             }
                         }
                     }
+                    b"link" => {
+                        for a in e.attributes().flatten() {
+                            if a.key.as_ref() == b"uid" && sender_uid.is_empty() {
+                                sender_uid = String::from_utf8_lossy(&a.value).into_owned();
+                            }
+                        }
+                    }
+                    b"remarks" => in_remarks = true,
+                    _ => {}
+                },
