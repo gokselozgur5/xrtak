@@ -306,4 +306,18 @@ mod tests {
         assert!(!mgr.should_send_ping(5_000));
         assert!(mgr.should_send_ping(20_000));
     }
+
+    #[test]
+    fn test_handle_pong_rtt_and_status() {
+        let mut mgr = CotHeartbeatManager::default();
+        let (_xml, seq) = mgr.generate_ping(1_000);
+
+        let rtt = mgr.handle_pong("XRTAK-CLIENT-ping-1", Some(seq), 1_045);
+        assert_eq!(rtt, Some(45));
+        assert_eq!(mgr.last_rtt_ms(), Some(45));
+        assert!((mgr.smoothed_rtt_ms() - 45.0).abs() < 1e-4);
+        assert_eq!(mgr.status(), HeartbeatStatus::Connected);
+        assert!(mgr.is_connected());
+        assert_eq!(mgr.pending_count(), 0);
+    }
 }
