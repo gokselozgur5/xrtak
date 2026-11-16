@@ -70,3 +70,22 @@ impl CasNineLine {
         }
     }
 }
+
+impl CasNineLine {
+    pub fn with_coordinates(mut self, lat: f64, lon: f64, hae: f64) -> Self {
+        self.lat = lat;
+        self.lon = lon;
+        self.hae = hae;
+        self
+    }
+
+    pub fn with_time(mut self, time_iso: impl Into<String>) -> Self {
+        self.time_iso = time_iso.into();
+        self
+    }
+
+    pub fn with_remarks(mut self, remarks: impl Into<String>) -> Self {
+        self.remarks = remarks.into();
+        self
+    }
+}
