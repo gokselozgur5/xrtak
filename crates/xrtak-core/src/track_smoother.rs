@@ -17,3 +17,16 @@ pub fn heading_delta_deg(from_deg: f64, to_deg: f64) -> f64 {
     }
     diff
 }
+
+/// Smooths heading using shortest angular path across 0/360 boundary.
+pub fn smooth_heading_deg(prev_deg: f64, new_deg: f64, alpha: f64) -> f64 {
+    let a = alpha.clamp(0.0, 1.0);
+    let delta = heading_delta_deg(prev_deg, new_deg);
+    wrap_heading_deg(prev_deg + a * delta)
+}
+
+/// Computes scalar exponential moving average with clamping.
+pub fn smooth_scalar(prev: f64, new_val: f64, alpha: f64) -> f64 {
+    let a = alpha.clamp(0.0, 1.0);
+    prev + a * (new_val - prev)
+}
