@@ -299,3 +299,15 @@ impl CasNineLine {
         Ok(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_brief() -> CasNineLine {
+        CasNineLine::new("CAS-001", "WARRIOR 21")
+            .with_coordinates(34.123456, -117.654321, 1200.0)
+            .with_time("2026-11-16T09:00:00Z")
+            .with_remarks("Final Attack Heading 180-210. Danger close 600m.")
+    }
+}
