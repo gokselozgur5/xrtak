@@ -317,3 +317,9 @@ mod tests {
         let brg_north = initial_bearing_deg(0.0, 0.0, 1.0, 0.0);
         assert!((brg_north - 0.0).abs() < 1e-4);
     }
+
+    #[test]
+    fn test_cross_track_error() {
+        let xte = cross_track_error_m(0.01, 1.0, 0.0, 0.0, 0.0, 2.0);
+        assert!(xte < -1000.0 && xte > -1200.0);
+    }
