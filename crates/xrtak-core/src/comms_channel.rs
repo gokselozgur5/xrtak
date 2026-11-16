@@ -240,3 +240,25 @@ impl CommsChannelPacket {
                 ch_xml.push_str(&format!(" encryption=\"{}\"", escape_xml(enc)));
             }
             ch_xml.push_str("/>");
+            out.push_str(&ch_xml);
+        }
+        out.push_str("</radioChannels></detail></event>");
+        out
+    }
+
+    /// Parses Cursor-on-Target XML into a CommsChannelPacket.
+    pub fn from_cot_xml(xml: &str) -> Result<Self, CommsChannelError> {
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+
+        let mut found_event = false;
+        let mut found_radio_channels = false;
+        let mut uid = String::new();
+        let mut cot_type = "a-f-G-U-C".to_string();
+        let mut callsign = String::new();
+        let mut time_str = String::new();
+        let mut stale_str = String::new();
+        let (mut lat, mut lon, mut hae) = (0.0, 0.0, 0.0);
+        let mut primary_id = None;
+        let mut emergency_id = None;
+        let mut channels = Vec::new();
