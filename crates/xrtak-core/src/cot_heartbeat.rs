@@ -96,3 +96,23 @@ impl CotHeartbeatManager {
         }
     }
 }
+
+impl CotHeartbeatManager {
+    /// Return the current operational status of the heartbeat keepalive.
+    pub fn status(&self) -> HeartbeatStatus {
+        if self.consecutive_missed >= self.config.max_missed_pongs {
+            HeartbeatStatus::Disconnected
+        } else if self.consecutive_missed > 0 {
+            HeartbeatStatus::Degraded
+        } else if self.last_pong_received_ms.is_some() {
+            HeartbeatStatus::Connected
+        } else {
+            HeartbeatStatus::Disconnected
+        }
+    }
+
+    /// Check if peer link is currently considered active and connected.
+    pub fn is_connected(&self) -> bool {
+        self.status() == HeartbeatStatus::Connected
+    }
+}
