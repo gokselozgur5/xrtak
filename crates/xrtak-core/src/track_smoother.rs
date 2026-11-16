@@ -52,3 +52,14 @@ impl Default for TrackSmootherConfig {
         }
     }
 }
+
+/// Raw position and kinematic observation for track smoothing.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrackObservation {
+    pub timestamp_sec: f64,
+    pub east_m: f64,
+    pub north_m: f64,
+    pub up_m: f64,
+    pub measured_speed_mps: Option<f64>,
+    pub measured_course_deg: Option<f64>,
+}
