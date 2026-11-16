@@ -74,3 +74,13 @@ impl GeoPackageWaypoint {
         self.cot_type = Some(cot_type.into());
         self
     }
+
+    pub fn with_elevation(mut self, elevation_m: f64) -> Self {
+        self.elevation = Some(elevation_m);
+        self
+    }
+
+    pub fn with_time(mut self, time: impl Into<String>) -> Self {
+        self.time = Some(time.into());
+        self
+    }
