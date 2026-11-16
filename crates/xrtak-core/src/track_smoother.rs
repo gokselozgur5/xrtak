@@ -267,3 +267,16 @@ mod tests {
         let s2 = smoother.update(&obs2);
         assert_eq!(s2.course_deg, 90.0);
     }
+
+    #[test]
+    fn test_velocity_clamp() {
+        let mut cfg = TrackSmootherConfig::default();
+        cfg.max_speed_clamp_mps = Some(50.0);
+        let mut smoother = TrackSmoother::new(cfg);
+        let obs1 = TrackObservation::new(0.0, 0.0, 0.0, 0.0);
+        smoother.update(&obs1);
+
+        let obs2 = TrackObservation::new(1.0, 1000.0, 0.0, 0.0);
+        let s2 = smoother.update(&obs2);
+        assert!(s2.speed_mps <= 50.0);
+    }
