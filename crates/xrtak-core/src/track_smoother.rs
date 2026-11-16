@@ -96,3 +96,17 @@ impl TrackObservation {
         }
     }
 }
+
+/// Filtered kinematic state with smoothed velocity vector and course.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SmoothedTrackState {
+    pub timestamp_sec: f64,
+    pub east_m: f64,
+    pub north_m: f64,
+    pub up_m: f64,
+    pub vel_east_mps: f64,
+    pub vel_north_mps: f64,
+    pub vel_up_mps: f64,
+    pub speed_mps: f64,
+    pub course_deg: f64,
+}
