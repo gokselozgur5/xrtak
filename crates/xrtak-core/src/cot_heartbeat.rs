@@ -25,3 +25,14 @@ pub struct CotHeartbeatConfig {
     /// Unique client identifier for CoT event attribution.
     pub client_uid: String,
 }
+
+impl Default for CotHeartbeatConfig {
+    fn default() -> Self {
+        Self {
+            interval_ms: 15_000,
+            timeout_ms: 5_000,
+            max_missed_pongs: 3,
+            client_uid: "XRTAK-CLIENT".to_string(),
+        }
+    }
+}
