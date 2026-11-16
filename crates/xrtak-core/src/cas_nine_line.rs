@@ -47,3 +47,26 @@ pub struct CasNineLine {
     pub hae: f64,
     pub time_iso: String,
 }
+
+impl CasNineLine {
+    pub fn new(cot_uid: impl Into<String>, jtac: impl Into<String>) -> Self {
+        Self {
+            cot_uid: cot_uid.into(),
+            jtac_callsign: jtac.into(),
+            line1_ip_bp: String::new(),
+            line2_heading: String::new(),
+            line3_distance: String::new(),
+            line4_elevation: String::new(),
+            line5_description: String::new(),
+            line6_location: String::new(),
+            line7_mark_type: String::new(),
+            line8_friendlies: String::new(),
+            line9_egress: String::new(),
+            remarks: String::new(),
+            lat: 0.0,
+            lon: 0.0,
+            hae: 0.0,
+            time_iso: "1970-01-01T00:00:00Z".to_string(),
+        }
+    }
+}
