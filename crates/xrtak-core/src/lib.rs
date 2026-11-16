@@ -27,6 +27,7 @@ pub mod opord;
 pub mod radial;
 pub mod rf;
 pub mod sapient;
+pub mod tak_tls;
 pub mod thermal;
 pub mod tiles;
 pub mod tracker;
