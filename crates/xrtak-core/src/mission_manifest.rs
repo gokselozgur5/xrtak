@@ -253,4 +253,15 @@ mod tests {
         assert!(xml.contains("<Parameter name=\"uid\" value=\"UID-99\"/>"));
         assert!(xml.contains("<Content zipEntry=\"routes/primary.cot\" ignore=\"false\"/>"));
     }
+
+    #[test]
+    fn test_generate_xml_with_nested_content_parameters() {
+        let mut manifest = MissionPackageManifest::new("UID-1", "Package");
+        let mut entry = ManifestContentEntry::new("certs/client.p12", false);
+        entry.add_param("cert_alias", "UserCert");
+        manifest.contents.push(entry);
+        let xml = manifest.generate_xml();
+        assert!(xml.contains("<Content zipEntry=\"certs/client.p12\" ignore=\"false\">"));
+        assert!(xml.contains("<Parameter name=\"cert_alias\" value=\"UserCert\"/>"));
+    }
 }
