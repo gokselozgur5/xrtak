@@ -232,3 +232,20 @@ impl TakTlsConfigBuilder {
         self.cipher_suites = suites;
         self
     }
+    pub fn build(self) -> Result<TakTlsConfig, TakTlsError> {
+        let host = self.server_host.trim();
+        if host.is_empty() {
+            return Err(TakTlsError::InvalidHost("empty hostname".into()));
+        }
+        if self.server_port == 0 {
+            return Err(TakTlsError::InvalidPort(0));
+        }
+        if self.min_version > self.max_version {
+            return Err(TakTlsError::IncompatibleVersion {
+                min: self.min_version,
+                max: self.max_version,
+            });
+        }
+        if self.client_auth == ClientAuthMode::Required && self.client_cert.is_none() {
+            return Err(TakTlsError::MissingClientCertificate);
+        }
