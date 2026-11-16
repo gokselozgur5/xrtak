@@ -64,3 +64,13 @@ impl GeoPackageWaypoint {
         self.id = Some(id);
         self
     }
+
+    pub fn with_callsign(mut self, callsign: impl Into<String>) -> Self {
+        self.callsign = Some(callsign.into());
+        self
+    }
+
+    pub fn with_cot_type(mut self, cot_type: impl Into<String>) -> Self {
+        self.cot_type = Some(cot_type.into());
+        self
+    }
