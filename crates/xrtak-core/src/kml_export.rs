@@ -95,3 +95,20 @@ impl CotTrack {
             None
         }
     }
+
+    pub fn path_length_m(&self) -> f64 {
+        if self.points.len() < 2 {
+            return 0.0;
+        }
+        let mut total = 0.0;
+        for window in self.points.windows(2) {
+            total += haversine_distance_m(
+                window[0].lat,
+                window[0].lon,
+                window[1].lat,
+                window[1].lon,
+            );
+        }
+        total
+    }
+}
