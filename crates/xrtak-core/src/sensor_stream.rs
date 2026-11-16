@@ -286,3 +286,24 @@ impl SensorStreamDescriptor {
             .unwrap_or_default()
     }
 }
+
+impl SensorStreamDescriptor {
+    /// Generates full TAK Cursor-on-Target `b-i-v` XML event string.
+    pub fn to_cot_xml(&self) -> String {
+        let video_elem = self.format_video_tag();
+        let sensor_elem = self.format_sensor_tag();
+        let link_elem = self.format_link_tag();
+        let contact = format!("<contact callsign=\"{}\"/>", self.callsign);
+        format!(
+            "<event version=\"2.0\" uid=\"{}\" type=\"{}\" time=\"{}\" start=\"{}\" stale=\"{}\" how=\"m-g\">\n  <point lat=\"{:.6}\" lon=\"{:.6}\" hae=\"{:.1}\" ce=\"10.0\" le=\"10.0\"/>\n  <detail>\n    {contact}\n    {video_elem}\n    {sensor_elem}\n    {link_elem}\n  </detail>\n</event>",
+            self.uid,
+            self.cot_type,
+            self.time_iso,
+            self.time_iso,
+            self.stale_iso,
+            self.lat,
+            self.lon,
+            self.hae,
+        )
+    }
+}
