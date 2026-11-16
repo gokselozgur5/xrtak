@@ -87,3 +87,17 @@ impl GeofencePolygon {
                 return false;
             }
         }
+        let mut inside = false;
+        let mut j = self.vertices.len() - 1;
+        for i in 0..self.vertices.len() {
+            let pi = &self.vertices[i];
+            let pj = &self.vertices[j];
+            let hit = ((pi.y > y) != (pj.y > y))
+                && (x < (pj.x - pi.x) * (y - pi.y) / (pj.y - pi.y) + pi.x);
+            if hit {
+                inside = !inside;
+            }
+            j = i;
+        }
+        inside
+    }
