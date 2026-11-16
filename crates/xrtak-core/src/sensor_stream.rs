@@ -98,3 +98,19 @@ pub struct SensorGimbal {
     pub roll_deg: f64,
     pub zoom_ratio: f64,
 }
+
+impl Default for SensorGimbal {
+    fn default() -> Self {
+        Self {
+            sensor_type: SensorType::ElectroOptical,
+            model: "GENERIC-EO".to_string(),
+            fov_horizontal_deg: 45.0,
+            fov_vertical_deg: 30.0,
+            slant_range_m: 1000.0,
+            azimuth_deg: 0.0,
+            elevation_deg: -45.0,
+            roll_deg: 0.0,
+            zoom_ratio: 1.0,
+        }
+    }
+}
