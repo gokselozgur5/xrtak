@@ -286,3 +286,21 @@ pub fn grid_to_true_azimuth(grid_azimuth_deg: f64, convergence_deg: f64) -> f64 
 
 /// Apply scale factor to ground distance to get projected grid distance in meters.
 pub fn ground_to_grid_distance(ground_distance_m: f64, scale_factor: f64) -> f64 {
+    ground_distance_m * scale_factor
+}
+
+/// Convert projected grid distance in meters back to ellipsoidal ground distance.
+pub fn grid_to_ground_distance(grid_distance_m: f64, scale_factor: f64) -> f64 {
+    if scale_factor.abs() < 1e-12 {
+        ground_to_grid_distance(grid_distance_m, 1.0)
+    } else {
+        grid_distance_m / scale_factor
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_utm_zone_and_cm() {
