@@ -265,3 +265,22 @@ impl TakTlsConfigBuilder {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_builder() {
+        let config = TakTlsConfig::builder("tak.domain.mil", 8089)
+            .build()
+            .unwrap();
+
+        assert_eq!(config.server_host, "tak.domain.mil");
+        assert_eq!(config.server_port, 8089);
+        assert_eq!(config.min_version, TlsVersion::Tls12);
+        assert_eq!(config.max_version, TlsVersion::Tls13);
+        assert_eq!(config.client_auth, ClientAuthMode::None);
+        assert!(config.verify_server_hostname);
+        assert!(!config.is_mtls());
+    }
