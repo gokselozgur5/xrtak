@@ -137,3 +137,14 @@ pub fn perpendicular_distance_to_segment_m(
             d
         };
     }
+
+    let cross_dist = (d_ap * delta_brg.sin()).abs();
+    if include_elevation {
+        let t = along_dist / seg_dist;
+        let interp_hae = a.hae_m + t * (b.hae_m - a.hae_m);
+        let dz = p.hae_m - interp_hae;
+        (cross_dist.powi(2) + dz.powi(2)).sqrt()
+    } else {
+        cross_dist
+    }
+}
