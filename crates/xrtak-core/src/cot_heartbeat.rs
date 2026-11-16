@@ -235,3 +235,11 @@ impl CotHeartbeatManager {
         Some(rtt)
     }
 }
+
+/// Extract the string value of an XML attribute by name.
+pub(crate) fn extract_attr<'a>(xml: &'a str, attr_name: &str) -> Option<&'a str> {
+    let pattern = format!("{attr_name}=\"");
+    let start = xml.find(&pattern)? + pattern.len();
+    let end = xml[start..].find('"')? + start;
+    Some(&xml[start..end])
+}
