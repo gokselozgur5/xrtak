@@ -139,3 +139,26 @@ impl TrackSmoother {
     pub fn reset(&mut self) {
         self.state = None;
     }
+
+    pub fn update(&mut self, obs: &TrackObservation) -> SmoothedTrackState {
+        let next_state = match &self.state {
+            None => {
+                let (vx, vy, speed, course) = match (obs.measured_speed_mps, obs.measured_course_deg) {
+                    (Some(spd), Some(crs)) => {
+                        let rad = crs.to_radians();
+                        (spd * rad.sin(), spd * rad.cos(), spd, wrap_heading_deg(crs))
+                    }
+                    _ => (0.0, 0.0, 0.0, 0.0),
+                };
+                SmoothedTrackState {
+                    timestamp_sec: obs.timestamp_sec,
+                    east_m: obs.east_m,
+                    north_m: obs.north_m,
+                    up_m: obs.up_m,
+                    vel_east_mps: vx,
+                    vel_north_mps: vy,
+                    vel_up_mps: 0.0,
+                    speed_mps: speed,
+                    course_deg: course,
+                }
+            }
