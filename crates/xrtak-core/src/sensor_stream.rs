@@ -208,3 +208,31 @@ impl SensorStreamDescriptor {
         self
     }
 }
+
+impl SensorStreamDescriptor {
+    /// Generates ATAK/WinTAK `<feed>` configuration XML entry.
+    pub fn to_feed_entry_xml(&self) -> String {
+        let rover = self
+            .video
+            .rover_port
+            .map(|p| format!("  <entry key=\"roverPort\" value=\"{p}\"/>\n"))
+            .unwrap_or_default();
+        let pref = self
+            .video
+            .preferred_uid
+            .as_deref()
+            .or(self.parent_uid.as_deref())
+            .map(|u| format!("  <entry key=\"preferredUid\" value=\"{u}\"/>\n"))
+            .unwrap_or_default();
+        format!(
+            "<feed>\n  <entry key=\"uid\" value=\"{}\"/>\n  <entry key=\"alias\" value=\"{}\"/>\n  <entry key=\"url\" value=\"{}\"/>\n  <entry key=\"rtspReliable\" value=\"{}\"/>\n  <entry key=\"ignoreEmbeddedKLV\" value=\"{}\"/>\n  <entry key=\"bufferTime\" value=\"{}\"/>\n  <entry key=\"sensor\" value=\"{}\"/>\n{rover}{pref}</feed>",
+            self.video.stream_uid,
+            self.video.alias,
+            self.video.url,
+            if self.video.rtsp_reliable { 1 } else { 0 },
+            self.video.ignore_embedded_klv,
+            self.video.buffer_ms,
+            self.sensor.sensor_type.as_str(),
+        )
+    }
+}
