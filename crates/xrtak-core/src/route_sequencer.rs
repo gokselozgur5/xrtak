@@ -35,3 +35,14 @@ pub fn initial_bearing_deg(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let brg = y.atan2(x).to_degrees();
     (brg + 360.0) % 360.0
 }
+
+/// Cross-track error in meters from point P to geodesic track segment A->B.
+/// Positive value indicates right of track; negative indicates left of track.
+pub fn cross_track_error_m(p_lat: f64, p_lon: f64, a_lat: f64, a_lon: f64, b_lat: f64, b_lon: f64) -> f64 {
+    let d13 = haversine_distance_m(a_lat, a_lon, p_lat, p_lon) / EARTH_RADIUS_M;
+    let brg13 = initial_bearing_deg(a_lat, a_lon, p_lat, p_lon).to_radians();
+    let brg12 = initial_bearing_deg(a_lat, a_lon, b_lat, b_lon).to_radians();
+
+    let xt = (d13.sin() * (brg13 - brg12).sin()).asin();
+    xt * EARTH_RADIUS_M
+}
