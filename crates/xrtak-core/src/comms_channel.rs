@@ -64,3 +64,25 @@ impl RadioChannel {
             id,
             name: name.into(),
             frequency_hz,
+            bandwidth_hz,
+            mode,
+            tx_power_watts: None,
+            net_preset: None,
+            encryption: None,
+        }
+    }
+
+    pub fn with_tx_power(mut self, power_watts: f64) -> Self {
+        self.tx_power_watts = Some(power_watts);
+        self
+    }
+
+    pub fn with_net_preset(mut self, preset: impl Into<String>) -> Self {
+        self.net_preset = Some(preset.into());
+        self
+    }
+
+    pub fn with_encryption(mut self, encryption: impl Into<String>) -> Self {
+        self.encryption = Some(encryption.into());
+        self
+    }
