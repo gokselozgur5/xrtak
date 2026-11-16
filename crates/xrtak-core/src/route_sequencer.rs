@@ -187,3 +187,18 @@ pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
         legs,
     }
 }
+
+/// Active tracking status along a sequenced route leg.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ActiveTrackProgress {
+    pub active_leg_index: usize,
+    pub next_waypoint_name: String,
+    pub distance_to_next_m: f64,
+    pub bearing_to_next_deg: f64,
+    pub cross_track_error_m: f64,
+    pub time_to_go_sec: f64,
+    pub next_wp_eta_epoch_sec: f64,
+    pub remaining_route_dist_m: f64,
+    pub remaining_route_time_sec: f64,
+    pub has_reached_waypoint: bool,
+}
