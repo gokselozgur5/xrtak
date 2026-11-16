@@ -1,6 +1,7 @@
 pub mod aar;
 pub mod battery;
 pub mod casevac;
+pub mod cas_nine_line;
 pub mod cog;
 pub mod collab;
 pub mod comms_channel;
