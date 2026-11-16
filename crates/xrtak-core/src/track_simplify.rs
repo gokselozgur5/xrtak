@@ -186,3 +186,12 @@ fn rdp_recursive(
         vec![first.clone(), last.clone()]
     }
 }
+
+/// Simplifies a track point slice using the Ramer-Douglas-Peucker algorithm.
+pub fn simplify_track_rdp(points: &[TrackPoint], epsilon_m: f64) -> Vec<TrackPoint> {
+    let config = TrackSimplifyConfig {
+        epsilon_m,
+        ..Default::default()
+    };
+    simplify_track_with_config(points, &config).points
+}
