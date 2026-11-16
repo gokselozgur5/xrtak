@@ -96,3 +96,20 @@ pub fn initial_bearing_deg(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let brg = y.atan2(x).to_degrees();
     (brg + 360.0) % 360.0
 }
+
+/// Computes perpendicular distance from point P to line segment A->B in meters.
+pub fn perpendicular_distance_to_segment_m(
+    p: &TrackPoint,
+    a: &TrackPoint,
+    b: &TrackPoint,
+    include_elevation: bool,
+) -> f64 {
+    let seg_dist = haversine_distance_m(a.lat, a.lon, b.lat, b.lon);
+    if seg_dist < 1e-6 {
+        let d = haversine_distance_m(p.lat, p.lon, a.lat, a.lon);
+        return if include_elevation {
+            (d.powi(2) + (p.hae_m - a.hae_m).powi(2)).sqrt()
+        } else {
+            d
+        };
+    }
