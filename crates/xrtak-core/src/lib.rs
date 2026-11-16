@@ -26,6 +26,7 @@ pub mod sapient;
 pub mod thermal;
 pub mod tiles;
 pub mod tracker;
+pub mod track_smoother;
 pub mod viewshed;
 pub mod zones;
 
