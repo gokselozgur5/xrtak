@@ -171,3 +171,18 @@ pub fn encode_point_geom(
     blob.push(0x00);
     blob.push(GPKG_FLAG_LITTLE_ENDIAN | GPKG_FLAG_ENVELOPE_NONE);
     blob.extend_from_slice(&srs_id.to_le_bytes());
+
+    blob.push(0x01);
+    if let Some(z) = elev {
+        blob.extend_from_slice(&WKB_POINT_Z.to_le_bytes());
+        blob.extend_from_slice(&lon.to_le_bytes());
+        blob.extend_from_slice(&lat.to_le_bytes());
+        blob.extend_from_slice(&z.to_le_bytes());
+    } else {
+        blob.extend_from_slice(&WKB_POINT_2D.to_le_bytes());
+        blob.extend_from_slice(&lon.to_le_bytes());
+        blob.extend_from_slice(&lat.to_le_bytes());
+    }
+
+    Ok(blob)
+}
