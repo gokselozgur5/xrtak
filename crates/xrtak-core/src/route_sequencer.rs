@@ -288,3 +288,16 @@ pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult
             eta = eta_str,
         ));
     }
+
+    format!(
+        r#"<event version="2.0" uid="{uid}" type="b-m-r" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{callsign}"/><route total_dist_m="{dist:.1}" total_ete_sec="{dur:.1}"/>{links}<remarks>XR-TAK Sequenced Route Plan</remarks></detail></event>"#,
+        uid = plan.route_uid,
+        lat = first_lat,
+        lon = first_lon,
+        hae = first_hae,
+        callsign = plan.callsign,
+        dist = sequenced.total_distance_m,
+        dur = sequenced.total_duration_sec,
+        links = links,
+    )
+}
