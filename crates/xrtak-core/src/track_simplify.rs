@@ -19,3 +19,15 @@ pub struct TrackPoint {
     pub speed_mps: Option<f64>,
     pub course_deg: Option<f64>,
 }
+
+impl TrackPoint {
+    pub fn new(lat: f64, lon: f64, hae_m: f64) -> Self {
+        Self {
+            lat,
+            lon,
+            hae_m,
+            timestamp_ms: None,
+            speed_mps: None,
+            course_deg: None,
+        }
+    }
