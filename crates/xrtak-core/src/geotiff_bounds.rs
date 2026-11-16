@@ -204,3 +204,16 @@ mod tests {
         assert!(parse_world_file("0.5 0.0 0.0").is_err());
         assert!(parse_world_file("0.5 0.0 0.0 -0.5 32.85 bad_float").is_err());
     }
+
+    #[test]
+    fn test_pixel_to_world_roundtrip() {
+        let tf = WorldFileTransform::new(2.5, 0.1, -0.1, -2.5, 500000.0, 4200000.0);
+        let px = 120.0;
+        let py = 85.0;
+
+        let (wx, wy) = tf.pixel_to_world(px, py);
+        let (r_px, r_py) = tf.world_to_pixel(wx, wy).expect("invertible");
+
+        assert!((r_px - px).abs() < 1e-6);
+        assert!((r_py - py).abs() < 1e-6);
+    }
