@@ -169,3 +169,17 @@ mod tests {
         assert!(poly.contains_2d(2.0, 8.0));
         assert!(!poly.contains_2d(8.0, 8.0));
     }
+    #[test]
+    fn test_altitude_bounds() {
+        let vertices = vec![
+            GeofencePoint::new_2d(0.0, 0.0),
+            GeofencePoint::new_2d(10.0, 0.0),
+            GeofencePoint::new_2d(10.0, 10.0),
+            GeofencePoint::new_2d(0.0, 10.0),
+        ];
+        let poly = GeofencePolygon::new("box-alt", "BoxAlt", vertices)
+            .with_altitude_bounds(Some(100.0), Some(500.0));
+        assert!(poly.contains_point(&GeofencePoint::new_3d(5.0, 5.0, 250.0)));
+        assert!(!poly.contains_point(&GeofencePoint::new_3d(5.0, 5.0, 50.0)));
+        assert!(!poly.contains_point(&GeofencePoint::new_3d(5.0, 5.0, 600.0)));
+    }
