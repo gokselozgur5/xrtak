@@ -3,6 +3,7 @@ pub mod battery;
 pub mod casevac;
 pub mod cog;
 pub mod collab;
+pub mod comms_channel;
 pub mod corridor;
 pub mod cot_harness;
 pub mod cot_heartbeat;
@@ -49,6 +50,7 @@ pub use casevac::{
 };
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
+pub use comms_channel::{CommsChannelError, CommsChannelPacket, RadioChannel, RadioMode};
 pub use cot_heartbeat::{
     build_ping_cot, build_pong_cot, CotHeartbeatConfig, CotHeartbeatManager, HeartbeatAction,
     HeartbeatStatus, PingRecord,
