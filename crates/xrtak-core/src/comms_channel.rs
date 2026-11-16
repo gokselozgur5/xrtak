@@ -196,3 +196,25 @@ impl CommsChannelPacket {
     }
 
     /// Serializes to Cursor-on-Target XML with `<radioChannels>` detail.
+    pub fn to_cot_xml(&self) -> String {
+        let uid = escape_xml(&self.uid);
+        let ctype = escape_xml(&self.cot_type);
+        let callsign = escape_xml(&self.callsign);
+        let t = &self.timestamp_iso;
+        let s = &self.stale_iso;
+
+        let mut out = String::new();
+        out.push_str(&format!(
+            "<event version=\"2.0\" uid=\"{uid}\" type=\"{ctype}\" how=\"m-g\" time=\"{t}\" start=\"{t}\" stale=\"{s}\">"
+        ));
+        out.push_str(&format!(
+            "<point lat=\"{:.6}\" lon=\"{:.6}\" hae=\"{:.1}\" ce=\"10.0\" le=\"5.0\"/>",
+            self.lat, self.lon, self.hae
+        ));
+        out.push_str("<detail>");
+        out.push_str(&format!("<contact callsign=\"{callsign}\"/>"));
+
+        let mut radio_attr = String::new();
+        if let Some(pri) = self.primary_channel_id {
+            radio_attr.push_str(&format!(" primary=\"{pri}\""));
+        }
