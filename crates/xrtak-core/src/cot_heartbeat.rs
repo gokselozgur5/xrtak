@@ -334,4 +334,18 @@ mod tests {
         assert_eq!(mgr.consecutive_missed(), 1);
         assert_eq!(mgr.status(), HeartbeatStatus::Degraded);
     }
+
+    #[test]
+    fn test_process_incoming_cot_auto_response() {
+        let mut mgr = CotHeartbeatManager::default();
+        let ping_xml = r#"<event version="2.0" uid="NODE-ping-9" type="t-x-c-t"><detail><ping seq="9"/></detail></event>"#;
+        let action = mgr.process_incoming_cot(ping_xml, 2_000);
+        match action {
+            HeartbeatAction::RespondWithPong(resp) => {
+                assert!(resp.contains("type=\"t-x-c-t-r\""));
+                assert!(resp.contains("ref_uid=\"NODE-ping-9\""));
+            }
+            _ => panic!("Expected RespondWithPong"),
+        }
+    }
 }
