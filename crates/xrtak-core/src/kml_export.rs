@@ -220,3 +220,28 @@ fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) 
     xml.push_str("    </Placemark>\n");
     xml
 }
+
+/// Formats a Google Earth gx:Track Placemark with temporal <when> tags.
+fn build_gx_track_placemark(track: &CotTrack) -> String {
+    let mut xml = String::with_capacity(512);
+    xml.push_str("    <Placemark>\n");
+    xml.push_str(&format!("      <name>{} Animated</name>\n", track.callsign));
+    xml.push_str(&format!("      <styleUrl>#style-{}</styleUrl>\n", track.uid));
+    xml.push_str("      <gx:Track>\n");
+    xml.push_str("        <altitudeMode>absolute</altitudeMode>\n");
+    for pt in &track.points {
+        if let Some(ms) = pt.timestamp_ms {
+            let iso = format_iso8601_utc(ms);
+            xml.push_str(&format!("        <when>{}</when>\n", iso));
+        }
+    }
+    for pt in &track.points {
+        xml.push_str(&format!(
+            "        <gx:coord>{:.6} {:.6} {:.1}</gx:coord>\n",
+            pt.lon, pt.lat, pt.hae_m
+        ));
+    }
+    xml.push_str("      </gx:Track>\n");
+    xml.push_str("    </Placemark>\n");
+    xml
+}
