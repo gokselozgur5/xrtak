@@ -216,3 +216,20 @@ fn parse_cas_attributes(e: &quick_xml::events::BytesStart, b: &mut CasNineLine) 
         }
     }
 }
+
+fn apply_text_to_field(tag: CasTag, text: &str, b: &mut CasNineLine) {
+    let unescaped = unescape_xml(text);
+    match tag {
+        CasTag::Line1 => b.line1_ip_bp = unescaped,
+        CasTag::Line2 => b.line2_heading = unescaped,
+        CasTag::Line3 => b.line3_distance = unescaped,
+        CasTag::Line4 => b.line4_elevation = unescaped,
+        CasTag::Line5 => b.line5_description = unescaped,
+        CasTag::Line6 => b.line6_location = unescaped,
+        CasTag::Line7 => b.line7_mark_type = unescaped,
+        CasTag::Line8 => b.line8_friendlies = unescaped,
+        CasTag::Line9 => b.line9_egress = unescaped,
+        CasTag::Remarks => b.remarks = unescaped,
+        CasTag::None => {}
+    }
+}
