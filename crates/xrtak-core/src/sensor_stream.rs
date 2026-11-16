@@ -470,3 +470,20 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                     }
                 }
             }
+            Ok(Event::Empty(ref e)) if in_detail && e.name().as_ref() == b"sensor" => {
+                for a in e.attributes().flatten() {
+                    let val = String::from_utf8_lossy(&a.value);
+                    match a.key.as_ref() {
+                        b"model" => sensor_gimbal.model = val.into_owned(),
+                        b"type" => sensor_gimbal.sensor_type = SensorType::from_str_name(&val),
+                        b"fov" => sensor_gimbal.fov_horizontal_deg = val.parse().unwrap_or(45.0),
+                        b"vfov" => sensor_gimbal.fov_vertical_deg = val.parse().unwrap_or(30.0),
+                        b"range" => sensor_gimbal.slant_range_m = val.parse().unwrap_or(1000.0),
+                        b"azimuth" => sensor_gimbal.azimuth_deg = val.parse().unwrap_or(0.0),
+                        b"elevation" => sensor_gimbal.elevation_deg = val.parse().unwrap_or(-45.0),
+                        b"roll" => sensor_gimbal.roll_deg = val.parse().unwrap_or(0.0),
+                        b"zoom" => sensor_gimbal.zoom_ratio = val.parse().unwrap_or(1.0),
+                        _ => {}
+                    }
+                }
+            }
