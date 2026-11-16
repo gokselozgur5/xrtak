@@ -499,3 +499,10 @@ mod tests {
         let res = simplify_track_with_config(&points, &config);
         assert!(res.points.len() >= 3);
     }
+
+    #[test]
+    fn test_simplify_coordinates_rdp() {
+        let coords = vec![(39.0, 32.0), (39.005, 32.0), (39.01, 32.0)];
+        let res = simplify_coordinates_rdp(&coords, 5.0);
+        assert_eq!(res.len(), 2);
+    }
