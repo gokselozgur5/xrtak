@@ -197,3 +197,18 @@ impl MissionPackageManifest {
         }
     }
 }
+
+impl MissionPackageManifest {
+    fn parse_contents_block(&mut self, xml: &str) {
+        let (start, end) = match (xml.find("<Contents>"), xml.find("</Contents>")) {
+            (Some(s), Some(e)) => (s + 10, e),
+            _ => return,
+        };
+        for line in xml[start..end].lines() {
+            if let Some(ze) = extract_attr(line, "zipEntry") {
+                let ignore = extract_attr(line, "ignore").map_or(false, |v| v == "true");
+                self.add_content(ze, ignore);
+            }
+        }
+    }
+}
