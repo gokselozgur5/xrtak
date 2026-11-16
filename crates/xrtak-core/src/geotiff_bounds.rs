@@ -12,3 +12,19 @@ pub struct WorldFileTransform {
     pub c: f64,
     pub f: f64,
 }
+
+impl WorldFileTransform {
+    pub const fn new(a: f64, d: f64, b: f64, e: f64, c: f64, f: f64) -> Self {
+        Self { a, d, b, e, c, f }
+    }
+
+    pub fn from_scale_and_origin(scale_x: f64, scale_y: f64, origin_x: f64, origin_y: f64) -> Self {
+        Self {
+            a: scale_x.abs(),
+            d: 0.0,
+            b: 0.0,
+            e: -scale_y.abs(),
+            c: origin_x,
+            f: origin_y,
+        }
+    }
