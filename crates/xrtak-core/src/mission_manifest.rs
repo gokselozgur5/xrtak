@@ -75,3 +75,17 @@ impl MissionPackageManifest {
         self
     }
 }
+
+impl MissionPackageManifest {
+    pub fn add_parameter(&mut self, name: impl Into<String>, value: impl Into<String>) {
+        self.parameters.push(ManifestParameter::new(name, value));
+    }
+
+    pub fn add_content(&mut self, zip_entry: impl Into<String>, ignore: bool) {
+        self.contents.push(ManifestContentEntry::new(zip_entry, ignore));
+    }
+
+    pub fn find_entry(&self, zip_entry: &str) -> Option<&ManifestContentEntry> {
+        self.contents.iter().find(|c| c.zip_entry == zip_entry)
+    }
+}
