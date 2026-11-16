@@ -69,3 +69,26 @@ pub struct RouteWaypoint {
     pub planned_speed_mps: Option<f64>,
     pub loiter_sec: f64,
 }
+
+impl RouteWaypoint {
+    pub fn new(name: impl Into<String>, lat: f64, lon: f64, hae_m: f64) -> Self {
+        Self {
+            name: name.into(),
+            lat,
+            lon,
+            hae_m,
+            planned_speed_mps: None,
+            loiter_sec: 0.0,
+        }
+    }
+
+    pub fn with_speed(mut self, speed_mps: f64) -> Self {
+        self.planned_speed_mps = Some(speed_mps);
+        self
+    }
+
+    pub fn with_loiter(mut self, loiter_sec: f64) -> Self {
+        self.loiter_sec = loiter_sec;
+        self
+    }
+}
