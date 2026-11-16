@@ -113,3 +113,18 @@ pub fn perpendicular_distance_to_segment_m(
             d
         };
     }
+
+    let d_ap = haversine_distance_m(a.lat, a.lon, p.lat, p.lon);
+    let brg_ab = initial_bearing_deg(a.lat, a.lon, b.lat, b.lon).to_radians();
+    let brg_ap = initial_bearing_deg(a.lat, a.lon, p.lat, p.lon).to_radians();
+    let delta_brg = brg_ap - brg_ab;
+
+    let along_dist = d_ap * delta_brg.cos();
+    if along_dist <= 0.0 {
+        let d = haversine_distance_m(p.lat, p.lon, a.lat, a.lon);
+        return if include_elevation {
+            (d.powi(2) + (p.hae_m - a.hae_m).powi(2)).sqrt()
+        } else {
+            d
+        };
+    }
