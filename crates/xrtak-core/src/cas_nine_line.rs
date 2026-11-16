@@ -116,3 +116,19 @@ pub fn format_cas_nine_line_text(b: &CasNineLine) -> String {
         b.remarks
     )
 }
+
+fn escape_xml(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+fn unescape_xml(s: &str) -> String {
+    s.replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+}
