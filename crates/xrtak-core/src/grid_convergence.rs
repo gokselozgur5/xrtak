@@ -232,3 +232,21 @@ pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridErr
         while conv > 180.0 {
             conv -= 360.0;
         }
+        while conv < -180.0 {
+            conv += 360.0;
+        }
+        (GridSystem::UpsSouth, conv, 0.0)
+    };
+
+    Ok(GridSolution {
+        system,
+        convergence_deg,
+        convergence_rad: convergence_deg.to_radians(),
+        scale_factor,
+        central_meridian_deg: cm_deg,
+    })
+}
+
+/// Automatically select between UTM and UPS based on latitude, and compute grid solution.
+pub fn calculate_grid_convergence(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridError> {
+    if lat_deg >= 80.0 || lat_deg <= -80.0 {
