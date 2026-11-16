@@ -301,3 +301,13 @@ mod tests {
         assert!(config.is_mtls());
         assert_eq!(config.sni_hostname.as_deref(), Some("custom-sni.mil"));
     }
+
+    #[test]
+    fn test_mtls_missing_client_cert_fails() {
+        let err = TakTlsConfig::builder("tak.domain.mil", 8089)
+            .client_auth(ClientAuthMode::Required)
+            .build()
+            .unwrap_err();
+
+        assert_eq!(err, TakTlsError::MissingClientCertificate);
+    }
