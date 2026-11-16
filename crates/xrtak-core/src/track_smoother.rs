@@ -280,3 +280,15 @@ mod tests {
         let s2 = smoother.update(&obs2);
         assert!(s2.speed_mps <= 50.0);
     }
+
+    #[test]
+    fn test_trajectory_smoothing() {
+        let mut obs = Vec::new();
+        for i in 0..15 {
+            obs.push(TrackObservation::new(i as f64, (i * 10) as f64, 0.0, 0.0));
+        }
+        let states = smooth_trajectory(&obs, None);
+        assert_eq!(states.len(), 15);
+        assert!(states.last().unwrap().course_deg > 80.0 && states.last().unwrap().course_deg < 100.0);
+    }
+}
