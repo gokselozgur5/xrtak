@@ -359,3 +359,21 @@ mod tests {
         assert!(iso2.starts_with("2023-11-14T"));
         assert!(iso2.ends_with("Z"));
     }
+
+    #[test]
+    fn test_export_single_track_kml() {
+        let mut track = CotTrack::new("UID-01", "HAWK-1", "a-f-A");
+        track.add_point(KmlTrackPoint::new(39.92, 32.85, 100.0).with_time(10_000));
+        track.add_point(KmlTrackPoint::new(39.93, 32.86, 120.0).with_time(20_000));
+
+        let kml = export_single_track_kml(&track, &KmlExportConfig::default());
+        assert!(kml.contains("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"));
+        assert!(kml.contains("<kml xmlns=\"http://www.opengis.net/kml/2.2\""));
+        assert!(kml.contains("<name>HAWK-1 Track</name>"));
+        assert!(kml.contains("<coordinates>"));
+        assert!(kml.contains("32.850000,39.920000,100.0"));
+        assert!(kml.contains("<gx:Track>"));
+        assert!(kml.contains("<when>"));
+        assert!(kml.contains("HAWK-1 Start"));
+        assert!(kml.contains("HAWK-1 Current"));
+    }
