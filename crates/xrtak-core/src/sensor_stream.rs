@@ -84,3 +84,17 @@ impl Default for SensorType {
         Self::ElectroOptical
     }
 }
+
+/// Optics and gimbal orientation telemetry of a sensor.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SensorGimbal {
+    pub sensor_type: SensorType,
+    pub model: String,
+    pub fov_horizontal_deg: f64,
+    pub fov_vertical_deg: f64,
+    pub slant_range_m: f64,
+    pub azimuth_deg: f64,
+    pub elevation_deg: f64,
+    pub roll_deg: f64,
+    pub zoom_ratio: f64,
+}
