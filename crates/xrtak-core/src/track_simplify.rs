@@ -171,3 +171,18 @@ fn rdp_recursive(
             split_idx = i;
         }
     }
+
+    if max_dist > *max_err {
+        *max_err = max_dist;
+    }
+
+    if max_dist > epsilon_m {
+        let mut left = rdp_recursive(&points[..=split_idx], epsilon_m, include_elevation, max_err);
+        let right = rdp_recursive(&points[split_idx..], epsilon_m, include_elevation, max_err);
+        left.pop();
+        left.extend(right);
+        left
+    } else {
+        vec![first.clone(), last.clone()]
+    }
+}
