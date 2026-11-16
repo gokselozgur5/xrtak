@@ -149,3 +149,22 @@ pub fn format_iso8601_utc(unix_ms: u64) -> String {
         days -= days_in_year;
         year += 1;
     }
+
+    let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    let days_in_months = [
+        31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+    ];
+
+    let mut month = 1usize;
+    for &dim in &days_in_months {
+        if days < dim { break; }
+        days -= dim;
+        month += 1;
+    }
+    let day = days + 1;
+
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z",
+        year, month, day, hour, min, sec, millis
+    )
+}
