@@ -339,3 +339,22 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_export_preference_xml_and_summary() {
+        let config = TakTlsConfig::builder("tak.domain.mil", 8089)
+            .handshake_timeout_ms(5000)
+            .build()
+            .unwrap();
+
+        let xml = config.export_preference_xml();
+        assert!(xml.contains("<preference version=\"1\" name=\"cot_stream_tls\">"));
+        assert!(xml.contains("<entry key=\"serverHost\">tak.domain.mil</entry>"));
+        assert!(xml.contains("<entry key=\"serverPort\">8089</entry>"));
+        assert!(xml.contains("<entry key=\"timeoutMs\">5000</entry>"));
+
+        let summary = config.summary();
+        assert!(summary.contains("TLS-ServerAuth tak.domain.mil:8089"));
+        assert!(summary.contains("timeout=5000ms"));
+    }
+}
