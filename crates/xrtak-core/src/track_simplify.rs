@@ -300,3 +300,9 @@ pub fn generate_cot_track_history_xml(uid: &str, callsign: &str, points: &[Track
             Some(c) => format!(r#" course="{:.1}""#, c),
             None => String::new(),
         };
+
+        crumbs.push_str(&format!(
+            r#"<crumb idx="{}" lat="{:.6}" lon="{:.6}" hae="{:.1}"{}{}{}/>"#,
+            i, p.lat, p.lon, p.hae_m, time_attr, speed_attr, course_attr
+        ));
+    }
