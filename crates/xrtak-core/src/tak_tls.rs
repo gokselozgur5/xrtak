@@ -186,3 +186,17 @@ impl TakTlsConfigBuilder {
             cipher_suites: Vec::new(),
         }
     }
+    pub fn min_version(mut self, version: TlsVersion) -> Self {
+        self.min_version = version;
+        self
+    }
+
+    pub fn max_version(mut self, version: TlsVersion) -> Self {
+        self.max_version = version;
+        self
+    }
+
+    pub fn client_auth(mut self, mode: ClientAuthMode) -> Self {
+        self.client_auth = mode;
+        self
+    }
