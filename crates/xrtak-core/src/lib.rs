@@ -11,6 +11,7 @@ pub mod ew;
 pub mod ffi;
 pub mod fires;
 pub mod geo;
+pub mod geofence;
 pub mod geodesy;
 pub mod hud;
 pub mod hud_telemetry;
