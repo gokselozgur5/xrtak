@@ -44,6 +44,10 @@ pub use casevac::{
 };
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
+pub use cot_heartbeat::{
+    build_ping_cot, build_pong_cot, CotHeartbeatConfig, CotHeartbeatManager, HeartbeatAction,
+    HeartbeatStatus, PingRecord,
+};
 pub use corridor::{
     build_buffered_corridor_polygon, compute_camera_swath_width_m, evaluate_swath_corridor,
     simplify_polyline_rdp, CorridorPolygonResult,
