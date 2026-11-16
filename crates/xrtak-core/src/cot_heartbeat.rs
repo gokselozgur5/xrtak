@@ -348,4 +348,21 @@ mod tests {
             _ => panic!("Expected RespondWithPong"),
         }
     }
+
+    #[test]
+    fn test_process_incoming_cot_pong_acknowledged() {
+        let mut mgr = CotHeartbeatManager::default();
+        let (_xml, seq) = mgr.generate_ping(5_000);
+        let pong_xml = format!(
+            r#"<event version="2.0" uid="SERVER-pong-1" type="t-x-c-t-r"><detail><pong seq="{seq}" ref_uid="XRTAK-CLIENT-ping-{seq}"/></detail></event>"#
+        );
+        let action = mgr.process_incoming_cot(&pong_xml, 5_030);
+        match action {
+            HeartbeatAction::PongAcknowledged { seq: ack_seq, rtt_ms } => {
+                assert_eq!(ack_seq, seq);
+                assert_eq!(rtt_ms, 30);
+            }
+            _ => panic!("Expected PongAcknowledged"),
+        }
+    }
 }
