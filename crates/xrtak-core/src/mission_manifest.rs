@@ -264,4 +264,22 @@ mod tests {
         assert!(xml.contains("<Content zipEntry=\"certs/client.p12\" ignore=\"false\">"));
         assert!(xml.contains("<Parameter name=\"cert_alias\" value=\"UserCert\"/>"));
     }
+
+    #[test]
+    fn test_parse_xml_roundtrip() {
+        let mut manifest = MissionPackageManifest::new("UID-ROUNDTRIP", "Test Mission")
+            .with_on_receive_delete(true);
+        manifest.add_parameter("description", "Recon boundary");
+        manifest.add_content("layers/overlay.kml", false);
+        manifest.add_content("temp/scratch.txt", true);
+
+        let xml = manifest.generate_xml();
+        let parsed = MissionPackageManifest::parse_xml(&xml).expect("parse manifest");
+
+        assert_eq!(parsed.uid, "UID-ROUNDTRIP");
+        assert_eq!(parsed.name, "Test Mission");
+        assert!(parsed.on_receive_delete);
+        assert_eq!(parsed.contents.len(), 2);
+        assert_eq!(parsed.active_entries().len(), 1);
+    }
 }
