@@ -110,3 +110,16 @@ pub struct SmoothedTrackState {
     pub speed_mps: f64,
     pub course_deg: f64,
 }
+
+/// Stateful velocity and heading filter smoother.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrackSmoother {
+    pub config: TrackSmootherConfig,
+    state: Option<SmoothedTrackState>,
+}
+
+impl Default for TrackSmoother {
+    fn default() -> Self {
+        Self::new(TrackSmootherConfig::default())
+    }
+}
