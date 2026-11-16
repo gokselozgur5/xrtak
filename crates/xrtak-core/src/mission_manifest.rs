@@ -282,4 +282,17 @@ mod tests {
         assert_eq!(parsed.contents.len(), 2);
         assert_eq!(parsed.active_entries().len(), 1);
     }
+
+    #[test]
+    fn test_active_entries_and_find_entry() {
+        let mut manifest = MissionPackageManifest::new("UID-SEARCH", "Search test");
+        manifest.add_content("data/track.cot", false);
+        manifest.add_content("data/notes.txt", true);
+
+        assert_eq!(manifest.content_count(), 2);
+        assert_eq!(manifest.active_entries().len(), 1);
+        assert_eq!(manifest.active_entries()[0].zip_entry, "data/track.cot");
+        assert!(manifest.find_entry("data/track.cot").is_some());
+        assert!(manifest.find_entry("nonexistent.xml").is_none());
+    }
 }
