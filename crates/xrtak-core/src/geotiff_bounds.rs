@@ -165,3 +165,19 @@ pub fn compute_raster_extent(
         top_left, top_right, bottom_left, bottom_right,
     })
 }
+
+/// Parses GeoTIFF ModelTransformationTag (Tag 34264) 4x4 matrix into affine transform.
+pub fn parse_geotiff_model_transform_4x4(matrix: &[f64; 16]) -> Result<WorldFileTransform, String> {
+    let a = matrix[0];
+    let b = matrix[1];
+    let c = matrix[3];
+    let d = matrix[4];
+    let e = matrix[5];
+    let f = matrix[7];
+
+    if a.abs() < 1e-14 && e.abs() < 1e-14 {
+        return Err("Degenerate GeoTIFF model transformation matrix".to_string());
+    }
+
+    Ok(WorldFileTransform::new(a, d, b, e, c, f))
+}
