@@ -295,4 +295,12 @@ mod tests {
         assert!(manifest.find_entry("data/track.cot").is_some());
         assert!(manifest.find_entry("nonexistent.xml").is_none());
     }
+
+    #[test]
+    fn test_xml_attribute_escaping() {
+        let manifest = MissionPackageManifest::new("UID<>&\"", "Op 'Spear' & Shield");
+        let xml = manifest.generate_xml();
+        assert!(xml.contains("value=\"UID&lt;&gt;&amp;&quot;\""));
+        assert!(xml.contains("value=\"Op &apos;Spear&apos; &amp; Shield\""));
+    }
 }
