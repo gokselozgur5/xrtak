@@ -200,3 +200,12 @@ impl TakTlsConfigBuilder {
         self.client_auth = mode;
         self
     }
+    pub fn client_cert(mut self, cert: TlsCertificate) -> Self {
+        self.client_cert = Some(cert);
+        self
+    }
+
+    pub fn ca_cert(mut self, cert: TlsCertificate) -> Self {
+        self.ca_cert = Some(cert);
+        self
+    }
