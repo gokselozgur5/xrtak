@@ -183,3 +183,20 @@ mod tests {
         assert!(!poly.contains_point(&GeofencePoint::new_3d(5.0, 5.0, 50.0)));
         assert!(!poly.contains_point(&GeofencePoint::new_3d(5.0, 5.0, 600.0)));
     }
+    #[test]
+    fn test_find_breaching_tracks() {
+        let vertices = vec![
+            GeofencePoint::new_2d(0.0, 0.0),
+            GeofencePoint::new_2d(10.0, 0.0),
+            GeofencePoint::new_2d(10.0, 10.0),
+            GeofencePoint::new_2d(0.0, 10.0),
+        ];
+        let poly = GeofencePolygon::new("box-t", "Tracks", vertices);
+        let tracks = vec![
+            ("TRK-1".to_string(), GeofencePoint::new_2d(5.0, 5.0)),
+            ("TRK-2".to_string(), GeofencePoint::new_2d(15.0, 5.0)),
+        ];
+        let breaches = poly.find_breaching_tracks(&tracks);
+        assert_eq!(breaches, vec!["TRK-1"]);
+    }
+}
