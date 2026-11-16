@@ -19,3 +19,19 @@ pub enum SensorStreamError {
     MissingFeedTag,
     MissingAttribute(&'static str),
 }
+
+impl fmt::Display for SensorStreamError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidXml(e) => write!(f, "Invalid XML: {}", e),
+            Self::MissingEventTag => write!(f, "Missing event tag"),
+            Self::MissingPointTag => write!(f, "Missing point tag"),
+            Self::MissingDetailTag => write!(f, "Missing detail tag"),
+            Self::MissingVideoTag => write!(f, "Missing video stream tag"),
+            Self::MissingFeedTag => write!(f, "Missing feed tag"),
+            Self::MissingAttribute(a) => write!(f, "Missing attribute: {}", a),
+        }
+    }
+}
+
+impl std::error::Error for SensorStreamError {}
