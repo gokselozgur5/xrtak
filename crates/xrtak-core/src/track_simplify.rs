@@ -247,3 +247,17 @@ pub fn simplify_track_with_config(
             }
         }
         segments.push(current_segment);
+
+        let mut combined: Vec<TrackPoint> = Vec::new();
+        for seg in segments {
+            let seg_res = rdp_recursive(&seg, config.epsilon_m, config.include_elevation, &mut max_err);
+            if combined.is_empty() {
+                combined.extend(seg_res);
+            } else {
+                combined.extend(seg_res.into_iter().skip(1));
+            }
+        }
+        combined
+    } else {
+        rdp_recursive(points, config.epsilon_m, config.include_elevation, &mut max_err)
+    };
