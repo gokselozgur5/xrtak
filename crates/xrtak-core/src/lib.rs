@@ -99,6 +99,10 @@ pub use tracker::{
     compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
     TrackPredictInput, TrackPredictRequest, TrackPrediction, TrackPredictionPoint,
 };
+pub use track_smoother::{
+    heading_delta_deg, smooth_heading_deg, smooth_scalar, smooth_trajectory, wrap_heading_deg,
+    SmoothedTrackState, TrackObservation, TrackSmoother, TrackSmootherConfig,
+};
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
 pub use zones::{
     is_engaged_by_threat_dome, is_inside_tactical_zone, parse_cot_polygon_zone, point_in_polygon_en,
