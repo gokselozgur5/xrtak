@@ -46,3 +46,25 @@ pub struct SpotReport {
     pub hae: f64,
     pub time_iso: String,
 }
+
+impl SpotReport {
+    pub fn new(cot_uid: impl Into<String>, observer: impl Into<String>) -> Self {
+        Self {
+            cot_uid: cot_uid.into(),
+            observer_callsign: observer.into(),
+            cot_type: "b-r-f-h-c".to_string(),
+            size: String::new(),
+            activity: String::new(),
+            location: String::new(),
+            unit: String::new(),
+            time_observed: String::new(),
+            equipment: String::new(),
+            assessment: String::new(),
+            remarks: String::new(),
+            lat: 0.0,
+            lon: 0.0,
+            hae: 0.0,
+            time_iso: "1970-01-01T00:00:00Z".to_string(),
+        }
+    }
+}
