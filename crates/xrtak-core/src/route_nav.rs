@@ -232,3 +232,21 @@ impl TacticalRoutePlan {
         self.waypoints.is_empty()
     }
 }
+
+impl TacticalRoutePlan {
+    /// Construct TacticalRoutePlan by computing leg metrics.
+    pub fn build(id: &str, name: &str, wps: Vec<NavWaypoint>, p: &VehicleMovementProfile) -> Self {
+        let (mut legs, mut cd, mut ce) = (Vec::new(), 0.0, 0.0);
+        for i in 0..wps.len().saturating_sub(1) {
+            legs.push(build_leg(i, &wps[i], &wps[i + 1], p, &mut cd, &mut ce));
+        }
+        Self {
+            route_id: id.to_string(),
+            name: name.to_string(),
+            waypoints: wps,
+            legs,
+            total_distance_m: cd,
+            total_ete_seconds: ce,
+        }
+    }
+}
