@@ -235,3 +235,19 @@ impl AffiliationMapper {
         CoTAffiliation::from_char(aff_char)
     }
 }
+
+impl AffiliationMapper {
+    /// Map CoT affiliation to designated tactical color.
+    pub fn map_color(affil: CoTAffiliation) -> TacticalColor {
+        match affil {
+            CoTAffiliation::Friendly => TacticalColor::FRIENDLY_BLUE,
+            CoTAffiliation::AssumedFriend => TacticalColor::ASSUMED_FRIEND_CYAN,
+            CoTAffiliation::Hostile | CoTAffiliation::Joker | CoTAffiliation::Faker => {
+                TacticalColor::HOSTILE_RED
+            }
+            CoTAffiliation::Suspect => TacticalColor::SUSPECT_ORANGE,
+            CoTAffiliation::Neutral => TacticalColor::NEUTRAL_GREEN,
+            CoTAffiliation::Unknown | CoTAffiliation::Pending => TacticalColor::UNKNOWN_YELLOW,
+        }
+    }
+}
