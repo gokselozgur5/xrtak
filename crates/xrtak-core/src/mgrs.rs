@@ -412,3 +412,26 @@ impl UtmCoord {
     /// Forward projection: convert latitude and longitude to UTM coordinate.
     pub fn from_lat_lon(lat_deg: f64, lon_deg: f64) -> Result<Self, MgrsError> {
         let gzd = GridZoneDesignator::from_lat_lon(lat_deg, lon_deg)?;
+        let phi = lat_deg.to_radians();
+        let lam = lon_deg.to_radians();
+        let lam0 = gzd.central_meridian_deg().to_radians();
+
+        let mut dlam = lam - lam0;
+        while dlam > PI {
+            dlam -= 2.0 * PI;
+        }
+        while dlam < -PI {
+            dlam += 2.0 * PI;
+        }
+
+        let sin_p = phi.sin();
+        let cos_p = phi.cos();
+        let tan_p = phi.tan();
+
+        let n = WGS84_A / (1.0 - WGS84_E2 * sin_p * sin_p).sqrt();
+        let t = tan_p * tan_p;
+        let c = WGS84_EP2 * cos_p * cos_p;
+        let a = cos_p * dlam;
+
+        // Meridional arc distance M from equator.
+        let m = WGS84_A
