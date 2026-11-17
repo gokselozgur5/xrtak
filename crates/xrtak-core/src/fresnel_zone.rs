@@ -343,3 +343,17 @@ pub fn classify_link_quality(link_margin_db: f64) -> LinkQuality {
         LinkQuality::Severed
     }
 }
+
+/// Computes EIRP, received signal power, and fade-margin-adjusted link margin.
+pub fn compute_rx_power_and_margin(
+    t: &RfTransceiver,
+    fspl: f64,
+    diff_loss: f64,
+    misc_loss: f64,
+) -> (f64, f64, f64) {
+    let eirp = t.tx_power_dbm + t.tx_gain_dbi - t.tx_loss_db;
+    let total_loss = fspl + diff_loss + misc_loss + t.rx_loss_db;
+    let rx_pwr = eirp + t.rx_gain_dbi - total_loss;
+    let margin = rx_pwr - t.rx_sensitivity_dbm - t.fade_margin_db;
+    (eirp, rx_pwr, margin)
+}
