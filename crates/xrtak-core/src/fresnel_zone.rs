@@ -247,3 +247,16 @@ pub fn compute_knife_edge_diffraction(v: f64) -> f64 {
         }
     }
 }
+
+/// Classifies clearance ratio into standard operational clearance categories.
+pub fn classify_clearance_status(net_clearance_m: f64, ratio: f64) -> ClearanceStatus {
+    if net_clearance_m <= 0.0 {
+        ClearanceStatus::Obstructed
+    } else if ratio < 0.6 {
+        ClearanceStatus::Grazing
+    } else if ratio < 1.0 {
+        ClearanceStatus::SubClear
+    } else {
+        ClearanceStatus::Clear
+    }
+}
