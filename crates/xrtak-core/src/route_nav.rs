@@ -392,3 +392,29 @@ impl PositionMetrics {
         }
     }
 }
+
+impl RouteNavStatus {
+    /// Construct RouteNavStatus from computed metrics.
+    pub fn from_metrics(
+        idx: usize,
+        tgt: &str,
+        pm: PositionMetrics,
+        speed: f64,
+        rem_d: f64,
+        max_xtd: f64,
+        cue: Option<NavGuidanceCue>,
+    ) -> Self {
+        let eta_tgt = pm.dist_m / speed;
+        Self {
+            current_leg_index: idx,
+            target_waypoint_id: tgt.to_string(),
+            distance_to_target_m: pm.dist_m,
+            bearing_to_target_deg: pm.brg_deg,
+            cross_track_error_m: pm.xtd_m,
+            eta_to_target_seconds: eta_tgt,
+            eta_total_seconds: eta_tgt + (rem_d / speed),
+            is_off_track: pm.xtd_m.abs() > max_xtd,
+            guidance: cue,
+        }
+    }
+}
