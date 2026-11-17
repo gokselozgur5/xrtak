@@ -359,3 +359,18 @@ impl DistressBeacon {
         let mut remarks = String::new();
         let mut parent_uid = None;
         let mut current_tag = BeaconXmlTag::None;
+        loop {
+            match reader.read_event_into(&mut buf) {
+                Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                    b"event" => {
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"uid" => uid = Some(parse_str_attr(&a.value)),
+                                b"type" => cot_type = Some(parse_str_attr(&a.value)),
+                                b"time" => time_iso = Some(parse_str_attr(&a.value)),
+                                b"stale" => stale_iso = Some(parse_str_attr(&a.value)),
+                                _ => {}
+                            }
+                        }
+                        current_tag = BeaconXmlTag::Event;
+                    }
