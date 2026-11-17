@@ -184,3 +184,16 @@ impl DistressBeacon {
             status: EmergencyStatus::Active,
             severity: EmergencySeverity::Critical,
             sos_flags: SosFlags::default(),
+            lat,
+            lon,
+            hae: 0.0,
+            ce: 10.0,
+            le: 10.0,
+            time_iso: "2026-01-01T00:00:00Z".to_string(),
+            stale_iso: "2026-01-01T00:10:00Z".to_string(),
+            description: String::new(),
+            parent_uid: None,
+        }
+    }
+}
+
