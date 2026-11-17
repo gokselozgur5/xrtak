@@ -803,3 +803,26 @@ mod tests {
     #[test]
     fn test_precedence_and_window() {
         let p = MedevacPrecedence::Urgent;
+        assert_eq!(p.code(), "A - URGENT");
+        assert_eq!(p.target_evacuation_window_hours(), Some(2));
+        assert_eq!(
+            MedevacPrecedence::parse_code("B - URGENT-SURG"),
+            Some(MedevacPrecedence::UrgentSurgical)
+        );
+        assert_eq!(
+            MedevacPrecedence::parse_code("routine"),
+            Some(MedevacPrecedence::Routine)
+        );
+        assert_eq!(
+            MedevacPrecedence::Convenience.target_evacuation_window_hours(),
+            None
+        );
+    }
+
+    #[test]
+    fn test_enums_string_roundtrip() {
+        let eq = MedevacEquipment::from_description("hoist");
+        assert_eq!(eq, MedevacEquipment::Hoist);
+        assert_eq!(eq.as_str(), "Hoist");
+
+        let sec = SiteSecurity::parse_security("X - Armed escort required");
