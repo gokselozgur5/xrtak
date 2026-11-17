@@ -136,3 +136,26 @@ impl Default for SiteSecurity {
         Self::NoEnemy
     }
 }
+
+impl SiteSecurity {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::NoEnemy => "N - No enemy troops",
+            Self::PossibleEnemy => "P - Possible enemy troops",
+            Self::EnemyInArea => "E - Enemy troops in area",
+            Self::ArmedEscortRequired => "X - Armed escort required",
+            Self::Custom(s) => s.as_str(),
+        }
+    }
+
+    pub fn parse_security(s: &str) -> Self {
+        let upper = s.trim().to_uppercase();
+        if upper.starts_with('N') {
+            Self::NoEnemy
+        } else if upper.starts_with('P') {
+            Self::PossibleEnemy
+        } else if upper.starts_with('E') {
+            Self::EnemyInArea
+        } else if upper.starts_with('X') {
+            Self::ArmedEscortRequired
+        } else {
