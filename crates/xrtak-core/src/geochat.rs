@@ -163,6 +163,9 @@ impl GeoChatPacket {
         let mut message_text = String::new();
         let mut timestamp_iso = String::new();
         let mut parent_group = "RootContactGroup".to_string();
+        let mut conversation_id = None;
+        let mut parent_message_id = None;
+        let mut recipients = Vec::new();
         let (mut lat, mut lon, mut hae) = (0.0, 0.0, 9999999.0);
         loop {
             match reader.read_event() {
