@@ -485,4 +485,17 @@ mod tests {
         assert!(plan.total_distance_m > 10000.0);
         assert!(plan.total_ete_seconds > 0.0);
     }
+
+    #[test]
+    fn test_tracker_evaluation_and_guidance() {
+        let plan = sample_route();
+        let mut tracker = RouteNavTracker::new(plan);
+        assert_eq!(tracker.current_target_waypoint_id(), Some("WP2"));
+        let st = tracker.evaluate_position(0.0, 0.05, 0.0, 10.0, Some(90.0));
+        assert!(st.is_some());
+        let s = st.unwrap();
+        assert_eq!(s.target_waypoint_id, "WP2");
+        assert!(!s.is_off_track);
+        assert!(s.guidance.is_some());
+    }
 }
