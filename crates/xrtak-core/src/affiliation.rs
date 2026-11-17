@@ -576,3 +576,17 @@ mod tests {
         let cot_type = AffiliationMapper::to_cot_type(CoTAffiliation::Friendly, "G-U-C");
         assert_eq!(cot_type, "a-f-G-U-C");
     }
+
+    #[test]
+    fn test_contact_stats_evaluation() {
+        let m1 = AffiliationMapper::create_marker("1", "C1", "a-f-G", None);
+        let m2 = AffiliationMapper::create_marker("2", "C2", "a-h-A", None);
+        let m3 = AffiliationMapper::create_marker("3", "C3", "a-s-G", None);
+        let stats = AffiliationMapper::evaluate_contacts(&[m1, m2, m3]);
+        assert_eq!(stats.total, 3);
+        assert_eq!(stats.friendly_count, 1);
+        assert_eq!(stats.hostile_count, 1);
+        assert_eq!(stats.suspect_count, 1);
+        assert_eq!(stats.high_threat_count, 1);
+    }
+}
