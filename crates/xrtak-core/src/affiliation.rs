@@ -220,3 +220,18 @@ pub struct ContactStats {
     pub suspect_count: usize,
     pub high_threat_count: usize,
 }
+
+/// Mapper engine for CoT contact affiliations and marker visual coding.
+pub struct AffiliationMapper;
+
+impl AffiliationMapper {
+    /// Extract CoTAffiliation from a CoT type string.
+    pub fn parse_affiliation(cot_type: &str) -> CoTAffiliation {
+        let parts: Vec<&str> = cot_type.split('-').collect();
+        if parts.len() < 2 || parts[0] != "a" {
+            return CoTAffiliation::Unknown;
+        }
+        let aff_char = parts[1].chars().next().unwrap_or('u');
+        CoTAffiliation::from_char(aff_char)
+    }
+}
