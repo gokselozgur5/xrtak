@@ -393,6 +393,19 @@ impl ConversationThread {
     }
 }
 
+/// Manages and groups incoming GeoChat packets into conversation threads.
+#[derive(Debug, Clone, Default)]
+pub struct GeoChatThreader {
+    threads: BTreeMap<String, ConversationThread>,
+    message_to_thread: HashMap<String, String>,
+}
+
+impl GeoChatThreader {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
     std::str::from_utf8(bytes).ok()?.parse().ok()
 }
