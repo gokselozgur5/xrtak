@@ -420,4 +420,20 @@ mod tests {
         let j1 = compute_knife_edge_diffraction(1.0);
         assert!(j1 > 10.0);
     }
+
+    #[test]
+    fn test_fresnel_clearance_analysis() {
+        let obs = ObstaclePoint {
+            distance_m: 500.0,
+            terrain_elevation_m: 20.0,
+            structure_height_m: 10.0,
+            name: "Ridge_A".to_string(),
+        };
+        assert_eq!(obs.total_elevation_m(), 30.0);
+
+        let cfg = FresnelCalculatorConfig::default();
+        let pt = evaluate_point_clearance(&obs, 100.0, 100.0, 1000.0, &cfg);
+        assert_eq!(pt.status, ClearanceStatus::Clear);
+        assert!(pt.net_clearance_m > 60.0);
+    }
 }
