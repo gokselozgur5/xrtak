@@ -149,3 +149,23 @@ impl SosFlags {
     }
 }
 
+/// Cursor-on-Target Emergency Beacon / 911 distress alert record.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DistressBeacon {
+    pub beacon_uid: String,
+    pub callsign: String,
+    pub alert_type: EmergencyType,
+    pub status: EmergencyStatus,
+    pub severity: EmergencySeverity,
+    pub sos_flags: SosFlags,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae: f64,
+    pub ce: f64,
+    pub le: f64,
+    pub time_iso: String,
+    pub stale_iso: String,
+    pub description: String,
+    pub parent_uid: Option<String>,
+}
+
