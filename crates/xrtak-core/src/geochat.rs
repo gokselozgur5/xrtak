@@ -265,6 +265,22 @@ pub struct GeoChatBuilder {
     recipients: Vec<String>,
 }
 
+impl GeoChatBuilder {
+    pub fn new() -> Self {
+        Self {
+            parent_group: "RootContactGroup".to_string(),
+            hae: 9999999.0,
+            ..Default::default()
+        }
+    }
+
+    pub fn sender(mut self, uid: impl Into<String>, callsign: impl Into<String>) -> Self {
+        self.sender_uid = Some(uid.into());
+        self.sender_callsign = Some(callsign.into());
+        self
+    }
+}
+
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
     std::str::from_utf8(bytes).ok()?.parse().ok()
 }
