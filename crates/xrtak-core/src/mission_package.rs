@@ -286,3 +286,27 @@ fn extract_manifest_param(xml: &str, param_name: &str) -> Option<String> {
     None
 }
 
+fn extract_content_hashes(xml: &str) -> Vec<(String, String)> {
+    let mut results = Vec::new();
+    let mut current_zip_entry: Option<String> = None;
+    for line in xml.lines() {
+        if let Some(ze_idx) = line.find("zipEntry=\"") {
+            let rest = &line[ze_idx + 10..];
+            if let Some(end) = rest.find('"') {
+                current_zip_entry = Some(rest[..end].to_string());
+            }
+        }
+        if line.contains("name=\"sha256\"") {
+            if let Some(v_idx) = line.find("value=\"") {
+                let rest = &line[v_idx + 7..];
+                if let Some(end) = rest.find('"') {
+                    let sha = rest[..end].to_string();
+                    if let Some(ref entry) = current_zip_entry {
+                        results.push((entry.clone(), sha));
+                    }
+                }
+            }
+        }
+    }
+    results
+}
