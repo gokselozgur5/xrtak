@@ -282,3 +282,18 @@ impl AffiliationMapper {
         }
     }
 }
+
+impl AffiliationMapper {
+    /// Construct a ContactMarker with optional custom ATAK ARGB color override.
+    pub fn create_marker(
+        uid: &str,
+        callsign: &str,
+        cot_type: &str,
+        custom_argb: Option<i32>,
+    ) -> ContactMarker {
+        let affiliation = Self::parse_affiliation(cot_type);
+        let standard_identity = affiliation.to_standard_identity();
+        let (color, is_custom_color) = match custom_argb {
+            Some(argb) => (TacticalColor::from_argb_i32(argb), true),
+            None => (Self::map_color(affiliation), false),
+        };
