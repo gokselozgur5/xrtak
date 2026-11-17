@@ -182,3 +182,26 @@ impl GridZoneDesignator {
             return Err(MgrsError::InvalidUtmZone(zone));
         }
         let b = band.to_ascii_uppercase();
+        if !LATITUDE_BANDS.iter().any(|(band_char, _, _)| *band_char == b) {
+            return Err(MgrsError::InvalidLatitudeBand(band));
+        }
+        Ok(Self { zone, band: b })
+    }
+
+    /// Determine GZD from geodetic latitude and longitude in degrees.
+    pub fn from_lat_lon(lat_deg: f64, lon_deg: f64) -> Result<Self, MgrsError> {
+        if !(-80.0..=84.0).contains(&lat_deg) {
+            return Err(MgrsError::InvalidLatitude(lat_deg));
+        }
+        if !(-180.0..=180.0).contains(&lon_deg) {
+            return Err(MgrsError::InvalidLongitude(lon_deg));
+        }
+
+        let mut norm_lon = lon_deg;
+        while norm_lon < -180.0 {
+            norm_lon += 360.0;
+        }
+        while norm_lon >= 180.0 {
+            norm_lon -= 360.0;
+        }
+
