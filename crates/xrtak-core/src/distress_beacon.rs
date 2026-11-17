@@ -508,3 +508,28 @@ impl DistressBeacon {
                 if !trimmed.is_empty() { Some(trimmed.to_string()) } else { None }
             })
             .unwrap_or_else(|| beacon_uid.clone());
+        let status = if is_cancelled || cot_type.as_deref() == Some("b-a-o-can") {
+            EmergencyStatus::Cancelled
+        } else {
+            EmergencyStatus::Active
+        };
+        Ok(Self {
+            beacon_uid,
+            callsign: cs,
+            alert_type: emg_type,
+            status,
+            severity: EmergencySeverity::Critical,
+            sos_flags: SosFlags::default(),
+            lat,
+            lon,
+            hae,
+            ce,
+            le,
+            time_iso: time_iso.unwrap_or_default(),
+            stale_iso: stale_iso.unwrap_or_default(),
+            description: remarks,
+            parent_uid,
+        })
+    }
+}
+
