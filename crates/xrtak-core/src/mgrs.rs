@@ -458,3 +458,26 @@ impl UtmCoord {
         let is_northern = lat_deg >= 0.0;
         if !is_northern {
             northing += FALSE_NORTHING_SOUTH;
+        }
+
+        Ok(Self {
+            zone: gzd.zone,
+            band: gzd.band,
+            easting,
+            northing,
+            is_northern,
+        })
+    }
+
+    /// Inverse projection: convert UTM coordinate back to Geodetic latitude / longitude.
+    pub fn to_geodetic(&self) -> Result<GeodeticCoord, MgrsError> {
+        let x = self.easting - FALSE_EASTING;
+        let y = if self.is_northern {
+            self.northing
+        } else {
+            self.northing - FALSE_NORTHING_SOUTH
+        };
+
+        let e1 = (1.0 - (1.0 - WGS84_E2).sqrt()) / (1.0 + (1.0 - WGS84_E2).sqrt());
+        let m = y / UTM_K0;
+        let mu = m
