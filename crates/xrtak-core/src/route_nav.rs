@@ -445,3 +445,18 @@ impl RouteNavTracker {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_haversine_and_bearing() {
+        let (lat1, lon1) = (37.7749, -122.4194);
+        let (lat2, lon2) = (37.7750, -122.4194);
+        let dist = haversine_distance_m(lat1, lon1, lat2, lon2);
+        assert!((dist - 11.1).abs() < 1.0);
+        let brg = initial_bearing_deg(lat1, lon1, lat2, lon2);
+        assert!(brg < 1.0 || brg > 359.0);
+    }
+}
