@@ -26,6 +26,7 @@ pub mod kml_export;
 pub mod manifest;
 pub mod marker;
 pub mod mesh_frag;
+pub mod mgrs;
 pub mod mission;
 pub mod mission_manifest;
 pub mod mission_package;
@@ -102,6 +103,10 @@ pub use manifest::{
     build_mapset_manifest, copernicus_glo30_cells_for_bounds, estimate_tiles_for_bounds,
     format_copernicus_glo30_cell_id, CopernicusDemCell, ManifestInput, MapsetManifest,
     ZoomTileEstimate,
+};
+pub use mgrs::{
+    GeodeticCoord, GridZoneDesignator, HundredKmSquare, MgrsBoundingBox, MgrsCoord, MgrsError,
+    MgrsPrecision, UtmCoord,
 };
 pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
