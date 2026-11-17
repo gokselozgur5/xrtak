@@ -475,3 +475,23 @@ mod tests {
             StandardIdentity::Hostile
         );
     }
+
+    #[test]
+    fn test_standard_identity_mapping_other() {
+        assert_eq!(
+            CoTAffiliation::Joker.to_standard_identity(),
+            StandardIdentity::Hostile
+        );
+        assert_eq!(
+            CoTAffiliation::Faker.to_standard_identity(),
+            StandardIdentity::Hostile
+        );
+        assert_eq!(
+            CoTAffiliation::Neutral.to_standard_identity(),
+            StandardIdentity::Neutral
+        );
+        assert_eq!(
+            CoTAffiliation::Unknown.to_standard_identity(),
+            StandardIdentity::Unknown
+        );
+    }
