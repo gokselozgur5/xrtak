@@ -315,3 +315,19 @@ impl AffiliationMapper {
         }
     }
 }
+
+impl AffiliationMapper {
+    /// Aggregate statistical distribution across multiple contact markers.
+    pub fn evaluate_contacts(markers: &[ContactMarker]) -> ContactStats {
+        let mut stats = ContactStats {
+            total: markers.len(),
+            ..Default::default()
+        };
+        for m in markers {
+            match m.affiliation {
+                CoTAffiliation::Friendly | CoTAffiliation::AssumedFriend => {
+                    stats.friendly_count += 1;
+                }
+                CoTAffiliation::Hostile | CoTAffiliation::Joker | CoTAffiliation::Faker => {
+                    stats.hostile_count += 1;
+                }
