@@ -201,3 +201,20 @@ hae=\"{:.1}\" ce=\"9999999\" le=\"9999999\"/>\
         )
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SpotrepTag {
+    None,
+    Size,
+    Activity,
+    Location,
+    Unit,
+    Time,
+    Equipment,
+    Assessment,
+    Remarks,
+}
+
+fn parse_f64(bytes: &[u8]) -> Option<f64> {
+    std::str::from_utf8(bytes).ok()?.trim().parse().ok()
+}
