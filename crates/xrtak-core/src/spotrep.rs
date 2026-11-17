@@ -26,3 +26,23 @@ impl fmt::Display for SpotReportError {
 }
 
 impl std::error::Error for SpotReportError {}
+
+/// Tactical Spot Report (SPOTREP / SALUTE format) packet.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpotReport {
+    pub cot_uid: String,
+    pub observer_callsign: String,
+    pub cot_type: String,
+    pub size: String,
+    pub activity: String,
+    pub location: String,
+    pub unit: String,
+    pub time_observed: String,
+    pub equipment: String,
+    pub assessment: String,
+    pub remarks: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae: f64,
+    pub time_iso: String,
+}
