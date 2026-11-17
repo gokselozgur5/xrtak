@@ -323,3 +323,11 @@ impl DistressBeacon {
     }
 }
 
+fn parse_f64(val: &[u8]) -> Option<f64> {
+    std::str::from_utf8(val).ok()?.parse::<f64>().ok()
+}
+
+fn parse_str_attr(val: &[u8]) -> String {
+    std::str::from_utf8(val).unwrap_or_default().to_string()
+}
+
