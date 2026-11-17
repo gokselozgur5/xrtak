@@ -167,3 +167,24 @@ pub struct LinkBudgetResult {
     /// Link operational status categorization.
     pub quality: LinkQuality,
 }
+
+/// Computes signal wavelength in meters from frequency in Hertz.
+pub fn compute_wavelength(frequency_hz: f64) -> f64 {
+    if frequency_hz <= 0.0 {
+        return 0.0;
+    }
+    SPEED_OF_LIGHT_MPS / frequency_hz
+}
+
+/// Calculates radius of nth Fresnel zone in meters at distances d1 and d2.
+pub fn compute_fresnel_radius(n: u32, d1_m: f64, d2_m: f64, frequency_hz: f64) -> f64 {
+    let total_d = d1_m + d2_m;
+    if total_d <= 1e-4 || d1_m <= 0.0 || d2_m <= 0.0 || n == 0 {
+        return 0.0;
+    }
+    let lambda = compute_wavelength(frequency_hz);
+    if lambda <= 0.0 {
+        return 0.0;
+    }
+    ((n as f64 * lambda * d1_m * d2_m) / total_d).sqrt()
+}
