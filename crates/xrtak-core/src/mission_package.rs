@@ -406,3 +406,27 @@ pub fn compute_sha256(data: &[u8]) -> [u8; 32] {
         h[0] = h[0].wrapping_add(a);
         h[1] = h[1].wrapping_add(b);
         h[2] = h[2].wrapping_add(c);
+        h[3] = h[3].wrapping_add(d);
+        h[4] = h[4].wrapping_add(e);
+        h[5] = h[5].wrapping_add(f);
+        h[6] = h[6].wrapping_add(g);
+        h[7] = h[7].wrapping_add(h_val);
+    }
+
+    let mut out = [0u8; 32];
+    for (i, val) in h.iter().enumerate() {
+        out[4 * i..4 * i + 4].copy_from_slice(&val.to_be_bytes());
+    }
+    out
+}
+
+pub fn compute_sha256_hex(data: &[u8]) -> String {
+    let digest = compute_sha256(data);
+    let mut s = String::with_capacity(64);
+    for b in digest {
+        s.push_str(&format!("{b:02x}"));
+    }
+    s
+}
+
+pub fn create_zip_archive(files: &[(String, Vec<u8>)]) -> Vec<u8> {
