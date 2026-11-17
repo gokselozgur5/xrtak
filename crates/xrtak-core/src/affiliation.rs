@@ -495,3 +495,19 @@ mod tests {
             StandardIdentity::Unknown
         );
     }
+
+    #[test]
+    fn test_tactical_color_conversions() {
+        let col = TacticalColor::new(255, 38, 0, 255);
+        assert_eq!(col.to_hex(), "#FF2600FF");
+        let (r, _, _, a) = col.to_rgba_f32();
+        assert!((r - 1.0).abs() < 1e-4);
+        assert!((a - 1.0).abs() < 1e-4);
+        let argb_i32 = col.to_atak_argb_i32();
+        let recovered = TacticalColor::from_argb_i32(argb_i32);
+        assert_eq!(col, recovered);
+
+        let green = TacticalColor::from_rgb(0, 200, 83);
+        assert_eq!(green.a, 255);
+        assert_eq!(green, TacticalColor::NEUTRAL_GREEN);
+    }
