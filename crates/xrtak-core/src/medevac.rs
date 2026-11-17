@@ -458,3 +458,26 @@ impl CotMedevacBuilder {
             line8_patient_nationality: self.line8_patient_nationality,
             line9_terrain_nbc: self.line9_terrain_nbc,
             remarks: self.remarks,
+        }
+    }
+
+    pub fn build(self) -> Result<CotMedevacReport, MedevacError> {
+        self.validate_coordinates()?;
+        Ok(self.into_report())
+    }
+}
+
+/// Formats standard NATO 9-Line MEDEVAC textual voice readback brief.
+pub fn format_nine_line_voice_brief(r: &CotMedevacReport) -> String {
+    format!(
+        "--- 9-LINE MEDEVAC BRIEF ---\n\
+         LINE 1 (Location): {}\n\
+         LINE 2 (Frequency / Callsign): {}\n\
+         LINE 3 (Precedence): {} (U:{} P:{} R:{})\n\
+         LINE 4 (Special Equipment): {}\n\
+         LINE 5 (Patients): {} Litter / {} Ambulatory\n\
+         LINE 6 (Security): {}\n\
+         LINE 7 (Marking): {}\n\
+         LINE 8 (Nationality): {}\n\
+         LINE 9 (Terrain / NBC): {}\n\
+         Remarks: {}",
