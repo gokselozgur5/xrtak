@@ -310,6 +310,21 @@ impl GeoChatBuilder {
         self.parent_message_id = parent_id;
         self
     }
+    pub fn add_recipient(mut self, recipient: impl Into<String>) -> Self {
+        self.recipients.push(recipient.into());
+        self
+    }
+
+    pub fn recipients<I, S>(mut self, recips: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        for r in recips {
+            self.recipients.push(r.into());
+        }
+        self
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
