@@ -142,3 +142,27 @@ pub enum ConnectionState {
     /// TLS handshake completed, ready for activation.
     HandshakeComplete,
     /// Connection currently leased by an active caller.
+    Active,
+    /// Connection idle in pool waiting for lease.
+    Idle,
+    /// Connection marked for graceful closure after current operations finish.
+    Draining,
+    /// Connection permanently closed.
+    Closed,
+    /// Connection experienced fatal error or failed validation.
+    Failed,
+}
+
+impl ConnectionState {
+    pub fn is_available(&self) -> bool {
+        matches!(self, Self::Idle)
+    }
+
+    pub fn is_alive(&self) -> bool {
+        !matches!(self, Self::Closed | Self::Failed)
+    }
+}
+
+impl std::fmt::Display for ConnectionState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
