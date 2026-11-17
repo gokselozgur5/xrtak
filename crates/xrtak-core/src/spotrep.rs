@@ -300,3 +300,26 @@ fn handle_start_empty(
     parse_event_point(e, res, name);
     match_tag(name)
 }
+
+fn run_parser_loop(
+    mut reader: Reader<&[u8]>,
+    res: &mut SpotReport,
+) -> Result<(bool, bool, bool), SpotReportError> {
+    let mut flags = (false, false, false);
+    let mut tag = SpotrepTag::None;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
+                tag = handle_start_empty(e, res, &mut flags);
+            }
+            Ok(Event::Text(ref e)) => {
+                apply_text_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res);
+            }
+            Ok(Event::End(_)) => tag = SpotrepTag::None,
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(SpotReportError::InvalidXml(e.to_string())),
+            _ => {}
+        }
+    }
+    Ok(flags)
+}
