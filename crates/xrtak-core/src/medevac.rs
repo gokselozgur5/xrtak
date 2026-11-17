@@ -504,3 +504,26 @@ fn escape_xml(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
+}
+
+fn unescape_xml(s: &str) -> String {
+    s.replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+}
+
+fn build_medevac_inner_tags(r: &CotMedevacReport) -> String {
+    let (l1, l2, l3, l4) = (
+        escape_xml(&r.line1_location),
+        escape_xml(&r.line2_freq_callsign),
+        escape_xml(r.line3_precedence.code()),
+        escape_xml(r.line4_equipment.as_str()),
+    );
+    let (l6, l7, l8, l9) = (
+        escape_xml(r.line6_security.as_str()),
+        escape_xml(&r.line7_hlz_marking.as_str()),
+        escape_xml(r.line8_patient_nationality.as_str()),
+        escape_xml(&r.line9_terrain_nbc),
+    );
