@@ -455,3 +455,23 @@ mod tests {
         assert_eq!(CoTAffiliation::Friendly.to_char(), 'f');
         assert_eq!(CoTAffiliation::from_char('h'), CoTAffiliation::Hostile);
     }
+
+    #[test]
+    fn test_standard_identity_mapping_friendly_hostile() {
+        assert_eq!(
+            CoTAffiliation::Friendly.to_standard_identity(),
+            StandardIdentity::Friendly
+        );
+        assert_eq!(
+            CoTAffiliation::AssumedFriend.to_standard_identity(),
+            StandardIdentity::Friendly
+        );
+        assert_eq!(
+            CoTAffiliation::Hostile.to_standard_identity(),
+            StandardIdentity::Hostile
+        );
+        assert_eq!(
+            CoTAffiliation::Suspect.to_standard_identity(),
+            StandardIdentity::Hostile
+        );
+    }
