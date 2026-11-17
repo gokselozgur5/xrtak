@@ -527,3 +527,26 @@ fn build_medevac_inner_tags(r: &CotMedevacReport) -> String {
         escape_xml(r.line8_patient_nationality.as_str()),
         escape_xml(&r.line9_terrain_nbc),
     );
+    format!(
+        "<line1>{l1}</line1><line2>{l2}</line2><line3>{l3}</line3><line4>{l4}</line4>\
+<urgent>{}</urgent><priority>{}</priority><routine>{}</routine>\
+<litter>{}</litter><ambulatory>{}</ambulatory>\
+<line6>{l6}</line6><line7>{l7}</line7><line8>{l8}</line8><line9>{l9}</line9>",
+        r.line3_urgent_count,
+        r.line3_priority_count,
+        r.line3_routine_count,
+        r.line5_litter_count,
+        r.line5_ambulatory_count
+    )
+}
+
+fn format_medevac_detail_xml(r: &CotMedevacReport) -> String {
+    let (cs, rem) = (escape_xml(&r.callsign), escape_xml(&r.remarks));
+    let (l1, l2) = (
+        escape_xml(&r.line1_location),
+        escape_xml(&r.line2_freq_callsign),
+    );
+    let (l3, l4) = (
+        escape_xml(r.line3_precedence.code()),
+        escape_xml(r.line4_equipment.as_str()),
+    );
