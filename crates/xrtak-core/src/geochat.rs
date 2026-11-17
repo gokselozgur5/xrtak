@@ -86,6 +86,12 @@ impl GeoChatPacket {
         self.parent_group = group.into();
         self
     }
+
+    pub fn with_conversation(mut self, conv_id: impl Into<String>, parent_id: Option<String>) -> Self {
+        self.conversation_id = Some(conv_id.into());
+        self.parent_message_id = parent_id;
+        self
+    }
     /// Serializes packet to ATAK CoT XML string.
     pub fn to_cot_xml(&self) -> String {
         let msg = escape_xml(&self.message_text);
