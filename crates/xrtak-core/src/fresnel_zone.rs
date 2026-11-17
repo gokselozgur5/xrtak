@@ -436,4 +436,15 @@ mod tests {
         assert_eq!(pt.status, ClearanceStatus::Clear);
         assert!(pt.net_clearance_m > 60.0);
     }
+
+    #[test]
+    fn test_link_budget_calculator() {
+        let t = RfTransceiver::default();
+        let cfg = FresnelCalculatorConfig::default();
+        let res = calculate_rf_link_budget(&t, 50.0, 50.0, 2000.0, &[], &cfg);
+        assert_eq!(res.quality, LinkQuality::Marginal);
+        assert!(res.link_margin_db > 0.0);
+        assert_eq!(res.diffraction_loss_db, 0.0);
+        assert!(res.worst_point.is_none());
+    }
 }
