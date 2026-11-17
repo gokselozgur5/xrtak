@@ -179,3 +179,28 @@ pub fn estimate_leg_ete_seconds(
     };
     horiz_time.max(vert_time)
 }
+
+impl LegNavEstimate {
+    /// Construct a calculated leg navigation estimate.
+    pub fn new(
+        idx: usize,
+        from: &str,
+        to: &str,
+        d3d: f64,
+        brg: f64,
+        ete: f64,
+        cd: f64,
+        ce: f64,
+    ) -> Self {
+        Self {
+            leg_index: idx,
+            from_wp: from.to_string(),
+            to_wp: to.to_string(),
+            distance_3d_m: d3d,
+            true_bearing_deg: brg,
+            ete_seconds: ete,
+            cumulative_distance_m: cd,
+            cumulative_ete_seconds: ce,
+        }
+    }
+}
