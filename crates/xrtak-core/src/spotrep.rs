@@ -92,3 +92,28 @@ impl SpotReport {
         self
     }
 }
+
+impl SpotReport {
+    pub fn with_salute(
+        mut self,
+        size: impl Into<String>,
+        activity: impl Into<String>,
+        location: impl Into<String>,
+        unit: impl Into<String>,
+        time_observed: impl Into<String>,
+        equipment: impl Into<String>,
+    ) -> Self {
+        self.size = size.into();
+        self.activity = activity.into();
+        self.location = location.into();
+        self.unit = unit.into();
+        self.time_observed = time_observed.into();
+        self.equipment = equipment.into();
+        self
+    }
+
+    pub fn with_cot_type(mut self, cot_type: impl Into<String>) -> Self {
+        self.cot_type = cot_type.into();
+        self
+    }
+}
