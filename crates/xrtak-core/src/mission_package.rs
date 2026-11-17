@@ -430,3 +430,27 @@ pub fn compute_sha256_hex(data: &[u8]) -> String {
 }
 
 pub fn create_zip_archive(files: &[(String, Vec<u8>)]) -> Vec<u8> {
+    let mut body = Vec::new();
+    let mut cd_records = Vec::new();
+
+    for (name, content) in files {
+        let name_bytes = name.as_bytes();
+        let local_offset = body.len() as u32;
+        let crc = compute_crc32(content);
+        let size = content.len() as u32;
+
+        body.extend_from_slice(&0x04034b50u32.to_le_bytes());
+        body.extend_from_slice(&20u16.to_le_bytes());
+        body.extend_from_slice(&0u16.to_le_bytes());
+        body.extend_from_slice(&0u16.to_le_bytes());
+        body.extend_from_slice(&0u16.to_le_bytes());
+        body.extend_from_slice(&0x21u16.to_le_bytes());
+        body.extend_from_slice(&crc.to_le_bytes());
+        body.extend_from_slice(&size.to_le_bytes());
+        body.extend_from_slice(&size.to_le_bytes());
+        body.extend_from_slice(&(name_bytes.len() as u16).to_le_bytes());
+        body.extend_from_slice(&0u16.to_le_bytes());
+        body.extend_from_slice(name_bytes);
+        body.extend_from_slice(content);
+
+        cd_records.extend_from_slice(&0x02014b50u32.to_le_bytes());
