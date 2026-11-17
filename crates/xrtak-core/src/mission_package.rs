@@ -454,3 +454,27 @@ pub fn create_zip_archive(files: &[(String, Vec<u8>)]) -> Vec<u8> {
         body.extend_from_slice(content);
 
         cd_records.extend_from_slice(&0x02014b50u32.to_le_bytes());
+        cd_records.extend_from_slice(&20u16.to_le_bytes());
+        cd_records.extend_from_slice(&20u16.to_le_bytes());
+        cd_records.extend_from_slice(&0u16.to_le_bytes());
+        cd_records.extend_from_slice(&0u16.to_le_bytes());
+        cd_records.extend_from_slice(&0u16.to_le_bytes());
+        cd_records.extend_from_slice(&0x21u16.to_le_bytes());
+        cd_records.extend_from_slice(&crc.to_le_bytes());
+        cd_records.extend_from_slice(&size.to_le_bytes());
+        cd_records.extend_from_slice(&size.to_le_bytes());
+        cd_records.extend_from_slice(&(name_bytes.len() as u16).to_le_bytes());
+        cd_records.extend_from_slice(&0u16.to_le_bytes());
+        cd_records.extend_from_slice(&0u16.to_le_bytes());
+        cd_records.extend_from_slice(&0u16.to_le_bytes());
+        cd_records.extend_from_slice(&0u16.to_le_bytes());
+        cd_records.extend_from_slice(&0u32.to_le_bytes());
+        cd_records.extend_from_slice(&local_offset.to_le_bytes());
+        cd_records.extend_from_slice(name_bytes);
+    }
+
+    let cd_offset = body.len() as u32;
+    let cd_size = cd_records.len() as u32;
+    body.extend_from_slice(&cd_records);
+
+    let count = files.len() as u16;
