@@ -309,3 +309,17 @@ impl DistressBeacon {
             self.time_iso, self.time_iso, self.stale_iso,
             self.lat, self.lon, self.hae, self.ce, self.le
         );
+        if !self.description.is_empty() {
+            xml.push_str(&format!("<remarks>{desc_esc}</remarks>"));
+        }
+        if let Some(ref parent) = self.parent_uid {
+            let parent_esc = escape_xml(parent);
+            xml.push_str(&format!(
+                "<link relation=\"p-p\" type=\"a-f-G-U-C\" uid=\"{parent_esc}\"/>"
+            ));
+        }
+        xml.push_str("</detail></event>");
+        xml
+    }
+}
+
