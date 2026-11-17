@@ -166,3 +166,27 @@ impl MissionPackageArchive {
         }
         Ok(create_zip_archive(&zip_files))
     }
+
+    pub fn parse_zip(zip_bytes: &[u8]) -> Result<Self, MissionPackageError> {
+        let files = extract_zip_archive(zip_bytes)?;
+        let manifest_bytes = files
+            .iter()
+            .find(|(name, _)| name == "MANIFEST/manifest.xml" || name == "manifest.xml")
+            .map(|(_, data)| data)
+            .ok_or(MissionPackageError::MissingManifest)?;
+
+        let manifest_str = std::str::from_utf8(manifest_bytes)
+            .map_err(|e| MissionPackageError::XmlError(e.to_string()))?;
+
+        let uid = extract_manifest_param(manifest_str, "uid").unwrap_or_else(|| "TAK-PKG".to_string());
+        let name = extract_manifest_param(manifest_str, "name").unwrap_or_else(|| "Package".to_string());
+        let on_receive_delete = extract_manifest_param(manifest_str, "onReceiveDelete")
+            .map(|v| v == "true")
+            .unwrap_or(false);
+
+        let mut archive = Self::new(uid, name).with_on_receive_delete(on_receive_delete);
+        for (fname, data) in files {
+            if fname == "MANIFEST/manifest.xml" || fname == "manifest.xml" {
+                continue;
+            }
+            archive.add_file(fname, data, "application/octet-stream", false);
