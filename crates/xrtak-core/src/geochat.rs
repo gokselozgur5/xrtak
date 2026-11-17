@@ -521,4 +521,22 @@ mod tests {
         let err = GeoChatPacket::from_cot_xml(bad_xml).unwrap_err();
         assert_eq!(err, GeoChatError::MissingMessageId);
     }
+
+    #[test]
+    fn test_geochat_builder() {
+        let pkt = GeoChatBuilder::new()
+            .sender("UID-LEAD", "LEAD-1")
+            .chatroom("TacNet-1")
+            .message("MSG-100", "Hold perimeter")
+            .timestamp("2026-11-17T07:00:00Z")
+            .coordinates(36.12, -115.17, 600.0)
+            .conversation("CONV-ALPHA", None)
+            .add_recipient("UID-RECON-1")
+            .build()
+            .expect("build failed");
+
+        assert_eq!(pkt.sender_callsign, "LEAD-1");
+        assert_eq!(pkt.conversation_id.as_deref(), Some("CONV-ALPHA"));
+        assert_eq!(pkt.recipients.len(), 1);
+    }
 }
