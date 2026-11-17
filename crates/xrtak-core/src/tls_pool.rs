@@ -286,3 +286,27 @@ impl std::fmt::Display for AuthError {
                     f,
                     "certificate not yet valid until {valid_from} (current {current_time})"
                 )
+            }
+            Self::HostnameMismatch {
+                expected,
+                found_cn,
+                sans,
+            } => {
+                write!(
+                    f,
+                    "hostname mismatch: expected {expected}, found CN={found_cn}, SANs={sans:?}"
+                )
+            }
+            Self::FingerprintMismatch { expected, actual } => {
+                write!(f, "fingerprint {actual} not in pinned list: {expected:?}")
+            }
+            Self::DisallowedCommonName { cn, allowed } => {
+                write!(f, "CN {cn} not in allowed list: {allowed:?}")
+            }
+            Self::MissingClientCredentials => {
+                write!(f, "mTLS enabled but no client credentials provided")
+            }
+            Self::InvalidCertificateFormat(err) => {
+                write!(f, "invalid certificate format: {err}")
+            }
+        }
