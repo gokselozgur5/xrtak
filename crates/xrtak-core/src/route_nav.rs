@@ -520,4 +520,12 @@ mod tests {
         assert!(s.is_off_track);
         assert!(s.cross_track_error_m.abs() > 50.0);
     }
+
+    #[test]
+    fn test_turn_cue_guidance_formatting() {
+        let cue = RouteNavTracker::generate_turn_cue(150.0, 90.0, 0.0).unwrap();
+        assert!(cue.message.contains("Right"));
+        let cue_left = RouteNavTracker::generate_turn_cue(150.0, 270.0, 0.0).unwrap();
+        assert!(cue_left.message.contains("Left"));
+    }
 }
