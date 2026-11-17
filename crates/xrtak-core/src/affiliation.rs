@@ -404,3 +404,16 @@ impl AffiliationMapper {
             }
             buf.clear();
         }
+        if !found_event {
+            return Err(AffiliationError::MissingEventTag);
+        }
+        if cot_type.is_empty() {
+            return Err(AffiliationError::MissingTypeAttribute);
+        }
+        if callsign.is_empty() {
+            callsign = uid.clone();
+        }
+
+        Ok(Self::create_marker(&uid, &callsign, &cot_type, custom_argb))
+    }
+}
