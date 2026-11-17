@@ -149,3 +149,14 @@ pub struct LegNavEstimate {
     pub cumulative_distance_m: f64,
     pub cumulative_ete_seconds: f64,
 }
+
+/// Tactical route plan containing ordered waypoints and precomputed leg estimates.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TacticalRoutePlan {
+    pub route_id: String,
+    pub name: String,
+    pub waypoints: Vec<NavWaypoint>,
+    pub legs: Vec<LegNavEstimate>,
+    pub total_distance_m: f64,
+    pub total_ete_seconds: f64,
+}
