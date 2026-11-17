@@ -251,3 +251,26 @@ impl HundredKmSquare {
         let c = col.to_ascii_uppercase();
         let r = row.to_ascii_uppercase();
 
+        let valid_col = COL_SETS.iter().any(|set| set.contains(&c));
+        let valid_row = ROW_LETTERS.contains(&r);
+
+        if !valid_col || !valid_row {
+            return Err(MgrsError::Invalid100kSquare(format!("{col}{row}")));
+        }
+        Ok(Self { col: c, row: r })
+    }
+
+    /// Determine 100k square identifier from UTM zone, easting, and northing.
+    pub fn from_utm(zone: u8, easting: f64, northing: f64) -> Result<Self, MgrsError> {
+        if !(1..=60).contains(&zone) {
+            return Err(MgrsError::InvalidUtmZone(zone));
+        }
+        let set_idx = ((zone - 1) % 3) as usize;
+        let col_num = (easting / 100_000.0).floor() as isize;
+        if !(1..=8).contains(&col_num) {
+            return Err(MgrsError::Invalid100kSquare(format!(
+                "easting {easting} yields invalid column {col_num}"
+            )));
+        }
+        let col = COL_SETS[set_idx][(col_num - 1) as usize];
+
