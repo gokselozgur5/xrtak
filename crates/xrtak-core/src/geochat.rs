@@ -539,4 +539,23 @@ mod tests {
         assert_eq!(pkt.conversation_id.as_deref(), Some("CONV-ALPHA"));
         assert_eq!(pkt.recipients.len(), 1);
     }
+
+    #[test]
+    fn test_geochat_multicast_roundtrip() {
+        let pkt = GeoChatBuilder::new()
+            .sender("UID-1", "VIPER")
+            .chatroom("StrikeGrp")
+            .message("M-200", "Confirmed")
+            .conversation("STRIKE-TH1", Some("M-199".to_string()))
+            .recipients(vec!["UID-2", "UID-3"])
+            .build()
+            .unwrap();
+
+        let xml = pkt.to_cot_xml();
+        assert!(xml.contains("uid1=\"UID-2\""));
+        assert!(xml.contains("conversationId=\"STRIKE-TH1\""));
+        let parsed = GeoChatPacket::from_cot_xml(&xml).unwrap();
+        assert_eq!(parsed.recipients, vec!["UID-2", "UID-3"]);
+        assert_eq!(parsed.parent_message_id.as_deref(), Some("M-199"));
+    }
 }
