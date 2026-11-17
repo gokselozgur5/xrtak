@@ -454,3 +454,27 @@ impl TlsConnectionPool {
             total_pruned: 0,
             total_auth_failures: 0,
         }
+    }
+
+    pub fn config(&self) -> &TlsPoolConfig {
+        &self.config
+    }
+
+    pub fn add_endpoint(&mut self, endpoint: impl Into<String>) {
+        let ep = endpoint.into();
+        if !self.config.server_endpoints.contains(&ep) {
+            self.config.server_endpoints.push(ep);
+        }
+    }
+
+    pub fn remove_endpoint(&mut self, endpoint: &str) {
+        self.config.server_endpoints.retain(|e| e != endpoint);
+        for conn in &mut self.connections {
+            if conn.endpoint == endpoint && conn.state == ConnectionState::Idle {
+                conn.state = ConnectionState::Closed;
+            }
+        }
+    }
+
+    pub fn acquire_connection(
+        &mut self,
