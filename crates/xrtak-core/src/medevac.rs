@@ -435,3 +435,26 @@ impl CotMedevacBuilder {
         Ok(())
     }
 
+    fn into_report(self) -> CotMedevacReport {
+        CotMedevacReport {
+            cot_uid: self.cot_uid,
+            callsign: self.callsign,
+            cot_type: self.cot_type,
+            lat: self.lat,
+            lon: self.lon,
+            hae: self.hae,
+            time_iso: self.time_iso,
+            line1_location: self.line1_location,
+            line2_freq_callsign: self.line2_freq_callsign,
+            line3_precedence: self.line3_precedence,
+            line3_urgent_count: self.line3_urgent_count,
+            line3_priority_count: self.line3_priority_count,
+            line3_routine_count: self.line3_routine_count,
+            line4_equipment: self.line4_equipment,
+            line5_litter_count: self.line5_litter_count,
+            line5_ambulatory_count: self.line5_ambulatory_count,
+            line6_security: self.line6_security,
+            line7_hlz_marking: self.line7_hlz_marking,
+            line8_patient_nationality: self.line8_patient_nationality,
+            line9_terrain_nbc: self.line9_terrain_nbc,
+            remarks: self.remarks,
