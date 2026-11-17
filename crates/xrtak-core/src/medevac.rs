@@ -481,3 +481,26 @@ pub fn format_nine_line_voice_brief(r: &CotMedevacReport) -> String {
          LINE 8 (Nationality): {}\n\
          LINE 9 (Terrain / NBC): {}\n\
          Remarks: {}",
+        r.line1_location,
+        r.line2_freq_callsign,
+        r.line3_precedence.code(),
+        r.line3_urgent_count,
+        r.line3_priority_count,
+        r.line3_routine_count,
+        r.line4_equipment.as_str(),
+        r.line5_litter_count,
+        r.line5_ambulatory_count,
+        r.line6_security.as_str(),
+        r.line7_hlz_marking.as_str(),
+        r.line8_patient_nationality.as_str(),
+        r.line9_terrain_nbc,
+        r.remarks
+    )
+}
+
+fn escape_xml(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
