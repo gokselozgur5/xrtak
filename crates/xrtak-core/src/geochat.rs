@@ -201,6 +201,17 @@ impl GeoChatPacket {
                             }
                         }
                     }
+                    b"chatgrp" => {
+                        for a in e.attributes().flatten() {
+                            let k = a.key.as_ref();
+                            if k.starts_with(b"uid") && k != b"uid0" {
+                                let v = String::from_utf8_lossy(&a.value).into_owned();
+                                if !v.is_empty() && !recipients.contains(&v) {
+                                    recipients.push(v);
+                                }
+                            }
+                        }
+                    }
                     b"link" => {
                         for a in e.attributes().flatten() {
                             if a.key.as_ref() == b"uid" && sender_uid.is_empty() {
