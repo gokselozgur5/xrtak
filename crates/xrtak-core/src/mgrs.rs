@@ -527,3 +527,26 @@ impl UtmCoord {
 
     /// Convert UTM coordinate to MGRS coordinate.
     pub fn to_mgrs(&self, precision: MgrsPrecision) -> Result<MgrsCoord, MgrsError> {
+        let gzd = GridZoneDesignator::new(self.zone, self.band)?;
+        let square = HundredKmSquare::from_utm(self.zone, self.easting, self.northing)?;
+
+        let e_rem = (self.easting.rem_euclid(100_000.0)).floor() as u32;
+        let n_rem = (self.northing.rem_euclid(100_000.0)).floor() as u32;
+
+        MgrsCoord::new(gzd, square, e_rem, n_rem, precision)
+    }
+}
+
+/// Military Grid Reference System (MGRS) coordinate reference.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MgrsCoord {
+    /// Grid Zone Designator (zone + latitude band).
+    pub gzd: GridZoneDesignator,
+    /// 100,000-meter square identifier.
+    pub square: HundredKmSquare,
+    /// Easting within the 100k square (0..=99999).
+    pub easting: u32,
+    /// Northing within the 100k square (0..=99999).
+    pub northing: u32,
+    /// Precision resolution level.
+    pub precision: MgrsPrecision,
