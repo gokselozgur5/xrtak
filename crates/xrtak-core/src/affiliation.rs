@@ -437,3 +437,21 @@ mod tests {
             CoTAffiliation::Neutral
         );
     }
+
+    #[test]
+    fn test_affiliation_parsing_edge_and_chars() {
+        assert_eq!(
+            AffiliationMapper::parse_affiliation("a-u-S"),
+            CoTAffiliation::Unknown
+        );
+        assert_eq!(
+            AffiliationMapper::parse_affiliation("a-s-G"),
+            CoTAffiliation::Suspect
+        );
+        assert_eq!(
+            AffiliationMapper::parse_affiliation("b-m-p"),
+            CoTAffiliation::Unknown
+        );
+        assert_eq!(CoTAffiliation::Friendly.to_char(), 'f');
+        assert_eq!(CoTAffiliation::from_char('h'), CoTAffiliation::Hostile);
+    }
