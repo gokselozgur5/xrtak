@@ -297,3 +297,26 @@ impl CotMedevacReport {
         matches!(
             self.line3_precedence,
             MedevacPrecedence::Urgent | MedevacPrecedence::UrgentSurgical
+        ) || self.line3_urgent_count > 0
+    }
+
+    pub fn requires_special_equipment(&self) -> bool {
+        !matches!(self.line4_equipment, MedevacEquipment::None)
+    }
+
+    pub fn requires_armed_escort(&self) -> bool {
+        matches!(self.line6_security, SiteSecurity::ArmedEscortRequired)
+    }
+}
+
+/// Builder for constructing validated 9-Line MEDEVAC reports.
+#[derive(Debug, Clone, Default)]
+pub struct CotMedevacBuilder {
+    cot_uid: String,
+    callsign: String,
+    cot_type: String,
+    lat: f64,
+    lon: f64,
+    hae: f64,
+    time_iso: String,
+    line1_location: String,
