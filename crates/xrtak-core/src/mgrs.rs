@@ -849,3 +849,26 @@ mod tests {
         let parsed = MgrsCoord::parse(&spaced).expect("parsed spaced string");
         assert_eq!(parsed.square, mgrs.square);
 
+        let recovered = parsed.to_geodetic().expect("geodetic recovered");
+        let dist_deg = (recovered.lat_deg - coord.lat_deg).hypot(recovered.lon_deg - coord.lon_deg);
+        assert!(dist_deg < 0.0001);
+    }
+
+    #[test]
+    fn test_sydney_opera_house_southern_hemisphere() {
+        // Sydney Opera House: -33.8568°S, 151.2153°E -> 56H LH 34901 52289
+        let coord = GeodeticCoord::new(-33.8568, 151.2153).expect("valid Sydney coordinate");
+        let mgrs = coord.to_mgrs(MgrsPrecision::OneMeter).expect("MGRS converted");
+
+        assert_eq!(mgrs.gzd.zone, 56);
+        assert_eq!(mgrs.gzd.band, 'H');
+        assert_eq!(mgrs.square.col, 'L');
+        assert_eq!(mgrs.square.row, 'H');
+
+        let recovered = mgrs.to_geodetic().expect("geodetic recovered");
+        let dist_deg = (recovered.lat_deg - coord.lat_deg).hypot(recovered.lon_deg - coord.lon_deg);
+        assert!(dist_deg < 0.0001);
+    }
+
+    #[test]
+    fn test_mgrs_bounding_box_and_precision_scaling() {
