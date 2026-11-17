@@ -113,3 +113,26 @@ impl std::error::Error for MgrsError {}
 /// MGRS coordinate grid resolution precision.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MgrsPrecision {
+    /// 100 km grid precision (0 digits: e.g. "31UCT").
+    HundredKilometers,
+    /// 10 km grid precision (2 digits: 1 easting, 1 northing).
+    TenKilometers,
+    /// 1 km grid precision (4 digits: 2 easting, 2 northing).
+    OneKilometer,
+    /// 100 m grid precision (6 digits: 3 easting, 3 northing).
+    HundredMeters,
+    /// 10 m grid precision (8 digits: 4 easting, 4 northing).
+    TenMeters,
+    /// 1 m grid precision (10 digits: 5 easting, 5 northing).
+    OneMeter,
+}
+
+impl MgrsPrecision {
+    /// Construct precision from digits per coordinate (0 to 5).
+    pub fn from_digits_per_coord(digits: usize) -> Result<Self, MgrsError> {
+        match digits {
+            0 => Ok(Self::HundredKilometers),
+            1 => Ok(Self::TenKilometers),
+            2 => Ok(Self::OneKilometer),
+            3 => Ok(Self::HundredMeters),
+            4 => Ok(Self::TenMeters),
