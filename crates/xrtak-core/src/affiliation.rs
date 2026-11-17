@@ -547,3 +547,16 @@ mod tests {
             TacticalThreatLevel::None
         );
     }
+
+    #[test]
+    fn test_create_marker_and_custom_color() {
+        let m1 = AffiliationMapper::create_marker("U1", "ALPHA", "a-f-G", None);
+        assert_eq!(m1.affiliation, CoTAffiliation::Friendly);
+        assert!(!m1.is_custom_color);
+        assert_eq!(m1.color, TacticalColor::FRIENDLY_BLUE);
+
+        let custom_argb = -65536;
+        let m2 = AffiliationMapper::create_marker("U2", "BRAVO", "a-f-G", Some(custom_argb));
+        assert!(m2.is_custom_color);
+        assert_eq!(m2.color, TacticalColor::new(255, 0, 0, 255));
+    }
