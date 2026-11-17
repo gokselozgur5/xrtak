@@ -188,3 +188,22 @@ pub fn compute_fresnel_radius(n: u32, d1_m: f64, d2_m: f64, frequency_hz: f64) -
     }
     ((n as f64 * lambda * d1_m * d2_m) / total_d).sqrt()
 }
+
+/// Computes Earth curvature bulge elevation in meters along a line of sight.
+pub fn compute_earth_bulge(d1_m: f64, d2_m: f64, k_factor: f64, earth_radius_m: f64) -> f64 {
+    let effective_r = k_factor * earth_radius_m;
+    if effective_r <= 0.0 || d1_m <= 0.0 || d2_m <= 0.0 {
+        return 0.0;
+    }
+    (d1_m * d2_m) / (2.0 * effective_r)
+}
+
+/// Computes Free-Space Path Loss (FSPL) in decibels.
+pub fn compute_fspl(distance_m: f64, frequency_hz: f64) -> f64 {
+    let d = distance_m.max(1.0);
+    let lambda = compute_wavelength(frequency_hz);
+    if lambda <= 0.0 {
+        return 0.0;
+    }
+    20.0 * (4.0 * std::f64::consts::PI * d / lambda).log10()
+}
