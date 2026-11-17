@@ -478,3 +478,27 @@ impl TlsConnectionPool {
 
     pub fn acquire_connection(
         &mut self,
+        endpoint: &str,
+        current_time_ms: u64,
+    ) -> Result<u64, PoolError> {
+        let idle_idx = self.connections.iter().position(|c| {
+            c.endpoint == endpoint
+                && c.state == ConnectionState::Idle
+                && !c.is_expired(current_time_ms, self.config.connection_lifetime_ms)
+        });
+
+        if let Some(idx) = idle_idx {
+            let conn = &mut self.connections[idx];
+            conn.state = ConnectionState::Active;
+            conn.last_active_epoch_ms = current_time_ms;
+            self.total_acquired += 1;
+            return Ok(conn.id);
+        }
+
+        let total_active_or_idle = self
+            .connections
+            .iter()
+            .filter(|c| c.state.is_alive())
+            .count();
+        if total_active_or_idle >= self.config.max_total_connections {
+            return Err(PoolError::PoolExhausted);
