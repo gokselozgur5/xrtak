@@ -319,3 +319,20 @@ impl RouteNavTracker {
         })
     }
 }
+
+impl RouteNavTracker {
+    /// Advance to next waypoint if currently within acceptance radius of target.
+    pub fn advance_if_reached(&mut self, dist_to_target_m: f64) -> bool {
+        if !self.is_completed && dist_to_target_m <= self.acceptance_radius_m {
+            if self.current_leg_index + 1 < self.route.legs.len() {
+                self.current_leg_index += 1;
+                true
+            } else {
+                self.is_completed = true;
+                true
+            }
+        } else {
+            false
+        }
+    }
+}
