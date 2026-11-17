@@ -511,3 +511,23 @@ mod tests {
         assert_eq!(green.a, 255);
         assert_eq!(green, TacticalColor::NEUTRAL_GREEN);
     }
+
+    #[test]
+    fn test_shape_mapping() {
+        assert_eq!(
+            AffiliationMapper::map_shape(CoTAffiliation::Friendly),
+            MarkerShapeGlyph::Rectangle
+        );
+        assert_eq!(
+            AffiliationMapper::map_shape(CoTAffiliation::Hostile),
+            MarkerShapeGlyph::Diamond
+        );
+        assert_eq!(
+            AffiliationMapper::map_shape(CoTAffiliation::Neutral),
+            MarkerShapeGlyph::Square
+        );
+        assert_eq!(
+            AffiliationMapper::map_shape(CoTAffiliation::Unknown),
+            MarkerShapeGlyph::Quatrefoil
+        );
+    }
