@@ -1,3 +1,4 @@
+pub mod affiliation;
 pub mod aar;
 pub mod battery;
 pub mod casevac;
@@ -52,6 +53,10 @@ pub use grid_convergence::{
     calculate_grid_convergence, calculate_ups, calculate_utm, grid_to_ground_distance,
     grid_to_true_azimuth, ground_to_grid_distance, true_to_grid_azimuth, utm_central_meridian_deg,
     utm_zone_from_lon, GridError, GridSolution, GridSystem,
+};
+pub use affiliation::{
+    AffiliationError, AffiliationMapper, CoTAffiliation, ContactMarker, ContactStats,
+    MarkerShapeGlyph, StandardIdentity, TacticalColor, TacticalThreatLevel,
 };
 pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use battery::{
