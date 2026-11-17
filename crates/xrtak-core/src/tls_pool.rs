@@ -670,3 +670,27 @@ impl TlsConnectionPool {
         summary
     }
 
+    pub fn get_connection(&self, conn_id: u64) -> Option<&TlsConnection> {
+        self.connections.iter().find(|c| c.id == conn_id)
+    }
+
+    pub fn pool_metrics(&self) -> PoolMetrics {
+        let mut metrics = PoolMetrics {
+            total_connections: self.connections.len(),
+            total_created: self.total_created,
+            total_acquired: self.total_acquired,
+            total_released: self.total_released,
+            total_pruned: self.total_pruned,
+            total_auth_failures: self.total_auth_failures,
+            ..Default::default()
+        };
+
+        for conn in &self.connections {
+            match conn.state {
+                ConnectionState::Active => metrics.active_connections += 1,
+                ConnectionState::Idle => metrics.idle_connections += 1,
+                ConnectionState::Failed => metrics.failed_connections += 1,
+                _ => {}
+            }
+            metrics.total_bytes_sent += conn.bytes_sent;
+            metrics.total_bytes_received += conn.bytes_received;
