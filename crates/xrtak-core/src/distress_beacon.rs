@@ -169,3 +169,18 @@ pub struct DistressBeacon {
     pub parent_uid: Option<String>,
 }
 
+impl DistressBeacon {
+    pub fn new(
+        beacon_uid: impl Into<String>,
+        callsign: impl Into<String>,
+        alert_type: EmergencyType,
+        lat: f64,
+        lon: f64,
+    ) -> Self {
+        Self {
+            beacon_uid: beacon_uid.into(),
+            callsign: callsign.into(),
+            alert_type,
+            status: EmergencyStatus::Active,
+            severity: EmergencySeverity::Critical,
+            sos_flags: SosFlags::default(),
