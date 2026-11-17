@@ -574,3 +574,27 @@ mod tests {
         assert_eq!(
             compute_sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn test_crc32_calculation() {
+        let crc = compute_crc32(b"123456789");
+        assert_eq!(crc, 0xcbf43926);
+    }
+
+    #[test]
+    fn test_package_builder_and_manifest() {
+        let mut pkg = MissionPackageArchive::new("MISSION-99", "Alpha Operation")
+            .with_on_receive_delete(true);
+        pkg.add_cot_file("overlays/point.cot", "<event uid='P1'/>");
+
+        let xml = pkg.generate_manifest_xml();
+        assert!(xml.contains("value=\"MISSION-99\""));
+        assert!(xml.contains("value=\"Alpha Operation\""));
+        assert!(xml.contains("zipEntry=\"overlays/point.cot\""));
+        assert!(xml.contains("name=\"sha256\""));
+    }
+
+    #[test]
+    fn test_zip_build_and_extract_roundtrip() {
