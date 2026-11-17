@@ -331,3 +331,14 @@ fn parse_str_attr(val: &[u8]) -> String {
     std::str::from_utf8(val).unwrap_or_default().to_string()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BeaconXmlTag {
+    None,
+    Event,
+    Point,
+    Emergency,
+    Contact,
+    Remarks,
+    Link,
+}
+
