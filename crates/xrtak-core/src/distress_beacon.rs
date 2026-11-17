@@ -296,3 +296,16 @@ impl DistressBeacon {
     }
 }
 
+impl DistressBeacon {
+    pub fn to_cot_xml(&self) -> String {
+        let cot_type = self.cot_type();
+        let cancel_str = self.status.cancel_attr();
+        let alert_type_str = escape_xml(self.alert_type.as_str());
+        let callsign_esc = escape_xml(&self.callsign);
+        let uid_esc = escape_xml(&self.beacon_uid);
+        let desc_esc = escape_xml(&self.description);
+        let mut xml = format!(
+            "<event version=\"2.0\" uid=\"{uid_esc}\" type=\"{cot_type}\"              how=\"m-g\" time=\"{}\" start=\"{}\" stale=\"{}\">             <point lat=\"{:.7}\" lon=\"{:.7}\" hae=\"{:.2}\" ce=\"{:.1}\" le=\"{:.1}\"/>             <detail>             <emergency cancel=\"{cancel_str}\" type=\"{alert_type_str}\">{callsign_esc}</emergency>             <contact callsign=\"{callsign_esc}\"/>",
+            self.time_iso, self.time_iso, self.stale_iso,
+            self.lat, self.lon, self.hae, self.ce, self.le
+        );
