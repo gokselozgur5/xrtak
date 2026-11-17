@@ -295,3 +295,27 @@ pub struct RouteNavStatus {
     pub is_off_track: bool,
     pub guidance: Option<NavGuidanceCue>,
 }
+
+impl RouteNavTracker {
+    fn generate_turn_cue(dist: f64, brg: f64, heading: f64) -> Option<NavGuidanceCue> {
+        let mut rel = (brg - heading) % 360.0;
+        if rel > 180.0 {
+            rel -= 360.0;
+        }
+        if rel < -180.0 {
+            rel += 360.0;
+        }
+        let turn = if rel.abs() < 10.0 {
+            "Maintain"
+        } else if rel > 0.0 {
+            "Right"
+        } else {
+            "Left"
+        };
+        Some(NavGuidanceCue {
+            message: format!("{turn} {:+.0} deg in {:.0}m", rel, dist),
+            distance_to_turn_m: dist,
+            relative_turn_bearing_deg: rel,
+        })
+    }
+}
