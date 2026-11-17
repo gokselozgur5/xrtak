@@ -251,3 +251,26 @@ impl PatientNationality {
         } else if upper.contains("EPW") || upper.contains("DETAIN") {
             Self::Epw
         } else if upper.contains("CHILD") {
+            Self::Child
+        } else {
+            Self::Custom(s.trim().to_string())
+        }
+    }
+}
+
+/// NATO 9-Line MEDEVAC and CASEVAC incident report packet.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CotMedevacReport {
+    pub cot_uid: String,
+    pub callsign: String,
+    pub cot_type: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub hae: f64,
+    pub time_iso: String,
+    pub line1_location: String,
+    pub line2_freq_callsign: String,
+    pub line3_precedence: MedevacPrecedence,
+    pub line3_urgent_count: u32,
+    pub line3_priority_count: u32,
+    pub line3_routine_count: u32,
