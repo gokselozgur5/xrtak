@@ -468,3 +468,19 @@ impl DistressBeacon {
                             }
                         }
                     }
+                    b"contact" => {
+                        for a in e.attributes().flatten() {
+                            if a.key.as_ref() == b"callsign" {
+                                callsign = Some(parse_str_attr(&a.value));
+                            }
+                        }
+                    }
+                    b"link" => {
+                        for a in e.attributes().flatten() {
+                            if a.key.as_ref() == b"uid" {
+                                parent_uid = Some(parse_str_attr(&a.value));
+                            }
+                        }
+                    }
+                    _ => {}
+                },
