@@ -418,3 +418,30 @@ impl RouteNavStatus {
         }
     }
 }
+
+impl RouteNavTracker {
+    /// Evaluate current position against active route leg.
+    pub fn evaluate_position(
+        &mut self,
+        lat: f64,
+        lon: f64,
+        alt: f64,
+        spd: f64,
+        hdg: Option<f64>,
+    ) -> Option<RouteNavStatus> {
+        let (from, to) = self.current_leg_endpoints()?;
+        let pm = PositionMetrics::compute(lat, lon, alt, from, to);
+        let cue = hdg.and_then(|h| Self::generate_turn_cue(pm.dist_m, pm.brg_deg, h));
+        let rem_d = self.remaining_subsequent_distance_m();
+        self.advance_if_reached(pm.dist_m);
+        Some(RouteNavStatus::from_metrics(
+            self.current_leg_index,
+            &to.id,
+            pm,
+            spd.max(0.1),
+            rem_d,
+            self.max_off_track_m,
+            cue,
+        ))
+    }
+}
