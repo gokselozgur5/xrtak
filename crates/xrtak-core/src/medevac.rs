@@ -665,3 +665,26 @@ fn apply_text_to_medevac(tag: MedevacTag, text: &str, r: &mut CotMedevacReport) 
     match tag {
         MedevacTag::Line1 => r.line1_location = val,
         MedevacTag::Line2 => r.line2_freq_callsign = val,
+        MedevacTag::Line3 => {
+            r.line3_precedence = MedevacPrecedence::parse_code(&val).unwrap_or_default()
+        }
+        MedevacTag::Line4 => r.line4_equipment = MedevacEquipment::from_description(&val),
+        MedevacTag::Urgent => r.line3_urgent_count = val.parse().unwrap_or(0),
+        MedevacTag::Priority => r.line3_priority_count = val.parse().unwrap_or(0),
+        MedevacTag::Routine => r.line3_routine_count = val.parse().unwrap_or(0),
+        MedevacTag::Litter => r.line5_litter_count = val.parse().unwrap_or(0),
+        MedevacTag::Ambulatory => r.line5_ambulatory_count = val.parse().unwrap_or(0),
+        MedevacTag::Line6 => r.line6_security = SiteSecurity::parse_security(&val),
+        MedevacTag::Line7 => r.line7_hlz_marking = HlzMarking::parse_marking(&val),
+        MedevacTag::Line8 => {
+            r.line8_patient_nationality = PatientNationality::parse_nationality(&val)
+        }
+        MedevacTag::Line9 => r.line9_terrain_nbc = val,
+        MedevacTag::Remarks => r.remarks = val,
+        MedevacTag::None => {}
+    }
+}
+
+fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut CotMedevacReport, name: &[u8]) {
+    for a in e.attributes().flatten() {
+        let val = unescape_xml(&String::from_utf8_lossy(&a.value));
