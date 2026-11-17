@@ -826,3 +826,26 @@ mod tests {
         // Roundtrip from parsed string to center coordinate
         let parsed = MgrsCoord::parse(&compact).expect("parsed back");
         assert_eq!(parsed, mgrs);
+
+        let recovered = parsed.to_geodetic().expect("geodetic recovered");
+        let dist_deg = (recovered.lat_deg - coord.lat_deg).hypot(recovered.lon_deg - coord.lon_deg);
+        assert!(dist_deg < 0.0001, "Error was {dist_deg}");
+    }
+
+    #[test]
+    fn test_washington_monument_precision() {
+        // Washington Monument: 38.8895°N, -77.0353°W -> 18S UJ 23478 06483
+        let coord = GeodeticCoord::new(38.8895, -77.0353).expect("valid DC coordinate");
+        let mgrs = coord.to_mgrs(MgrsPrecision::OneMeter).expect("MGRS converted");
+
+        assert_eq!(mgrs.gzd.zone, 18);
+        assert_eq!(mgrs.gzd.band, 'S');
+        assert_eq!(mgrs.square.col, 'U');
+        assert_eq!(mgrs.square.row, 'J');
+
+        let spaced = mgrs.to_spaced_string();
+        assert!(spaced.starts_with("18S UJ "));
+
+        let parsed = MgrsCoord::parse(&spaced).expect("parsed spaced string");
+        assert_eq!(parsed.square, mgrs.square);
+
