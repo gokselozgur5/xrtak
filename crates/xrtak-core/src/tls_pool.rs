@@ -334,3 +334,27 @@ impl MutualCertAuthenticator {
                 return host_domain == suffix;
             }
         }
+        false
+    }
+
+    pub fn validate_peer(
+        cert: &PeerCertificateInfo,
+        expected_host: &str,
+        current_time_ms: u64,
+        config: &TlsPoolConfig,
+    ) -> Result<(), AuthError> {
+        if current_time_ms < cert.not_before_epoch_ms {
+            return Err(AuthError::CertificateNotYetValid {
+                valid_from: cert.not_before_epoch_ms,
+                current_time: current_time_ms,
+            });
+        }
+        if current_time_ms > cert.not_after_epoch_ms {
+            return Err(AuthError::CertificateExpired {
+                expired_at: cert.not_after_epoch_ms,
+                current_time: current_time_ms,
+            });
+        }
+
+        let host_candidate = expected_host.split(':').next().unwrap_or(expected_host);
+        let host_matched = Self::matches_host_or_pattern(&cert.subject_cn, host_candidate)
