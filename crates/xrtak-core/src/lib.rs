@@ -78,6 +78,10 @@ pub use deconflict::{
     compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction,
     AirspaceConflictReport, CpaRiskLevel, CpaTrack, DeconflictionResult,
 };
+pub use distress_beacon::{
+    DistressBeacon, DistressBeaconError, EmergencySeverity, EmergencyStatus, EmergencyType,
+    SosFlags,
+};
 pub use domain::{
     Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
     ViewshedSample,
