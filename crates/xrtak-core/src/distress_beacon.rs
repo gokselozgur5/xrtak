@@ -72,3 +72,23 @@ impl EmergencyType {
     }
 }
 
+/// Operating state of an emergency distress beacon.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EmergencyStatus {
+    Active,
+    Cancelled,
+}
+
+impl EmergencyStatus {
+    pub fn is_active(&self) -> bool {
+        matches!(self, Self::Active)
+    }
+
+    pub fn cancel_attr(&self) -> &'static str {
+        match self {
+            Self::Active => "false",
+            Self::Cancelled => "true",
+        }
+    }
+}
+
