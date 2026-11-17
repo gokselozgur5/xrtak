@@ -70,3 +70,27 @@ pub struct TlsPoolConfig {
 impl Default for TlsPoolConfig {
     fn default() -> Self {
         Self {
+            server_endpoints: Vec::new(),
+            max_connections_per_endpoint: 4,
+            max_total_connections: 16,
+            min_idle_connections: 1,
+            idle_timeout_ms: 60_000,
+            connection_lifetime_ms: 300_000,
+            handshake_timeout_ms: 10_000,
+            health_check_interval_ms: 30_000,
+            enable_mtls: true,
+            allowed_common_names: Vec::new(),
+            pinned_sha256_fingerprints: Vec::new(),
+            client_cert_cn: None,
+            client_cert_fingerprint: None,
+            alpn_protocols: vec!["tak-cot".into(), "cot-xml".into()],
+        }
+    }
+}
+
+impl TlsPoolConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_endpoint(mut self, endpoint: impl Into<String>) -> Self {
