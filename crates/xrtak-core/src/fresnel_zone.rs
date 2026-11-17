@@ -411,4 +411,13 @@ mod tests {
         let fspl = compute_fspl(1000.0, 2_400_000_000.0);
         assert!((fspl - 100.05).abs() < 0.5);
     }
+
+    #[test]
+    fn test_knife_edge_diffraction() {
+        assert_eq!(compute_knife_edge_diffraction(-0.8), 0.0);
+        let j0 = compute_knife_edge_diffraction(0.0);
+        assert!((j0 - 6.0).abs() < 0.5);
+        let j1 = compute_knife_edge_diffraction(1.0);
+        assert!(j1 > 10.0);
+    }
 }
