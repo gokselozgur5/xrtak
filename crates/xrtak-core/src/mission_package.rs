@@ -478,3 +478,27 @@ pub fn create_zip_archive(files: &[(String, Vec<u8>)]) -> Vec<u8> {
     body.extend_from_slice(&cd_records);
 
     let count = files.len() as u16;
+    body.extend_from_slice(&0x06054b50u32.to_le_bytes());
+    body.extend_from_slice(&0u16.to_le_bytes());
+    body.extend_from_slice(&0u16.to_le_bytes());
+    body.extend_from_slice(&count.to_le_bytes());
+    body.extend_from_slice(&count.to_le_bytes());
+    body.extend_from_slice(&cd_size.to_le_bytes());
+    body.extend_from_slice(&cd_offset.to_le_bytes());
+    body.extend_from_slice(&0u16.to_le_bytes());
+
+    body
+}
+
+pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, MissionPackageError> {
+    if bytes.len() < 22 {
+        return Err(MissionPackageError::InvalidZipArchive("file too short".into()));
+    }
+
+    let mut eocd_pos = None;
+    for i in (0..=bytes.len() - 22).rev() {
+        if &bytes[i..i + 4] == [0x50, 0x4b, 0x05, 0x06] {
+            eocd_pos = Some(i);
+            break;
+        }
+    }
