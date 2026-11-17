@@ -265,3 +265,22 @@ fn apply_text_to_field(tag: SpotrepTag, text: &str, r: &mut SpotReport) {
         SpotrepTag::None => {}
     }
 }
+
+fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut SpotReport, name: &[u8]) {
+    for a in e.attributes().flatten() {
+        if name == b"event" {
+            if a.key.as_ref() == b"uid" { r.cot_uid = String::from_utf8_lossy(&a.value).into_owned(); }
+            if a.key.as_ref() == b"type" { r.cot_type = String::from_utf8_lossy(&a.value).into_owned(); }
+            if a.key.as_ref() == b"time" { r.time_iso = String::from_utf8_lossy(&a.value).into_owned(); }
+        } else if name == b"point" {
+            match a.key.as_ref() {
+                b"lat" => r.lat = parse_f64(&a.value).unwrap_or(0.0),
+                b"lon" => r.lon = parse_f64(&a.value).unwrap_or(0.0),
+                b"hae" => r.hae = parse_f64(&a.value).unwrap_or(0.0),
+                _ => {}
+            }
+        } else if name == b"contact" && a.key.as_ref() == b"callsign" {
+            r.observer_callsign = unescape_xml(&String::from_utf8_lossy(&a.value));
+        }
+    }
+}
