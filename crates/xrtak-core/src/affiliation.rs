@@ -56,3 +56,19 @@ impl CoTAffiliation {
             Self::Pending => 'p',
         }
     }
+    /// Parse CoTAffiliation from a 1-letter code character.
+    pub fn from_char(c: char) -> Self {
+        match c.to_ascii_lowercase() {
+            'f' => Self::Friendly,
+            'h' => Self::Hostile,
+            'n' => Self::Neutral,
+            'u' => Self::Unknown,
+            'a' => Self::AssumedFriend,
+            's' => Self::Suspect,
+            'j' => Self::Joker,
+            'k' => Self::Faker,
+            'p' => Self::Pending,
+            _ => Self::Unknown,
+        }
+    }
+}
