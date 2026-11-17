@@ -70,3 +70,27 @@ impl MissionPackageEntry {
 pub struct VerificationReport {
     pub package_uid: String,
     pub package_name: String,
+    pub total_entries: usize,
+    pub verified_entries: Vec<String>,
+    pub failed_entries: Vec<(String, String, String)>,
+    pub is_valid: bool,
+}
+
+/// ATAK Mission Package Archive manager.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MissionPackageArchive {
+    pub uid: String,
+    pub name: String,
+    pub on_receive_delete: bool,
+    pub entries: Vec<MissionPackageEntry>,
+}
+
+impl MissionPackageArchive {
+    pub fn new(uid: impl Into<String>, name: impl Into<String>) -> Self {
+        Self {
+            uid: uid.into(),
+            name: name.into(),
+            on_receive_delete: false,
+            entries: Vec::new(),
+        }
+    }
