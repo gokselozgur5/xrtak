@@ -742,3 +742,27 @@ mod tests {
         assert_eq!(pool.pool_metrics().active_connections, 1);
 
         pool.record_io(id, 128, 256, 1100).unwrap();
+        let conn = pool.get_connection(id).unwrap();
+        assert_eq!(conn.bytes_sent, 128);
+        assert_eq!(conn.bytes_received, 256);
+
+        pool.release_connection(id, 1200).unwrap();
+        assert_eq!(pool.pool_metrics().active_connections, 0);
+        assert_eq!(pool.pool_metrics().idle_connections, 1);
+
+        let id2 = pool
+            .acquire_connection("tak.example.com:8089", 1300)
+            .unwrap();
+        assert_eq!(id2, 1);
+        assert_eq!(pool.pool_metrics().active_connections, 1);
+    }
+
+    #[test]
+    fn test_pool_limits_and_exhaustion() {
+        let mut config = TlsPoolConfig::new();
+        config.max_connections_per_endpoint = 2;
+        config.max_total_connections = 3;
+        let mut pool = TlsConnectionPool::new(config);
+
+        let id1 = pool.acquire_connection("server-a:8089", 100).unwrap();
+        let id2 = pool.acquire_connection("server-a:8089", 100).unwrap();
