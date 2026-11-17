@@ -242,6 +242,7 @@ impl GeoChatPacket {
         Ok(Self {
             sender_uid, sender_callsign, chatroom, message_id,
             message_text, timestamp_iso, lat, lon, hae, parent_group,
+            conversation_id, parent_message_id, recipients,
         })
     }
 }
