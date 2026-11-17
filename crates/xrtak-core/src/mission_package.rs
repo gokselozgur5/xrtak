@@ -598,3 +598,27 @@ mod tests {
 
     #[test]
     fn test_zip_build_and_extract_roundtrip() {
+        let mut pkg = MissionPackageArchive::new("PKG-01", "Test Package");
+        pkg.add_cot_file("routes/alpha.cot", "<event uid='route-1'/>");
+        pkg.add_file("notes.txt", b"tactical notes".to_vec(), "text/plain", false);
+
+        let zip_bytes = pkg.build_zip().expect("build zip");
+        let parsed = MissionPackageArchive::parse_zip(&zip_bytes).expect("parse zip");
+
+        assert_eq!(parsed.uid, "PKG-01");
+        assert_eq!(parsed.name, "Test Package");
+        assert_eq!(parsed.entries.len(), 2);
+    }
+
+    #[test]
+    fn test_zip_integrity_verification_success() {
+        let mut pkg = MissionPackageArchive::new("PKG-VERIFY", "Integrity Test");
+        pkg.add_cot_file("recon.cot", "<event type='b-m-p-s-p-loc'/>");
+
+        let zip_bytes = pkg.build_zip().expect("build zip");
+        let report = MissionPackageArchive::verify_zip(&zip_bytes).expect("verify zip");
+
+        assert!(report.is_valid);
+        assert_eq!(report.total_entries, 1);
+        assert_eq!(report.verified_entries, vec!["recon.cot"]);
+        assert!(report.failed_entries.is_empty());
