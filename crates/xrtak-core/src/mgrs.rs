@@ -573,3 +573,26 @@ impl MgrsCoord {
             easting,
             northing,
             precision,
+        })
+    }
+
+    /// Parse an MGRS alphanumeric string into a coordinate.
+    /// Handles compact ("31UDQ4825111943") or whitespace/hyphen separated ("31U DQ 48251 11943").
+    pub fn parse(input: &str) -> Result<Self, MgrsError> {
+        let clean: String = input
+            .chars()
+            .filter(|c| !c.is_whitespace() && *c != '-')
+            .collect();
+
+        if clean.len() < 3 {
+            return Err(MgrsError::InvalidFormat(format!("input '{input}' is too short")));
+        }
+
+        // Zone: 1 or 2 digits
+        let (zone_str, rem) = if clean.chars().take(2).all(|c| c.is_ascii_digit()) {
+            clean.split_at(2)
+        } else if clean.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+            clean.split_at(1)
+        } else {
+            return Err(MgrsError::InvalidFormat("missing zone digits".to_string()));
+        };
