@@ -46,3 +46,22 @@ fn test_integration_mtls_san_and_wildcard_verification() {
         subject_cn: "tak-gw.defense.gov".into(),
         subject_alt_names: vec!["edge.tactical.network".into()],
         issuer: "DoD Interoperability CA".into(),
+        not_before_epoch_ms: 10_000,
+        not_after_epoch_ms: 90_000,
+        sha256_fingerprint: "DEADBEEF01020304".into(),
+        is_ca: false,
+    };
+
+    let res = MutualCertAuthenticator::validate_peer(
+        &valid_cert,
+        "tak-gw.defense.gov:8089",
+        50_000,
+        &config,
+    );
+    assert!(res.is_ok());
+
+    let mut pool = TlsConnectionPool::new(config);
+    pool.close_all();
+    let err = pool.release_connection(999, 100).unwrap_err();
+    assert!(matches!(err, PoolError::ConnectionNotFound(999)));
+}
