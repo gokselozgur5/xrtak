@@ -92,6 +92,22 @@ impl GeoChatPacket {
         self.parent_message_id = parent_id;
         self
     }
+
+    pub fn add_recipient(mut self, recipient: impl Into<String>) -> Self {
+        self.recipients.push(recipient.into());
+        self
+    }
+
+    pub fn with_recipients<I, S>(mut self, recipients: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        for r in recipients {
+            self.recipients.push(r.into());
+        }
+        self
+    }
     /// Serializes packet to ATAK CoT XML string.
     pub fn to_cot_xml(&self) -> String {
         let msg = escape_xml(&self.message_text);
