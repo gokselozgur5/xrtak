@@ -435,3 +435,26 @@ impl UtmCoord {
 
         // Meridional arc distance M from equator.
         let m = WGS84_A
+            * ((1.0 - WGS84_E2 / 4.0 - 3.0 * WGS84_E2.powi(2) / 64.0 - 5.0 * WGS84_E2.powi(3) / 256.0)
+                * phi
+                - (3.0 * WGS84_E2 / 8.0 + 3.0 * WGS84_E2.powi(2) / 32.0 + 45.0 * WGS84_E2.powi(3) / 1024.0)
+                    * (2.0 * phi).sin()
+                + (15.0 * WGS84_E2.powi(2) / 256.0 + 45.0 * WGS84_E2.powi(3) / 1024.0) * (4.0 * phi).sin()
+                - (35.0 * WGS84_E2.powi(3) / 3072.0) * (6.0 * phi).sin());
+
+        let easting = FALSE_EASTING
+            + UTM_K0
+                * n
+                * (a + (1.0 - t + c) * a.powi(3) / 6.0
+                    + (5.0 - 18.0 * t + t * t + 72.0 * c - 58.0 * WGS84_EP2) * a.powi(5) / 120.0);
+
+        let mut northing = UTM_K0
+            * (m + n
+                * tan_p
+                * (a.powi(2) / 2.0
+                    + (5.0 - t + 9.0 * c + 4.0 * c * c) * a.powi(4) / 24.0
+                    + (61.0 - 58.0 * t + t * t + 600.0 * c - 330.0 * WGS84_EP2) * a.powi(6) / 720.0));
+
+        let is_northern = lat_deg >= 0.0;
+        if !is_northern {
+            northing += FALSE_NORTHING_SOUTH;
