@@ -300,6 +300,16 @@ impl GeoChatBuilder {
         self.hae = hae;
         self
     }
+    pub fn parent_group(mut self, group: impl Into<String>) -> Self {
+        self.parent_group = group.into();
+        self
+    }
+
+    pub fn conversation(mut self, conv_id: impl Into<String>, parent_id: Option<String>) -> Self {
+        self.conversation_id = Some(conv_id.into());
+        self.parent_message_id = parent_id;
+        self
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
