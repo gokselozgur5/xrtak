@@ -872,3 +872,26 @@ mod tests {
 
     #[test]
     fn test_mgrs_bounding_box_and_precision_scaling() {
+        let coord = GeodeticCoord::new(48.8584, 2.2945).expect("valid geodetic");
+        let mgrs_100m = coord.to_mgrs(MgrsPrecision::HundredMeters).expect("100m MGRS");
+        assert_eq!(mgrs_100m.to_compact_string().len(), 11); // 31UDQ + 3 digits + 3 digits
+
+        let bbox = mgrs_100m.bounding_box().expect("bounding box calculated");
+        assert_eq!(bbox.accuracy_m, 100.0);
+        assert!(bbox.south_west.lat_deg < bbox.north_east.lat_deg);
+        assert!(bbox.south_west.lon_deg < bbox.north_east.lon_deg);
+        assert!(bbox.center.lat_deg > bbox.south_west.lat_deg);
+        assert!(bbox.center.lat_deg < bbox.north_east.lat_deg);
+    }
+
+    #[test]
+    fn test_mgrs_parser_error_cases() {
+        assert!(MgrsCoord::parse("").is_err());
+        assert!(MgrsCoord::parse("31").is_err());
+        assert!(MgrsCoord::parse("31U").is_err());
+        assert!(MgrsCoord::parse("31UD").is_err());
+        assert!(MgrsCoord::parse("31UDQ1").is_err()); // odd digits
+        assert!(MgrsCoord::parse("31UDQ123456789012").is_err()); // >10 digits
+        assert!(MgrsCoord::parse("31UDQ12AB").is_err()); // non-digits
+        assert!(MgrsCoord::parse("99UDQ1234").is_err()); // invalid zone
+    }
