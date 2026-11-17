@@ -250,3 +250,18 @@ fn parse_spotrep_attributes(e: &quick_xml::events::BytesStart, r: &mut SpotRepor
         }
     }
 }
+
+fn apply_text_to_field(tag: SpotrepTag, text: &str, r: &mut SpotReport) {
+    let unescaped = unescape_xml(text);
+    match tag {
+        SpotrepTag::Size => r.size = unescaped,
+        SpotrepTag::Activity => r.activity = unescaped,
+        SpotrepTag::Location => r.location = unescaped,
+        SpotrepTag::Unit => r.unit = unescaped,
+        SpotrepTag::Time => r.time_observed = unescaped,
+        SpotrepTag::Equipment => r.equipment = unescaped,
+        SpotrepTag::Assessment => r.assessment = unescaped,
+        SpotrepTag::Remarks => r.remarks = unescaped,
+        SpotrepTag::None => {}
+    }
+}
