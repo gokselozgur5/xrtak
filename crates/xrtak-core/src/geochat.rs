@@ -439,6 +439,16 @@ impl GeoChatThreader {
             .filter(|m| m.parent_message_id.as_deref() == Some(parent_message_id))
             .collect()
     }
+
+    pub fn all_participants(&self) -> Vec<String> {
+        let mut set = BTreeSet::new();
+        for t in self.threads.values() {
+            for p in &t.participants {
+                set.insert(p.clone());
+            }
+        }
+        set.into_iter().collect()
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
