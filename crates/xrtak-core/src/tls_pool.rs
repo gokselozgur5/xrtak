@@ -382,3 +382,27 @@ impl MutualCertAuthenticator {
                     expected: config.pinned_sha256_fingerprints.clone(),
                     actual: cert.sha256_fingerprint.clone(),
                 });
+            }
+        }
+
+        if !config.allowed_common_names.is_empty()
+            && !config
+                .allowed_common_names
+                .iter()
+                .any(|cn| cn == &cert.subject_cn)
+        {
+            return Err(AuthError::DisallowedCommonName {
+                cn: cert.subject_cn.clone(),
+                allowed: config.allowed_common_names.clone(),
+            });
+        }
+
+        if config.enable_mtls && config.client_cert_cn.is_none() {
+            return Err(AuthError::MissingClientCredentials);
+        }
+
+        Ok(())
+    }
+}
+
+/// Summary of a batch health check run.
