@@ -387,3 +387,20 @@ impl AffiliationMapper {
                             }
                         }
                     }
+                    b"color" => {
+                        for attr in e.attributes().flatten() {
+                            if attr.key.as_ref() == b"argb" {
+                                if let Ok(s) = std::str::from_utf8(&attr.value) {
+                                    custom_argb = s.parse::<i32>().ok();
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                },
+                Ok(Event::Eof) => break,
+                Err(e) => return Err(AffiliationError::InvalidXml(e.to_string())),
+                _ => {}
+            }
+            buf.clear();
+        }
