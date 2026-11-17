@@ -265,7 +265,7 @@ fn escape_xml(s: &str) -> String {
         .replace('<', "&lt;")
         .replace('>', "&gt;")
         .replace('"', "&quot;")
-        .replace(''', "&apos;")
+        .replace('\'', "&apos;")
 }
 
 impl DistressBeacon {
