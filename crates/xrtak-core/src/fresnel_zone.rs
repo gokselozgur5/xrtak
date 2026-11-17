@@ -207,3 +207,24 @@ pub fn compute_fspl(distance_m: f64, frequency_hz: f64) -> f64 {
     }
     20.0 * (4.0 * std::f64::consts::PI * d / lambda).log10()
 }
+
+/// Computes dimensionless Fresnel-Kirchhoff knife-edge diffraction parameter v.
+///
+/// obstacle_penetration_m is the height of obstacle above the LOS ray (positive = blockage).
+pub fn compute_diffraction_param_v(
+    obstacle_penetration_m: f64,
+    d1_m: f64,
+    d2_m: f64,
+    frequency_hz: f64,
+) -> f64 {
+    let total_d = d1_m + d2_m;
+    if total_d <= 1e-4 || d1_m <= 0.0 || d2_m <= 0.0 {
+        return -1.0;
+    }
+    let lambda = compute_wavelength(frequency_hz);
+    if lambda <= 0.0 {
+        return -1.0;
+    }
+    let geometry_factor = (2.0 * total_d / (lambda * d1_m * d2_m)).sqrt();
+    obstacle_penetration_m * geometry_factor
+}
