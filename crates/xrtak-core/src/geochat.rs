@@ -325,6 +325,30 @@ impl GeoChatBuilder {
         }
         self
     }
+    pub fn build(self) -> Result<GeoChatPacket, GeoChatError> {
+        let sender_uid = self.sender_uid.ok_or(GeoChatError::MissingSenderUid)?;
+        let sender_callsign = self.sender_callsign.unwrap_or_else(|| "UNKNOWN".to_string());
+        let chatroom = self.chatroom.unwrap_or_else(|| "All Chat Rooms".to_string());
+        let message_id = self.message_id.ok_or(GeoChatError::MissingMessageId)?;
+        let message_text = self.message_text.unwrap_or_default();
+        let timestamp_iso = self.timestamp_iso.unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string());
+
+        Ok(GeoChatPacket {
+            sender_uid,
+            sender_callsign,
+            chatroom,
+            message_id,
+            message_text,
+            timestamp_iso,
+            lat: self.lat,
+            lon: self.lon,
+            hae: self.hae,
+            parent_group: self.parent_group,
+            conversation_id: self.conversation_id,
+            parent_message_id: self.parent_message_id,
+            recipients: self.recipients,
+        })
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
