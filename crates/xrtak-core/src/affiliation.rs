@@ -193,3 +193,18 @@ pub enum TacticalThreatLevel {
     Medium,
     High,
 }
+
+/// Tactical contact marker representation for visualization and tracking.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ContactMarker {
+    pub uid: String,
+    pub callsign: String,
+    pub cot_type: String,
+    pub affiliation: CoTAffiliation,
+    pub standard_identity: StandardIdentity,
+    pub color: TacticalColor,
+    pub shape: MarkerShapeGlyph,
+    pub threat_level: TacticalThreatLevel,
+    pub is_combatant: bool,
+    pub is_custom_color: bool,
+}
