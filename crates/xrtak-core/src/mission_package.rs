@@ -262,3 +262,27 @@ impl MissionPackageArchive {
         let is_valid = failed_entries.is_empty();
         Ok(VerificationReport {
             package_uid: uid,
+            package_name: name,
+            total_entries: expected_hashes.len(),
+            verified_entries,
+            failed_entries,
+            is_valid,
+        })
+    }
+}
+
+fn extract_manifest_param(xml: &str, param_name: &str) -> Option<String> {
+    let needle = format!("name=\"{param_name}\"");
+    for line in xml.lines() {
+        if line.contains(&needle) {
+            if let Some(val_idx) = line.find("value=\"") {
+                let rest = &line[val_idx + 7..];
+                if let Some(end) = rest.find('"') {
+                    return Some(rest[..end].to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
