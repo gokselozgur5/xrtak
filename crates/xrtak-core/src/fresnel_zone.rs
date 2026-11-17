@@ -228,3 +228,22 @@ pub fn compute_diffraction_param_v(
     let geometry_factor = (2.0 * total_d / (lambda * d1_m * d2_m)).sqrt();
     obstacle_penetration_m * geometry_factor
 }
+
+/// Computes Knife-Edge Diffraction Loss J(v) in dB using ITU-R P.526-15 approximation.
+///
+/// v is the dimensionless diffraction parameter.
+/// If v <= -0.7, obstacle is outside 0.6 Fresnel clearance (0 dB loss).
+pub fn compute_knife_edge_diffraction(v: f64) -> f64 {
+    if v <= -0.7 {
+        0.0
+    } else {
+        let diff = v - 0.1;
+        let term = (diff.powi(2) + 1.0).sqrt() + diff;
+        if term <= 0.0 {
+            0.0
+        } else {
+            let loss = 6.9 + 20.0 * term.log10();
+            loss.max(0.0)
+        }
+    }
+}
