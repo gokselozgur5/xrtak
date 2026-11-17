@@ -158,3 +158,18 @@ impl TacticalColor {
         Self { r, g, b, a }
     }
 }
+
+impl TacticalColor {
+    /// Standard military friendly blue color.
+    pub const FRIENDLY_BLUE: Self = Self::new(0, 165, 255, 255);
+    /// Standard military hostile red color.
+    pub const HOSTILE_RED: Self = Self::new(255, 38, 0, 255);
+    /// Standard military neutral green color.
+    pub const NEUTRAL_GREEN: Self = Self::new(0, 200, 83, 255);
+    /// Standard military unknown yellow color.
+    pub const UNKNOWN_YELLOW: Self = Self::new(255, 214, 0, 255);
+    /// Suspect orange color.
+    pub const SUSPECT_ORANGE: Self = Self::new(255, 145, 0, 255);
+    /// Assumed friend cyan color.
+    pub const ASSUMED_FRIEND_CYAN: Self = Self::new(0, 229, 255, 255);
+}
