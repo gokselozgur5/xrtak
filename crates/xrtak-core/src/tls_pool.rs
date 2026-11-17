@@ -94,3 +94,27 @@ impl TlsPoolConfig {
     }
 
     pub fn with_endpoint(mut self, endpoint: impl Into<String>) -> Self {
+        self.server_endpoints.push(endpoint.into());
+        self
+    }
+
+    pub fn with_max_total_connections(mut self, max: usize) -> Self {
+        self.max_total_connections = max;
+        self
+    }
+
+    pub fn with_idle_timeout_ms(mut self, timeout_ms: u64) -> Self {
+        self.idle_timeout_ms = timeout_ms;
+        self
+    }
+
+    pub fn with_lifetime_ms(mut self, lifetime_ms: u64) -> Self {
+        self.connection_lifetime_ms = lifetime_ms;
+        self
+    }
+
+    pub fn with_pinned_fingerprint(mut self, fingerprint: impl Into<String>) -> Self {
+        self.pinned_sha256_fingerprints.push(fingerprint.into());
+        self
+    }
+
