@@ -459,4 +459,14 @@ mod tests {
         let brg = initial_bearing_deg(lat1, lon1, lat2, lon2);
         assert!(brg < 1.0 || brg > 359.0);
     }
+
+    #[test]
+    fn test_slant_distance_and_cross_track() {
+        let (lat1, lon1, alt1) = (0.0, 0.0, 0.0);
+        let (lat2, lon2, alt2) = (0.0, 0.01, 100.0);
+        let d = slant_distance_3d_m(lat1, lon1, alt1, lat2, lon2, alt2);
+        assert!(d > 1000.0);
+        let xtd = cross_track_error_m(0.001, 0.005, lat1, lon1, lat2, lon2);
+        assert!(xtd.abs() > 0.0);
+    }
 }
