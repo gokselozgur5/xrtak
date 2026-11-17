@@ -251,3 +251,18 @@ impl AffiliationMapper {
         }
     }
 }
+
+impl AffiliationMapper {
+    /// Map CoT affiliation to 3D marker geometric glyph shape.
+    pub fn map_shape(affil: CoTAffiliation) -> MarkerShapeGlyph {
+        match affil {
+            CoTAffiliation::Friendly | CoTAffiliation::AssumedFriend => MarkerShapeGlyph::Rectangle,
+            CoTAffiliation::Hostile | CoTAffiliation::Joker | CoTAffiliation::Faker => {
+                MarkerShapeGlyph::Diamond
+            }
+            CoTAffiliation::Suspect => MarkerShapeGlyph::DashedDiamond,
+            CoTAffiliation::Neutral => MarkerShapeGlyph::Square,
+            CoTAffiliation::Unknown | CoTAffiliation::Pending => MarkerShapeGlyph::Quatrefoil,
+        }
+    }
+}
