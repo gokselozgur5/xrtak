@@ -646,3 +646,27 @@ impl TlsConnectionPool {
     }
 
     pub fn run_health_checks(&mut self, current_time_ms: u64) -> HealthCheckSummary {
+        let mut summary = HealthCheckSummary::default();
+
+        for conn in self.connections.iter_mut() {
+            if !conn.state.is_alive() {
+                continue;
+            }
+            summary.total_checked += 1;
+
+            if conn.is_expired(current_time_ms, self.config.connection_lifetime_ms) {
+                conn.state = ConnectionState::Closed;
+                conn.failure_reason = Some("connection lifetime expired".into());
+                summary.failed_count += 1;
+            } else if conn.failure_reason.is_some() {
+                summary.degraded_count += 1;
+            } else {
+                conn.health_checks_passed += 1;
+                conn.last_health_check_epoch_ms = current_time_ms;
+                summary.healthy_count += 1;
+            }
+        }
+
+        summary
+    }
+
