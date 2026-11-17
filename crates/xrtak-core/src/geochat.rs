@@ -279,6 +279,16 @@ impl GeoChatBuilder {
         self.sender_callsign = Some(callsign.into());
         self
     }
+    pub fn chatroom(mut self, chatroom: impl Into<String>) -> Self {
+        self.chatroom = Some(chatroom.into());
+        self
+    }
+
+    pub fn message(mut self, id: impl Into<String>, text: impl Into<String>) -> Self {
+        self.message_id = Some(id.into());
+        self.message_text = Some(text.into());
+        self
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
