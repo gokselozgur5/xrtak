@@ -59,3 +59,24 @@ impl ObstaclePoint {
         self.terrain_elevation_m + self.structure_height_m
     }
 }
+
+/// Evaluation of a single point along the propagation path.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FresnelPointAnalysis {
+    /// Distance from transmitter in meters.
+    pub distance_m: f64,
+    /// Direct line-of-sight ray elevation in meters AMSL.
+    pub los_elevation_m: f64,
+    /// Total obstacle elevation in meters AMSL.
+    pub obstacle_elevation_m: f64,
+    /// Earth curvature bulge elevation correction in meters.
+    pub earth_bulge_m: f64,
+    /// Net clearance between LOS ray and effective obstacle peak.
+    pub net_clearance_m: f64,
+    /// Radius of the Fresnel zone at this point in meters.
+    pub fresnel_radius_m: f64,
+    /// Ratio of clearance to Fresnel zone radius.
+    pub clearance_ratio: f64,
+    /// Clearance status classification.
+    pub status: ClearanceStatus,
+}
