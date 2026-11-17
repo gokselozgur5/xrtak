@@ -160,3 +160,22 @@ pub struct TacticalRoutePlan {
     pub total_distance_m: f64,
     pub total_ete_seconds: f64,
 }
+
+/// Compute estimated time en route (ETE) in seconds for a 3D leg based on profile.
+pub fn estimate_leg_ete_seconds(
+    distance_3d_m: f64,
+    delta_alt_m: f64,
+    speed_limit: Option<f64>,
+    profile: &VehicleMovementProfile,
+) -> f64 {
+    let speed = speed_limit
+        .map(|sl| sl.min(profile.cruise_speed_mps))
+        .unwrap_or(profile.cruise_speed_mps);
+    let horiz_time = distance_3d_m / speed.max(0.1);
+    let vert_time = if delta_alt_m > 0.0 {
+        delta_alt_m / profile.max_climb_rate_mps
+    } else {
+        delta_alt_m.abs() / profile.max_descent_rate_mps
+    };
+    horiz_time.max(vert_time)
+}
