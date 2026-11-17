@@ -402,4 +402,13 @@ mod tests {
         let r_zero = compute_fresnel_radius(1, 0.0, 1000.0, 2_400_000_000.0);
         assert_eq!(r_zero, 0.0);
     }
+
+    #[test]
+    fn test_earth_bulge_and_fspl() {
+        let bulge = compute_earth_bulge(5000.0, 5000.0, DEFAULT_K_FACTOR, DEFAULT_EARTH_RADIUS_M);
+        assert!((bulge - 1.47).abs() < 0.1);
+
+        let fspl = compute_fspl(1000.0, 2_400_000_000.0);
+        assert!((fspl - 100.05).abs() < 0.5);
+    }
 }
