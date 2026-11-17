@@ -688,3 +688,26 @@ impl MgrsCoord {
                 self.square.col,
                 self.square.row,
                 e,
+                n,
+                width = p
+            )
+        }
+    }
+
+    /// Convert MGRS coordinate (grid cell southwest corner) to UTM coordinate.
+    pub fn to_utm(&self) -> Result<UtmCoord, MgrsError> {
+        let (base_e, base_n) = self.square.to_utm_offsets(&self.gzd)?;
+        let easting = base_e + f64::from(self.easting);
+        let northing = base_n + f64::from(self.northing);
+
+        Ok(UtmCoord {
+            zone: self.gzd.zone,
+            band: self.gzd.band,
+            easting,
+            northing,
+            is_northern: self.gzd.is_northern(),
+        })
+    }
+
+    /// Convert MGRS coordinate to center point Geodetic coordinates.
+    pub fn to_geodetic(&self) -> Result<GeodeticCoord, MgrsError> {
