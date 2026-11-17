@@ -431,6 +431,14 @@ impl GeoChatThreader {
     pub fn threads(&self) -> impl Iterator<Item = &ConversationThread> {
         self.threads.values()
     }
+
+    pub fn get_replies(&self, parent_message_id: &str) -> Vec<&GeoChatPacket> {
+        self.threads
+            .values()
+            .flat_map(|t| t.messages.iter())
+            .filter(|m| m.parent_message_id.as_deref() == Some(parent_message_id))
+            .collect()
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
