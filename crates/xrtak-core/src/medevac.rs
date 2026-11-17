@@ -734,3 +734,26 @@ fn run_medevac_parser_loop(
     buf: &mut Vec<u8>,
     ev: &mut bool,
     pt: &mut bool,
+    md: &mut bool,
+) -> Result<(), MedevacError> {
+    let mut cur = MedevacTag::None;
+    loop {
+        match reader.read_event_into(buf) {
+            Ok(Event::Start(ref e)) => handle_start_empty(e, r, &mut cur, ev, pt, md),
+            Ok(Event::Empty(ref e)) => handle_start_empty(e, r, &mut cur, ev, pt, md),
+            Ok(Event::Text(ref e)) => {
+                let text = e
+                    .unescape()
+                    .map_err(|e| MedevacError::InvalidXml(e.to_string()))?;
+                apply_text_to_medevac(cur, &text, r);
+            }
+            Ok(Event::End(_)) => cur = MedevacTag::None,
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(MedevacError::InvalidXml(e.to_string())),
+            _ => {}
+        }
+        buf.clear();
+    }
+    Ok(())
+}
+
