@@ -57,3 +57,18 @@ impl EmergencyType {
     }
 }
 
+impl EmergencyType {
+    pub fn from_str_type(s: &str) -> Self {
+        match s {
+            "911 Alert" => Self::Alert911,
+            "Ring the Bell" => Self::RingTheBell,
+            "In Contact" => Self::InContact,
+            "Ambush" => Self::Ambush,
+            "Sniper" => Self::Sniper,
+            "IED" => Self::Ied,
+            "Medical" => Self::Medical,
+            other => Self::Custom(other.to_string()),
+        }
+    }
+}
+
