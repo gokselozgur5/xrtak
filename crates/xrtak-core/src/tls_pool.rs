@@ -790,3 +790,27 @@ mod tests {
             not_before_epoch_ms: 500,
             not_after_epoch_ms: 5000,
             sha256_fingerprint: "aa:bb:cc:dd".into(),
+            is_ca: false,
+        };
+
+        assert!(MutualCertAuthenticator::validate_peer(
+            &cert,
+            "tak.example.com:8089",
+            1000,
+            &config
+        )
+        .is_ok());
+        assert!(MutualCertAuthenticator::validate_peer(
+            &cert,
+            "node1.internal.tak:8089",
+            1000,
+            &config
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn test_mutual_auth_rejections() {
+        let config = TlsPoolConfig::new()
+            .with_client_identity("user", "FP")
+            .with_pinned_fingerprint("11:22:33:44");
