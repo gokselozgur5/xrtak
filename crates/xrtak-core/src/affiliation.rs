@@ -40,3 +40,19 @@ pub enum CoTAffiliation {
     Faker,
     Pending,
 }
+
+impl CoTAffiliation {
+    /// Return the standard CoT 1-letter affiliation character.
+    pub fn to_char(self) -> char {
+        match self {
+            Self::Friendly => 'f',
+            Self::Hostile => 'h',
+            Self::Neutral => 'n',
+            Self::Unknown => 'u',
+            Self::AssumedFriend => 'a',
+            Self::Suspect => 's',
+            Self::Joker => 'j',
+            Self::Faker => 'k',
+            Self::Pending => 'p',
+        }
+    }
