@@ -345,7 +345,7 @@ enum BeaconXmlTag {
 impl DistressBeacon {
     pub fn from_cot_xml(xml: &str) -> Result<Self, DistressBeaconError> {
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let mut buf = Vec::new();
         let mut uid = None;
         let mut cot_type = None;
