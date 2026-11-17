@@ -323,3 +323,23 @@ fn run_parser_loop(
     }
     Ok(flags)
 }
+
+impl SpotReport {
+    /// Parses an ATAK CoT XML string into a SpotReport.
+    pub fn from_cot_xml(xml: &str) -> Result<Self, SpotReportError> {
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+        let mut res = Self::new("", "");
+        let (found_event, found_point, found_spotrep) = run_parser_loop(reader, &mut res)?;
+        if !found_event {
+            return Err(SpotReportError::MissingEventTag);
+        }
+        if !found_point {
+            return Err(SpotReportError::MissingPointTag);
+        }
+        if !found_spotrep {
+            return Err(SpotReportError::MissingSpotrepTag);
+        }
+        Ok(res)
+    }
+}
