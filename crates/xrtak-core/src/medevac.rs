@@ -159,3 +159,26 @@ impl SiteSecurity {
         } else if upper.starts_with('X') {
             Self::ArmedEscortRequired
         } else {
+            Self::Custom(s.trim().to_string())
+        }
+    }
+}
+
+/// Line 7: Helicopter landing zone marking method.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HlzMarking {
+    Panels,
+    PyrotechnicSignal,
+    Smoke(String),
+    None,
+    Custom(String),
+}
+
+impl Default for HlzMarking {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl HlzMarking {
+    pub fn as_str(&self) -> String {
