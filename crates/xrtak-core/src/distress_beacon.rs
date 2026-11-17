@@ -431,3 +431,24 @@ impl DistressBeacon {
                     }
                     _ => {}
                 },
+                Ok(Event::Empty(ref e)) => match e.name().as_ref() {
+                    b"point" => {
+                        let mut lat = None;
+                        let mut lon = None;
+                        let mut hae = 0.0;
+                        let mut ce = 10.0;
+                        let mut le = 10.0;
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"lat" => lat = parse_f64(&a.value),
+                                b"lon" => lon = parse_f64(&a.value),
+                                b"hae" => hae = parse_f64(&a.value).unwrap_or(0.0),
+                                b"ce" => ce = parse_f64(&a.value).unwrap_or(10.0),
+                                b"le" => le = parse_f64(&a.value).unwrap_or(10.0),
+                                _ => {}
+                            }
+                        }
+                        if let (Some(la), Some(lo)) = (lat, lon) {
+                            point = Some((la, lo, hae, ce, le));
+                        }
+                    }
