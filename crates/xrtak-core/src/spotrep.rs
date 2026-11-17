@@ -284,3 +284,19 @@ fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut SpotReport, name
         }
     }
 }
+
+fn handle_start_empty(
+    e: &quick_xml::events::BytesStart,
+    res: &mut SpotReport,
+    flags: &mut (bool, bool, bool),
+) -> SpotrepTag {
+    let name = e.name().into_inner();
+    if name == b"event" { flags.0 = true; }
+    if name == b"point" { flags.1 = true; }
+    if name == b"spotrep" || name == b"salute" {
+        flags.2 = true;
+        parse_spotrep_attributes(e, res);
+    }
+    parse_event_point(e, res, name);
+    match_tag(name)
+}
