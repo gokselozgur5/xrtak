@@ -469,4 +469,11 @@ mod tests {
         let xtd = cross_track_error_m(0.001, 0.005, lat1, lon1, lat2, lon2);
         assert!(xtd.abs() > 0.0);
     }
+
+    fn sample_route() -> TacticalRoutePlan {
+        let p = VehicleMovementProfile::default();
+        let w1 = NavWaypoint::new("WP1", "A", 0.0, 0.0, 0.0, WaypointType::Start);
+        let w2 = NavWaypoint::new("WP2", "B", 0.0, 0.1, 0.0, WaypointType::End);
+        TacticalRoutePlan::build("R1", "Test", vec![w1, w2], &p)
+    }
 }
