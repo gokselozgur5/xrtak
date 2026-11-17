@@ -588,3 +588,24 @@ mod tests {
         assert!(voice.contains("UNDER_FIRE"));
         assert!(voice.contains("Pinned down in ravine"));
     }
+    #[test]
+    fn test_xml_roundtrip() {
+        let b = DistressBeacon::new(
+            "BEACON-04",
+            "CHARLIE-4",
+            EmergencyType::Medical,
+            36.1234567,
+            -115.9876543,
+        )
+        .with_elevation(450.5, 5.0, 8.0)
+        .with_description("Severe trauma patient")
+        .with_parent_uid("HQ-BASE");
+        let xml = b.to_cot_xml();
+        assert!(xml.contains("type=\"b-a-o-pan\""));
+        assert!(xml.contains("Medical"));
+        let parsed = DistressBeacon::from_cot_xml(&xml).expect("parse failed");
+        assert_eq!(parsed.beacon_uid, "BEACON-04");
+        assert_eq!(parsed.callsign, "CHARLIE-4");
+        assert_eq!(parsed.alert_type, EmergencyType::Medical);
+        assert_eq!(parsed.parent_uid.as_deref(), Some("HQ-BASE"));
+    }
