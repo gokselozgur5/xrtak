@@ -94,3 +94,27 @@ impl MissionPackageArchive {
             entries: Vec::new(),
         }
     }
+
+    pub fn with_on_receive_delete(mut self, delete: bool) -> Self {
+        self.on_receive_delete = delete;
+        self
+    }
+
+    pub fn add_file(
+        &mut self,
+        zip_entry: impl Into<String>,
+        data: Vec<u8>,
+        content_type: impl Into<String>,
+        ignore: bool,
+    ) -> &mut Self {
+        let entry = MissionPackageEntry::new(zip_entry, data, content_type, ignore);
+        self.entries.push(entry);
+        self
+    }
+
+    pub fn add_cot_file(&mut self, zip_entry: impl Into<String>, cot_xml: &str) -> &mut Self {
+        self.add_file(
+            zip_entry,
+            cot_xml.as_bytes().to_vec(),
+            "application/x-cot+xml",
+            false,
