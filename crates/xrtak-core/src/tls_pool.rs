@@ -862,3 +862,16 @@ mod tests {
     #[test]
     fn test_health_checks_and_metrics_summary() {
         let mut config = TlsPoolConfig::new();
+        config.connection_lifetime_ms = 1000;
+        let mut pool = TlsConnectionPool::new(config);
+
+        let id = pool.acquire_connection("ep:8089", 100).unwrap();
+        let summary1 = pool.run_health_checks(200);
+        assert_eq!(summary1.healthy_count, 1);
+        assert_eq!(summary1.failed_count, 0);
+
+        pool.release_connection(id, 300).unwrap();
+        let summary2 = pool.run_health_checks(1200);
+        assert_eq!(summary2.failed_count, 1);
+    }
+}
