@@ -258,3 +258,13 @@ pub struct NavGuidanceCue {
     pub distance_to_turn_m: f64,
     pub relative_turn_bearing_deg: f64,
 }
+
+/// Active runtime tracker monitoring progress along a TacticalRoutePlan.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RouteNavTracker {
+    pub route: TacticalRoutePlan,
+    pub current_leg_index: usize,
+    pub acceptance_radius_m: f64,
+    pub max_off_track_m: f64,
+    pub is_completed: bool,
+}
