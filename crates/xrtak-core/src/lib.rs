@@ -9,6 +9,7 @@ pub mod corridor;
 pub mod cot_harness;
 pub mod cot_heartbeat;
 pub mod deconflict;
+pub mod distress_beacon;
 pub mod domain;
 pub mod ew;
 pub mod ffi;
