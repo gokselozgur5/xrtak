@@ -118,3 +118,27 @@ impl TlsPoolConfig {
         self
     }
 
+    pub fn with_allowed_cn(mut self, cn: impl Into<String>) -> Self {
+        self.allowed_common_names.push(cn.into());
+        self
+    }
+
+    pub fn with_client_identity(
+        mut self,
+        cn: impl Into<String>,
+        fingerprint: impl Into<String>,
+    ) -> Self {
+        self.client_cert_cn = Some(cn.into());
+        self.client_cert_fingerprint = Some(fingerprint.into());
+        self
+    }
+}
+
+/// Lifecycle state of a pooled TLS connection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConnectionState {
+    /// Socket connected, TLS handshake initiated.
+    Connecting,
+    /// TLS handshake completed, ready for activation.
+    HandshakeComplete,
+    /// Connection currently leased by an active caller.
