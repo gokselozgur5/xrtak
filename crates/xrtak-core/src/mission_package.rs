@@ -502,3 +502,27 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
             break;
         }
     }
+    let eocd = eocd_pos.ok_or_else(|| MissionPackageError::InvalidZipArchive("EOCD missing".into()))?;
+
+    let entry_count = u16::from_le_bytes([bytes[eocd + 10], bytes[eocd + 11]]) as usize;
+    let cd_offset = u32::from_le_bytes([
+        bytes[eocd + 16],
+        bytes[eocd + 17],
+        bytes[eocd + 18],
+        bytes[eocd + 19],
+    ]) as usize;
+
+    let mut files = Vec::with_capacity(entry_count);
+    let mut cursor = cd_offset;
+
+    for _ in 0..entry_count {
+        if cursor + 46 > bytes.len() || &bytes[cursor..cursor + 4] != [0x50, 0x4b, 0x01, 0x02] {
+            return Err(MissionPackageError::InvalidZipArchive("corrupt central directory".into()));
+        }
+        let fn_len = u16::from_le_bytes([bytes[cursor + 28], bytes[cursor + 29]]) as usize;
+        let extra_len = u16::from_le_bytes([bytes[cursor + 30], bytes[cursor + 31]]) as usize;
+        let comment_len = u16::from_le_bytes([bytes[cursor + 32], bytes[cursor + 33]]) as usize;
+        let local_offset = u32::from_le_bytes([
+            bytes[cursor + 42],
+            bytes[cursor + 43],
+            bytes[cursor + 44],
