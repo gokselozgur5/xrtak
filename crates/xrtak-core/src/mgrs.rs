@@ -205,3 +205,26 @@ impl GridZoneDesignator {
             norm_lon -= 360.0;
         }
 
+        let zone = (((norm_lon + 180.0) / 6.0).floor() as i32 + 1).clamp(1, 60) as u8;
+
+        let band = LATITUDE_BANDS
+            .iter()
+            .find(|(_, min, max)| lat_deg >= *min && (lat_deg < *max || (lat_deg == 84.0 && *max == 84.0)))
+            .map(|(b, _, _)| *b)
+            .unwrap_or('X');
+
+        Self::new(zone, band)
+    }
+
+    /// Check if this GZD is in the Northern Hemisphere.
+    pub fn is_northern(&self) -> bool {
+        self.band >= 'N'
+    }
+
+    /// Get latitude range [min_lat, max_lat] in degrees.
+    pub fn latitude_bounds(&self) -> (f64, f64) {
+        LATITUDE_BANDS
+            .iter()
+            .find(|(b, _, _)| *b == self.band)
+            .map(|(_, min, max)| (*min, *max))
+            .unwrap_or((0.0, 0.0))
