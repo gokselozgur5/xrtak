@@ -596,3 +596,26 @@ impl MgrsCoord {
         } else {
             return Err(MgrsError::InvalidFormat("missing zone digits".to_string()));
         };
+
+        let zone: u8 = zone_str
+            .parse()
+            .map_err(|_| MgrsError::InvalidUtmZone(0))?;
+
+        if rem.is_empty() {
+            return Err(MgrsError::InvalidFormat("missing latitude band".to_string()));
+        }
+
+        let band = rem.chars().next().unwrap();
+        let gzd = GridZoneDesignator::new(zone, band)?;
+        let rem2 = &rem[band.len_utf8()..];
+
+        if rem2.len() < 2 {
+            return Err(MgrsError::InvalidFormat("missing 100k square identifier".to_string()));
+        }
+
+        let mut chars = rem2.chars();
+        let col = chars.next().unwrap();
+        let row = chars.next().unwrap();
+        let square = HundredKmSquare::new(col, row)?;
+        let num_str = chars.as_str();
+
