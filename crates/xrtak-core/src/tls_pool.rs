@@ -262,3 +262,27 @@ pub enum AuthError {
         cn: String,
         allowed: Vec<String>,
     },
+    MissingClientCredentials,
+    InvalidCertificateFormat(String),
+}
+
+impl std::fmt::Display for AuthError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CertificateExpired {
+                expired_at,
+                current_time,
+            } => {
+                write!(
+                    f,
+                    "certificate expired at {expired_at} (current {current_time})"
+                )
+            }
+            Self::CertificateNotYetValid {
+                valid_from,
+                current_time,
+            } => {
+                write!(
+                    f,
+                    "certificate not yet valid until {valid_from} (current {current_time})"
+                )
