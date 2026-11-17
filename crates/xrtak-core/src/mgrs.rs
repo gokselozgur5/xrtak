@@ -90,3 +90,26 @@ pub enum MgrsError {
     /// MGRS string format is invalid or malformed.
     InvalidFormat(String),
     /// Calculated northing is out of range for the grid zone.
+    NorthingOutOfRange(f64),
+}
+
+impl std::fmt::Display for MgrsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidLatitude(lat) => write!(f, "latitude {lat} out of range [-80.0, 84.0]"),
+            Self::InvalidLongitude(lon) => write!(f, "longitude {lon} out of range [-180.0, 180.0]"),
+            Self::InvalidUtmZone(z) => write!(f, "invalid UTM zone {z}, must be 1..=60"),
+            Self::InvalidLatitudeBand(b) => write!(f, "invalid MGRS latitude band '{b}'"),
+            Self::Invalid100kSquare(sq) => write!(f, "invalid 100k square '{sq}'"),
+            Self::InvalidPrecision(p) => write!(f, "invalid precision digits {p}, must be 0..=5"),
+            Self::InvalidFormat(msg) => write!(f, "invalid MGRS format: {msg}"),
+            Self::NorthingOutOfRange(n) => write!(f, "northing {n} out of range for zone"),
+        }
+    }
+}
+
+impl std::error::Error for MgrsError {}
+
+/// MGRS coordinate grid resolution precision.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum MgrsPrecision {
