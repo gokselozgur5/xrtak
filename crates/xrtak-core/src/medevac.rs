@@ -619,3 +619,26 @@ fn parse_f64(bytes: &[u8]) -> Option<f64> {
 fn match_medevac_tag(name: &[u8]) -> MedevacTag {
     match name {
         b"line1" => MedevacTag::Line1,
+        b"line2" => MedevacTag::Line2,
+        b"line3" => MedevacTag::Line3,
+        b"line4" => MedevacTag::Line4,
+        b"urgent" => MedevacTag::Urgent,
+        b"priority" => MedevacTag::Priority,
+        b"routine" => MedevacTag::Routine,
+        b"litter" => MedevacTag::Litter,
+        b"ambulatory" => MedevacTag::Ambulatory,
+        b"line6" => MedevacTag::Line6,
+        b"line7" => MedevacTag::Line7,
+        b"line8" => MedevacTag::Line8,
+        b"line9" => MedevacTag::Line9,
+        b"remarks" => MedevacTag::Remarks,
+        _ => MedevacTag::None,
+    }
+}
+
+fn parse_medevac_attributes(e: &quick_xml::events::BytesStart, r: &mut CotMedevacReport) {
+    for a in e.attributes().flatten() {
+        let val = unescape_xml(&String::from_utf8_lossy(&a.value));
+        match a.key.as_ref() {
+            b"line1" => r.line1_location = val,
+            b"line2" => r.line2_freq_callsign = val,
