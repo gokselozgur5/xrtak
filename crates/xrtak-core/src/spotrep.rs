@@ -377,3 +377,24 @@ mod tests {
         assert!(txt.contains("Assessment: Enemy probing perimeter defence"));
         assert!(txt.contains("Remarks: Observers repositioning to secondary OP"));
     }
+
+    #[test]
+    fn test_spotrep_roundtrip_xml() {
+        let r = sample_spotrep();
+        let xml = r.to_cot_xml();
+        assert!(xml.contains("<event version=\"2.0\""));
+        assert!(xml.contains("uid=\"SPOTREP-001\""));
+        assert!(xml.contains("<spotrep"));
+        let parsed = SpotReport::from_cot_xml(&xml).expect("parse spotrep failed");
+        assert_eq!(parsed.cot_uid, r.cot_uid);
+        assert_eq!(parsed.observer_callsign, r.observer_callsign);
+        assert_eq!(parsed.size, r.size);
+        assert_eq!(parsed.activity, r.activity);
+        assert_eq!(parsed.location, r.location);
+        assert_eq!(parsed.unit, r.unit);
+        assert_eq!(parsed.equipment, r.equipment);
+        assert_eq!(parsed.assessment, r.assessment);
+        assert_eq!(parsed.remarks, r.remarks);
+        assert!((parsed.lat - r.lat).abs() < 1e-5);
+        assert!((parsed.lon - r.lon).abs() < 1e-5);
+    }
