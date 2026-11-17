@@ -247,6 +247,24 @@ impl GeoChatPacket {
     }
 }
 
+/// Builder for constructing tactical GeoChatPacket instances.
+#[derive(Debug, Clone, Default)]
+pub struct GeoChatBuilder {
+    sender_uid: Option<String>,
+    sender_callsign: Option<String>,
+    chatroom: Option<String>,
+    message_id: Option<String>,
+    message_text: Option<String>,
+    timestamp_iso: Option<String>,
+    lat: f64,
+    lon: f64,
+    hae: f64,
+    parent_group: String,
+    conversation_id: Option<String>,
+    parent_message_id: Option<String>,
+    recipients: Vec<String>,
+}
+
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
     std::str::from_utf8(bytes).ok()?.parse().ok()
 }
