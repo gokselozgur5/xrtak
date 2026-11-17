@@ -374,3 +374,21 @@ impl RouteNavTracker {
         Some((from, to))
     }
 }
+
+/// Positional metrics relative to current leg endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct PositionMetrics {
+    pub dist_m: f64,
+    pub brg_deg: f64,
+    pub xtd_m: f64,
+}
+
+impl PositionMetrics {
+    pub fn compute(lat: f64, lon: f64, alt: f64, from: &NavWaypoint, to: &NavWaypoint) -> Self {
+        Self {
+            dist_m: slant_distance_3d_m(lat, lon, alt, to.lat, to.lon, to.alt_m),
+            brg_deg: initial_bearing_deg(lat, lon, to.lat, to.lon),
+            xtd_m: cross_track_error_m(lat, lon, from.lat, from.lon, to.lat, to.lon),
+        }
+    }
+}
