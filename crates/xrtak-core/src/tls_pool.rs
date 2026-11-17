@@ -46,3 +46,27 @@ pub struct TlsPoolConfig {
     /// Minimum idle connections to maintain ready in the pool.
     pub min_idle_connections: usize,
     /// Maximum duration (ms) an idle connection may remain in pool before eviction.
+    pub idle_timeout_ms: u64,
+    /// Maximum absolute lifetime (ms) of a connection regardless of activity.
+    pub connection_lifetime_ms: u64,
+    /// Maximum duration (ms) allowed for TLS handshake completion.
+    pub handshake_timeout_ms: u64,
+    /// Interval (ms) between periodic connection health checks.
+    pub health_check_interval_ms: u64,
+    /// Whether mutual TLS certificate verification is enforced.
+    pub enable_mtls: bool,
+    /// Whitelist of acceptable peer certificate Common Names. Empty means any trusted CN.
+    pub allowed_common_names: Vec<String>,
+    /// Pinned SHA-256 certificate fingerprints for server validation.
+    pub pinned_sha256_fingerprints: Vec<String>,
+    /// Client certificate identity Common Name.
+    pub client_cert_cn: Option<String>,
+    /// Client certificate SHA-256 fingerprint.
+    pub client_cert_fingerprint: Option<String>,
+    /// Negotiated ALPN application protocols.
+    pub alpn_protocols: Vec<String>,
+}
+
+impl Default for TlsPoolConfig {
+    fn default() -> Self {
+        Self {
