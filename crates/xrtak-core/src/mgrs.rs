@@ -136,3 +136,26 @@ impl MgrsPrecision {
             2 => Ok(Self::OneKilometer),
             3 => Ok(Self::HundredMeters),
             4 => Ok(Self::TenMeters),
+            5 => Ok(Self::OneMeter),
+            other => Err(MgrsError::InvalidPrecision(other)),
+        }
+    }
+
+    /// Number of digits used for easting and northing in this precision level.
+    pub fn digits_per_coord(&self) -> usize {
+        match self {
+            Self::HundredKilometers => 0,
+            Self::TenKilometers => 1,
+            Self::OneKilometer => 2,
+            Self::HundredMeters => 3,
+            Self::TenMeters => 4,
+            Self::OneMeter => 5,
+        }
+    }
+
+    /// Linear grid cell resolution in meters.
+    pub fn resolution_meters(&self) -> f64 {
+        match self {
+            Self::HundredKilometers => 100_000.0,
+            Self::TenKilometers => 10_000.0,
+            Self::OneKilometer => 1_000.0,
