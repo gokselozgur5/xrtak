@@ -358,3 +358,27 @@ impl MutualCertAuthenticator {
 
         let host_candidate = expected_host.split(':').next().unwrap_or(expected_host);
         let host_matched = Self::matches_host_or_pattern(&cert.subject_cn, host_candidate)
+            || cert
+                .subject_alt_names
+                .iter()
+                .any(|san| Self::matches_host_or_pattern(san, host_candidate));
+
+        if !host_matched {
+            return Err(AuthError::HostnameMismatch {
+                expected: host_candidate.to_string(),
+                found_cn: cert.subject_cn.clone(),
+                sans: cert.subject_alt_names.clone(),
+            });
+        }
+
+        if !config.pinned_sha256_fingerprints.is_empty() {
+            let normalized_actual = Self::normalize_fingerprint(&cert.sha256_fingerprint);
+            let matched = config
+                .pinned_sha256_fingerprints
+                .iter()
+                .any(|pinned| Self::normalize_fingerprint(pinned) == normalized_actual);
+            if !matched {
+                return Err(AuthError::FingerprintMismatch {
+                    expected: config.pinned_sha256_fingerprints.clone(),
+                    actual: cert.sha256_fingerprint.clone(),
+                });
