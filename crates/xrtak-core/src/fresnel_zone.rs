@@ -330,3 +330,16 @@ pub fn find_worst_obstruction(
     }
     (min_ratio, worst_point, max_diff_loss)
 }
+
+/// Categorizes overall tactical link performance based on link margin.
+pub fn classify_link_quality(link_margin_db: f64) -> LinkQuality {
+    if link_margin_db >= 20.0 {
+        LinkQuality::Excellent
+    } else if link_margin_db >= 10.0 {
+        LinkQuality::Good
+    } else if link_margin_db >= 0.0 {
+        LinkQuality::Marginal
+    } else {
+        LinkQuality::Severed
+    }
+}
