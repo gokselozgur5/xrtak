@@ -99,3 +99,17 @@ pub struct RfTransceiver {
     /// Desired fade margin buffer in dB.
     pub fade_margin_db: f64,
 }
+
+impl Default for RfTransceiver {
+    fn default() -> Self {
+        Self {
+            tx_power_dbm: 30.0,
+            tx_gain_dbi: 2.15,
+            tx_loss_db: 1.0,
+            rx_gain_dbi: 2.15,
+            rx_loss_db: 1.0,
+            rx_sensitivity_dbm: -100.0,
+            fade_margin_db: 10.0,
+        }
+    }
+}
