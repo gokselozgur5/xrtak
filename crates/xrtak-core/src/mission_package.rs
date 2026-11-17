@@ -214,3 +214,27 @@ impl MissionPackageArchive {
                     entry.sha256_hex.clone(),
                     actual,
                 ));
+                report.is_valid = false;
+            }
+        }
+        Ok(report)
+    }
+
+    pub fn verify_zip(zip_bytes: &[u8]) -> Result<VerificationReport, MissionPackageError> {
+        let files = extract_zip_archive(zip_bytes)?;
+        let manifest_bytes = files
+            .iter()
+            .find(|(name, _)| name == "MANIFEST/manifest.xml" || name == "manifest.xml")
+            .map(|(_, data)| data)
+            .ok_or(MissionPackageError::MissingManifest)?;
+
+        let manifest_str = std::str::from_utf8(manifest_bytes)
+            .map_err(|e| MissionPackageError::XmlError(e.to_string()))?;
+
+        let uid = extract_manifest_param(manifest_str, "uid").unwrap_or_default();
+        let name = extract_manifest_param(manifest_str, "name").unwrap_or_default();
+        let expected_hashes = extract_content_hashes(manifest_str);
+
+        let mut verified_entries = Vec::new();
+        let mut failed_entries = Vec::new();
+
