@@ -266,3 +266,19 @@ impl AffiliationMapper {
         }
     }
 }
+
+impl AffiliationMapper {
+    /// Map CoT affiliation to tactical threat severity level.
+    pub fn map_threat(affil: CoTAffiliation) -> TacticalThreatLevel {
+        match affil {
+            CoTAffiliation::Hostile | CoTAffiliation::Joker | CoTAffiliation::Faker => {
+                TacticalThreatLevel::High
+            }
+            CoTAffiliation::Suspect => TacticalThreatLevel::Medium,
+            CoTAffiliation::Unknown | CoTAffiliation::Pending => TacticalThreatLevel::Low,
+            CoTAffiliation::Friendly | CoTAffiliation::AssumedFriend | CoTAffiliation::Neutral => {
+                TacticalThreatLevel::None
+            }
+        }
+    }
+}
