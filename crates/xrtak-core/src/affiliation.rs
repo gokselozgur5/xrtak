@@ -342,3 +342,15 @@ impl AffiliationMapper {
         stats
     }
 }
+
+impl AffiliationMapper {
+    /// Format ATAK compliant `<color argb="..."/>` XML element.
+    pub fn to_cot_color_xml_element(marker: &ContactMarker) -> String {
+        format!("<color argb=\"{}\"/>", marker.color.to_atak_argb_i32())
+    }
+
+    /// Construct a CoT 2525 type string from affiliation and dimension suffix.
+    pub fn to_cot_type(affil: CoTAffiliation, dimension_suffix: &str) -> String {
+        format!("a-{}-{}", affil.to_char(), dimension_suffix)
+    }
+}
