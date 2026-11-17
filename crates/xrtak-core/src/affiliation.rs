@@ -208,3 +208,15 @@ pub struct ContactMarker {
     pub is_combatant: bool,
     pub is_custom_color: bool,
 }
+
+/// Aggregated statistics across tactical contact markers.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContactStats {
+    pub total: usize,
+    pub friendly_count: usize,
+    pub hostile_count: usize,
+    pub neutral_count: usize,
+    pub unknown_count: usize,
+    pub suspect_count: usize,
+    pub high_threat_count: usize,
+}
