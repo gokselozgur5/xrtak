@@ -228,3 +228,26 @@ impl GridZoneDesignator {
             .find(|(b, _, _)| *b == self.band)
             .map(|(_, min, max)| (*min, *max))
             .unwrap_or((0.0, 0.0))
+    }
+
+    /// Central meridian longitude in decimal degrees.
+    pub fn central_meridian_deg(&self) -> f64 {
+        f64::from(self.zone) * 6.0 - 183.0
+    }
+}
+
+/// 100,000-meter square identification (two alphabetic characters).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HundredKmSquare {
+    /// Column letter ('A'..='Z', excluding 'I' and 'O').
+    pub col: char,
+    /// Row letter ('A'..='V', excluding 'I' and 'O').
+    pub row: char,
+}
+
+impl HundredKmSquare {
+    /// Construct and validate a 100k square identifier.
+    pub fn new(col: char, row: char) -> Result<Self, MgrsError> {
+        let c = col.to_ascii_uppercase();
+        let r = row.to_ascii_uppercase();
+
