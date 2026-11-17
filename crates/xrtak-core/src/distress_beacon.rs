@@ -533,3 +533,22 @@ impl DistressBeacon {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_beacon_construction() {
+        let b = DistressBeacon::new(
+            "BEACON-01",
+            "RESCUE-1",
+            EmergencyType::Alert911,
+            34.0522,
+            -118.2437,
+        );
+        assert_eq!(b.beacon_uid, "BEACON-01");
+        assert_eq!(b.callsign, "RESCUE-1");
+        assert_eq!(b.alert_type, EmergencyType::Alert911);
+        assert_eq!(b.status, EmergencyStatus::Active);
+        assert_eq!(b.cot_type(), "b-a-o-pan");
+    }
