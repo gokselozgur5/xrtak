@@ -386,3 +386,20 @@ pub fn calculate_rf_link_budget(
         quality: classify_link_quality(margin),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_wavelength_and_fresnel_radius() {
+        let wl = compute_wavelength(2_400_000_000.0);
+        assert!((wl - 0.1249).abs() < 0.001);
+
+        let r1 = compute_fresnel_radius(1, 1000.0, 1000.0, 2_400_000_000.0);
+        assert!((r1 - 7.90).abs() < 0.05);
+
+        let r_zero = compute_fresnel_radius(1, 0.0, 1000.0, 2_400_000_000.0);
+        assert_eq!(r_zero, 0.0);
+    }
+}
