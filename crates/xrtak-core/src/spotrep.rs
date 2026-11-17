@@ -415,3 +415,24 @@ mod tests {
         assert_eq!(parsed.equipment, "1x 82mm mortar, 1x technical");
         assert_eq!(parsed.assessment, "Imminent indirect fire threat");
     }
+
+    #[test]
+    fn test_spotrep_parser_errors() {
+        let no_event = "<data><point lat=\"0\" lon=\"0\"/></data>";
+        assert_eq!(
+            SpotReport::from_cot_xml(no_event).unwrap_err(),
+            SpotReportError::MissingEventTag
+        );
+
+        let no_point = "<event uid=\"1\"><detail><spotrep/></detail></event>";
+        assert_eq!(
+            SpotReport::from_cot_xml(no_point).unwrap_err(),
+            SpotReportError::MissingPointTag
+        );
+
+        let no_spot = "<event uid=\"1\"><point lat=\"0\" lon=\"0\"/><detail></detail></event>";
+        assert_eq!(
+            SpotReport::from_cot_xml(no_spot).unwrap_err(),
+            SpotReportError::MissingSpotrepTag
+        );
+    }
