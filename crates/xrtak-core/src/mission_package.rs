@@ -238,3 +238,27 @@ impl MissionPackageArchive {
         let mut verified_entries = Vec::new();
         let mut failed_entries = Vec::new();
 
+        for (fname, expected_hash) in &expected_hashes {
+            let file_data = files.iter().find(|(n, _)| n == fname).map(|(_, d)| d);
+            match file_data {
+                Some(data) => {
+                    let actual = compute_sha256_hex(data);
+                    if actual.eq_ignore_ascii_case(expected_hash) {
+                        verified_entries.push(fname.clone());
+                    } else {
+                        failed_entries.push((fname.clone(), expected_hash.clone(), actual));
+                    }
+                }
+                None => {
+                    failed_entries.push((
+                        fname.clone(),
+                        expected_hash.clone(),
+                        "FILE_MISSING".to_string(),
+                    ));
+                }
+            }
+        }
+
+        let is_valid = failed_entries.is_empty();
+        Ok(VerificationReport {
+            package_uid: uid,
