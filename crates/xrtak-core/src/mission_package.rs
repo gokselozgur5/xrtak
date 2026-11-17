@@ -142,3 +142,27 @@ impl MissionPackageArchive {
                 entry.ignore
             ));
             let mime = escape_xml_attr(&entry.content_type);
+            out.push_str(&format!("      <Parameter name=\"contentType\" value=\"{mime}\"/>\n"));
+            out.push_str(&format!(
+                "      <Parameter name=\"sha256\" value=\"{}\"/>\n",
+                entry.sha256_hex
+            ));
+            out.push_str("    </Content>\n");
+        }
+        out.push_str("  </Contents>\n");
+        out.push_str("</MissionPackageManifest>\n");
+        out
+    }
+
+    pub fn build_zip(&self) -> Result<Vec<u8>, MissionPackageError> {
+        if self.entries.is_empty() {
+            return Err(MissionPackageError::EmptyPackage);
+        }
+        let manifest_xml = self.generate_manifest_xml();
+        let mut zip_files = Vec::with_capacity(self.entries.len() + 1);
+        zip_files.push(("MANIFEST/manifest.xml".to_string(), manifest_xml.into_bytes()));
+        for e in &self.entries {
+            zip_files.push((e.zip_entry.clone(), e.data.clone()));
+        }
+        Ok(create_zip_archive(&zip_files))
+    }
