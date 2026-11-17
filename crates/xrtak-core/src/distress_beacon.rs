@@ -92,3 +92,32 @@ impl EmergencyStatus {
     }
 }
 
+/// Tactical urgency level for distress situations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EmergencySeverity {
+    Critical,
+    High,
+    Moderate,
+    Low,
+}
+
+impl EmergencySeverity {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Critical => "CRITICAL",
+            Self::High => "HIGH",
+            Self::Moderate => "MODERATE",
+            Self::Low => "LOW",
+        }
+    }
+
+    pub fn from_str_severity(s: &str) -> Self {
+        match s {
+            "CRITICAL" => Self::Critical,
+            "HIGH" => Self::High,
+            "LOW" => Self::Low,
+            _ => Self::Moderate,
+        }
+    }
+}
+
