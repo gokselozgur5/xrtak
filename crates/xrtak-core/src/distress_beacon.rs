@@ -552,3 +552,19 @@ mod tests {
         assert_eq!(b.status, EmergencyStatus::Active);
         assert_eq!(b.cot_type(), "b-a-o-pan");
     }
+    #[test]
+    fn test_beacon_state_transitions() {
+        let mut b = DistressBeacon::new(
+            "BEACON-02",
+            "ALPHA-2",
+            EmergencyType::InContact,
+            34.0,
+            -118.0,
+        );
+        assert_eq!(b.cot_type(), "b-a-o-tbl");
+        b.cancel("2026-01-01T01:00:00Z");
+        assert_eq!(b.status, EmergencyStatus::Cancelled);
+        assert_eq!(b.cot_type(), "b-a-o-can");
+        b.activate("2026-01-01T01:05:00Z");
+        assert_eq!(b.status, EmergencyStatus::Active);
+    }
