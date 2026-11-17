@@ -15,3 +15,17 @@ pub enum DistressBeaconError {
     InvalidCoordinate(String),
 }
 
+impl fmt::Display for DistressBeaconError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidXml(e) => write!(f, "Invalid XML: {e}"),
+            Self::MissingEventTag => write!(f, "Missing event tag"),
+            Self::MissingPointTag => write!(f, "Missing point tag"),
+            Self::MissingEmergencyTag => write!(f, "Missing emergency tag"),
+            Self::InvalidCoordinate(e) => write!(f, "Invalid coordinate: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for DistressBeaconError {}
+
