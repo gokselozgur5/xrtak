@@ -665,3 +665,26 @@ impl MgrsCoord {
                 self.gzd.band,
                 self.square.col,
                 self.square.row,
+                e,
+                n,
+                width = p
+            )
+        }
+    }
+
+    /// Format as standard spaced string (e.g. "31U DQ 48251 11943").
+    pub fn to_spaced_string(&self) -> String {
+        let p = self.precision.digits_per_coord();
+        if p == 0 {
+            format!("{}{} {}{}", self.gzd.zone, self.gzd.band, self.square.col, self.square.row)
+        } else {
+            let divisor = 10u32.pow((5 - p) as u32);
+            let e = self.easting / divisor;
+            let n = self.northing / divisor;
+            format!(
+                "{}{} {}{} {:0width$} {:0width$}",
+                self.gzd.zone,
+                self.gzd.band,
+                self.square.col,
+                self.square.row,
+                e,
