@@ -289,6 +289,17 @@ impl GeoChatBuilder {
         self.message_text = Some(text.into());
         self
     }
+    pub fn timestamp(mut self, iso: impl Into<String>) -> Self {
+        self.timestamp_iso = Some(iso.into());
+        self
+    }
+
+    pub fn coordinates(mut self, lat: f64, lon: f64, hae: f64) -> Self {
+        self.lat = lat;
+        self.lon = lon;
+        self.hae = hae;
+        self
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
