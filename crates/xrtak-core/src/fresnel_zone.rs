@@ -39,3 +39,23 @@ pub enum LinkQuality {
     /// Link margin < 0 dB (severed / unreachable).
     Severed,
 }
+
+/// Obstacle point along the path between transmitter and receiver.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ObstaclePoint {
+    /// Distance from transmitter in meters.
+    pub distance_m: f64,
+    /// Natural terrain elevation in meters AMSL.
+    pub terrain_elevation_m: f64,
+    /// Structure or tree canopy height above terrain in meters.
+    pub structure_height_m: f64,
+    /// Descriptive name or identifier of obstacle.
+    pub name: String,
+}
+
+impl ObstaclePoint {
+    /// Total peak elevation including structure height above sea level.
+    pub fn total_elevation_m(&self) -> f64 {
+        self.terrain_elevation_m + self.structure_height_m
+    }
+}
