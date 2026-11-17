@@ -718,3 +718,27 @@ mod tests {
             .with_max_total_connections(8)
             .with_idle_timeout_ms(15_000)
             .with_lifetime_ms(120_000)
+            .with_allowed_cn("takserver.local")
+            .with_client_identity("user1@agency", "AA:BB:CC:DD");
+
+        assert_eq!(config.server_endpoints.len(), 1);
+        assert_eq!(config.max_total_connections, 8);
+        assert_eq!(config.idle_timeout_ms, 15_000);
+        assert_eq!(config.connection_lifetime_ms, 120_000);
+        assert_eq!(config.client_cert_cn.as_deref(), Some("user1@agency"));
+    }
+
+    #[test]
+    fn test_connection_lifecycle_acquire_and_release() {
+        let config = TlsPoolConfig::new()
+            .with_endpoint("tak.example.com:8089")
+            .with_client_identity("client1", "FINGERPRINT");
+        let mut pool = TlsConnectionPool::new(config);
+
+        let id = pool
+            .acquire_connection("tak.example.com:8089", 1000)
+            .unwrap();
+        assert_eq!(id, 1);
+        assert_eq!(pool.pool_metrics().active_connections, 1);
+
+        pool.record_io(id, 128, 256, 1100).unwrap();
