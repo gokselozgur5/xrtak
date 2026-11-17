@@ -574,3 +574,27 @@ impl TlsConnectionPool {
         if !conn.state.is_alive() {
             return Err(PoolError::InvalidState(format!(
                 "cannot record I/O on dead connection in state {}",
+                conn.state
+            )));
+        }
+
+        conn.bytes_sent = conn.bytes_sent.saturating_add(sent);
+        conn.bytes_received = conn.bytes_received.saturating_add(received);
+        conn.last_active_epoch_ms = current_time_ms;
+        Ok(())
+    }
+
+    pub fn mark_connection_failed(
+        &mut self,
+        conn_id: u64,
+        reason: impl Into<String>,
+    ) -> Result<(), PoolError> {
+        let conn = self
+            .connections
+            .iter_mut()
+            .find(|c| c.id == conn_id)
+            .ok_or(PoolError::ConnectionNotFound(conn_id))?;
+
+        conn.state = ConnectionState::Failed;
+        conn.failure_reason = Some(reason.into());
+        Ok(())
