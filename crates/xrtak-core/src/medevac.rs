@@ -849,3 +849,26 @@ mod tests {
     }
 
     #[test]
+    fn test_medevac_builder_validation_errors() {
+        let bad_lat = CotMedevacBuilder::new("1", "A")
+            .coordinates(95.0, 10.0, 0.0)
+            .build();
+        assert!(matches!(bad_lat, Err(MedevacError::InvalidCoordinate(_))));
+
+        let bad_lon = CotMedevacBuilder::new("1", "A")
+            .coordinates(10.0, -195.0, 0.0)
+            .build();
+        assert!(matches!(bad_lon, Err(MedevacError::InvalidCoordinate(_))));
+    }
+
+    #[test]
+    fn test_format_nine_line_voice_brief() {
+        let report = sample_medevac_report();
+        let brief = format_nine_line_voice_brief(&report);
+        assert!(brief.contains("--- 9-LINE MEDEVAC BRIEF ---"));
+        assert!(brief.contains("LINE 1 (Location): 38SMB 1234 5678"));
+        assert!(brief.contains("LINE 2 (Frequency / Callsign): 42.50 MHz DUSTOFF"));
+        assert!(brief.contains("LINE 3 (Precedence): A - URGENT (U:2 P:1 R:0)"));
+        assert!(brief.contains("LINE 4 (Special Equipment): Hoist"));
+        assert!(brief.contains("LINE 5 (Patients): 2 Litter / 1 Ambulatory"));
+        assert!(brief.contains("LINE 6 (Security): P - Possible enemy troops"));
