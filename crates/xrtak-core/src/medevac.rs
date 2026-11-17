@@ -780,3 +780,26 @@ impl CotMedevacReport {
 }
 
 #[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_medevac_report() -> CotMedevacReport {
+        CotMedevacBuilder::new("MED-101", "DUSTOFF-42")
+            .coordinates(34.55, 43.12, 120.0)
+            .line1_location("38SMB 1234 5678")
+            .line2_freq_callsign("42.50 MHz DUSTOFF")
+            .precedence(MedevacPrecedence::Urgent)
+            .patient_counts(2, 1, 0, 2, 1)
+            .equipment(MedevacEquipment::Hoist)
+            .security(SiteSecurity::PossibleEnemy)
+            .marking(HlzMarking::Smoke("Green".into()))
+            .nationality(PatientNationality::UsMilitary)
+            .terrain_nbc("Flat LZ, wires east")
+            .remarks("Urgent evac needed")
+            .build()
+            .unwrap()
+    }
+
+    #[test]
+    fn test_precedence_and_window() {
+        let p = MedevacPrecedence::Urgent;
