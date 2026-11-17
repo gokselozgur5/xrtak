@@ -195,6 +195,8 @@ impl GeoChatPacket {
                                 b"chatroom" => chatroom = String::from_utf8_lossy(&a.value).into_owned(),
                                 b"messageId" => message_id = String::from_utf8_lossy(&a.value).into_owned(),
                                 b"parent" => parent_group = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"conversationId" => conversation_id = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                                b"parentMessageId" => parent_message_id = Some(String::from_utf8_lossy(&a.value).into_owned()),
                                 _ => {}
                             }
                         }
