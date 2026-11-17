@@ -481,3 +481,26 @@ impl UtmCoord {
         let e1 = (1.0 - (1.0 - WGS84_E2).sqrt()) / (1.0 + (1.0 - WGS84_E2).sqrt());
         let m = y / UTM_K0;
         let mu = m
+            / (WGS84_A
+                * (1.0
+                    - WGS84_E2 / 4.0
+                    - 3.0 * WGS84_E2.powi(2) / 64.0
+                    - 5.0 * WGS84_E2.powi(3) / 256.0));
+
+        let phi1 = mu
+            + (3.0 * e1 / 2.0 - 27.0 * e1.powi(3) / 32.0) * (2.0 * mu).sin()
+            + (21.0 * e1.powi(2) / 16.0 - 55.0 * e1.powi(4) / 32.0) * (4.0 * mu).sin()
+            + (151.0 * e1.powi(3) / 96.0) * (6.0 * mu).sin()
+            + (1097.0 * e1.powi(4) / 512.0) * (8.0 * mu).sin();
+
+        let sin_p1 = phi1.sin();
+        let cos_p1 = phi1.cos();
+        let tan_p1 = phi1.tan();
+
+        let n1 = WGS84_A / (1.0 - WGS84_E2 * sin_p1 * sin_p1).sqrt();
+        let r1 = WGS84_A * (1.0 - WGS84_E2) / (1.0 - WGS84_E2 * sin_p1 * sin_p1).powf(1.5);
+        let d = x / (n1 * UTM_K0);
+
+        let t1 = tan_p1 * tan_p1;
+        let c1 = WGS84_EP2 * cos_p1 * cos_p1;
+
