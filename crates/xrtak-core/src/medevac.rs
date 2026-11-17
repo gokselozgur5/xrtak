@@ -895,3 +895,20 @@ mod tests {
 
     #[test]
     fn test_medevac_parser_errors() {
+        let no_event = "<data><point lat=\"0\" lon=\"0\"/></data>";
+        assert_eq!(
+            CotMedevacReport::from_cot_xml(no_event).unwrap_err(),
+            MedevacError::MissingEventTag
+        );
+        let no_point = "<event version=\"2.0\" uid=\"M\"><detail><medevac/></detail></event>";
+        assert_eq!(
+            CotMedevacReport::from_cot_xml(no_point).unwrap_err(),
+            MedevacError::MissingPointTag
+        );
+        let no_medevac = "<event version=\"2.0\" uid=\"M\"><point lat=\"0\" lon=\"0\" hae=\"0\"/><detail/></event>";
+        assert_eq!(
+            CotMedevacReport::from_cot_xml(no_medevac).unwrap_err(),
+            MedevacError::MissingMedevacTag
+        );
+    }
+}
