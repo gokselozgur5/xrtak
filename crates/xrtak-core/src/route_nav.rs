@@ -78,3 +78,25 @@ pub struct NavWaypoint {
     pub wp_type: WaypointType,
     pub speed_limit_mps: Option<f64>,
 }
+
+impl NavWaypoint {
+    /// Create a new tactical navigation waypoint.
+    pub fn new(
+        id: impl Into<String>,
+        callsign: impl Into<String>,
+        lat: f64,
+        lon: f64,
+        alt_m: f64,
+        wp_type: WaypointType,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            callsign: callsign.into(),
+            lat,
+            lon,
+            alt_m,
+            wp_type,
+            speed_limit_mps: None,
+        }
+    }
+}
