@@ -113,3 +113,26 @@ impl MedevacEquipment {
     pub fn from_description(s: &str) -> Self {
         match s.trim().to_lowercase().as_str() {
             "" | "none" => Self::None,
+            "hoist" => Self::Hoist,
+            "extraction" | "extraction equipment" => Self::ExtractionEquipment,
+            "ventilator" => Self::Ventilator,
+            _ => Self::Custom(s.trim().to_string()),
+        }
+    }
+}
+
+/// Line 6: Security at pickup site.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SiteSecurity {
+    NoEnemy,
+    PossibleEnemy,
+    EnemyInArea,
+    ArmedEscortRequired,
+    Custom(String),
+}
+
+impl Default for SiteSecurity {
+    fn default() -> Self {
+        Self::NoEnemy
+    }
+}
