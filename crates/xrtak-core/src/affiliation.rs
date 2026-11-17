@@ -131,3 +131,18 @@ impl TacticalColor {
         format!("#{:02X}{:02X}{:02X}{:02X}", self.r, self.g, self.b, self.a)
     }
 }
+
+impl TacticalColor {
+    /// Convert color to unsigned 32-bit ARGB representation.
+    pub fn to_argb_u32(self) -> u32 {
+        ((self.a as u32) << 24)
+            | ((self.r as u32) << 16)
+            | ((self.g as u32) << 8)
+            | (self.b as u32)
+    }
+
+    /// Convert color to signed 32-bit integer ARGB used by ATAK XML.
+    pub fn to_atak_argb_i32(self) -> i32 {
+        self.to_argb_u32() as i32
+    }
+}
