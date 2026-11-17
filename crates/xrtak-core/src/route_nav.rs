@@ -53,3 +53,16 @@ pub fn cross_track_error_m(
     let xtd = (d13.sin() * (brg13 - brg12).sin()).asin();
     xtd * EARTH_RADIUS_M
 }
+
+/// Tactical waypoint classification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WaypointType {
+    Start,
+    TurnPoint,
+    RallyPoint,
+    Target,
+    Checkpoint,
+    Ingress,
+    Egress,
+    End,
+}
