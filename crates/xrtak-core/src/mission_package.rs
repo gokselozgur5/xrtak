@@ -526,3 +526,27 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
             bytes[cursor + 42],
             bytes[cursor + 43],
             bytes[cursor + 44],
+            bytes[cursor + 45],
+        ]) as usize;
+
+        let name_start = cursor + 46;
+        let name_str = std::str::from_utf8(&bytes[name_start..name_start + fn_len])
+            .map_err(|e| MissionPackageError::InvalidZipArchive(e.to_string()))?
+            .to_string();
+
+        if local_offset + 30 > bytes.len()
+            || &bytes[local_offset..local_offset + 4] != [0x50, 0x4b, 0x03, 0x04]
+        {
+            return Err(MissionPackageError::InvalidZipArchive("corrupt local header".into()));
+        }
+        let l_fn_len = u16::from_le_bytes([bytes[local_offset + 26], bytes[local_offset + 27]]) as usize;
+        let l_ex_len = u16::from_le_bytes([bytes[local_offset + 28], bytes[local_offset + 29]]) as usize;
+        let comp_size = u32::from_le_bytes([
+            bytes[local_offset + 18],
+            bytes[local_offset + 19],
+            bytes[local_offset + 20],
+            bytes[local_offset + 21],
+        ]) as usize;
+
+        let data_start = local_offset + 30 + l_fn_len + l_ex_len;
+        if data_start + comp_size > bytes.len() {
