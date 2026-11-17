@@ -484,3 +484,18 @@ impl DistressBeacon {
                     }
                     _ => {}
                 },
+                Ok(Event::Text(ref e)) => {
+                    let text = e.unescape().unwrap_or_default().into_owned();
+                    match current_tag {
+                        BeaconXmlTag::Emergency => emergency_text.push_str(&text),
+                        BeaconXmlTag::Remarks => remarks.push_str(&text),
+                        _ => {}
+                    }
+                }
+                Ok(Event::End(_)) => current_tag = BeaconXmlTag::None,
+                Ok(Event::Eof) => break,
+                Err(err) => return Err(DistressBeaconError::InvalidXml(err.to_string())),
+                _ => {}
+            }
+            buf.clear();
+        }
