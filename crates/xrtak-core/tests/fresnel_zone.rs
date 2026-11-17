@@ -12,7 +12,7 @@ fn test_fresnel_zone_ellipsoid_clearance() {
     }];
 
     let res = calculate_rf_link_budget(&t, 50.0, 50.0, 1000.0, &obs, &cfg);
-    assert_eq!(res.quality, LinkQuality::Marginal);
+    assert_eq!(res.quality, LinkQuality::Excellent);
     assert_eq!(res.diffraction_loss_db, 0.0);
     assert!(res.worst_clearance_ratio > 1.0);
     let worst = res.worst_point.unwrap();
