@@ -100,3 +100,11 @@ impl NavWaypoint {
         }
     }
 }
+
+impl NavWaypoint {
+    /// Attach an optional maximum speed constraint in meters per second.
+    pub fn with_speed_limit(mut self, speed_mps: f64) -> Self {
+        self.speed_limit_mps = Some(speed_mps);
+        self
+    }
+}
