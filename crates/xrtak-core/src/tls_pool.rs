@@ -430,3 +430,27 @@ pub struct PoolMetrics {
     pub total_bytes_received: u64,
 }
 
+/// Managed pool of mutual-TLS connections to TAK server endpoints.
+pub struct TlsConnectionPool {
+    config: TlsPoolConfig,
+    next_conn_id: u64,
+    connections: Vec<TlsConnection>,
+    total_created: u64,
+    total_acquired: u64,
+    total_released: u64,
+    total_pruned: u64,
+    total_auth_failures: u64,
+}
+
+impl TlsConnectionPool {
+    pub fn new(config: TlsPoolConfig) -> Self {
+        Self {
+            config,
+            next_conn_id: 1,
+            connections: Vec::new(),
+            total_created: 0,
+            total_acquired: 0,
+            total_released: 0,
+            total_pruned: 0,
+            total_auth_failures: 0,
+        }
