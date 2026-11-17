@@ -3,6 +3,7 @@
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
 /// Errors arising during GeoChat XML parsing.
