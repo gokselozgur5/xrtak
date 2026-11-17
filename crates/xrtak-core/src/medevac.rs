@@ -711,3 +711,26 @@ fn handle_start_empty(
 ) {
     let name = e.name().into_inner();
     match name {
+        b"event" => {
+            *has_event = true;
+            parse_event_point(e, r, name);
+        }
+        b"point" => {
+            *has_point = true;
+            parse_event_point(e, r, name);
+        }
+        b"medevac" | b"casevac" => {
+            *has_medevac = true;
+            parse_medevac_attributes(e, r);
+        }
+        b"contact" => parse_event_point(e, r, name),
+        _ => *cur = match_medevac_tag(name),
+    }
+}
+
+fn run_medevac_parser_loop(
+    reader: &mut Reader<&[u8]>,
+    r: &mut CotMedevacReport,
+    buf: &mut Vec<u8>,
+    ev: &mut bool,
+    pt: &mut bool,
