@@ -310,7 +310,10 @@ pub fn find_worst_obstruction(
     total_dist_m: f64,
     frequency_hz: f64,
 ) -> (f64, Option<FresnelPointAnalysis>, f64) {
-    let mut min_ratio = 1.0f64;
+    if profile.is_empty() {
+        return (1.0, None, 0.0);
+    }
+    let mut min_ratio = f64::INFINITY;
     let mut worst_point: Option<FresnelPointAnalysis> = None;
     let mut max_diff_loss = 0.0f64;
 
