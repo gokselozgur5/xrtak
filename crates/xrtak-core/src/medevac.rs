@@ -343,3 +343,26 @@ impl CotMedevacBuilder {
             cot_type: "b-r-f-h-c".to_string(),
             time_iso: "1970-01-01T00:00:00Z".to_string(),
             ..Default::default()
+        }
+    }
+
+    pub fn coordinates(mut self, lat: f64, lon: f64, hae: f64) -> Self {
+        self.lat = lat;
+        self.lon = lon;
+        self.hae = hae;
+        self
+    }
+
+    pub fn line1_location(mut self, location: impl Into<String>) -> Self {
+        self.line1_location = location.into();
+        self
+    }
+
+    pub fn line2_freq_callsign(mut self, freq: impl Into<String>) -> Self {
+        self.line2_freq_callsign = freq.into();
+        self
+    }
+
+    pub fn patient_counts(
+        mut self,
+        urgent: u32,
