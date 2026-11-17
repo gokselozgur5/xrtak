@@ -281,3 +281,17 @@ impl RouteNavTracker {
         }
     }
 }
+
+/// Real-time progression metrics against current leg and target waypoint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RouteNavStatus {
+    pub current_leg_index: usize,
+    pub target_waypoint_id: String,
+    pub distance_to_target_m: f64,
+    pub bearing_to_target_deg: f64,
+    pub cross_track_error_m: f64,
+    pub eta_to_target_seconds: f64,
+    pub eta_total_seconds: f64,
+    pub is_off_track: bool,
+    pub guidance: Option<NavGuidanceCue>,
+}
