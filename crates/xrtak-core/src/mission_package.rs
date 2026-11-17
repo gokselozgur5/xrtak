@@ -118,3 +118,27 @@ impl MissionPackageArchive {
             cot_xml.as_bytes().to_vec(),
             "application/x-cot+xml",
             false,
+        )
+    }
+
+    pub fn generate_manifest_xml(&self) -> String {
+        let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
+        out.push_str("<MissionPackageManifest version=\"2\">\n");
+        out.push_str("  <Configuration>\n");
+        let uid = escape_xml_attr(&self.uid);
+        let name = escape_xml_attr(&self.name);
+        out.push_str(&format!("    <Parameter name=\"uid\" value=\"{uid}\"/>\n"));
+        out.push_str(&format!("    <Parameter name=\"name\" value=\"{name}\"/>\n"));
+        out.push_str(&format!(
+            "    <Parameter name=\"onReceiveDelete\" value=\"{}\"/>\n",
+            self.on_receive_delete
+        ));
+        out.push_str("  </Configuration>\n");
+        out.push_str("  <Contents>\n");
+        for entry in &self.entries {
+            let path = escape_xml_attr(&entry.zip_entry);
+            out.push_str(&format!(
+                "    <Content zipEntry=\"{path}\" ignore=\"{}\">\n",
+                entry.ignore
+            ));
+            let mime = escape_xml_attr(&entry.content_type);
