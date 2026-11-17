@@ -622,3 +622,26 @@ mod tests {
         assert_eq!(report.total_entries, 1);
         assert_eq!(report.verified_entries, vec!["recon.cot"]);
         assert!(report.failed_entries.is_empty());
+    }
+
+    #[test]
+    fn test_zip_integrity_verification_tamper_detection() {
+        let mut pkg = MissionPackageArchive::new("PKG-TAMPER", "Tamper Test");
+        pkg.add_cot_file("target.cot", "<event uid='target-orig'/>");
+
+        let zip_bytes = pkg.build_zip().expect("build zip");
+
+        let mut tampered = zip_bytes.clone();
+        for i in 0..tampered.len() - 4 {
+            if &tampered[i..i + 4] == b"orig" {
+                tampered[i..i + 4].copy_from_slice(b"hack");
+                break;
+            }
+        }
+
+        let report = MissionPackageArchive::verify_zip(&tampered).expect("verify tampered zip");
+        assert!(!report.is_valid);
+        assert_eq!(report.failed_entries.len(), 1);
+        assert_eq!(report.failed_entries[0].0, "target.cot");
+    }
+}
