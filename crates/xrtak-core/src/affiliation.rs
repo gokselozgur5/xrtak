@@ -114,3 +114,20 @@ impl TacticalColor {
         Self { r, g, b, a: 255 }
     }
 }
+
+impl TacticalColor {
+    /// Convert color to normalized [0.0, 1.0] RGBA float tuple.
+    pub fn to_rgba_f32(self) -> (f32, f32, f32, f32) {
+        (
+            self.r as f32 / 255.0,
+            self.g as f32 / 255.0,
+            self.b as f32 / 255.0,
+            self.a as f32 / 255.0,
+        )
+    }
+
+    /// Format color as an 8-character `#RRGGBBAA` hex string.
+    pub fn to_hex(self) -> String {
+        format!("#{:02X}{:02X}{:02X}{:02X}", self.r, self.g, self.b, self.a)
+    }
+}
