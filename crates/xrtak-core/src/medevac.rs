@@ -274,3 +274,26 @@ pub struct CotMedevacReport {
     pub line3_urgent_count: u32,
     pub line3_priority_count: u32,
     pub line3_routine_count: u32,
+    pub line4_equipment: MedevacEquipment,
+    pub line5_litter_count: u32,
+    pub line5_ambulatory_count: u32,
+    pub line6_security: SiteSecurity,
+    pub line7_hlz_marking: HlzMarking,
+    pub line8_patient_nationality: PatientNationality,
+    pub line9_terrain_nbc: String,
+    pub remarks: String,
+}
+
+impl CotMedevacReport {
+    pub fn total_patients_by_precedence(&self) -> u32 {
+        self.line3_urgent_count + self.line3_priority_count + self.line3_routine_count
+    }
+
+    pub fn total_patients_by_type(&self) -> u32 {
+        self.line5_litter_count + self.line5_ambulatory_count
+    }
+
+    pub fn is_urgent(&self) -> bool {
+        matches!(
+            self.line3_precedence,
+            MedevacPrecedence::Urgent | MedevacPrecedence::UrgentSurgical
