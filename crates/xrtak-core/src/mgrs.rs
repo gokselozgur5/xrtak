@@ -642,3 +642,26 @@ impl MgrsCoord {
         } else {
             let (e_str, n_str) = num_str.split_at(digits_per_coord);
             let raw_e: u32 = e_str.parse().unwrap_or(0);
+            let raw_n: u32 = n_str.parse().unwrap_or(0);
+            let scale = 10u32.pow((5 - digits_per_coord) as u32);
+            (raw_e * scale, raw_n * scale)
+        };
+
+        Self::new(gzd, square, easting, northing, precision)
+    }
+
+    /// Format as compact string (e.g. "31UDQ4825111943").
+    pub fn to_compact_string(&self) -> String {
+        let p = self.precision.digits_per_coord();
+        if p == 0 {
+            format!("{}{}{}{}", self.gzd.zone, self.gzd.band, self.square.col, self.square.row)
+        } else {
+            let divisor = 10u32.pow((5 - p) as u32);
+            let e = self.easting / divisor;
+            let n = self.northing / divisor;
+            format!(
+                "{}{}{}{}{:0width$}{:0width$}",
+                self.gzd.zone,
+                self.gzd.band,
+                self.square.col,
+                self.square.row,
