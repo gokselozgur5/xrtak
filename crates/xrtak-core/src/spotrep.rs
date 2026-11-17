@@ -343,3 +343,22 @@ impl SpotReport {
         Ok(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_spotrep() -> SpotReport {
+        let mut r = SpotReport::new("SPOTREP-001", "OBSERVER-ALPHA")
+            .with_coordinates(34.123456, -117.654321, 1200.0)
+            .with_time("2026-11-17T06:00:00Z")
+            .with_assessment("Enemy probing perimeter defence")
+            .with_remarks("Observers repositioning to secondary OP");
+        r.size = "2x armored scout cars".to_string();
+        r.activity = "Reconnaissance patrol westbound".to_string();
+        r.location = "38SMB12345678".to_string();
+        r.unit = "Unknown scout detachment".to_string();
+        r.time_observed = "170600Z NOV 26".to_string();
+        r.equipment = "BRDM-2, thermal optics, PKT".to_string();
+        r
+    }
