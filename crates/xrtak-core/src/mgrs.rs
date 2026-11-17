@@ -734,3 +734,26 @@ impl MgrsCoord {
             zone: utm.zone,
             band: utm.band,
             easting: utm.easting + res,
+            northing: utm.northing + res,
+            is_northern: utm.is_northern,
+        };
+
+        let center_utm = UtmCoord {
+            zone: utm.zone,
+            band: utm.band,
+            easting: utm.easting + res * 0.5,
+            northing: utm.northing + res * 0.5,
+            is_northern: utm.is_northern,
+        };
+
+        let south_west = sw_utm.to_geodetic()?;
+        let north_east = ne_utm.to_geodetic()?;
+        let center = center_utm.to_geodetic()?;
+
+        Ok(MgrsBoundingBox {
+            south_west,
+            north_east,
+            center,
+            accuracy_m: res,
+        })
+    }
