@@ -214,3 +214,27 @@ impl TlsConnection {
             health_checks_passed: 0,
             failure_reason: None,
         }
+    }
+
+    pub fn is_expired(&self, current_time_ms: u64, lifetime_ms: u64) -> bool {
+        current_time_ms.saturating_sub(self.created_at_epoch_ms) >= lifetime_ms
+    }
+
+    pub fn is_idle_timed_out(&self, current_time_ms: u64, idle_timeout_ms: u64) -> bool {
+        self.state == ConnectionState::Idle
+            && current_time_ms.saturating_sub(self.last_active_epoch_ms) >= idle_timeout_ms
+    }
+}
+
+/// Peer certificate details extracted during mutual TLS handshake.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PeerCertificateInfo {
+    pub subject_cn: String,
+    pub subject_alt_names: Vec<String>,
+    pub issuer: String,
+    pub not_before_epoch_ms: u64,
+    pub not_after_epoch_ms: u64,
+    pub sha256_fingerprint: String,
+    pub is_ca: bool,
+}
+
