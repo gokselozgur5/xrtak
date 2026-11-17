@@ -814,3 +814,27 @@ mod tests {
         let config = TlsPoolConfig::new()
             .with_client_identity("user", "FP")
             .with_pinned_fingerprint("11:22:33:44");
+
+        let cert = PeerCertificateInfo {
+            subject_cn: "tak.example.com".into(),
+            subject_alt_names: vec![],
+            issuer: "TAK CA".into(),
+            not_before_epoch_ms: 1000,
+            not_after_epoch_ms: 2000,
+            sha256_fingerprint: "FF:EE:DD:CC".into(),
+            is_ca: false,
+        };
+
+        let err_expired =
+            MutualCertAuthenticator::validate_peer(&cert, "tak.example.com", 2500, &config)
+                .unwrap_err();
+        assert!(matches!(err_expired, AuthError::CertificateExpired { .. }));
+
+        let err_fp =
+            MutualCertAuthenticator::validate_peer(&cert, "tak.example.com", 1500, &config)
+                .unwrap_err();
+        assert!(matches!(err_fp, AuthError::FingerprintMismatch { .. }));
+
+        let err_host =
+            MutualCertAuthenticator::validate_peer(&cert, "other.server.com", 1500, &config)
+                .unwrap_err();
