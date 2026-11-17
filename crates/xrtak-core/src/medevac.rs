@@ -67,3 +67,26 @@ impl MedevacPrecedence {
 
     pub fn parse_code(s: &str) -> Option<Self> {
         let upper = s.trim().to_uppercase();
+        if upper.starts_with('A') || (upper.contains("URGENT") && !upper.contains("SURG")) {
+            Some(Self::Urgent)
+        } else if upper.starts_with('B') || upper.contains("SURG") {
+            Some(Self::UrgentSurgical)
+        } else if upper.starts_with('C') || upper.contains("PRIORITY") {
+            Some(Self::Priority)
+        } else if upper.starts_with('D') || upper.contains("ROUTINE") {
+            Some(Self::Routine)
+        } else if upper.starts_with('E') || upper.contains("CONVENIENCE") {
+            Some(Self::Convenience)
+        } else {
+            None
+        }
+    }
+}
+
+/// Line 4: Special equipment requirements.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MedevacEquipment {
+    None,
+    Hoist,
+    ExtractionEquipment,
+    Ventilator,
