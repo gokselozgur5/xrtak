@@ -757,3 +757,26 @@ impl MgrsCoord {
             accuracy_m: res,
         })
     }
+}
+
+/// Geodetic bounding box and center coordinate for an MGRS grid square.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct MgrsBoundingBox {
+    /// Southwest corner geodetic coordinate.
+    pub south_west: GeodeticCoord,
+    /// Northeast corner geodetic coordinate.
+    pub north_east: GeodeticCoord,
+    /// Grid cell geometric center coordinate.
+    pub center: GeodeticCoord,
+    /// Positional resolution accuracy in meters.
+    pub accuracy_m: f64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_grid_zone_designator() {
+        let gzd = GridZoneDesignator::new(31, 'U').expect("valid GZD");
+        assert_eq!(gzd.zone, 31);
