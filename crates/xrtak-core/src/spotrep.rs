@@ -232,3 +232,21 @@ fn match_tag(name: &[u8]) -> SpotrepTag {
         _ => SpotrepTag::None,
     }
 }
+
+fn parse_spotrep_attributes(e: &quick_xml::events::BytesStart, r: &mut SpotReport) {
+    for a in e.attributes().flatten() {
+        let val = unescape_xml(&String::from_utf8_lossy(&a.value));
+        match a.key.as_ref() {
+            b"size" => r.size = val,
+            b"activity" => r.activity = val,
+            b"location" => r.location = val,
+            b"unit" => r.unit = val,
+            b"time" => r.time_observed = val,
+            b"equipment" => r.equipment = val,
+            b"assessment" => r.assessment = val,
+            b"remarks" => r.remarks = val,
+            b"observer" => r.observer_callsign = val,
+            _ => {}
+        }
+    }
+}
