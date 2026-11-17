@@ -205,3 +205,26 @@ impl HlzMarking {
             Self::Custom(s.trim().to_string())
         }
     }
+}
+
+/// Line 8: Patient nationality and status.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PatientNationality {
+    UsMilitary,
+    UsCivilian,
+    NonUsMilitary,
+    NonUsCivilian,
+    Epw,
+    Child,
+    Custom(String),
+}
+
+impl Default for PatientNationality {
+    fn default() -> Self {
+        Self::UsMilitary
+    }
+}
+
+impl PatientNationality {
+    pub fn as_str(&self) -> &str {
+        match self {
