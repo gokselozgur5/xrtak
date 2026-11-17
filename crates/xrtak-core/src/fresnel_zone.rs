@@ -357,3 +357,32 @@ pub fn compute_rx_power_and_margin(
     let margin = rx_pwr - t.rx_sensitivity_dbm - t.fade_margin_db;
     (eirp, rx_pwr, margin)
 }
+
+/// Computes complete RF link budget and Fresnel clearance summary.
+pub fn calculate_rf_link_budget(
+    t: &RfTransceiver,
+    tx_alt_m: f64,
+    rx_alt_m: f64,
+    total_dist_m: f64,
+    obs: &[ObstaclePoint],
+    cfg: &FresnelCalculatorConfig,
+) -> LinkBudgetResult {
+    let d = total_dist_m.max(1.0);
+    let prof = analyze_fresnel_profile(tx_alt_m, rx_alt_m, d, obs, cfg);
+    let (min_r, worst_pt, diff) = find_worst_obstruction(&prof, d, cfg.frequency_hz);
+    let fspl = compute_fspl(d, cfg.frequency_hz);
+    let (eirp, rx_pwr, margin) = compute_rx_power_and_margin(t, fspl, diff, cfg.misc_loss_db);
+    LinkBudgetResult {
+        frequency_hz: cfg.frequency_hz,
+        total_distance_m: d,
+        eirp_dbm: eirp,
+        fspl_db: fspl,
+        diffraction_loss_db: diff,
+        misc_loss_db: cfg.misc_loss_db,
+        rx_power_dbm: rx_pwr,
+        link_margin_db: margin,
+        worst_clearance_ratio: min_r,
+        worst_point: worst_pt,
+        quality: classify_link_quality(margin),
+    }
+}
