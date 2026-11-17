@@ -872,3 +872,26 @@ mod tests {
         assert!(brief.contains("LINE 4 (Special Equipment): Hoist"));
         assert!(brief.contains("LINE 5 (Patients): 2 Litter / 1 Ambulatory"));
         assert!(brief.contains("LINE 6 (Security): P - Possible enemy troops"));
+        assert!(brief.contains("Smoke (Green)"));
+        assert!(brief.contains("Flat LZ, wires east"));
+    }
+
+    #[test]
+    fn test_medevac_cot_xml_roundtrip() {
+        let report = sample_medevac_report();
+        let xml = report.to_cot_xml();
+        assert!(xml.contains("<event version=\"2.0\" uid=\"MED-101\""));
+        assert!(xml.contains("<point lat=\"34.550000\" lon=\"43.120000\""));
+        assert!(xml.contains("<contact callsign=\"DUSTOFF-42\""));
+        assert!(xml.contains("<medevac "));
+
+        let parsed = CotMedevacReport::from_cot_xml(&xml).expect("parse xml");
+        assert_eq!(parsed.cot_uid, report.cot_uid);
+        assert_eq!(parsed.callsign, report.callsign);
+        assert_eq!(parsed.line1_location, report.line1_location);
+        assert_eq!(parsed.line3_urgent_count, 2);
+        assert_eq!(parsed.line5_litter_count, 2);
+    }
+
+    #[test]
+    fn test_medevac_parser_errors() {
