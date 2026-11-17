@@ -40,6 +40,7 @@ pub mod rf;
 pub mod route_sequencer;
 pub mod sapient;
 pub mod sensor_stream;
+pub mod medevac;
 pub mod spotrep;
 pub mod tak_tls;
 pub mod tls_pool;
@@ -151,6 +152,10 @@ pub use route_sequencer::{
     RouteWaypoint, SequencedLeg, SequencedRouteResult,
 };
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
+pub use medevac::{
+    format_nine_line_voice_brief, HlzMarking, CotMedevacBuilder, MedevacEquipment, MedevacError,
+    MedevacPrecedence, CotMedevacReport, PatientNationality, SiteSecurity,
+};
 pub use spotrep::{format_salute_report_text, SpotReport, SpotReportError};
 pub use tak_tls::{
     CertificateFormat, ClientAuthMode, TakTlsConfig, TakTlsConfigBuilder, TakTlsError,
