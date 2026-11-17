@@ -342,3 +342,20 @@ enum BeaconXmlTag {
     Link,
 }
 
+impl DistressBeacon {
+    pub fn from_cot_xml(xml: &str) -> Result<Self, DistressBeaconError> {
+        let mut reader = Reader::from_str(xml);
+        reader.trim_text(true);
+        let mut buf = Vec::new();
+        let mut uid = None;
+        let mut cot_type = None;
+        let mut time_iso = None;
+        let mut stale_iso = None;
+        let mut point = None;
+        let mut callsign = None;
+        let mut emergency_type = None;
+        let mut is_cancelled = false;
+        let mut emergency_text = String::new();
+        let mut remarks = String::new();
+        let mut parent_uid = None;
+        let mut current_tag = BeaconXmlTag::None;
