@@ -766,3 +766,27 @@ mod tests {
 
         let id1 = pool.acquire_connection("server-a:8089", 100).unwrap();
         let id2 = pool.acquire_connection("server-a:8089", 100).unwrap();
+        assert_ne!(id1, id2);
+
+        let err1 = pool.acquire_connection("server-a:8089", 100).unwrap_err();
+        assert!(matches!(err1, PoolError::EndpointExhausted(_)));
+
+        let _id3 = pool.acquire_connection("server-b:8089", 100).unwrap();
+        let err2 = pool.acquire_connection("server-b:8089", 100).unwrap_err();
+        assert_eq!(err2, PoolError::PoolExhausted);
+    }
+
+    #[test]
+    fn test_mutual_auth_peer_validation_success_and_wildcard() {
+        let config = TlsPoolConfig::new()
+            .with_client_identity("user", "FINGERPRINT")
+            .with_pinned_fingerprint("AA:BB:CC:DD")
+            .with_allowed_cn("tak.example.com");
+
+        let cert = PeerCertificateInfo {
+            subject_cn: "tak.example.com".into(),
+            subject_alt_names: vec!["*.internal.tak".into()],
+            issuer: "Root TAK CA".into(),
+            not_before_epoch_ms: 500,
+            not_after_epoch_ms: 5000,
+            sha256_fingerprint: "aa:bb:cc:dd".into(),
