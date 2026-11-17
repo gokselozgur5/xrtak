@@ -281,3 +281,18 @@ impl DistressBeacon {
             flags.join(", ")
         };
         let desc = if self.description.is_empty() { "NONE" } else { &self.description };
+        format!(
+            "{status_str}\n\
+             BEACON: {}\n\
+             CALLSIGN: {}\n\
+             TYPE: {}\n\
+             SEVERITY: {}\n\
+             FLAGS: {}\n\
+             POSITION: {:.6}, {:.6} (HAE: {:.1}m)\n\
+             REMARKS: {}",
+            self.beacon_uid, self.callsign, self.alert_type.as_str(),
+            self.severity.as_str(), flags_str, self.lat, self.lon, self.hae, desc
+        )
+    }
+}
+
