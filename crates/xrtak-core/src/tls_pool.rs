@@ -166,3 +166,27 @@ impl ConnectionState {
 impl std::fmt::Display for ConnectionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Connecting => write!(f, "CONNECTING"),
+            Self::HandshakeComplete => write!(f, "HANDSHAKE_COMPLETE"),
+            Self::Active => write!(f, "ACTIVE"),
+            Self::Idle => write!(f, "IDLE"),
+            Self::Draining => write!(f, "DRAINING"),
+            Self::Closed => write!(f, "CLOSED"),
+            Self::Failed => write!(f, "FAILED"),
+        }
+    }
+}
+
+/// Metadata and state for an individual pooled TLS connection.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TlsConnection {
+    pub id: u64,
+    pub endpoint: String,
+    pub state: ConnectionState,
+    pub created_at_epoch_ms: u64,
+    pub last_active_epoch_ms: u64,
+    pub last_health_check_epoch_ms: u64,
+    pub tls_version: String,
+    pub cipher_suite: String,
+    pub peer_identity: Option<String>,
+    pub is_mtls_verified: bool,
