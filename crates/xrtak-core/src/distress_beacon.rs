@@ -420,3 +420,14 @@ impl DistressBeacon {
                         }
                         current_tag = BeaconXmlTag::Contact;
                     }
+                    b"remarks" => current_tag = BeaconXmlTag::Remarks,
+                    b"link" => {
+                        for a in e.attributes().flatten() {
+                            if a.key.as_ref() == b"uid" {
+                                parent_uid = Some(parse_str_attr(&a.value));
+                            }
+                        }
+                        current_tag = BeaconXmlTag::Link;
+                    }
+                    _ => {}
+                },
