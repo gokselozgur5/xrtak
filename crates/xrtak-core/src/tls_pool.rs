@@ -310,3 +310,27 @@ impl std::fmt::Display for AuthError {
                 write!(f, "invalid certificate format: {err}")
             }
         }
+    }
+}
+
+impl std::error::Error for AuthError {}
+
+/// Mutual certificate authenticator performing RFC 5280 and ICD-TAK-TLS-01 validations.
+pub struct MutualCertAuthenticator;
+
+impl MutualCertAuthenticator {
+    fn normalize_fingerprint(fp: &str) -> String {
+        fp.replace([':', ' ', '-'], "").to_uppercase()
+    }
+
+    fn matches_host_or_pattern(pattern: &str, host: &str) -> bool {
+        let p = pattern.to_lowercase();
+        let h = host.to_lowercase();
+        if p == h {
+            return true;
+        }
+        if let Some(suffix) = p.strip_prefix("*.") {
+            if let Some((_, host_domain)) = h.split_once('.') {
+                return host_domain == suffix;
+            }
+        }
