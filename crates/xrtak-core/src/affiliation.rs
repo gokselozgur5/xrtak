@@ -146,3 +146,15 @@ impl TacticalColor {
         self.to_argb_u32() as i32
     }
 }
+
+impl TacticalColor {
+    /// Parse color from signed 32-bit integer ARGB used by ATAK XML.
+    pub fn from_argb_i32(val: i32) -> Self {
+        let u = val as u32;
+        let a = ((u >> 24) & 0xFF) as u8;
+        let r = ((u >> 16) & 0xFF) as u8;
+        let g = ((u >> 8) & 0xFF) as u8;
+        let b = (u & 0xFF) as u8;
+        Self { r, g, b, a }
+    }
+}
