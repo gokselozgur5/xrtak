@@ -596,3 +596,26 @@ hae=\"{:.1}\" ce=\"9999999\" le=\"9999999\"/>\
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MedevacTag {
     None,
+    Line1,
+    Line2,
+    Line3,
+    Line4,
+    Urgent,
+    Priority,
+    Routine,
+    Litter,
+    Ambulatory,
+    Line6,
+    Line7,
+    Line8,
+    Line9,
+    Remarks,
+}
+
+fn parse_f64(bytes: &[u8]) -> Option<f64> {
+    std::str::from_utf8(bytes).ok()?.trim().parse().ok()
+}
+
+fn match_medevac_tag(name: &[u8]) -> MedevacTag {
+    match name {
+        b"line1" => MedevacTag::Line1,
