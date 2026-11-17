@@ -46,3 +46,27 @@ pub struct MissionPackageEntry {
     pub sha256_hex: String,
     pub ignore: bool,
 }
+
+impl MissionPackageEntry {
+    pub fn new(
+        zip_entry: impl Into<String>,
+        data: Vec<u8>,
+        content_type: impl Into<String>,
+        ignore: bool,
+    ) -> Self {
+        let sha256_hex = compute_sha256_hex(&data);
+        Self {
+            zip_entry: zip_entry.into(),
+            data,
+            content_type: content_type.into(),
+            sha256_hex,
+            ignore,
+        }
+    }
+}
+
+/// Result report from integrity validation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VerificationReport {
+    pub package_uid: String,
+    pub package_name: String,
