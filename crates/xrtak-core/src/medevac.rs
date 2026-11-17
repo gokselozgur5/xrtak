@@ -90,3 +90,26 @@ pub enum MedevacEquipment {
     Hoist,
     ExtractionEquipment,
     Ventilator,
+    Custom(String),
+}
+
+impl Default for MedevacEquipment {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl MedevacEquipment {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::None => "None",
+            Self::Hoist => "Hoist",
+            Self::ExtractionEquipment => "Extraction Equipment",
+            Self::Ventilator => "Ventilator",
+            Self::Custom(s) => s.as_str(),
+        }
+    }
+
+    pub fn from_description(s: &str) -> Self {
+        match s.trim().to_lowercase().as_str() {
+            "" | "none" => Self::None,
