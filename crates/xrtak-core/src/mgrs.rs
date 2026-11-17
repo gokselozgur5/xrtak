@@ -389,3 +389,26 @@ impl GeodeticCoord {
     /// Convert geodetic coordinate directly to MGRS coordinate at given precision.
     pub fn to_mgrs(&self, precision: MgrsPrecision) -> Result<MgrsCoord, MgrsError> {
         let utm = self.to_utm()?;
+        utm.to_mgrs(precision)
+    }
+}
+
+/// Universal Transverse Mercator (UTM) coordinate.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct UtmCoord {
+    /// UTM Zone number (1 to 60).
+    pub zone: u8,
+    /// MGRS latitude band letter ('C' to 'X').
+    pub band: char,
+    /// Easting in meters (typically 100,000 to 900,000).
+    pub easting: f64,
+    /// Northing in meters (0 to 10,000,000).
+    pub northing: f64,
+    /// True if Northern Hemisphere, false if Southern Hemisphere.
+    pub is_northern: bool,
+}
+
+impl UtmCoord {
+    /// Forward projection: convert latitude and longitude to UTM coordinate.
+    pub fn from_lat_lon(lat_deg: f64, lon_deg: f64) -> Result<Self, MgrsError> {
+        let gzd = GridZoneDesignator::from_lat_lon(lat_deg, lon_deg)?;
