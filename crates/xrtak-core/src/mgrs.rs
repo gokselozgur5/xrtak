@@ -780,3 +780,26 @@ mod tests {
     fn test_grid_zone_designator() {
         let gzd = GridZoneDesignator::new(31, 'U').expect("valid GZD");
         assert_eq!(gzd.zone, 31);
+        assert_eq!(gzd.band, 'U');
+        assert!(gzd.is_northern());
+        assert_eq!(gzd.latitude_bounds(), (48.0, 56.0));
+        assert_eq!(gzd.central_meridian_deg(), 3.0);
+
+        let gzd_south = GridZoneDesignator::new(56, 'H').expect("valid southern GZD");
+        assert!(!gzd_south.is_northern());
+        assert_eq!(gzd_south.latitude_bounds(), (-40.0, -32.0));
+
+        assert!(GridZoneDesignator::new(0, 'U').is_err());
+        assert!(GridZoneDesignator::new(61, 'U').is_err());
+        assert!(GridZoneDesignator::new(31, 'I').is_err());
+        assert!(GridZoneDesignator::new(31, 'O').is_err());
+    }
+
+    #[test]
+    fn test_precision_levels() {
+        assert_eq!(MgrsPrecision::OneMeter.digits_per_coord(), 5);
+        assert_eq!(MgrsPrecision::OneMeter.resolution_meters(), 1.0);
+        assert_eq!(MgrsPrecision::HundredKilometers.digits_per_coord(), 0);
+        assert_eq!(MgrsPrecision::HundredKilometers.resolution_meters(), 100_000.0);
+
+        assert_eq!(
