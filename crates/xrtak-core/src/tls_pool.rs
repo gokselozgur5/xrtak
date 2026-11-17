@@ -406,3 +406,27 @@ impl MutualCertAuthenticator {
 }
 
 /// Summary of a batch health check run.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct HealthCheckSummary {
+    pub total_checked: usize,
+    pub healthy_count: usize,
+    pub degraded_count: usize,
+    pub failed_count: usize,
+}
+
+/// Operational statistics of the connection pool.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct PoolMetrics {
+    pub total_connections: usize,
+    pub active_connections: usize,
+    pub idle_connections: usize,
+    pub failed_connections: usize,
+    pub total_created: u64,
+    pub total_acquired: u64,
+    pub total_released: u64,
+    pub total_pruned: u64,
+    pub total_auth_failures: u64,
+    pub total_bytes_sent: u64,
+    pub total_bytes_received: u64,
+}
+
