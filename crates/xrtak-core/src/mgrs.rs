@@ -895,3 +895,4 @@ mod tests {
         assert!(MgrsCoord::parse("31UDQ12AB").is_err()); // non-digits
         assert!(MgrsCoord::parse("99UDQ1234").is_err()); // invalid zone
     }
+}
