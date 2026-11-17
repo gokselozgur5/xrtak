@@ -66,3 +66,15 @@ pub enum WaypointType {
     Egress,
     End,
 }
+
+/// Single navigation waypoint with 3D coordinates and constraints.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NavWaypoint {
+    pub id: String,
+    pub callsign: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub alt_m: f64,
+    pub wp_type: WaypointType,
+    pub speed_limit_mps: Option<f64>,
+}
