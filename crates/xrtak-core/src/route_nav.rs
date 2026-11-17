@@ -351,3 +351,17 @@ impl RouteNavTracker {
         self.route.legs.len().saturating_sub(self.current_leg_index)
     }
 }
+
+impl RouteNavTracker {
+    /// Calculate remaining distance in subsequent legs beyond the current leg.
+    pub fn remaining_subsequent_distance_m(&self) -> f64 {
+        if self.current_leg_index + 1 < self.route.legs.len() {
+            self.route.legs[self.current_leg_index + 1..]
+                .iter()
+                .map(|l| l.distance_3d_m)
+                .sum()
+        } else {
+            0.0
+        }
+    }
+}
