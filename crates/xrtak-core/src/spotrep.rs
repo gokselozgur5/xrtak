@@ -218,3 +218,17 @@ enum SpotrepTag {
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
     std::str::from_utf8(bytes).ok()?.trim().parse().ok()
 }
+
+fn match_tag(name: &[u8]) -> SpotrepTag {
+    match name {
+        b"size" => SpotrepTag::Size,
+        b"activity" => SpotrepTag::Activity,
+        b"location" => SpotrepTag::Location,
+        b"unit" => SpotrepTag::Unit,
+        b"time" => SpotrepTag::Time,
+        b"equipment" => SpotrepTag::Equipment,
+        b"assessment" => SpotrepTag::Assessment,
+        b"remarks" => SpotrepTag::Remarks,
+        _ => SpotrepTag::None,
+    }
+}
