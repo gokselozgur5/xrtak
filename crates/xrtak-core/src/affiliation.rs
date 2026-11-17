@@ -93,3 +93,24 @@ impl CoTAffiliation {
         }
     }
 }
+
+/// 32-bit RGBA tactical color representation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TacticalColor {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
+}
+
+impl TacticalColor {
+    /// Create a new RGBA tactical color.
+    pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self { r, g, b, a }
+    }
+
+    /// Create an opaque tactical color from RGB components.
+    pub const fn from_rgb(r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b, a: 255 }
+    }
+}
