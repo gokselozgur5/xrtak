@@ -619,3 +619,26 @@ impl MgrsCoord {
         let square = HundredKmSquare::new(col, row)?;
         let num_str = chars.as_str();
 
+        if !num_str.chars().all(|c| c.is_ascii_digit()) {
+            return Err(MgrsError::InvalidFormat("non-numeric coordinate digits".to_string()));
+        }
+
+        if num_str.len() % 2 != 0 {
+            return Err(MgrsError::InvalidFormat(format!(
+                "odd number of coordinate digits ({})",
+                num_str.len()
+            )));
+        }
+
+        let digits_per_coord = num_str.len() / 2;
+        if digits_per_coord > 5 {
+            return Err(MgrsError::InvalidPrecision(digits_per_coord));
+        }
+
+        let precision = MgrsPrecision::from_digits_per_coord(digits_per_coord)?;
+
+        let (easting, northing) = if digits_per_coord == 0 {
+            (0, 0)
+        } else {
+            let (e_str, n_str) = num_str.split_at(digits_per_coord);
+            let raw_e: u32 = e_str.parse().unwrap_or(0);
