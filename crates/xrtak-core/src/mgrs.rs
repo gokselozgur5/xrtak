@@ -67,3 +67,26 @@ pub const COL_SETS: [[char; 8]; 3] = [
 ];
 
 /// 100,000-meter square row letters (repeating every 2,000,000 meters).
+pub const ROW_LETTERS: [char; 20] = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T',
+    'U', 'V',
+];
+
+/// Errors during MGRS / UTM / Geodetic conversion and parsing.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum MgrsError {
+    /// Latitude exceeds [-80.0, 84.0] degrees for UTM coverage.
+    InvalidLatitude(f64),
+    /// Longitude exceeds [-180.0, 180.0] degrees.
+    InvalidLongitude(f64),
+    /// UTM zone is outside 1..=60.
+    InvalidUtmZone(u8),
+    /// Invalid latitude band letter.
+    InvalidLatitudeBand(char),
+    /// Invalid 100k square identifier.
+    Invalid100kSquare(String),
+    /// Precision digit count per coordinate is outside 0..=5.
+    InvalidPrecision(usize),
+    /// MGRS string format is invalid or malformed.
+    InvalidFormat(String),
+    /// Calculated northing is out of range for the grid zone.
