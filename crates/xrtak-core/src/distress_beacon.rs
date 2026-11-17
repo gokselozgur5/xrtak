@@ -29,3 +29,16 @@ impl fmt::Display for DistressBeaconError {
 
 impl std::error::Error for DistressBeaconError {}
 
+/// Tactical emergency distress alert category.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EmergencyType {
+    Alert911,
+    RingTheBell,
+    InContact,
+    Ambush,
+    Sniper,
+    Ied,
+    Medical,
+    Custom(String),
+}
+
