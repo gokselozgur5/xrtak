@@ -260,3 +260,32 @@ pub fn classify_clearance_status(net_clearance_m: f64, ratio: f64) -> ClearanceS
         ClearanceStatus::Clear
     }
 }
+
+/// Evaluates clearance and Fresnel radius for a single obstacle point.
+pub fn evaluate_point_clearance(
+    obs: &ObstaclePoint,
+    tx_alt_m: f64,
+    rx_alt_m: f64,
+    total_dist_m: f64,
+    config: &FresnelCalculatorConfig,
+) -> FresnelPointAnalysis {
+    let d = total_dist_m.max(1.0);
+    let d1 = obs.distance_m.clamp(0.0, d);
+    let d2 = (d - d1).max(0.0);
+    let los_alt = tx_alt_m + (d1 / d) * (rx_alt_m - tx_alt_m);
+    let bulge = compute_earth_bulge(d1, d2, config.k_factor, config.earth_radius_m);
+    let eff_obs_alt = obs.total_elevation_m() + bulge;
+    let net_clear = los_alt - eff_obs_alt;
+    let r = compute_fresnel_radius(config.zone_number, d1, d2, config.frequency_hz);
+    let ratio = if r > 1e-4 { net_clear / r } else { 1.0 };
+    FresnelPointAnalysis {
+        distance_m: d1,
+        los_elevation_m: los_alt,
+        obstacle_elevation_m: obs.total_elevation_m(),
+        earth_bulge_m: bulge,
+        net_clearance_m: net_clear,
+        fresnel_radius_m: r,
+        clearance_ratio: ratio,
+        status: classify_clearance_status(net_clear, ratio),
+    }
+}
