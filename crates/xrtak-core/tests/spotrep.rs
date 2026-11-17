@@ -23,3 +23,24 @@ fn test_integration_spotrep_pipeline() {
     let text = format_salute_report_text(&parsed);
     assert!(text.contains("1. S - SIZE: Company minus (approx 60 PAX)"));
 }
+
+#[test]
+fn test_integration_spotrep_atak_xml_variants() {
+    let raw_xml = r#"<event version="2.0" uid="ATAK-SPOT-11" type="b-r-f-h-c" time="2026-11-17T08:30:00Z">
+<point lat="36.12" lon="-115.14" hae="620.0"/>
+<detail>
+  <contact callsign="SENTRY-04"/>
+  <remarks>Possible forward observation post</remarks>
+  <spotrep size="4 personnel" activity="Static observation" location="11SMC11223344"
+           unit="Spetsnaz" time="170830Z NOV 26" equipment="Sniper rifle, binoculars"
+           assessment="Spotting for artillery"/>
+</detail>
+</event>"#;
+    let spot = SpotReport::from_cot_xml(raw_xml).expect("parse failed");
+    assert_eq!(spot.cot_uid, "ATAK-SPOT-11");
+    assert_eq!(spot.observer_callsign, "SENTRY-04");
+    assert_eq!(spot.size, "4 personnel");
+    assert_eq!(spot.unit, "Spetsnaz");
+    assert_eq!(spot.remarks, "Possible forward observation post");
+    assert_eq!(spot.lat, 36.12);
+}
