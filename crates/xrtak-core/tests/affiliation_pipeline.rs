@@ -13,3 +13,21 @@ fn test_integration_marker_lifecycle() {
     assert_eq!(marker.shape, MarkerShapeGlyph::Diamond);
     assert_eq!(marker.threat_level, TacticalThreatLevel::High);
 }
+
+#[test]
+fn test_integration_multi_contact_batch() {
+    let uids = vec!["BLUE-1", "BLUE-2", "RED-1", "NEUT-1", "UNK-1"];
+    let types = vec!["a-f-G", "a-a-A", "a-h-G", "a-n-G", "a-u-G"];
+    let markers: Vec<ContactMarker> = uids
+        .into_iter()
+        .zip(types)
+        .map(|(uid, ty)| AffiliationMapper::create_marker(uid, uid, ty, None))
+        .collect();
+
+    let stats = AffiliationMapper::evaluate_contacts(&markers);
+    assert_eq!(stats.total, 5);
+    assert_eq!(stats.friendly_count, 2);
+    assert_eq!(stats.hostile_count, 1);
+    assert_eq!(stats.neutral_count, 1);
+    assert_eq!(stats.unknown_count, 1);
+}
