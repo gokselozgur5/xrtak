@@ -181,3 +181,23 @@ fn format_spotrep_detail_xml(r: &SpotReport) -> String {
 </spotrep></detail>"
     )
 }
+
+impl SpotReport {
+    /// Serializes SPOTREP incident report to standard Cursor-on-Target XML string.
+    pub fn to_cot_xml(&self) -> String {
+        let (uid, typ, time) = (
+            escape_xml(&self.cot_uid),
+            escape_xml(&self.cot_type),
+            escape_xml(&self.time_iso),
+        );
+        let detail = format_spotrep_detail_xml(self);
+        format!(
+            "<event version=\"2.0\" uid=\"{uid}\" type=\"{typ}\" \
+time=\"{time}\" start=\"{time}\" stale=\"{time}\" how=\"m-g\">\
+<point lat=\"{:.6}\" lon=\"{:.6}\" \
+hae=\"{:.1}\" ce=\"9999999\" le=\"9999999\"/>\
+{detail}</event>",
+            self.lat, self.lon, self.hae
+        )
+    }
+}
