@@ -320,3 +320,26 @@ pub struct CotMedevacBuilder {
     hae: f64,
     time_iso: String,
     line1_location: String,
+    line2_freq_callsign: String,
+    line3_precedence: MedevacPrecedence,
+    line3_urgent_count: u32,
+    line3_priority_count: u32,
+    line3_routine_count: u32,
+    line4_equipment: MedevacEquipment,
+    line5_litter_count: u32,
+    line5_ambulatory_count: u32,
+    line6_security: SiteSecurity,
+    line7_hlz_marking: HlzMarking,
+    line8_patient_nationality: PatientNationality,
+    line9_terrain_nbc: String,
+    remarks: String,
+}
+
+impl CotMedevacBuilder {
+    pub fn new(cot_uid: impl Into<String>, callsign: impl Into<String>) -> Self {
+        Self {
+            cot_uid: cot_uid.into(),
+            callsign: callsign.into(),
+            cot_type: "b-r-f-h-c".to_string(),
+            time_iso: "1970-01-01T00:00:00Z".to_string(),
+            ..Default::default()
