@@ -297,3 +297,21 @@ impl AffiliationMapper {
             Some(argb) => (TacticalColor::from_argb_i32(argb), true),
             None => (Self::map_color(affiliation), false),
         };
+        let shape = Self::map_shape(affiliation);
+        let threat_level = Self::map_threat(affiliation);
+        let is_combatant = threat_level == TacticalThreatLevel::High;
+
+        ContactMarker {
+            uid: uid.to_string(),
+            callsign: callsign.to_string(),
+            cot_type: cot_type.to_string(),
+            affiliation,
+            standard_identity,
+            color,
+            shape,
+            threat_level,
+            is_combatant,
+            is_custom_color,
+        }
+    }
+}
