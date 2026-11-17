@@ -622,3 +622,27 @@ impl TlsConnectionPool {
                 continue;
             }
 
+            if conn.is_expired(current_time_ms, lifetime) {
+                conn.state = ConnectionState::Closed;
+                pruned += 1;
+                continue;
+            }
+
+            if conn.is_idle_timed_out(current_time_ms, idle_timeout) {
+                let current_idle_count =
+                    idle_per_endpoint.get(&conn.endpoint).copied().unwrap_or(0);
+                if current_idle_count > min_idle {
+                    conn.state = ConnectionState::Closed;
+                    idle_per_endpoint
+                        .insert(conn.endpoint.clone(), current_idle_count.saturating_sub(1));
+                    pruned += 1;
+                }
+            }
+        }
+
+        self.connections.retain(|c| c.state.is_alive());
+        self.total_pruned += pruned as u64;
+        pruned
+    }
+
+    pub fn run_health_checks(&mut self, current_time_ms: u64) -> HealthCheckSummary {
