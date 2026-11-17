@@ -398,3 +398,20 @@ mod tests {
         assert!((parsed.lat - r.lat).abs() < 1e-5);
         assert!((parsed.lon - r.lon).abs() < 1e-5);
     }
+
+    #[test]
+    fn test_parse_spotrep_child_tags() {
+        let xml = "<event version=\"2.0\" uid=\"SPOTREP-002\" type=\"b-r-f-h-c\" time=\"2026-11-17T07:00:00Z\">\
+<point lat=\"32.5\" lon=\"-116.2\" hae=\"450.0\"/>\
+<detail><contact callsign=\"WATCHDOG-01\"/><remarks>Mortar team firing</remarks>\
+<spotrep><size>3 personnel</size><activity>Setting up 82mm mortar</activity>\
+<location>38SMC55443322</location><unit>Unknown insurgent cell</unit>\
+<time>170700Z NOV 26</time><equipment>1x 82mm mortar, 1x technical</equipment>\
+<assessment>Imminent indirect fire threat</assessment></spotrep></detail></event>";
+        let parsed = SpotReport::from_cot_xml(xml).expect("parse child tags failed");
+        assert_eq!(parsed.cot_uid, "SPOTREP-002");
+        assert_eq!(parsed.observer_callsign, "WATCHDOG-01");
+        assert_eq!(parsed.size, "3 personnel");
+        assert_eq!(parsed.equipment, "1x 82mm mortar, 1x technical");
+        assert_eq!(parsed.assessment, "Imminent indirect fire threat");
+    }
