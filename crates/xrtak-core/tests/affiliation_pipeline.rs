@@ -1,6 +1,6 @@
 use xrtak_core::affiliation::{
-    AffiliationMapper, CoTAffiliation, ContactMarker, MarkerShapeGlyph,
-    TacticalColor, TacticalThreatLevel,
+    AffiliationMapper, CoTAffiliation, ContactMarker, MarkerShapeGlyph, TacticalColor,
+    TacticalThreatLevel,
 };
 
 #[test]
