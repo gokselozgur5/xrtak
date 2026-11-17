@@ -204,3 +204,19 @@ impl LegNavEstimate {
         }
     }
 }
+
+fn build_leg(
+    i: usize,
+    w1: &NavWaypoint,
+    w2: &NavWaypoint,
+    prof: &VehicleMovementProfile,
+    cd: &mut f64,
+    ce: &mut f64,
+) -> LegNavEstimate {
+    let d3d = slant_distance_3d_m(w1.lat, w1.lon, w1.alt_m, w2.lat, w2.lon, w2.alt_m);
+    let brg = initial_bearing_deg(w1.lat, w1.lon, w2.lat, w2.lon);
+    let ete = estimate_leg_ete_seconds(d3d, w2.alt_m - w1.alt_m, w2.speed_limit_mps, prof);
+    *cd += d3d;
+    *ce += ete;
+    LegNavEstimate::new(i, &w1.id, &w2.id, d3d, brg, ete, *cd, *ce)
+}
