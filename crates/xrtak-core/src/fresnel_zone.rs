@@ -303,3 +303,30 @@ pub fn analyze_fresnel_profile(
         .map(|obs| evaluate_point_clearance(obs, tx_alt_m, rx_alt_m, total_dist_m, config))
         .collect()
 }
+
+/// Finds the worst-case obstruction and computes peak diffraction loss.
+pub fn find_worst_obstruction(
+    profile: &[FresnelPointAnalysis],
+    total_dist_m: f64,
+    frequency_hz: f64,
+) -> (f64, Option<FresnelPointAnalysis>, f64) {
+    let mut min_ratio = 1.0f64;
+    let mut worst_point: Option<FresnelPointAnalysis> = None;
+    let mut max_diff_loss = 0.0f64;
+
+    for pt in profile {
+        if pt.clearance_ratio < min_ratio {
+            min_ratio = pt.clearance_ratio;
+            worst_point = Some(pt.clone());
+        }
+        let d1 = pt.distance_m;
+        let d2 = (total_dist_m - d1).max(0.0);
+        let pen = -pt.net_clearance_m;
+        let v = compute_diffraction_param_v(pen, d1, d2, frequency_hz);
+        let loss = compute_knife_edge_diffraction(v);
+        if loss > max_diff_loss {
+            max_diff_loss = loss;
+        }
+    }
+    (min_ratio, worst_point, max_diff_loss)
+}
