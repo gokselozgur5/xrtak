@@ -45,6 +45,9 @@ pub struct GeoChatPacket {
     pub lon: f64,
     pub hae: f64,
     pub parent_group: String,
+    pub conversation_id: Option<String>,
+    pub parent_message_id: Option<String>,
+    pub recipients: Vec<String>,
 }
 
 impl GeoChatPacket {
