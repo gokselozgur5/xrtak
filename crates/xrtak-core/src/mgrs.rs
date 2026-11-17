@@ -550,3 +550,26 @@ pub struct MgrsCoord {
     pub northing: u32,
     /// Precision resolution level.
     pub precision: MgrsPrecision,
+}
+
+impl MgrsCoord {
+    /// Construct a verified MGRS coordinate.
+    pub fn new(
+        gzd: GridZoneDesignator,
+        square: HundredKmSquare,
+        easting: u32,
+        northing: u32,
+        precision: MgrsPrecision,
+    ) -> Result<Self, MgrsError> {
+        if easting >= 100_000 {
+            return Err(MgrsError::InvalidFormat(format!("easting {easting} >= 100,000")));
+        }
+        if northing >= 100_000 {
+            return Err(MgrsError::InvalidFormat(format!("northing {northing} >= 100,000")));
+        }
+        Ok(Self {
+            gzd,
+            square,
+            easting,
+            northing,
+            precision,
