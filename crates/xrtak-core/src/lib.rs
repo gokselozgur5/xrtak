@@ -28,6 +28,7 @@ pub mod marker;
 pub mod mesh_frag;
 pub mod mission;
 pub mod mission_manifest;
+pub mod mission_package;
 pub mod openxr_pose;
 pub mod opord;
 pub mod radial;
@@ -108,6 +109,10 @@ pub use mission::{
 };
 pub use mission_manifest::{
     ManifestContentEntry, ManifestParameter, MissionPackageManifest,
+};
+pub use mission_package::{
+    compute_crc32, compute_sha256, compute_sha256_hex, MissionPackageArchive,
+    MissionPackageEntry, MissionPackageError, VerificationReport,
 };
 pub use openxr_pose::{
     OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition, PoseTrackingFlags,
