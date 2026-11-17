@@ -826,3 +826,26 @@ mod tests {
         assert_eq!(eq.as_str(), "Hoist");
 
         let sec = SiteSecurity::parse_security("X - Armed escort required");
+        assert_eq!(sec, SiteSecurity::ArmedEscortRequired);
+        assert_eq!(sec.as_str(), "X - Armed escort required");
+
+        let hlz = HlzMarking::parse_marking("Smoke Green");
+        assert_eq!(hlz, HlzMarking::Smoke("Smoke Green".into()));
+
+        let nat = PatientNationality::parse_nationality("US MILITARY");
+        assert_eq!(nat, PatientNationality::UsMilitary);
+    }
+
+    #[test]
+    fn test_medevac_builder_valid_and_metrics() {
+        let report = sample_medevac_report();
+        assert_eq!(report.cot_uid, "MED-101");
+        assert_eq!(report.callsign, "DUSTOFF-42");
+        assert_eq!(report.total_patients_by_precedence(), 3);
+        assert_eq!(report.total_patients_by_type(), 3);
+        assert!(report.is_urgent());
+        assert!(report.requires_special_equipment());
+        assert!(!report.requires_armed_escort());
+    }
+
+    #[test]
