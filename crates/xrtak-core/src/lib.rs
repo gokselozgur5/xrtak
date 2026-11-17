@@ -38,6 +38,7 @@ pub mod rf;
 pub mod route_sequencer;
 pub mod sapient;
 pub mod sensor_stream;
+pub mod spotrep;
 pub mod tak_tls;
 pub mod thermal;
 pub mod tiles;
@@ -143,6 +144,7 @@ pub use route_sequencer::{
     RouteWaypoint, SequencedLeg, SequencedRouteResult,
 };
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
+pub use spotrep::{format_salute_report_text, SpotReport, SpotReportError};
 pub use tak_tls::{
     CertificateFormat, ClientAuthMode, TakTlsConfig, TakTlsConfigBuilder, TakTlsError,
     TlsCertificate, TlsVersion,
