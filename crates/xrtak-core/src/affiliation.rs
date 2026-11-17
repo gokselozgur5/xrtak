@@ -173,3 +173,23 @@ impl TacticalColor {
     /// Assumed friend cyan color.
     pub const ASSUMED_FRIEND_CYAN: Self = Self::new(0, 229, 255, 255);
 }
+
+/// Tactical contact marker geometric shape glyph type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MarkerShapeGlyph {
+    Rectangle,
+    Circle,
+    Diamond,
+    Square,
+    Quatrefoil,
+    DashedDiamond,
+}
+
+/// Tactical threat severity assessment level.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum TacticalThreatLevel {
+    None,
+    Low,
+    Medium,
+    High,
+}
