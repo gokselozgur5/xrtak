@@ -159,3 +159,26 @@ impl MgrsPrecision {
             Self::HundredKilometers => 100_000.0,
             Self::TenKilometers => 10_000.0,
             Self::OneKilometer => 1_000.0,
+            Self::HundredMeters => 100.0,
+            Self::TenMeters => 10.0,
+            Self::OneMeter => 1.0,
+        }
+    }
+}
+
+/// Grid Zone Designator (GZD) composed of UTM zone (1..=60) and latitude band ('C'..='X').
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GridZoneDesignator {
+    /// UTM Zone number (1 to 60).
+    pub zone: u8,
+    /// MGRS latitude band letter ('C' to 'X', excluding 'I' and 'O').
+    pub band: char,
+}
+
+impl GridZoneDesignator {
+    /// Create and validate a Grid Zone Designator.
+    pub fn new(zone: u8, band: char) -> Result<Self, MgrsError> {
+        if !(1..=60).contains(&zone) {
+            return Err(MgrsError::InvalidUtmZone(zone));
+        }
+        let b = band.to_ascii_uppercase();
