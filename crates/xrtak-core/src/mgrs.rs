@@ -803,3 +803,26 @@ mod tests {
         assert_eq!(MgrsPrecision::HundredKilometers.resolution_meters(), 100_000.0);
 
         assert_eq!(
+            MgrsPrecision::from_digits_per_coord(3).expect("3 digits"),
+            MgrsPrecision::HundredMeters
+        );
+        assert!(MgrsPrecision::from_digits_per_coord(6).is_err());
+    }
+
+    #[test]
+    fn test_paris_eiffel_tower_precision() {
+        // Eiffel Tower: ~48.8584°N, 2.2945°E -> 31U DQ 48251 11943
+        let coord = GeodeticCoord::new(48.8584, 2.2945).expect("valid Paris coordinate");
+        let mgrs = coord.to_mgrs(MgrsPrecision::OneMeter).expect("MGRS converted");
+
+        assert_eq!(mgrs.gzd.zone, 31);
+        assert_eq!(mgrs.gzd.band, 'U');
+        assert_eq!(mgrs.square.col, 'D');
+        assert_eq!(mgrs.square.row, 'Q');
+
+        let compact = mgrs.to_compact_string();
+        assert!(compact.starts_with("31UDQ"));
+
+        // Roundtrip from parsed string to center coordinate
+        let parsed = MgrsCoord::parse(&compact).expect("parsed back");
+        assert_eq!(parsed, mgrs);
