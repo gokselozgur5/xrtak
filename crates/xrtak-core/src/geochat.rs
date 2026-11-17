@@ -558,4 +558,19 @@ mod tests {
         assert_eq!(parsed.recipients, vec!["UID-2", "UID-3"]);
         assert_eq!(parsed.parent_message_id.as_deref(), Some("M-199"));
     }
+
+    #[test]
+    fn test_geochat_threader_ingest() {
+        let mut threader = GeoChatThreader::new();
+        let m1 = GeoChatBuilder::new()
+            .sender("UID-1", "ALPHA")
+            .message("MSG-1", "Initial contact")
+            .conversation("THREAD-1", None)
+            .build()
+            .unwrap();
+        threader.ingest(m1);
+        let thread = threader.thread("THREAD-1").expect("thread exists");
+        assert_eq!(thread.message_count(), 1);
+        assert_eq!(thread.root_message_id.as_deref(), Some("MSG-1"));
+    }
 }
