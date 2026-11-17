@@ -250,3 +250,11 @@ impl TacticalRoutePlan {
         }
     }
 }
+
+/// Tactical navigation turn-by-turn guidance instruction.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NavGuidanceCue {
+    pub message: String,
+    pub distance_to_turn_m: f64,
+    pub relative_turn_bearing_deg: f64,
+}
