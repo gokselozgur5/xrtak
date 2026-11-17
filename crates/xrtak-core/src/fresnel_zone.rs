@@ -80,3 +80,22 @@ pub struct FresnelPointAnalysis {
     /// Clearance status classification.
     pub status: ClearanceStatus,
 }
+
+/// Tactical RF transceiver hardware and link parameters.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RfTransceiver {
+    /// Transmitter output power in dBm.
+    pub tx_power_dbm: f64,
+    /// Transmitter antenna gain in dBi.
+    pub tx_gain_dbi: f64,
+    /// Transmitter cable and connector losses in dB.
+    pub tx_loss_db: f64,
+    /// Receiver antenna gain in dBi.
+    pub rx_gain_dbi: f64,
+    /// Receiver cable and connector losses in dB.
+    pub rx_loss_db: f64,
+    /// Receiver sensitivity threshold in dBm.
+    pub rx_sensitivity_dbm: f64,
+    /// Desired fade margin buffer in dB.
+    pub fade_margin_db: f64,
+}
