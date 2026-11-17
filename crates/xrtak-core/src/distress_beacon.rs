@@ -395,3 +395,28 @@ impl DistressBeacon {
                         }
                         current_tag = BeaconXmlTag::Point;
                     }
+                    b"emergency" => {
+                        for a in e.attributes().flatten() {
+                            match a.key.as_ref() {
+                                b"cancel" => {
+                                    if parse_str_attr(&a.value) == "true" {
+                                        is_cancelled = true;
+                                    }
+                                }
+                                b"type" => {
+                                    let s = parse_str_attr(&a.value);
+                                    emergency_type = Some(EmergencyType::from_str_type(&s));
+                                }
+                                _ => {}
+                            }
+                        }
+                        current_tag = BeaconXmlTag::Emergency;
+                    }
+                    b"contact" => {
+                        for a in e.attributes().flatten() {
+                            if a.key.as_ref() == b"callsign" {
+                                callsign = Some(parse_str_attr(&a.value));
+                            }
+                        }
+                        current_tag = BeaconXmlTag::Contact;
+                    }
