@@ -220,3 +220,15 @@ fn build_leg(
     *ce += ete;
     LegNavEstimate::new(i, &w1.id, &w2.id, d3d, brg, ete, *cd, *ce)
 }
+
+impl TacticalRoutePlan {
+    /// Return the count of waypoints in this plan.
+    pub fn waypoints_count(&self) -> usize {
+        self.waypoints.len()
+    }
+
+    /// Return true if the route contains no waypoints.
+    pub fn is_empty(&self) -> bool {
+        self.waypoints.is_empty()
+    }
+}
