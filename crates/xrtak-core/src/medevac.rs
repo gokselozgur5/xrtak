@@ -688,3 +688,26 @@ fn apply_text_to_medevac(tag: MedevacTag, text: &str, r: &mut CotMedevacReport) 
 fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut CotMedevacReport, name: &[u8]) {
     for a in e.attributes().flatten() {
         let val = unescape_xml(&String::from_utf8_lossy(&a.value));
+        match (name, a.key.as_ref()) {
+            (b"event", b"uid") => r.cot_uid = val,
+            (b"event", b"type") => r.cot_type = val,
+            (b"event", b"time") => r.time_iso = val,
+            (b"point", b"lat") => r.lat = parse_f64(&a.value).unwrap_or(0.0),
+            (b"point", b"lon") => r.lon = parse_f64(&a.value).unwrap_or(0.0),
+            (b"point", b"hae") => r.hae = parse_f64(&a.value).unwrap_or(0.0),
+            (b"contact", b"callsign") => r.callsign = val,
+            _ => {}
+        }
+    }
+}
+
+fn handle_start_empty(
+    e: &quick_xml::events::BytesStart,
+    r: &mut CotMedevacReport,
+    cur: &mut MedevacTag,
+    has_event: &mut bool,
+    has_point: &mut bool,
+    has_medevac: &mut bool,
+) {
+    let name = e.name().into_inner();
+    match name {
