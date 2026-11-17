@@ -757,3 +757,26 @@ fn run_medevac_parser_loop(
     Ok(())
 }
 
+impl CotMedevacReport {
+    /// Parses 9-Line MEDEVAC report from Cursor-on-Target XML representation.
+    pub fn from_cot_xml(xml: &str) -> Result<Self, MedevacError> {
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+        let mut r = CotMedevacBuilder::new("", "").build()?;
+        let mut buf = Vec::new();
+        let (mut ev, mut pt, mut md) = (false, false, false);
+        run_medevac_parser_loop(&mut reader, &mut r, &mut buf, &mut ev, &mut pt, &mut md)?;
+        if !ev {
+            return Err(MedevacError::MissingEventTag);
+        }
+        if !pt {
+            return Err(MedevacError::MissingPointTag);
+        }
+        if !md {
+            return Err(MedevacError::MissingMedevacTag);
+        }
+        Ok(r)
+    }
+}
+
+#[cfg(test)]
