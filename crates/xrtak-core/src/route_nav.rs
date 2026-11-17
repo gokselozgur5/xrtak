@@ -508,4 +508,16 @@ mod tests {
         assert!(advanced);
         assert!(tracker.is_completed);
     }
+
+    #[test]
+    fn test_off_track_detection() {
+        let plan = sample_route();
+        let mut tracker = RouteNavTracker::new(plan);
+        tracker.max_off_track_m = 50.0;
+        let s = tracker
+            .evaluate_position(0.01, 0.05, 0.0, 10.0, None)
+            .unwrap();
+        assert!(s.is_off_track);
+        assert!(s.cross_track_error_m.abs() > 50.0);
+    }
 }
