@@ -15,6 +15,7 @@ pub mod domain;
 pub mod ew;
 pub mod ffi;
 pub mod fires;
+pub mod fresnel_zone;
 pub mod geo;
 pub mod geopackage;
 pub mod geofence;
