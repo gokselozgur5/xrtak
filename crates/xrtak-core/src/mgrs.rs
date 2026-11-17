@@ -366,3 +366,26 @@ impl GeodeticCoord {
         }
         if !(-180.0..=180.0).contains(&lon_deg) {
             return Err(MgrsError::InvalidLongitude(lon_deg));
+        }
+        Ok(Self {
+            lat_deg,
+            lon_deg,
+            alt_m: None,
+        })
+    }
+
+    /// Construct a 3D geodetic coordinate with altitude in meters.
+    pub fn with_alt(lat_deg: f64, lon_deg: f64, alt_m: f64) -> Result<Self, MgrsError> {
+        let mut coord = Self::new(lat_deg, lon_deg)?;
+        coord.alt_m = Some(alt_m);
+        Ok(coord)
+    }
+
+    /// Convert geodetic coordinate to UTM coordinate.
+    pub fn to_utm(&self) -> Result<UtmCoord, MgrsError> {
+        UtmCoord::from_lat_lon(self.lat_deg, self.lon_deg)
+    }
+
+    /// Convert geodetic coordinate directly to MGRS coordinate at given precision.
+    pub fn to_mgrs(&self, precision: MgrsPrecision) -> Result<MgrsCoord, MgrsError> {
+        let utm = self.to_utm()?;
