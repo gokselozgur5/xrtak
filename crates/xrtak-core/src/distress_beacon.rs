@@ -121,3 +121,14 @@ impl EmergencySeverity {
     }
 }
 
+/// Specific tactical emergency condition indicators.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct SosFlags {
+    pub officer_down: bool,
+    pub under_fire: bool,
+    pub medical_critical: bool,
+    pub trapped: bool,
+    pub silent_alarm: bool,
+    pub radio_failure: bool,
+}
+
