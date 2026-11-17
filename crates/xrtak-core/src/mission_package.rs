@@ -190,3 +190,27 @@ impl MissionPackageArchive {
                 continue;
             }
             archive.add_file(fname, data, "application/octet-stream", false);
+        }
+        Ok(archive)
+    }
+
+    pub fn verify_integrity(&self) -> Result<VerificationReport, MissionPackageError> {
+        let mut report = VerificationReport {
+            package_uid: self.uid.clone(),
+            package_name: self.name.clone(),
+            total_entries: self.entries.len(),
+            verified_entries: Vec::new(),
+            failed_entries: Vec::new(),
+            is_valid: true,
+        };
+
+        for entry in &self.entries {
+            let actual = compute_sha256_hex(&entry.data);
+            if actual == entry.sha256_hex {
+                report.verified_entries.push(entry.zip_entry.clone());
+            } else {
+                report.failed_entries.push((
+                    entry.zip_entry.clone(),
+                    entry.sha256_hex.clone(),
+                    actual,
+                ));
