@@ -132,3 +132,20 @@ pub struct SosFlags {
     pub radio_failure: bool,
 }
 
+impl SosFlags {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn active_indicators(&self) -> Vec<&'static str> {
+        let mut flags = Vec::new();
+        if self.officer_down { flags.push("OFFICER_DOWN"); }
+        if self.under_fire { flags.push("UNDER_FIRE"); }
+        if self.medical_critical { flags.push("MED_CRITICAL"); }
+        if self.trapped { flags.push("TRAPPED"); }
+        if self.silent_alarm { flags.push("SILENT_ALARM"); }
+        if self.radio_failure { flags.push("RADIO_FAIL"); }
+        flags
+    }
+}
+
