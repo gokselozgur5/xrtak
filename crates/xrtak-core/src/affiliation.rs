@@ -354,3 +354,16 @@ impl AffiliationMapper {
         format!("a-{}-{}", affil.to_char(), dimension_suffix)
     }
 }
+
+impl AffiliationMapper {
+    /// Parse a CoT XML snippet into a populated ContactMarker.
+    pub fn parse_cot_xml(xml: &str) -> Result<ContactMarker, AffiliationError> {
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+
+        let mut uid = String::new();
+        let mut cot_type = String::new();
+        let mut callsign = String::new();
+        let mut custom_argb: Option<i32> = None;
+        let mut found_event = false;
+        let mut buf = Vec::new();
