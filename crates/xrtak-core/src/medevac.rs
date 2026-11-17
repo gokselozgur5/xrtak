@@ -366,3 +366,26 @@ impl CotMedevacBuilder {
     pub fn patient_counts(
         mut self,
         urgent: u32,
+        priority: u32,
+        routine: u32,
+        litter: u32,
+        ambulatory: u32,
+    ) -> Self {
+        self.line3_urgent_count = urgent;
+        self.line3_priority_count = priority;
+        self.line3_routine_count = routine;
+        self.line5_litter_count = litter;
+        self.line5_ambulatory_count = ambulatory;
+        self
+    }
+
+    pub fn precedence(mut self, precedence: MedevacPrecedence) -> Self {
+        self.line3_precedence = precedence;
+        self
+    }
+
+    pub fn equipment(mut self, equipment: MedevacEquipment) -> Self {
+        self.line4_equipment = equipment;
+        self
+    }
+
