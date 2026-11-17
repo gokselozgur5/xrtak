@@ -531,3 +531,19 @@ mod tests {
             MarkerShapeGlyph::Quatrefoil
         );
     }
+
+    #[test]
+    fn test_threat_mapping() {
+        assert_eq!(
+            AffiliationMapper::map_threat(CoTAffiliation::Hostile),
+            TacticalThreatLevel::High
+        );
+        assert_eq!(
+            AffiliationMapper::map_threat(CoTAffiliation::Suspect),
+            TacticalThreatLevel::Medium
+        );
+        assert_eq!(
+            AffiliationMapper::map_threat(CoTAffiliation::Friendly),
+            TacticalThreatLevel::None
+        );
+    }
