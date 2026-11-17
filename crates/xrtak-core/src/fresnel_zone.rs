@@ -289,3 +289,17 @@ pub fn evaluate_point_clearance(
         status: classify_clearance_status(net_clear, ratio),
     }
 }
+
+/// Evaluates Fresnel clearance profile for all obstacles along a link.
+pub fn analyze_fresnel_profile(
+    tx_alt_m: f64,
+    rx_alt_m: f64,
+    total_dist_m: f64,
+    obstacles: &[ObstaclePoint],
+    config: &FresnelCalculatorConfig,
+) -> Vec<FresnelPointAnalysis> {
+    obstacles
+        .iter()
+        .map(|obs| evaluate_point_clearance(obs, tx_alt_m, rx_alt_m, total_dist_m, config))
+        .collect()
+}
