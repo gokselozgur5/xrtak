@@ -504,3 +504,26 @@ impl UtmCoord {
         let t1 = tan_p1 * tan_p1;
         let c1 = WGS84_EP2 * cos_p1 * cos_p1;
 
+        let lat_rad = phi1
+            - (n1 * tan_p1 / r1)
+                * (d.powi(2) / 2.0
+                    - (5.0 + 3.0 * t1 + 10.0 * c1 - 4.0 * c1 * c1 - 9.0 * WGS84_EP2) * d.powi(4) / 24.0
+                    + (61.0 + 90.0 * t1 + 298.0 * c1 + 45.0 * t1 * t1
+                        - 252.0 * WGS84_EP2
+                        - 3.0 * c1 * c1)
+                        * d.powi(6)
+                        / 720.0);
+
+        let cm_deg = f64::from(self.zone) * 6.0 - 183.0;
+        let lon_rad = cm_deg.to_radians()
+            + (d - (1.0 + 2.0 * t1 + c1) * d.powi(3) / 6.0
+                + (5.0 - 2.0 * c1 + 28.0 * t1 - 3.0 * c1 * c1 + 8.0 * WGS84_EP2 + 24.0 * t1 * t1)
+                    * d.powi(5)
+                    / 120.0)
+                / cos_p1;
+
+        GeodeticCoord::new(lat_rad.to_degrees(), lon_rad.to_degrees())
+    }
+
+    /// Convert UTM coordinate to MGRS coordinate.
+    pub fn to_mgrs(&self, precision: MgrsPrecision) -> Result<MgrsCoord, MgrsError> {
