@@ -568,3 +568,23 @@ mod tests {
         b.activate("2026-01-01T01:05:00Z");
         assert_eq!(b.status, EmergencyStatus::Active);
     }
+    #[test]
+    fn test_sos_flags_and_readback() {
+        let mut flags = SosFlags::new();
+        flags.officer_down = true;
+        flags.under_fire = true;
+        let b = DistressBeacon::new(
+            "BEACON-03",
+            "BRAVO-3",
+            EmergencyType::Ambush,
+            35.0,
+            -115.0,
+        )
+        .with_sos_flags(flags)
+        .with_description("Pinned down in ravine");
+        let voice = b.format_distress_voice_readback();
+        assert!(voice.contains("MAYDAY"));
+        assert!(voice.contains("OFFICER_DOWN"));
+        assert!(voice.contains("UNDER_FIRE"));
+        assert!(voice.contains("Pinned down in ravine"));
+    }
