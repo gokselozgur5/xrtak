@@ -351,6 +351,26 @@ impl GeoChatBuilder {
     }
 }
 
+/// A conversation thread aggregating related GeoChat messages.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConversationThread {
+    pub thread_id: String,
+    pub root_message_id: Option<String>,
+    pub messages: Vec<GeoChatPacket>,
+    pub participants: Vec<String>,
+}
+
+impl ConversationThread {
+    pub fn new(thread_id: impl Into<String>) -> Self {
+        Self {
+            thread_id: thread_id.into(),
+            root_message_id: None,
+            messages: Vec::new(),
+            participants: Vec::new(),
+        }
+    }
+}
+
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
     std::str::from_utf8(bytes).ok()?.parse().ok()
 }
