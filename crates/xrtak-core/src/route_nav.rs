@@ -498,4 +498,14 @@ mod tests {
         assert!(!s.is_off_track);
         assert!(s.guidance.is_some());
     }
+
+    #[test]
+    fn test_waypoint_advancement_and_completion() {
+        let plan = sample_route();
+        let mut tracker = RouteNavTracker::new(plan);
+        assert!(!tracker.is_completed);
+        let advanced = tracker.advance_if_reached(10.0);
+        assert!(advanced);
+        assert!(tracker.is_completed);
+    }
 }
