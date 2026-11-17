@@ -138,7 +138,13 @@ impl GeoChatPacket {
         }
         chat_tag.push('>');
         out.push_str(&chat_tag);
-        out.push_str(&format!("<chatgrp id=\"{room}\" uid0=\"{uid}\"/></__chat>"));
+        let mut grp_tag = format!("<chatgrp id=\"{room}\" uid0=\"{uid}\"");
+        for (i, r) in self.recipients.iter().enumerate() {
+            grp_tag.push_str(&format!(" uid{}=\"{r}\"", i + 1));
+        }
+        grp_tag.push_str("/>");
+        out.push_str(&grp_tag);
+        out.push_str("</__chat>");
         out.push_str(&format!("<link uid=\"{uid}\" type=\"a-f-G-U-C\" relation=\"p-p\"/>"));
         out.push_str(&format!("<remarks source=\"BAO.F.ATAK.{uid}\" to=\"{room}\" time=\"{t}\">{msg}</remarks>"));
         out.push_str("</detail></event>");
