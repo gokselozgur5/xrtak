@@ -182,3 +182,26 @@ impl Default for HlzMarking {
 
 impl HlzMarking {
     pub fn as_str(&self) -> String {
+        match self {
+            Self::Panels => "Panels".to_string(),
+            Self::PyrotechnicSignal => "Pyrotechnic Signal".to_string(),
+            Self::Smoke(color) => format!("Smoke ({color})"),
+            Self::None => "None".to_string(),
+            Self::Custom(s) => s.clone(),
+        }
+    }
+
+    pub fn parse_marking(s: &str) -> Self {
+        let lower = s.trim().to_lowercase();
+        if lower.contains("panel") {
+            Self::Panels
+        } else if lower.contains("pyro") {
+            Self::PyrotechnicSignal
+        } else if lower.contains("smoke") {
+            Self::Smoke(s.trim().to_string())
+        } else if lower == "none" || lower.is_empty() {
+            Self::None
+        } else {
+            Self::Custom(s.trim().to_string())
+        }
+    }
