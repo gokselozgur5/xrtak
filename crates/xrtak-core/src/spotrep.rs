@@ -117,3 +117,26 @@ impl SpotReport {
         self
     }
 }
+
+/// Formats standard voice or textual readback text for SPOTREP (SALUTE format).
+pub fn format_salute_report_text(report: &SpotReport) -> String {
+    format!(
+        "--- SPOT REPORT (SALUTE) ---\n\
+         1. S - SIZE: {}\n\
+         2. A - ACTIVITY: {}\n\
+         3. L - LOCATION: {}\n\
+         4. U - UNIT: {}\n\
+         5. T - TIME: {}\n\
+         6. E - EQUIPMENT: {}\n\
+         Assessment: {}\n\
+         Remarks: {}",
+        report.size,
+        report.activity,
+        report.location,
+        report.unit,
+        report.time_observed,
+        report.equipment,
+        report.assessment,
+        report.remarks
+    )
+}
