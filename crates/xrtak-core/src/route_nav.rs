@@ -116,3 +116,23 @@ pub struct VehicleMovementProfile {
     pub max_climb_rate_mps: f64,
     pub max_descent_rate_mps: f64,
 }
+
+impl Default for VehicleMovementProfile {
+    fn default() -> Self {
+        Self {
+            cruise_speed_mps: 15.0,
+            max_climb_rate_mps: 5.0,
+            max_descent_rate_mps: 8.0,
+        }
+    }
+}
+
+impl VehicleMovementProfile {
+    pub fn new(cruise_speed_mps: f64, max_climb_rate_mps: f64, max_descent_rate_mps: f64) -> Self {
+        Self {
+            cruise_speed_mps: cruise_speed_mps.max(0.1),
+            max_climb_rate_mps: max_climb_rate_mps.max(0.1),
+            max_descent_rate_mps: max_descent_rate_mps.max(0.1),
+        }
+    }
+}
