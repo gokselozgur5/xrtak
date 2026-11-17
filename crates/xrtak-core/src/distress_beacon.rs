@@ -216,3 +216,25 @@ impl DistressBeacon {
     }
 }
 
+impl DistressBeacon {
+    pub fn with_description(mut self, desc: impl Into<String>) -> Self {
+        self.description = desc.into();
+        self
+    }
+
+    pub fn with_parent_uid(mut self, parent_uid: impl Into<String>) -> Self {
+        self.parent_uid = Some(parent_uid.into());
+        self
+    }
+
+    pub fn with_timestamps(
+        mut self,
+        time_iso: impl Into<String>,
+        stale_iso: impl Into<String>,
+    ) -> Self {
+        self.time_iso = time_iso.into();
+        self.stale_iso = stale_iso.into();
+        self
+    }
+}
+
