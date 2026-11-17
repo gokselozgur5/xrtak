@@ -197,3 +197,22 @@ impl DistressBeacon {
     }
 }
 
+impl DistressBeacon {
+    pub fn with_elevation(mut self, hae: f64, ce: f64, le: f64) -> Self {
+        self.hae = hae;
+        self.ce = ce;
+        self.le = le;
+        self
+    }
+
+    pub fn with_severity(mut self, severity: EmergencySeverity) -> Self {
+        self.severity = severity;
+        self
+    }
+
+    pub fn with_sos_flags(mut self, sos_flags: SosFlags) -> Self {
+        self.sos_flags = sos_flags;
+        self
+    }
+}
+
