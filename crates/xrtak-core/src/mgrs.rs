@@ -711,3 +711,26 @@ impl MgrsCoord {
 
     /// Convert MGRS coordinate to center point Geodetic coordinates.
     pub fn to_geodetic(&self) -> Result<GeodeticCoord, MgrsError> {
+        let utm = self.to_utm()?;
+        // Offset to cell center based on resolution
+        let half_res = self.precision.resolution_meters() * 0.5;
+        let center_utm = UtmCoord {
+            zone: utm.zone,
+            band: utm.band,
+            easting: utm.easting + half_res,
+            northing: utm.northing + half_res,
+            is_northern: utm.is_northern,
+        };
+        center_utm.to_geodetic()
+    }
+
+    /// Calculate bounding box and accuracy for this MGRS grid cell.
+    pub fn bounding_box(&self) -> Result<MgrsBoundingBox, MgrsError> {
+        let utm = self.to_utm()?;
+        let res = self.precision.resolution_meters();
+
+        let sw_utm = utm;
+        let ne_utm = UtmCoord {
+            zone: utm.zone,
+            band: utm.band,
+            easting: utm.easting + res,
