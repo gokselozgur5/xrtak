@@ -412,3 +412,26 @@ impl CotMedevacBuilder {
     pub fn remarks(mut self, remarks: impl Into<String>) -> Self {
         self.remarks = remarks.into();
         self
+    }
+
+    pub fn time_iso(mut self, time_iso: impl Into<String>) -> Self {
+        self.time_iso = time_iso.into();
+        self
+    }
+
+    fn validate_coordinates(&self) -> Result<(), MedevacError> {
+        if self.lat < -90.0 || self.lat > 90.0 {
+            return Err(MedevacError::InvalidCoordinate(format!(
+                "Latitude {} out of [-90, 90]",
+                self.lat
+            )));
+        }
+        if self.lon < -180.0 || self.lon > 180.0 {
+            return Err(MedevacError::InvalidCoordinate(format!(
+                "Longitude {} out of [-180, 180]",
+                self.lon
+            )));
+        }
+        Ok(())
+    }
+
