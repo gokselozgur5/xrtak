@@ -436,3 +436,18 @@ mod tests {
             SpotReportError::MissingSpotrepTag
         );
     }
+
+    #[test]
+    fn test_xml_escaping() {
+        let mut r = SpotReport::new("SPOTREP-ESC", "ALPHA & BRAVO");
+        r.size = "Squad <3x vehicles> & 'infantry'".to_string();
+        r.remarks = "Danger close \"immediate\" & high threat".to_string();
+        let xml = r.to_cot_xml();
+        assert!(xml.contains("ALPHA &amp; BRAVO"));
+        assert!(xml.contains("&lt;3x vehicles&gt;"));
+        let parsed = SpotReport::from_cot_xml(&xml).expect("parse escaped xml failed");
+        assert_eq!(parsed.observer_callsign, "ALPHA & BRAVO");
+        assert_eq!(parsed.size, "Squad <3x vehicles> & 'infantry'");
+        assert_eq!(parsed.remarks, "Danger close \"immediate\" & high threat");
+    }
+}
