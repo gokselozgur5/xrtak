@@ -190,3 +190,27 @@ pub struct TlsConnection {
     pub cipher_suite: String,
     pub peer_identity: Option<String>,
     pub is_mtls_verified: bool,
+    pub bytes_sent: u64,
+    pub bytes_received: u64,
+    pub health_checks_passed: u32,
+    pub failure_reason: Option<String>,
+}
+
+impl TlsConnection {
+    pub fn new(id: u64, endpoint: impl Into<String>, created_at_epoch_ms: u64) -> Self {
+        Self {
+            id,
+            endpoint: endpoint.into(),
+            state: ConnectionState::Idle,
+            created_at_epoch_ms,
+            last_active_epoch_ms: created_at_epoch_ms,
+            last_health_check_epoch_ms: created_at_epoch_ms,
+            tls_version: "TLSv1.3".into(),
+            cipher_suite: "TLS_AES_256_GCM_SHA384".into(),
+            peer_identity: None,
+            is_mtls_verified: false,
+            bytes_sent: 0,
+            bytes_received: 0,
+            health_checks_passed: 0,
+            failure_reason: None,
+        }
