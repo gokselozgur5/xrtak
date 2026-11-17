@@ -126,10 +126,18 @@ impl GeoChatPacket {
             self.lat, self.lon, self.hae
         ));
         out.push_str("<detail>");
-        out.push_str(&format!(
-            "<__chat parent=\"{grp}\" groupOwner=\"false\" messageId=\"{mid}\" chatroom=\"{room}\" id=\"{room}\" senderCallsign=\"{cs}\">",
+        let mut chat_tag = format!(
+            "<__chat parent=\"{grp}\" groupOwner=\"false\" messageId=\"{mid}\" chatroom=\"{room}\" id=\"{room}\" senderCallsign=\"{cs}\"",
             grp = self.parent_group
-        ));
+        );
+        if let Some(ref cid) = self.conversation_id {
+            chat_tag.push_str(&format!(" conversationId=\"{cid}\""));
+        }
+        if let Some(ref pmid) = self.parent_message_id {
+            chat_tag.push_str(&format!(" parentMessageId=\"{pmid}\""));
+        }
+        chat_tag.push('>');
+        out.push_str(&chat_tag);
         out.push_str(&format!("<chatgrp id=\"{room}\" uid0=\"{uid}\"/></__chat>"));
         out.push_str(&format!("<link uid=\"{uid}\" type=\"a-f-G-U-C\" relation=\"p-p\"/>"));
         out.push_str(&format!("<remarks source=\"BAO.F.ATAK.{uid}\" to=\"{room}\" time=\"{t}\">{msg}</remarks>"));
