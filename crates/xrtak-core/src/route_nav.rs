@@ -365,3 +365,12 @@ impl RouteNavTracker {
         }
     }
 }
+
+impl RouteNavTracker {
+    /// Return the reference (from, to) waypoints for current leg.
+    pub fn current_leg_endpoints(&self) -> Option<(&NavWaypoint, &NavWaypoint)> {
+        let from = self.route.waypoints.get(self.current_leg_index)?;
+        let to = self.route.waypoints.get(self.current_leg_index + 1)?;
+        Some((from, to))
+    }
+}
