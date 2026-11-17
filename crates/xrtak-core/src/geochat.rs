@@ -70,6 +70,9 @@ impl GeoChatPacket {
             lon: 0.0,
             hae: 9999999.0,
             parent_group: "RootContactGroup".to_string(),
+            conversation_id: None,
+            parent_message_id: None,
+            recipients: Vec::new(),
         }
     }
     pub fn with_coordinates(mut self, lat: f64, lon: f64, hae: f64) -> Self {
