@@ -420,6 +420,17 @@ impl GeoChatThreader {
         thread.add_message(pkt);
         thread_id
     }
+    pub fn thread(&self, thread_id: &str) -> Option<&ConversationThread> {
+        self.threads.get(thread_id)
+    }
+
+    pub fn thread_count(&self) -> usize {
+        self.threads.len()
+    }
+
+    pub fn threads(&self) -> impl Iterator<Item = &ConversationThread> {
+        self.threads.values()
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
