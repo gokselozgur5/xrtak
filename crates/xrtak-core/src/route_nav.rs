@@ -22,3 +22,17 @@ pub fn initial_bearing_deg(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let x = r1.cos() * r2.sin() - r1.sin() * r2.cos() * d_lon.cos();
     (y.atan2(x).to_degrees() + 360.0) % 360.0
 }
+
+/// 3D distance accounting for elevation delta in meters.
+pub fn slant_distance_3d_m(
+    lat1: f64,
+    lon1: f64,
+    alt1: f64,
+    lat2: f64,
+    lon2: f64,
+    alt2: f64,
+) -> f64 {
+    let surface_d = haversine_distance_m(lat1, lon1, lat2, lon2);
+    let dz = alt2 - alt1;
+    (surface_d.powi(2) + dz.powi(2)).sqrt()
+}
