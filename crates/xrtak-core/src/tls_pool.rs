@@ -502,3 +502,27 @@ impl TlsConnectionPool {
             .count();
         if total_active_or_idle >= self.config.max_total_connections {
             return Err(PoolError::PoolExhausted);
+        }
+
+        let ep_count = self
+            .connections
+            .iter()
+            .filter(|c| c.endpoint == endpoint && c.state.is_alive())
+            .count();
+        if ep_count >= self.config.max_connections_per_endpoint {
+            return Err(PoolError::EndpointExhausted(endpoint.to_string()));
+        }
+
+        let new_id = self.next_conn_id;
+        self.next_conn_id += 1;
+
+        let mut new_conn = TlsConnection::new(new_id, endpoint, current_time_ms);
+        new_conn.state = ConnectionState::Active;
+        new_conn.is_mtls_verified = self.config.enable_mtls;
+        new_conn.peer_identity = self.config.client_cert_cn.clone();
+
+        self.connections.push(new_conn);
+        self.total_created += 1;
+        self.total_acquired += 1;
+
+        Ok(new_id)
