@@ -499,3 +499,12 @@ impl DistressBeacon {
             }
             buf.clear();
         }
+        let beacon_uid = uid.ok_or(DistressBeaconError::MissingEventTag)?;
+        let (lat, lon, hae, ce, le) = point.ok_or(DistressBeaconError::MissingPointTag)?;
+        let emg_type = emergency_type.ok_or(DistressBeaconError::MissingEmergencyTag)?;
+        let cs = callsign
+            .or_else(|| {
+                let trimmed = emergency_text.trim();
+                if !trimmed.is_empty() { Some(trimmed.to_string()) } else { None }
+            })
+            .unwrap_or_else(|| beacon_uid.clone());
