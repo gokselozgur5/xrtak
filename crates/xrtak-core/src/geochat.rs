@@ -573,4 +573,15 @@ mod tests {
         assert_eq!(thread.message_count(), 1);
         assert_eq!(thread.root_message_id.as_deref(), Some("MSG-1"));
     }
+
+    #[test]
+    fn test_geochat_threader_replies() {
+        let mut threader = GeoChatThreader::new();
+        let m1 = GeoChatBuilder::new().sender("U1", "A").message("M1", "hi").conversation("T1", None).build().unwrap();
+        let m2 = GeoChatBuilder::new().sender("U2", "B").message("M2", "re").conversation("T1", Some("M1".to_string())).build().unwrap();
+        threader.ingest(m1);
+        threader.ingest(m2);
+        assert_eq!(threader.get_replies("M1").len(), 1);
+        assert_eq!(threader.all_participants().len(), 2);
+    }
 }
