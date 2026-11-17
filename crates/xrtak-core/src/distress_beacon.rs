@@ -42,3 +42,18 @@ pub enum EmergencyType {
     Custom(String),
 }
 
+impl EmergencyType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Alert911 => "911 Alert",
+            Self::RingTheBell => "Ring the Bell",
+            Self::InContact => "In Contact",
+            Self::Ambush => "Ambush",
+            Self::Sniper => "Sniper",
+            Self::Ied => "IED",
+            Self::Medical => "Medical",
+            Self::Custom(s) => s.as_str(),
+        }
+    }
+}
+
