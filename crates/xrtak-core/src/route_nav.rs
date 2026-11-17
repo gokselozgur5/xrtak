@@ -268,3 +268,16 @@ pub struct RouteNavTracker {
     pub max_off_track_m: f64,
     pub is_completed: bool,
 }
+
+impl RouteNavTracker {
+    /// Initialize tracker on a tactical route with default acceptance limits.
+    pub fn new(route: TacticalRoutePlan) -> Self {
+        Self {
+            route,
+            current_leg_index: 0,
+            acceptance_radius_m: 25.0,
+            max_off_track_m: 100.0,
+            is_completed: false,
+        }
+    }
+}
