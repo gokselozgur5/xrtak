@@ -156,3 +156,28 @@ fn unescape_xml(s: &str) -> String {
         .replace("&gt;", ">")
         .replace("&amp;", "&")
 }
+
+fn format_spotrep_detail_xml(r: &SpotReport) -> String {
+    let (cs, rem, ass) = (
+        escape_xml(&r.observer_callsign),
+        escape_xml(&r.remarks),
+        escape_xml(&r.assessment),
+    );
+    let (sz, act, loc) = (
+        escape_xml(&r.size),
+        escape_xml(&r.activity),
+        escape_xml(&r.location),
+    );
+    let (un, tm, eq) = (
+        escape_xml(&r.unit),
+        escape_xml(&r.time_observed),
+        escape_xml(&r.equipment),
+    );
+    format!(
+        "<detail><contact callsign=\"{cs}\"/><remarks>{rem}</remarks>\
+<spotrep size=\"{sz}\" activity=\"{act}\" location=\"{loc}\" unit=\"{un}\" time=\"{tm}\" equipment=\"{eq}\" assessment=\"{ass}\">\
+<size>{sz}</size><activity>{act}</activity><location>{loc}</location>\
+<unit>{un}</unit><time>{tm}</time><equipment>{eq}</equipment><assessment>{ass}</assessment>\
+</spotrep></detail>"
+    )
+}
