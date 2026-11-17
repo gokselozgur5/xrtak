@@ -136,3 +136,16 @@ impl VehicleMovementProfile {
         }
     }
 }
+
+/// Calculated navigation estimates for a single route leg between waypoints.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LegNavEstimate {
+    pub leg_index: usize,
+    pub from_wp: String,
+    pub to_wp: String,
+    pub distance_3d_m: f64,
+    pub true_bearing_deg: f64,
+    pub ete_seconds: f64,
+    pub cumulative_distance_m: f64,
+    pub cumulative_ete_seconds: f64,
+}
