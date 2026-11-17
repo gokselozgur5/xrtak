@@ -12,6 +12,7 @@ fn test_integration_marker_lifecycle() {
     assert_eq!(marker.affiliation, CoTAffiliation::Hostile);
     assert_eq!(marker.shape, MarkerShapeGlyph::Diamond);
     assert_eq!(marker.threat_level, TacticalThreatLevel::High);
+    assert_eq!(marker.color, TacticalColor::new(255, 0, 0, 255));
 }
 
 #[test]
