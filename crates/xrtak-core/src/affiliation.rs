@@ -13,3 +13,16 @@ pub enum AffiliationError {
     MissingTypeAttribute,
     InvalidColorHex(String),
 }
+
+impl fmt::Display for AffiliationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidXml(e) => write!(f, "Invalid XML: {e}"),
+            Self::MissingEventTag => write!(f, "Missing event tag"),
+            Self::MissingTypeAttribute => write!(f, "Missing type attribute"),
+            Self::InvalidColorHex(h) => write!(f, "Invalid color hex: {h}"),
+        }
+    }
+}
+
+impl std::error::Error for AffiliationError {}
