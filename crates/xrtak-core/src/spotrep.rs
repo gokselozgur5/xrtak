@@ -362,3 +362,18 @@ mod tests {
         r.equipment = "BRDM-2, thermal optics, PKT".to_string();
         r
     }
+
+    #[test]
+    fn test_format_salute_report_text() {
+        let r = sample_spotrep();
+        let txt = format_salute_report_text(&r);
+        assert!(txt.contains("--- SPOT REPORT (SALUTE) ---"));
+        assert!(txt.contains("1. S - SIZE: 2x armored scout cars"));
+        assert!(txt.contains("2. A - ACTIVITY: Reconnaissance patrol westbound"));
+        assert!(txt.contains("3. L - LOCATION: 38SMB12345678"));
+        assert!(txt.contains("4. U - UNIT: Unknown scout detachment"));
+        assert!(txt.contains("5. T - TIME: 170600Z NOV 26"));
+        assert!(txt.contains("6. E - EQUIPMENT: BRDM-2, thermal optics, PKT"));
+        assert!(txt.contains("Assessment: Enemy probing perimeter defence"));
+        assert!(txt.contains("Remarks: Observers repositioning to secondary OP"));
+    }
