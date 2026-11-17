@@ -36,3 +36,20 @@ pub fn slant_distance_3d_m(
     let dz = alt2 - alt1;
     (surface_d.powi(2) + dz.powi(2)).sqrt()
 }
+
+/// Cross-track error in meters from point P to segment A->B.
+/// Positive is right of track; negative is left of track.
+pub fn cross_track_error_m(
+    plat: f64,
+    plon: f64,
+    alat: f64,
+    alon: f64,
+    blat: f64,
+    blon: f64,
+) -> f64 {
+    let d13 = haversine_distance_m(alat, alon, plat, plon) / EARTH_RADIUS_M;
+    let brg13 = initial_bearing_deg(alat, alon, plat, plon).to_radians();
+    let brg12 = initial_bearing_deg(alat, alon, blat, blon).to_radians();
+    let xtd = (d13.sin() * (brg13 - brg12).sin()).asin();
+    xtd * EARTH_RADIUS_M
+}
