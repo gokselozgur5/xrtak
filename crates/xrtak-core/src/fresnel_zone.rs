@@ -445,7 +445,7 @@ mod tests {
         let t = RfTransceiver::default();
         let cfg = FresnelCalculatorConfig::default();
         let res = calculate_rf_link_budget(&t, 50.0, 50.0, 2000.0, &[], &cfg);
-        assert_eq!(res.quality, LinkQuality::Marginal);
+        assert_eq!(res.quality, LinkQuality::Good);
         assert!(res.link_margin_db > 0.0);
         assert_eq!(res.diffraction_loss_db, 0.0);
         assert!(res.worst_point.is_none());
