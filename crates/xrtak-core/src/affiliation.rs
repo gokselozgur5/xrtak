@@ -560,3 +560,19 @@ mod tests {
         assert!(m2.is_custom_color);
         assert_eq!(m2.color, TacticalColor::new(255, 0, 0, 255));
     }
+
+    #[test]
+    fn test_xml_parsing_and_generation() {
+        let xml = r#"<event uid="T1" type="a-h-A"><detail><contact callsign="VIPER"/><color argb="-65536"/></detail></event>"#;
+        let marker = AffiliationMapper::parse_cot_xml(xml).expect("parse ok");
+        assert_eq!(marker.uid, "T1");
+        assert_eq!(marker.callsign, "VIPER");
+        assert_eq!(marker.affiliation, CoTAffiliation::Hostile);
+        assert!(marker.is_combatant);
+        assert!(marker.is_custom_color);
+
+        let elem = AffiliationMapper::to_cot_color_xml_element(&marker);
+        assert_eq!(elem, "<color argb=\"-65536\"/>");
+        let cot_type = AffiliationMapper::to_cot_type(CoTAffiliation::Friendly, "G-U-C");
+        assert_eq!(cot_type, "a-f-G-U-C");
+    }
