@@ -550,3 +550,27 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
 
         let data_start = local_offset + 30 + l_fn_len + l_ex_len;
         if data_start + comp_size > bytes.len() {
+            return Err(MissionPackageError::InvalidZipArchive("entry data out of bounds".into()));
+        }
+        let file_data = bytes[data_start..data_start + comp_size].to_vec();
+        files.push((name_str, file_data));
+
+        cursor += 46 + fn_len + extra_len + comment_len;
+    }
+
+    Ok(files)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sha256_test_vectors() {
+        assert_eq!(
+            compute_sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            compute_sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
