@@ -528,4 +528,16 @@ mod tests {
         let cue_left = RouteNavTracker::generate_turn_cue(150.0, 270.0, 0.0).unwrap();
         assert!(cue_left.message.contains("Left"));
     }
+
+    #[test]
+    fn test_speed_limit_eta_constraint() {
+        let p = VehicleMovementProfile::new(30.0, 10.0, 10.0);
+        let w1 = NavWaypoint::new("WP1", "A", 0.0, 0.0, 0.0, WaypointType::Start);
+        let w2 =
+            NavWaypoint::new("WP2", "B", 0.0, 0.1, 0.0, WaypointType::End).with_speed_limit(10.0);
+        let plan = TacticalRoutePlan::build("R1", "Test", vec![w1, w2], &p);
+        let ete = plan.legs[0].ete_seconds;
+        let expected = plan.legs[0].distance_3d_m / 10.0;
+        assert!((ete - expected).abs() < 1e-3);
+    }
 }
