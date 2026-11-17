@@ -369,6 +369,28 @@ impl ConversationThread {
             participants: Vec::new(),
         }
     }
+    pub fn add_message(&mut self, pkt: GeoChatPacket) {
+        if self.messages.is_empty() && self.root_message_id.is_none() {
+            self.root_message_id = Some(pkt.message_id.clone());
+        }
+        if !self.participants.contains(&pkt.sender_uid) {
+            self.participants.push(pkt.sender_uid.clone());
+        }
+        for r in &pkt.recipients {
+            if !self.participants.contains(r) {
+                self.participants.push(r.clone());
+            }
+        }
+        self.messages.push(pkt);
+    }
+
+    pub fn message_count(&self) -> usize {
+        self.messages.len()
+    }
+
+    pub fn last_message(&self) -> Option<&GeoChatPacket> {
+        self.messages.last()
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
