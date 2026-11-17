@@ -642,3 +642,26 @@ fn parse_medevac_attributes(e: &quick_xml::events::BytesStart, r: &mut CotMedeva
         match a.key.as_ref() {
             b"line1" => r.line1_location = val,
             b"line2" => r.line2_freq_callsign = val,
+            b"line3" => {
+                r.line3_precedence = MedevacPrecedence::parse_code(&val).unwrap_or_default()
+            }
+            b"line4" => r.line4_equipment = MedevacEquipment::from_description(&val),
+            b"urgent" => r.line3_urgent_count = val.parse().unwrap_or(0),
+            b"priority" => r.line3_priority_count = val.parse().unwrap_or(0),
+            b"routine" => r.line3_routine_count = val.parse().unwrap_or(0),
+            b"litter" => r.line5_litter_count = val.parse().unwrap_or(0),
+            b"ambulatory" => r.line5_ambulatory_count = val.parse().unwrap_or(0),
+            b"line6" => r.line6_security = SiteSecurity::parse_security(&val),
+            b"line7" => r.line7_hlz_marking = HlzMarking::parse_marking(&val),
+            b"line8" => r.line8_patient_nationality = PatientNationality::parse_nationality(&val),
+            b"line9" => r.line9_terrain_nbc = val,
+            _ => {}
+        }
+    }
+}
+
+fn apply_text_to_medevac(tag: MedevacTag, text: &str, r: &mut CotMedevacReport) {
+    let val = unescape_xml(text);
+    match tag {
+        MedevacTag::Line1 => r.line1_location = val,
+        MedevacTag::Line2 => r.line2_freq_callsign = val,
