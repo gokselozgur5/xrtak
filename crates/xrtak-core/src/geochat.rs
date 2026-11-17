@@ -404,6 +404,22 @@ impl GeoChatThreader {
     pub fn new() -> Self {
         Self::default()
     }
+    pub fn ingest(&mut self, pkt: GeoChatPacket) -> String {
+        let thread_id = if let Some(ref cid) = pkt.conversation_id {
+            cid.clone()
+        } else if let Some(ref pmid) = pkt.parent_message_id {
+            self.message_to_thread.get(pmid).cloned().unwrap_or_else(|| pmid.clone())
+        } else {
+            pkt.chatroom.clone()
+        };
+
+        self.message_to_thread.insert(pkt.message_id.clone(), thread_id.clone());
+        let thread = self.threads.entry(thread_id.clone()).or_insert_with(|| {
+            ConversationThread::new(&thread_id)
+        });
+        thread.add_message(pkt);
+        thread_id
+    }
 }
 
 fn parse_f64(bytes: &[u8]) -> Option<f64> {
