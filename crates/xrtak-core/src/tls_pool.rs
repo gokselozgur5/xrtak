@@ -598,3 +598,27 @@ impl TlsConnectionPool {
         conn.state = ConnectionState::Failed;
         conn.failure_reason = Some(reason.into());
         Ok(())
+    }
+
+    pub fn record_auth_failure(&mut self) {
+        self.total_auth_failures += 1;
+    }
+
+    pub fn prune_idle_and_expired(&mut self, current_time_ms: u64) -> usize {
+        let idle_timeout = self.config.idle_timeout_ms;
+        let lifetime = self.config.connection_lifetime_ms;
+        let min_idle = self.config.min_idle_connections;
+
+        let mut idle_per_endpoint = std::collections::HashMap::<String, usize>::new();
+        for conn in self.connections.iter() {
+            if conn.state == ConnectionState::Idle {
+                *idle_per_endpoint.entry(conn.endpoint.clone()).or_insert(0) += 1;
+            }
+        }
+
+        let mut pruned = 0;
+        for conn in self.connections.iter_mut() {
+            if !conn.state.is_alive() {
+                continue;
+            }
+
