@@ -417,3 +417,23 @@ impl AffiliationMapper {
         Ok(Self::create_marker(&uid, &callsign, &cot_type, custom_argb))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_affiliation_parsing_basic() {
+        assert_eq!(
+            AffiliationMapper::parse_affiliation("a-f-G"),
+            CoTAffiliation::Friendly
+        );
+        assert_eq!(
+            AffiliationMapper::parse_affiliation("a-h-A"),
+            CoTAffiliation::Hostile
+        );
+        assert_eq!(
+            AffiliationMapper::parse_affiliation("a-n-G"),
+            CoTAffiliation::Neutral
+        );
+    }
