@@ -297,3 +297,26 @@ impl HundredKmSquare {
         let row_offset = if gzd.zone % 2 == 0 { 5 } else { 0 };
         let base_northing_mod = ((row_pos as isize - row_offset).rem_euclid(20)) as f64 * 100_000.0;
 
+        // Solve 2,000,000m cycle within the latitude band.
+        let (min_lat, max_lat) = gzd.latitude_bounds();
+        let is_north = gzd.is_northern();
+
+        let mut best_northing = None;
+        let mut min_diff = f64::MAX;
+
+        for k in 0..6 {
+            let candidate_n = k as f64 * 2_000_000.0 + base_northing_mod;
+            if is_north && !(0.0..=9_600_000.0).contains(&candidate_n) {
+                continue;
+            }
+            if !is_north && !(1_000_000.0..=10_000_000.0).contains(&candidate_n) {
+                continue;
+            }
+
+            // Approximate latitude of candidate northing at zone center.
+            let approx_lat = approximate_northing_to_lat(candidate_n, is_north);
+            let diff = if approx_lat < min_lat {
+                min_lat - approx_lat
+            } else if approx_lat > max_lat {
+                approx_lat - max_lat
+            } else {
