@@ -140,3 +140,30 @@ impl Default for FresnelCalculatorConfig {
         }
     }
 }
+
+/// Comprehensive RF link budget and Fresnel clearance summary.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LinkBudgetResult {
+    /// Carrier frequency in Hz.
+    pub frequency_hz: f64,
+    /// Total path distance in meters.
+    pub total_distance_m: f64,
+    /// Equivalent Isotropically Radiated Power (EIRP) in dBm.
+    pub eirp_dbm: f64,
+    /// Free Space Path Loss in dB.
+    pub fspl_db: f64,
+    /// Knife-edge diffraction attenuation in dB.
+    pub diffraction_loss_db: f64,
+    /// Miscellaneous losses in dB.
+    pub misc_loss_db: f64,
+    /// Total received power at receiver input in dBm.
+    pub rx_power_dbm: f64,
+    /// Calculated link margin in dB.
+    pub link_margin_db: f64,
+    /// Worst-case Fresnel clearance ratio along the link.
+    pub worst_clearance_ratio: f64,
+    /// Worst-case bottleneck obstruction point details.
+    pub worst_point: Option<FresnelPointAnalysis>,
+    /// Link operational status categorization.
+    pub quality: LinkQuality,
+}
