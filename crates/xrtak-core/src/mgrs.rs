@@ -343,3 +343,26 @@ fn approximate_northing_to_lat(northing: f64, is_north: bool) -> f64 {
         northing
     } else {
         northing - FALSE_NORTHING_SOUTH
+    };
+    (y / (UTM_K0 * 111_132.954)).clamp(-80.0, 84.0)
+}
+
+/// Geodetic WGS-84 coordinate.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct GeodeticCoord {
+    /// Latitude in decimal degrees [-90.0, 90.0].
+    pub lat_deg: f64,
+    /// Longitude in decimal degrees [-180.0, 180.0].
+    pub lon_deg: f64,
+    /// Optional ellipsoidal or orthometric altitude in meters.
+    pub alt_m: Option<f64>,
+}
+
+impl GeodeticCoord {
+    /// Construct a 2D geodetic coordinate.
+    pub fn new(lat_deg: f64, lon_deg: f64) -> Result<Self, MgrsError> {
+        if !(-90.0..=90.0).contains(&lat_deg) {
+            return Err(MgrsError::InvalidLatitude(lat_deg));
+        }
+        if !(-180.0..=180.0).contains(&lon_deg) {
+            return Err(MgrsError::InvalidLongitude(lon_deg));
