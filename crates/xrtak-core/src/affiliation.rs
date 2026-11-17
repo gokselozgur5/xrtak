@@ -331,3 +331,14 @@ impl AffiliationMapper {
                 CoTAffiliation::Hostile | CoTAffiliation::Joker | CoTAffiliation::Faker => {
                     stats.hostile_count += 1;
                 }
+                CoTAffiliation::Neutral => stats.neutral_count += 1,
+                CoTAffiliation::Unknown | CoTAffiliation::Pending => stats.unknown_count += 1,
+                CoTAffiliation::Suspect => stats.suspect_count += 1,
+            }
+            if m.threat_level == TacticalThreatLevel::High {
+                stats.high_threat_count += 1;
+            }
+        }
+        stats
+    }
+}
