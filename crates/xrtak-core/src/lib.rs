@@ -40,6 +40,7 @@ pub mod sapient;
 pub mod sensor_stream;
 pub mod spotrep;
 pub mod tak_tls;
+pub mod tls_pool;
 pub mod thermal;
 pub mod tiles;
 pub mod tracker;
@@ -148,6 +149,10 @@ pub use spotrep::{format_salute_report_text, SpotReport, SpotReportError};
 pub use tak_tls::{
     CertificateFormat, ClientAuthMode, TakTlsConfig, TakTlsConfigBuilder, TakTlsError,
     TlsCertificate, TlsVersion,
+};
+pub use tls_pool::{
+    AuthError, ConnectionState, HealthCheckSummary, MutualCertAuthenticator, PeerCertificateInfo,
+    PoolError, PoolMetrics, TlsConnection, TlsConnectionPool, TlsPoolConfig,
 };
 pub use tiles::{
     bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy,
