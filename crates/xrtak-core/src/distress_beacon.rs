@@ -268,3 +268,16 @@ fn escape_xml(s: &str) -> String {
         .replace(''', "&apos;")
 }
 
+impl DistressBeacon {
+    pub fn format_distress_voice_readback(&self) -> String {
+        let status_str = match self.status {
+            EmergencyStatus::Active => "MAYDAY MAYDAY MAYDAY",
+            EmergencyStatus::Cancelled => "EMERGENCY CANCELLED",
+        };
+        let flags = self.sos_flags.active_indicators();
+        let flags_str = if flags.is_empty() {
+            "NONE".to_string()
+        } else {
+            flags.join(", ")
+        };
+        let desc = if self.description.is_empty() { "NONE" } else { &self.description };
