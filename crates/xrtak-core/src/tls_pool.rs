@@ -550,3 +550,27 @@ impl TlsConnectionPool {
         if conn.is_expired(current_time_ms, lifetime) {
             conn.state = ConnectionState::Closed;
         } else {
+            conn.state = ConnectionState::Idle;
+            conn.last_active_epoch_ms = current_time_ms;
+        }
+
+        self.total_released += 1;
+        Ok(())
+    }
+
+    pub fn record_io(
+        &mut self,
+        conn_id: u64,
+        sent: u64,
+        received: u64,
+        current_time_ms: u64,
+    ) -> Result<(), PoolError> {
+        let conn = self
+            .connections
+            .iter_mut()
+            .find(|c| c.id == conn_id)
+            .ok_or(PoolError::ConnectionNotFound(conn_id))?;
+
+        if !conn.state.is_alive() {
+            return Err(PoolError::InvalidState(format!(
+                "cannot record I/O on dead connection in state {}",
