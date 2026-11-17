@@ -609,3 +609,22 @@ mod tests {
         assert_eq!(parsed.alert_type, EmergencyType::Medical);
         assert_eq!(parsed.parent_uid.as_deref(), Some("HQ-BASE"));
     }
+    #[test]
+    fn test_cancelled_xml_and_errors() {
+        let mut b = DistressBeacon::new(
+            "BEACON-05",
+            "DELTA-5",
+            EmergencyType::Sniper,
+            33.0,
+            -112.0,
+        );
+        b.cancel("2026-01-01T02:00:00Z");
+        let xml = b.to_cot_xml();
+        assert!(xml.contains("cancel=\"true\""));
+        let parsed = DistressBeacon::from_cot_xml(&xml).expect("parse cancelled");
+        assert_eq!(parsed.status, EmergencyStatus::Cancelled);
+
+        let err = DistressBeacon::from_cot_xml("<bad>xml</bad>").unwrap_err();
+        assert_eq!(err, DistressBeaconError::MissingEventTag);
+    }
+}
