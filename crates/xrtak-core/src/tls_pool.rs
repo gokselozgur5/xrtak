@@ -526,3 +526,27 @@ impl TlsConnectionPool {
         self.total_acquired += 1;
 
         Ok(new_id)
+    }
+
+    pub fn release_connection(
+        &mut self,
+        conn_id: u64,
+        current_time_ms: u64,
+    ) -> Result<(), PoolError> {
+        let lifetime = self.config.connection_lifetime_ms;
+        let conn = self
+            .connections
+            .iter_mut()
+            .find(|c| c.id == conn_id)
+            .ok_or(PoolError::ConnectionNotFound(conn_id))?;
+
+        if conn.state != ConnectionState::Active {
+            return Err(PoolError::InvalidState(format!(
+                "cannot release connection in state {}",
+                conn.state
+            )));
+        }
+
+        if conn.is_expired(current_time_ms, lifetime) {
+            conn.state = ConnectionState::Closed;
+        } else {
