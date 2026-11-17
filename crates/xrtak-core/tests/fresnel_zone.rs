@@ -42,3 +42,30 @@ fn test_knife_edge_diffraction_severed_link() {
     let worst = res.worst_point.unwrap();
     assert_eq!(worst.status, ClearanceStatus::Obstructed);
 }
+
+#[test]
+fn test_earth_curvature_long_distance_link() {
+    let t = RfTransceiver {
+        tx_power_dbm: 36.0,
+        tx_gain_dbi: 15.0,
+        rx_gain_dbi: 15.0,
+        rx_sensitivity_dbm: -105.0,
+        fade_margin_db: 10.0,
+        ..Default::default()
+    };
+    let cfg = FresnelCalculatorConfig {
+        frequency_hz: 900_000_000.0, // 900 MHz
+        ..Default::default()
+    };
+    let obs = vec![ObstaclePoint {
+        distance_m: 10_000.0,
+        terrain_elevation_m: 5.0,
+        structure_height_m: 0.0,
+        name: "Midpoint_Plain".to_string(),
+    }];
+
+    let res = calculate_rf_link_budget(&t, 20.0, 20.0, 20_000.0, &obs, &cfg);
+    let worst = res.worst_point.unwrap();
+    assert!(worst.earth_bulge_m > 5.0);
+    assert!(res.total_distance_m == 20_000.0);
+}
