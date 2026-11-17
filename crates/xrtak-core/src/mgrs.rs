@@ -274,3 +274,26 @@ impl HundredKmSquare {
         }
         let col = COL_SETS[set_idx][(col_num - 1) as usize];
 
+        let row_offset = if zone % 2 == 0 { 5 } else { 0 };
+        let row_num = (((northing / 100_000.0).floor() as isize + row_offset).rem_euclid(20)) as usize;
+        let row = ROW_LETTERS[row_num];
+
+        Self::new(col, row)
+    }
+
+    /// Compute base UTM easting and northing within a GZD for this 100k square.
+    pub fn to_utm_offsets(&self, gzd: &GridZoneDesignator) -> Result<(f64, f64), MgrsError> {
+        let set_idx = ((gzd.zone - 1) % 3) as usize;
+        let col_pos = COL_SETS[set_idx]
+            .iter()
+            .position(|&c| c == self.col)
+            .ok_or_else(|| MgrsError::Invalid100kSquare(format!("column {}", self.col)))?;
+        let base_easting = (col_pos as f64 + 1.0) * 100_000.0;
+
+        let row_pos = ROW_LETTERS
+            .iter()
+            .position(|&r| r == self.row)
+            .ok_or_else(|| MgrsError::Invalid100kSquare(format!("row {}", self.row)))?;
+        let row_offset = if gzd.zone % 2 == 0 { 5 } else { 0 };
+        let base_northing_mod = ((row_pos as isize - row_offset).rem_euclid(20)) as f64 * 100_000.0;
+
