@@ -238,3 +238,27 @@ pub struct PeerCertificateInfo {
     pub is_ca: bool,
 }
 
+/// Errors raised during mutual certificate authentication.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AuthError {
+    CertificateExpired {
+        expired_at: u64,
+        current_time: u64,
+    },
+    CertificateNotYetValid {
+        valid_from: u64,
+        current_time: u64,
+    },
+    HostnameMismatch {
+        expected: String,
+        found_cn: String,
+        sans: Vec<String>,
+    },
+    FingerprintMismatch {
+        expected: Vec<String>,
+        actual: String,
+    },
+    DisallowedCommonName {
+        cn: String,
+        allowed: Vec<String>,
+    },
