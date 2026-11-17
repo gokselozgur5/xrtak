@@ -476,4 +476,13 @@ mod tests {
         let w2 = NavWaypoint::new("WP2", "B", 0.0, 0.1, 0.0, WaypointType::End);
         TacticalRoutePlan::build("R1", "Test", vec![w1, w2], &p)
     }
+
+    #[test]
+    fn test_route_plan_builder() {
+        let plan = sample_route();
+        assert_eq!(plan.waypoints_count(), 2);
+        assert_eq!(plan.legs.len(), 1);
+        assert!(plan.total_distance_m > 10000.0);
+        assert!(plan.total_ete_seconds > 0.0);
+    }
 }
