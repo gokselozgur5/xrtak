@@ -26,3 +26,17 @@ impl fmt::Display for AffiliationError {
 }
 
 impl std::error::Error for AffiliationError {}
+
+/// Cursor-on-Target identity affiliations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum CoTAffiliation {
+    Friendly,
+    Hostile,
+    Neutral,
+    Unknown,
+    AssumedFriend,
+    Suspect,
+    Joker,
+    Faker,
+    Pending,
+}
