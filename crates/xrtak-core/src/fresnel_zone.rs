@@ -113,3 +113,30 @@ impl Default for RfTransceiver {
         }
     }
 }
+
+/// Configuration for Fresnel zone evaluation and propagation geometry.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FresnelCalculatorConfig {
+    /// Carrier frequency in Hertz.
+    pub frequency_hz: f64,
+    /// Effective Earth radius in meters.
+    pub earth_radius_m: f64,
+    /// Atmospheric refraction factor (typically 1.333 for standard atmosphere).
+    pub k_factor: f64,
+    /// Fresnel zone order (1 for first Fresnel zone).
+    pub zone_number: u32,
+    /// Additional miscellaneous path losses in dB (rain, foliage, etc.).
+    pub misc_loss_db: f64,
+}
+
+impl Default for FresnelCalculatorConfig {
+    fn default() -> Self {
+        Self {
+            frequency_hz: 2_400_000_000.0, // 2.4 GHz ISM
+            earth_radius_m: DEFAULT_EARTH_RADIUS_M,
+            k_factor: DEFAULT_K_FACTOR,
+            zone_number: 1,
+            misc_loss_db: 0.0,
+        }
+    }
+}
