@@ -228,3 +228,26 @@ impl Default for PatientNationality {
 impl PatientNationality {
     pub fn as_str(&self) -> &str {
         match self {
+            Self::UsMilitary => "US Military",
+            Self::UsCivilian => "US Civilian",
+            Self::NonUsMilitary => "Non-US Military",
+            Self::NonUsCivilian => "Non-US Civilian",
+            Self::Epw => "EPW / Detainee",
+            Self::Child => "Child",
+            Self::Custom(s) => s.as_str(),
+        }
+    }
+
+    pub fn parse_nationality(s: &str) -> Self {
+        let upper = s.trim().to_uppercase();
+        if upper.contains("US MIL") {
+            Self::UsMilitary
+        } else if upper.contains("US CIV") {
+            Self::UsCivilian
+        } else if upper.contains("NON-US MIL") {
+            Self::NonUsMilitary
+        } else if upper.contains("NON-US CIV") {
+            Self::NonUsCivilian
+        } else if upper.contains("EPW") || upper.contains("DETAIN") {
+            Self::Epw
+        } else if upper.contains("CHILD") {
