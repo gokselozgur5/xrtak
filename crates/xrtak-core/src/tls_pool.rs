@@ -838,3 +838,27 @@ mod tests {
         let err_host =
             MutualCertAuthenticator::validate_peer(&cert, "other.server.com", 1500, &config)
                 .unwrap_err();
+        assert!(matches!(err_host, AuthError::HostnameMismatch { .. }));
+    }
+
+    #[test]
+    fn test_idle_and_expired_pruning() {
+        let mut config = TlsPoolConfig::new();
+        config.min_idle_connections = 0;
+        config.idle_timeout_ms = 500;
+        config.connection_lifetime_ms = 2000;
+        let mut pool = TlsConnectionPool::new(config);
+
+        let id1 = pool.acquire_connection("tak.local:8089", 100).unwrap();
+        let id2 = pool.acquire_connection("tak.local:8089", 100).unwrap();
+        pool.release_connection(id1, 200).unwrap();
+        pool.release_connection(id2, 200).unwrap();
+
+        assert_eq!(pool.prune_idle_and_expired(400), 0);
+        assert_eq!(pool.prune_idle_and_expired(800), 2);
+        assert_eq!(pool.pool_metrics().total_connections, 0);
+    }
+
+    #[test]
+    fn test_health_checks_and_metrics_summary() {
+        let mut config = TlsPoolConfig::new();
