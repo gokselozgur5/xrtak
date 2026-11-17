@@ -389,3 +389,26 @@ impl CotMedevacBuilder {
         self
     }
 
+    pub fn security(mut self, security: SiteSecurity) -> Self {
+        self.line6_security = security;
+        self
+    }
+
+    pub fn marking(mut self, marking: HlzMarking) -> Self {
+        self.line7_hlz_marking = marking;
+        self
+    }
+
+    pub fn nationality(mut self, nationality: PatientNationality) -> Self {
+        self.line8_patient_nationality = nationality;
+        self
+    }
+
+    pub fn terrain_nbc(mut self, terrain_nbc: impl Into<String>) -> Self {
+        self.line9_terrain_nbc = terrain_nbc.into();
+        self
+    }
+
+    pub fn remarks(mut self, remarks: impl Into<String>) -> Self {
+        self.remarks = remarks.into();
+        self
