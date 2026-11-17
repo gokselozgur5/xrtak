@@ -108,3 +108,11 @@ impl NavWaypoint {
         self
     }
 }
+
+/// Vehicle movement profile defining kinematic limits for ETA estimation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VehicleMovementProfile {
+    pub cruise_speed_mps: f64,
+    pub max_climb_rate_mps: f64,
+    pub max_descent_rate_mps: f64,
+}
