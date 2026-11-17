@@ -320,3 +320,26 @@ impl HundredKmSquare {
             } else if approx_lat > max_lat {
                 approx_lat - max_lat
             } else {
+                0.0
+            };
+
+            if diff < min_diff {
+                min_diff = diff;
+                best_northing = Some(candidate_n);
+                if diff == 0.0 {
+                    break;
+                }
+            }
+        }
+
+        let base_northing = best_northing.ok_or(MgrsError::NorthingOutOfRange(base_northing_mod))?;
+        Ok((base_easting, base_northing))
+    }
+}
+
+/// Approximate inverse mapping from UTM northing to geodetic latitude for band disambiguation.
+fn approximate_northing_to_lat(northing: f64, is_north: bool) -> f64 {
+    let y = if is_north {
+        northing
+    } else {
+        northing - FALSE_NORTHING_SOUTH
