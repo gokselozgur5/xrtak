@@ -694,3 +694,27 @@ impl TlsConnectionPool {
             }
             metrics.total_bytes_sent += conn.bytes_sent;
             metrics.total_bytes_received += conn.bytes_received;
+        }
+
+        metrics
+    }
+
+    pub fn close_all(&mut self) {
+        for conn in &mut self.connections {
+            conn.state = ConnectionState::Closed;
+        }
+        self.connections.clear();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pool_config_defaults_and_builder() {
+        let config = TlsPoolConfig::new()
+            .with_endpoint("10.0.0.1:8089")
+            .with_max_total_connections(8)
+            .with_idle_timeout_ms(15_000)
+            .with_lifetime_ms(120_000)
