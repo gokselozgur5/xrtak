@@ -44,3 +44,26 @@ impl Default for MedevacPrecedence {
         Self::Priority
     }
 }
+
+impl MedevacPrecedence {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::Urgent => "A - URGENT",
+            Self::UrgentSurgical => "B - URGENT-SURG",
+            Self::Priority => "C - PRIORITY",
+            Self::Routine => "D - ROUTINE",
+            Self::Convenience => "E - CONVENIENCE",
+        }
+    }
+
+    pub fn target_evacuation_window_hours(&self) -> Option<u32> {
+        match self {
+            Self::Urgent | Self::UrgentSurgical => Some(2),
+            Self::Priority => Some(4),
+            Self::Routine => Some(24),
+            Self::Convenience => None,
+        }
+    }
+
+    pub fn parse_code(s: &str) -> Option<Self> {
+        let upper = s.trim().to_uppercase();
