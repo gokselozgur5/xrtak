@@ -72,3 +72,24 @@ impl CoTAffiliation {
         }
     }
 }
+
+/// Standard tactical identity classification categories.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum StandardIdentity {
+    Friendly,
+    Hostile,
+    Neutral,
+    Unknown,
+}
+
+impl CoTAffiliation {
+    /// Map detailed CoT affiliation to high-level standard identity.
+    pub fn to_standard_identity(self) -> StandardIdentity {
+        match self {
+            Self::Friendly | Self::AssumedFriend => StandardIdentity::Friendly,
+            Self::Hostile | Self::Suspect | Self::Joker | Self::Faker => StandardIdentity::Hostile,
+            Self::Neutral => StandardIdentity::Neutral,
+            Self::Unknown | Self::Pending => StandardIdentity::Unknown,
+        }
+    }
+}
