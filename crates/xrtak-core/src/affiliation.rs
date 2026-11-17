@@ -367,3 +367,23 @@ impl AffiliationMapper {
         let mut custom_argb: Option<i32> = None;
         let mut found_event = false;
         let mut buf = Vec::new();
+        loop {
+            match reader.read_event_into(&mut buf) {
+                Ok(Event::Start(e)) | Ok(Event::Empty(e)) => match e.local_name().as_ref() {
+                    b"event" => {
+                        found_event = true;
+                        for attr in e.attributes().flatten() {
+                            if attr.key.as_ref() == b"uid" {
+                                uid = String::from_utf8_lossy(&attr.value).to_string();
+                            } else if attr.key.as_ref() == b"type" {
+                                cot_type = String::from_utf8_lossy(&attr.value).to_string();
+                            }
+                        }
+                    }
+                    b"contact" => {
+                        for attr in e.attributes().flatten() {
+                            if attr.key.as_ref() == b"callsign" {
+                                callsign = String::from_utf8_lossy(&attr.value).to_string();
+                            }
+                        }
+                    }
