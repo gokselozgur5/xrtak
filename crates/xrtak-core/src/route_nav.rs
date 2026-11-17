@@ -336,3 +336,18 @@ impl RouteNavTracker {
         }
     }
 }
+
+impl RouteNavTracker {
+    /// Target waypoint ID for the active leg.
+    pub fn current_target_waypoint_id(&self) -> Option<&str> {
+        self.route
+            .legs
+            .get(self.current_leg_index)
+            .map(|l| l.to_wp.as_str())
+    }
+
+    /// Remaining legs count from current position.
+    pub fn remaining_legs_count(&self) -> usize {
+        self.route.legs.len().saturating_sub(self.current_leg_index)
+    }
+}
