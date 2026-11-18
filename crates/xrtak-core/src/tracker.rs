@@ -123,16 +123,17 @@ pub struct TrackPredictInput<'a> {
 /// Generates kinematic track prediction points across specified time horizons.
 // TODO(XR-070): replace the argument list with a TrackPredictInput struct.
 #[allow(clippy::too_many_arguments)]
-pub fn predict_entity_trajectory(
-    uid: &str,
-    callsign: &str,
-    current_enu: (f64, f64, f64),
-    speed_mps: f64,
-    course_deg: f64,
-    is_stale: bool,
-    initial_ce_m: f64,
-    horizons: &[f64],
-) -> TrackPrediction {
+pub fn predict_entity_trajectory(input: TrackPredictInput) -> TrackPrediction {
+    let TrackPredictInput {
+        uid,
+        callsign,
+        current_enu,
+        speed_mps,
+        course_deg,
+        is_stale,
+        initial_ce_m,
+        horizons,
+    } = input;
     let mut points = Vec::new();
     for &dt in horizons {
         let (e, n, u) =
