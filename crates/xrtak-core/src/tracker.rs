@@ -115,6 +115,8 @@ pub struct TrackPredictInput<'a> {
     pub current_enu: (f64, f64, f64),
     pub speed_mps: f64,
     pub course_deg: f64,
+    pub is_stale: bool,
+    pub initial_ce_m: f64,
     pub horizons: &'a [f64],
 }
 
