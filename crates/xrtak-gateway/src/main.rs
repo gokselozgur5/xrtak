@@ -10,10 +10,10 @@ use xrtak_core::{
     compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
-    predict_entity_trajectory, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
+    predict_entity_trajectory, predict_entity_trajectory_struct, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
     OperatorPeer, OpordUnitSummary, ProceduralReliefModel, RasterDemProvider, RfBand,
     SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
-    ThreatDome, TrackPredictRequest, TrackPrediction,
+    ThreatDome, TrackPredictInput, TrackPredictRequest, TrackPrediction,
 };
 
 mod battery_dto;
@@ -1013,16 +1013,16 @@ async fn handle_http_connection(
                 .values()
                 .map(|e| {
                     let is_stale = e.speed_mps <= stale_thresh;
-                    predict_entity_trajectory(
-                        &e.uid,
-                        &e.callsign,
-                        (e.east_m, e.north_m, e.up_m),
-                        e.speed_mps,
-                        e.course_deg,
+                    predict_entity_trajectory_struct(&TrackPredictInput {
+                        uid: &e.uid,
+                        callsign: &e.callsign,
+                        current_enu: (e.east_m, e.north_m, e.up_m),
+                        speed_mps: e.speed_mps,
+                        course_deg: e.course_deg,
                         is_stale,
-                        5.0,
-                        &horizons,
-                    )
+                        initial_ce_m: 5.0,
+                        horizons: &horizons,
+                    })
                 })
                 .collect()
         };

@@ -196,22 +196,15 @@ impl<'a> ManifestInput<'a> {
 /// Build an offline mapset manifest (`MapsetManifest`) for the given WGS84 bounding box and zoom range (`ICD-18`).
 // TODO(XR-073): replace the argument list with an input struct.
 #[allow(clippy::too_many_arguments)]
-pub fn build_mapset_manifest(
-    name: &str,
-    provider: ImageryProvider,
-    south_deg: f64,
-    west_deg: f64,
-    north_deg: f64,
-    east_deg: f64,
-    min_zoom: u8,
-    max_zoom: u8,
-) -> MapsetManifest {
-    let s = south_deg.min(north_deg);
-    let n = south_deg.max(north_deg);
-    let w = west_deg.min(east_deg);
-    let e = west_deg.max(east_deg);
-    let z_min = min_zoom.min(max_zoom).clamp(1, 20);
-    let z_max = min_zoom.max(max_zoom).clamp(1, 20);
+pub fn build_mapset_manifest(input: &ManifestInput) -> MapsetManifest {
+    let s = input.south_deg.min(input.north_deg);
+    let n = input.south_deg.max(input.north_deg);
+    let w = input.west_deg.min(input.east_deg);
+    let e = input.west_deg.max(input.east_deg);
+    let z_min = input.min_zoom.min(input.max_zoom).clamp(1, 20);
+    let z_max = input.min_zoom.max(input.max_zoom).clamp(1, 20);
+
+    let manifest_hash = compute_manifest_fnv1a_hex(input.provider, s, w, n, e, z_min, z_max);
 
     let mut zoom_levels = Vec::with_capacity((z_max - z_min + 1) as usize);
     let mut total_tiles = 0u64;
@@ -227,15 +220,14 @@ pub fn build_mapset_manifest(
     let copernicus_dem_cells = copernicus_glo30_cells_for_bounds(s, w, n, e);
     let total_dem_bytes: u64 = copernicus_dem_cells.iter().map(|c| c.estimated_bytes).sum();
     let total_package_bytes = total_imagery_bytes + total_dem_bytes;
-    let manifest_hash = compute_manifest_fnv1a_hex(provider, s, w, n, e, z_min, z_max);
 
     MapsetManifest {
-        name: if name.trim().is_empty() {
+        name: if input.name.trim().is_empty() {
             format!("XRTAK-MAPSET-{}", manifest_hash[..8].to_uppercase())
         } else {
-            name.trim().to_string()
+            input.name.trim().to_string()
         },
-        provider,
+        provider: input.provider,
         manifest_hash,
         bounds_wsen: [w, s, e, n],
         min_zoom: z_min,

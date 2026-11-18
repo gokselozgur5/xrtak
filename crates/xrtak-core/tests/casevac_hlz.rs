@@ -20,7 +20,7 @@ fn flat_ground_with_no_threats_is_suitable() {
 struct SteepRamp;
 impl ElevationProvider for SteepRamp {
     fn sample_relief_m(&self, east: f64, _n: f64) -> f64 {
-        east * 0.5
+        east * 0.2
     }
 }
 
