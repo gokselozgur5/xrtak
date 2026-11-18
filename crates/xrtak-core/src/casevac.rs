@@ -95,6 +95,17 @@ pub fn evaluate_hlz_suitability(
 ) -> HlzSuitability {
     let radius = hlz_radius_m.max(15.0);
     let center_elev = elevation.sample_relief_m(center_east_m, center_north_m);
+    if center_elev.is_nan() {
+        return HlzSuitability {
+            max_slope_deg: 0.0,
+            avg_slope_deg: 0.0,
+            is_slope_acceptable: false,
+            min_threat_distance_m: 0.0,
+            nearest_threat_callsign: None,
+            is_threat_clear: false,
+            overall_suitability: "RED - UNSUITABLE".to_string(),
+        };
+    }
 
     let mut max_slope: f64 = 0.0;
     let mut sum_slope: f64 = 0.0;
@@ -131,14 +142,12 @@ pub fn evaluate_hlz_suitability(
     }
 
     let is_threat_clear = min_threat_dist > 500.0;
-    let overall_suitability = if is_slope_acceptable && is_threat_clear {
-        "GREEN - SUITABLE".to_string()
-    } else if is_slope_acceptable && !is_threat_clear {
-        "AMBER - THREAT PROXIMITY".to_string()
-    } else if !is_slope_acceptable && is_threat_clear {
-        "AMBER - STEEP TERRAIN".to_string()
-    } else {
+    let overall_suitability = if !is_slope_acceptable {
         "RED - UNSUITABLE".to_string()
+    } else if !is_threat_clear {
+        "AMBER - THREAT PROXIMITY".to_string()
+    } else {
+        "GREEN - SUITABLE".to_string()
     };
 
     HlzSuitability {
