@@ -109,9 +109,21 @@ impl<'a> TrackPredictInput<'a> {
     }
 }
 
+
+pub fn predict_entity_trajectory_struct(input: &TrackPredictInput) -> TrackPrediction {
+    predict_entity_trajectory(
+        input.uid,
+        input.callsign,
+        input.current_enu,
+        input.speed_mps,
+        input.course_deg,
+        input.is_stale,
+        input.initial_ce_m,
+        input.horizons,
+    )
+}
+
 /// Generates kinematic track prediction points across specified time horizons.
-// TODO(XR-070): replace the argument list with a TrackPredictInput struct.
-#[allow(clippy::too_many_arguments)]
 pub fn predict_entity_trajectory(
     uid: &str,
     callsign: &str,
@@ -122,29 +134,17 @@ pub fn predict_entity_trajectory(
     initial_ce_m: f64,
     horizons: &[f64],
 ) -> TrackPrediction {
-    let mut points = Vec::new();
-    for &dt in horizons {
-        let (e, n, u) =
-            compute_kinematic_extrapolation(current_enu, speed_mps, course_deg, 0.0, dt);
-        let cep = compute_cep_radius_m(initial_ce_m, speed_mps, dt);
-        points.push(TrackPredictionPoint {
-            dt_sec: dt,
-            east_m: (e * 100.0).round() / 100.0,
-            north_m: (n * 100.0).round() / 100.0,
-            up_m: (u * 100.0).round() / 100.0,
-            cep_radius_m: (cep * 100.0).round() / 100.0,
-        });
-    }
-
-    TrackPrediction {
-        uid: uid.to_string(),
-        callsign: callsign.to_string(),
+    let input = TrackPredictInput {
+        uid,
+        callsign,
         current_enu,
         speed_mps,
         course_deg,
         is_stale,
-        points,
-    }
+        initial_ce_m,
+        horizons,
+    };
+    predict_entity_trajectory_struct(&input)
 }
 
 #[cfg(test)]
@@ -177,16 +177,17 @@ mod tests {
         assert!(cep_30 > cep_0, "CEP at 30s must exceed initial CEP");
         assert!(cep_60 > cep_30, "CEP at 60s must exceed CEP at 30s");
 
-        let pred = predict_entity_trajectory(
-            "UAV-01",
-            "FALCON",
-            origin,
-            20.0,
-            45.0,
-            true,
-            5.0,
-            &[15.0, 30.0, 60.0],
-        );
+        let input = TrackPredictInput {
+            uid: "UAV-01",
+            callsign: "FALCON",
+            current_enu: origin,
+            speed_mps: 20.0,
+            course_deg: 45.0,
+            is_stale: true,
+            initial_ce_m: 5.0,
+            horizons: &[15.0, 30.0, 60.0],
+        };
+        let pred = predict_entity_trajectory_struct(&input);
         assert_eq!(pred.points.len(), 3);
         assert!(pred.is_stale);
     }
@@ -236,16 +237,17 @@ mod tests {
 
     #[test]
     fn test_predict_entity_trajectory_empty_horizons() {
-        let pred = predict_entity_trajectory(
-            "UAV-EMPTY",
-            "GHOST",
-            (10.0, 20.0, 30.0),
-            0.0,
-            0.0,
-            false,
-            2.0,
-            &[],
-        );
+        let input = TrackPredictInput {
+            uid: "UAV-EMPTY",
+            callsign: "GHOST",
+            current_enu: (10.0, 20.0, 30.0),
+            speed_mps: 0.0,
+            course_deg: 0.0,
+            is_stale: false,
+            initial_ce_m: 2.0,
+            horizons: &[],
+        };
+        let pred = predict_entity_trajectory_struct(&input);
         assert_eq!(pred.uid, "UAV-EMPTY");
         assert_eq!(pred.callsign, "GHOST");
         assert_eq!(pred.current_enu, (10.0, 20.0, 30.0));

@@ -88,6 +88,7 @@ pub fn compute_uav_endurance(
     let bingo_pct = (bingo_wh / state.battery_capacity_wh.max(1.0)) * 100.0;
     let is_bingo_critical = state.battery_remaining_pct <= bingo_pct;
 
+    let r1 = |v: f64| (v * 10.0).round() / 10.0;
     let steps = polygon_radial_steps.max(16);
     let mut polygon = Vec::with_capacity(steps);
 
@@ -101,21 +102,21 @@ pub fn compute_uav_endurance(
         let max_r = (usable_sec * ground_speed * 0.5).max(10.0);
 
         polygon.push(RthPolygonVertex {
-            bearing_deg: (bearing_deg * 10.0).round() / 10.0,
-            east_m: (state.current_east_m + max_r * az_rad.cos() * 10.0).round() / 10.0,
-            north_m: (state.current_north_m + max_r * az_rad.sin() * 10.0).round() / 10.0,
-            max_radius_m: (max_r * 10.0).round() / 10.0,
+            bearing_deg: r1(bearing_deg),
+            east_m: r1(state.current_east_m + max_r * az_rad.cos()),
+            north_m: r1(state.current_north_m + max_r * az_rad.sin()),
+            max_radius_m: r1(max_r),
         });
     }
 
     UavEnduranceSolution {
         callsign: state.callsign.clone(),
-        total_endurance_sec: (total_rem_sec * 10.0).round() / 10.0,
-        remaining_flight_sec: (usable_sec * 10.0).round() / 10.0,
-        return_home_time_sec: (rth_time_sec * 10.0).round() / 10.0,
-        bingo_battery_pct: (bingo_pct * 10.0).round() / 10.0,
+        total_endurance_sec: r1(total_rem_sec),
+        remaining_flight_sec: r1(usable_sec),
+        return_home_time_sec: r1(rth_time_sec),
+        bingo_battery_pct: r1(bingo_pct),
         is_bingo_critical,
-        distance_to_home_m: (dist_to_home * 10.0).round() / 10.0,
+        distance_to_home_m: r1(dist_to_home),
         rth_polygon: polygon,
     }
 }
