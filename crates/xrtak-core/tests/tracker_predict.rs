@@ -41,16 +41,16 @@ fn test_cep_growth_monotonic_with_floor() {
 #[test]
 fn test_predict_trajectory_points_and_cep_rounding() {
     let horizons = vec![1.234, 5.678];
-    let pred = predict_entity_trajectory(
-        "T-01",
-        "Track 1",
-        (10.123, 20.456, 30.789),
-        15.555,
-        45.0,
-        false,
-        3.333,
-        &horizons,
-    );
+    let pred = predict_entity_trajectory(TrackPredictInput {
+        uid: "T-01",
+        callsign: "Track 1",
+        current_enu: (10.123, 20.456, 30.789),
+        speed_mps: 15.555,
+        course_deg: 45.0,
+        is_stale: false,
+        initial_ce_m: 3.333,
+        horizons: &horizons,
+    });
 
     assert_eq!(pred.points.len(), 2);
     for pt in &pred.points {
