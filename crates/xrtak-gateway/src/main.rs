@@ -1013,16 +1013,16 @@ async fn handle_http_connection(
                 .values()
                 .map(|e| {
                     let is_stale = e.speed_mps <= stale_thresh;
-                    predict_entity_trajectory(
-                        &e.uid,
-                        &e.callsign,
-                        (e.east_m, e.north_m, e.up_m),
-                        e.speed_mps,
-                        e.course_deg,
+                    predict_entity_trajectory(TrackPredictInput {
+                        uid: &e.uid,
+                        callsign: &e.callsign,
+                        current_enu: (e.east_m, e.north_m, e.up_m),
+                        speed_mps: e.speed_mps,
+                        course_deg: e.course_deg,
                         is_stale,
-                        5.0,
-                        &horizons,
-                    )
+                        initial_ce_m: 5.0,
+                        horizons: &horizons,
+                    })
                 })
                 .collect()
         };
