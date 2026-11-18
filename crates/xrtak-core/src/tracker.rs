@@ -134,17 +134,30 @@ pub fn predict_entity_trajectory(
     initial_ce_m: f64,
     horizons: &[f64],
 ) -> TrackPrediction {
-    let input = TrackPredictInput {
-        uid,
-        callsign,
+    let points = horizons
+        .iter()
+        .map(|&dt_sec| {
+            let (east_m, north_m, up_m) = compute_kinematic_extrapolation(current_enu, speed_mps, course_deg, 0.0, dt_sec);
+            let cep_radius_m = compute_cep_radius_m(initial_ce_m, speed_mps, dt_sec);
+            TrackPredictionPoint {
+                dt_sec,
+                east_m,
+                north_m,
+                up_m,
+                cep_radius_m,
+            }
+        })
+        .collect();
+
+    TrackPrediction {
+        uid: uid.to_string(),
+        callsign: callsign.to_string(),
         current_enu,
         speed_mps,
         course_deg,
         is_stale,
-        initial_ce_m,
-        horizons,
-    };
-    predict_entity_trajectory_struct(&input)
+        points,
+    }
 }
 
 #[cfg(test)]
