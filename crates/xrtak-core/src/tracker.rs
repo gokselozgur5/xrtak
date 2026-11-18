@@ -100,9 +100,8 @@ impl<'a> TrackPredictInput<'a> {
     }
 }
 
+
 /// Generates kinematic track prediction points across specified time horizons.
-// TODO(XR-070): replace the argument list with a TrackPredictInput struct.
-#[allow(clippy::too_many_arguments)]
 pub fn predict_entity_trajectory(
     uid: &str,
     callsign: &str,
@@ -113,29 +112,17 @@ pub fn predict_entity_trajectory(
     initial_ce_m: f64,
     horizons: &[f64],
 ) -> TrackPrediction {
-    let mut points = Vec::new();
-    for &dt in horizons {
-        let (e, n, u) =
-            compute_kinematic_extrapolation(current_enu, speed_mps, course_deg, 0.0, dt);
-        let cep = compute_cep_radius_m(initial_ce_m, speed_mps, dt);
-        points.push(TrackPredictionPoint {
-            dt_sec: dt,
-            east_m: (e * 100.0).round() / 100.0,
-            north_m: (n * 100.0).round() / 100.0,
-            up_m: (u * 100.0).round() / 100.0,
-            cep_radius_m: (cep * 100.0).round() / 100.0,
-        });
-    }
-
-    TrackPrediction {
-        uid: uid.to_string(),
-        callsign: callsign.to_string(),
+    let input = TrackPredictInput {
+        uid,
+        callsign,
         current_enu,
         speed_mps,
         course_deg,
         is_stale,
-        points,
-    }
+        initial_ce_m,
+        horizons,
+    };
+    predict_entity_trajectory_struct(&input)
 }
 
 #[cfg(test)]
