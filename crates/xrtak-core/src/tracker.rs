@@ -96,16 +96,7 @@ impl<'a> TrackPredictInput<'a> {
     }
 
     pub fn predict(&self) -> TrackPrediction {
-        predict_entity_trajectory(
-            self.uid,
-            self.callsign,
-            self.current_enu,
-            self.speed_mps,
-            self.course_deg,
-            self.is_stale,
-            self.initial_ce_m,
-            self.horizons,
-        )
+        predict_entity_trajectory_struct(self)
     }
 }
 
@@ -177,16 +168,17 @@ mod tests {
         assert!(cep_30 > cep_0, "CEP at 30s must exceed initial CEP");
         assert!(cep_60 > cep_30, "CEP at 60s must exceed CEP at 30s");
 
-        let pred = predict_entity_trajectory(
-            "UAV-01",
-            "FALCON",
-            origin,
-            20.0,
-            45.0,
-            true,
-            5.0,
-            &[15.0, 30.0, 60.0],
-        );
+        let input = TrackPredictInput {
+            uid: "UAV-01",
+            callsign: "FALCON",
+            current_enu: origin,
+            speed_mps: 20.0,
+            course_deg: 45.0,
+            is_stale: true,
+            initial_ce_m: 5.0,
+            horizons: &[15.0, 30.0, 60.0],
+        };
+        let pred = predict_entity_trajectory_struct(&input);
         assert_eq!(pred.points.len(), 3);
         assert!(pred.is_stale);
     }
