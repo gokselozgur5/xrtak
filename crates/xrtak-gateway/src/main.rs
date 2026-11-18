@@ -13,7 +13,7 @@ use xrtak_core::{
     predict_entity_trajectory, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
     OperatorPeer, OpordUnitSummary, ProceduralReliefModel, RasterDemProvider, RfBand,
     SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
-    ThreatDome, TrackPredictRequest, TrackPrediction,
+    ThreatDome, TrackPredictInput, TrackPredictRequest, TrackPrediction,
 };
 
 mod battery_dto;
