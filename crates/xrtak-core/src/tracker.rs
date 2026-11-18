@@ -248,16 +248,16 @@ mod tests {
 
     #[test]
     fn test_predict_entity_trajectory_empty_horizons() {
-        let pred = predict_entity_trajectory(
-            "UAV-EMPTY",
-            "GHOST",
-            (10.0, 20.0, 30.0),
-            0.0,
-            0.0,
-            false,
-            2.0,
-            &[],
-        );
+        let pred = predict_entity_trajectory(TrackPredictInput {
+            uid: "UAV-EMPTY",
+            callsign: "GHOST",
+            current_enu: (10.0, 20.0, 30.0),
+            speed_mps: 0.0,
+            course_deg: 0.0,
+            is_stale: false,
+            initial_ce_m: 2.0,
+            horizons: &[],
+        });
         assert_eq!(pred.uid, "UAV-EMPTY");
         assert_eq!(pred.callsign, "GHOST");
         assert_eq!(pred.current_enu, (10.0, 20.0, 30.0));
