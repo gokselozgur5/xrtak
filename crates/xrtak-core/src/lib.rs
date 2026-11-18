@@ -172,7 +172,7 @@ pub use tiles::{
     ResolvedTileSpec, TileCoord,
 };
 pub use tracker::{
-    compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
+    compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory, predict_entity_trajectory_struct,
     TrackPredictInput, TrackPredictRequest, TrackPrediction, TrackPredictionPoint,
 };
 pub use track_simplify::{
