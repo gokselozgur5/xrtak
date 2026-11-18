@@ -109,6 +109,15 @@ impl<'a> TrackPredictInput<'a> {
     }
 }
 
+pub struct TrackPredictInput<'a> {
+    pub uid: &'a str,
+    pub callsign: &'a str,
+    pub current_enu: (f64, f64, f64),
+    pub speed_mps: f64,
+    pub course_deg: f64,
+    pub horizons: &'a [f64],
+}
+
 /// Generates kinematic track prediction points across specified time horizons.
 // TODO(XR-070): replace the argument list with a TrackPredictInput struct.
 #[allow(clippy::too_many_arguments)]
