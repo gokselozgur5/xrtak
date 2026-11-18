@@ -96,16 +96,16 @@ impl<'a> TrackPredictInput<'a> {
     }
 
     pub fn predict(&self) -> TrackPrediction {
-        predict_entity_trajectory(
-            self.uid,
-            self.callsign,
-            self.current_enu,
-            self.speed_mps,
-            self.course_deg,
-            self.is_stale,
-            self.initial_ce_m,
-            self.horizons,
-        )
+        predict_entity_trajectory(TrackPredictInput {
+            uid: &self.uid,
+            callsign: &self.callsign,
+            current_enu: self.current_enu,
+            speed_mps: self.speed_mps,
+            course_deg: self.course_deg,
+            is_stale: self.is_stale,
+            initial_ce_m: self.initial_ce_m,
+            horizons: &self.horizons,
+        })
     }
 }
 
