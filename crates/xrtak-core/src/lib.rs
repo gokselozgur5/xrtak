@@ -173,7 +173,8 @@ pub use tiles::{
 };
 pub use tracker::{
     compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
-    TrackPredictInput, TrackPredictRequest, TrackPrediction, TrackPredictionPoint,
+    predict_entity_trajectory_struct, TrackPredictInput, TrackPredictRequest, TrackPrediction,
+    TrackPredictionPoint,
 };
 pub use track_simplify::{
     generate_cot_track_history_xml, haversine_distance_m as track_haversine_distance_m,
