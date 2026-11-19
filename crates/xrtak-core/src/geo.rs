@@ -207,12 +207,12 @@ impl RasterDemProvider {
         if extent_m <= 0.0 {
             return Err("RasterDemProvider extent_m must be > 0".to_string());
         }
-        if heights_m.len() != width * height {
+        let total = width
+            .checked_mul(height)
+            .ok_or_else(|| "RasterDemProvider dimensions overflow usize".to_string())?;
+        if heights_m.len() != total {
             return Err(format!(
-                "Expected {} elevation samples ({}x{}), got {}",
-                width * height,
-                width,
-                height,
+                "Expected {total} elevation samples ({width}x{height}), got {}",
                 heights_m.len()
             ));
         }
