@@ -1,5 +1,6 @@
 //! Cursor-on-Target (CoT) ping/pong heartbeat keepalive manager.
 
+use crate::kml_export::format_iso8601_utc;
 use serde::{Deserialize, Serialize};
 
 /// Heartbeat status of a TAK peer or server connection.
@@ -153,18 +154,20 @@ impl CotHeartbeatManager {
 /// Build a standard TAK Cursor-on-Target ping event XML (`t-x-c-t`).
 pub fn build_ping_cot(client_uid: &str, seq: u64, now_ms: u64) -> String {
     let uid = format!("{client_uid}-ping-{seq}");
-    let stale_ms = now_ms.saturating_add(10_000);
+    let time_iso = format_iso8601_utc(now_ms).replace(".000Z", "Z");
+    let stale_iso = format_iso8601_utc(now_ms.saturating_add(10_000)).replace(".000Z", "Z");
     format!(
-        r#"<event version="2.0" uid="{uid}" type="t-x-c-t" how="m-g" time="{now_ms}" start="{now_ms}" stale="{stale_ms}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><ping seq="{seq}" client="{client_uid}"/></detail></event>"#
+        r#"<event version="2.0" uid="{uid}" type="t-x-c-t" how="m-g" time="{time_iso}" start="{time_iso}" stale="{stale_iso}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><ping seq="{seq}" client="{client_uid}"/></detail></event>"#
     )
 }
 
 /// Build a standard TAK Cursor-on-Target pong response XML (`t-x-c-t-r`).
 pub fn build_pong_cot(client_uid: &str, ping_uid: &str, seq: u64, now_ms: u64) -> String {
     let uid = format!("{client_uid}-pong-{seq}");
-    let stale_ms = now_ms.saturating_add(10_000);
+    let time_iso = format_iso8601_utc(now_ms).replace(".000Z", "Z");
+    let stale_iso = format_iso8601_utc(now_ms.saturating_add(10_000)).replace(".000Z", "Z");
     format!(
-        r#"<event version="2.0" uid="{uid}" type="t-x-c-t-r" how="m-g" time="{now_ms}" start="{now_ms}" stale="{stale_ms}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><pong seq="{seq}" ref_uid="{ping_uid}"/></detail></event>"#
+        r#"<event version="2.0" uid="{uid}" type="t-x-c-t-r" how="m-g" time="{time_iso}" start="{time_iso}" stale="{stale_iso}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><pong seq="{seq}" ref_uid="{ping_uid}"/></detail></event>"#
     )
 }
 
@@ -290,7 +293,7 @@ mod tests {
         let ping_xml = build_ping_cot("ALPHA", 42, 1_000_000);
         assert!(ping_xml.contains("type=\"t-x-c-t\""));
         assert!(ping_xml.contains("uid=\"ALPHA-ping-42\""));
-        assert!(ping_xml.contains("time=\"1000000\""));
+        assert!(ping_xml.contains("time=\"1970-01-01T00:16:40Z\""));
 
         let pong_xml = build_pong_cot("ALPHA", "BETA-ping-7", 7, 1_000_050);
         assert!(pong_xml.contains("type=\"t-x-c-t-r\""));
