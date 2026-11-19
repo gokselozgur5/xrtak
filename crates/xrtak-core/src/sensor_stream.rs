@@ -127,7 +127,7 @@ impl VideoStreamConnection {
     pub fn new(url: impl Into<String>, alias: impl Into<String>) -> Self {
         let u = url.into();
         let a = alias.into();
-        let su = format!("feed-{}", &a);
+        let su = format!("feed-{a}");
         Self {
             url: u,
             stream_uid: su,
@@ -371,7 +371,7 @@ pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorSt
     }
     let u = url.ok_or(SensorStreamError::MissingAttribute("url"))?;
     let a = alias.unwrap_or_else(|| "Video Stream".to_string());
-    let su = uid.unwrap_or_else(|| format!("feed-{}", &a));
+    let su = uid.unwrap_or_else(|| format!("feed-{a}"));
     Ok(VideoStreamConnection {
         url: u,
         stream_uid: su,
@@ -447,7 +447,7 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                 }
                 if let Some(u) = url {
                     let a = alias.unwrap_or_else(|| "Video Stream".to_string());
-                    let su = stream_uid.unwrap_or_else(|| format!("feed-{}", &a));
+                    let su = stream_uid.unwrap_or_else(|| format!("feed-{a}"));
                     video_conn = Some(VideoStreamConnection {
                         url: u, stream_uid: su, alias: a, rover_port, rtsp_reliable,
                         ignore_embedded_klv: ignore_klv, buffer_ms: 500, preferred_uid: pref,
