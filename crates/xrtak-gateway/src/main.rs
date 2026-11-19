@@ -964,9 +964,16 @@ async fn handle_http_connection(
             let min_zoom = mp_req.min_zoom.unwrap_or(12);
             let max_zoom = mp_req.max_zoom.unwrap_or(16);
             let name = mp_req.name.unwrap_or_default();
-            let manifest = build_mapset_manifest(
-                &name, provider, south, west, north, east, min_zoom, max_zoom,
-            );
+            let manifest = build_mapset_manifest(&ManifestInput {
+                name: &name,
+                provider,
+                south_deg: south,
+                west_deg: west,
+                north_deg: north,
+                east_deg: east,
+                min_zoom,
+                max_zoom,
+            });
             let resp_json = serde_json::to_string(&manifest)?;
             let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
