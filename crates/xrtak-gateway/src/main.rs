@@ -448,7 +448,7 @@ async fn handle_http_connection(
 
     if method == "GET" && path == "/api/state" {
         let body = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let mut entities: Vec<TacticalEntity> = guard.entities.values().cloned().collect();
             entities.sort_by(|a, b| a.uid.cmp(&b.uid));
             let snap = WorldSnapshot {
@@ -478,7 +478,7 @@ async fn handle_http_connection(
             .and_then(|s| s.split('&').next())
             .and_then(|s| s.parse::<f64>().ok());
         let body = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let summary = guard.aar.summary();
             let t_query = target_t.unwrap_or(summary.max_time_sec);
             let frame = guard.aar.sample_at(t_query);
@@ -507,7 +507,7 @@ async fn handle_http_connection(
             .and_then(|s| s.split('&').next())
             .unwrap_or("GND-SPEAR-ALPHA");
         let body = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let cues = guard.compute_visor_hud_cues(obs);
             serde_json::json!({
                 "observer_uid": obs,
@@ -530,7 +530,7 @@ async fn handle_http_connection(
 
     if method == "GET" && path == "/api/terrain" {
         let body = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let res = 65usize;
             let grid = guard.terrain.export_grid(guard.origin.extent_m, res);
             serde_json::json!({
