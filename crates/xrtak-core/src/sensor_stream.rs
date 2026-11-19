@@ -37,8 +37,9 @@ impl fmt::Display for SensorStreamError {
 impl std::error::Error for SensorStreamError {}
 
 /// Type of optical or imaging sensor payload.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SensorType {
+    #[default]
     ElectroOptical,
     Infrared,
     ShortWaveInfrared,
@@ -76,12 +77,6 @@ impl SensorType {
             "SAR" => Self::SyntheticApertureRadar,
             other => Self::Other(other.to_string()),
         }
-    }
-}
-
-impl Default for SensorType {
-    fn default() -> Self {
-        Self::ElectroOptical
     }
 }
 
