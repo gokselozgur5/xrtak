@@ -727,7 +727,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(vs_req) = serde_json::from_str::<ViewshedRequest>(body) {
             let vs = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 compute_viewshed_with_provider(
                     guard.terrain.as_ref(),
                     vs_req.east_m,
@@ -750,7 +750,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(los_req) = serde_json::from_str::<LinkLosRequest>(body) {
             let res = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 let from_enu = los_req.from_enu.or_else(|| {
                     los_req
                         .from_uid
@@ -784,7 +784,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(prof_req) = serde_json::from_str::<ElevationProfileRequest>(body) {
             let prof = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 guard.compute_elevation_profile(&prof_req.waypoints_en)
             };
             let json = serde_json::to_string(&prof)?;
@@ -812,7 +812,7 @@ async fn handle_http_connection(
             match parsed {
                 Ok((name, raw_wps)) => {
                     let resp_json = {
-                        let mut guard = world.lock().unwrap();
+                        let mut guard = lock_world(&world);
                         if m_req.auto_recenter.unwrap_or(true) && !raw_wps.is_empty() {
                             let avg_lat =
                                 raw_wps.iter().map(|w| w.lat).sum::<f64>() / raw_wps.len() as f64;
