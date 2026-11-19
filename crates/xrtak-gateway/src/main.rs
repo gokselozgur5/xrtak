@@ -877,7 +877,7 @@ async fn handle_http_connection(
                 .route_callsign
                 .unwrap_or_else(|| "XR-CORRIDOR-01".to_string());
             let (qgc_plan_json, atak_bmr_xml) = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 let qgc = export_qgc_plan_json(
                     &guard.origin,
                     guard.terrain.as_ref(),
@@ -917,7 +917,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(t_req) = serde_json::from_str::<TileResolveRequest>(body) {
             let (lat, lon) = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 (
                     t_req.lat.unwrap_or(guard.origin.lat),
                     t_req.lon.unwrap_or(guard.origin.lon),
@@ -938,7 +938,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(c_req) = serde_json::from_str::<CorridorPolygonRequest>(body) {
             let origin = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 guard.origin
             };
             let res = evaluate_swath_corridor(
@@ -965,7 +965,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(mp_req) = serde_json::from_str::<MapsetPlanRequest>(body) {
             let origin = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 guard.origin
             };
             // Default to the current tactical sand table bounding box if explicit bounds are omitted
