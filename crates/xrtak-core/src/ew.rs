@@ -232,7 +232,7 @@ pub fn compute_burn_through_range(
 
     let numerator = p_radar_w * g_rad_linear * target_rcs_m2.max(0.01) * (r_j.powi(2));
     let denominator = (4.0 * std::f64::consts::PI) * (p_jammer_w * g_jam_linear).max(0.001);
-    let r_bt = (numerator / denominator).powf(0.5).max(10.0);
+    let r_bt = (numerator / denominator).powf(0.25).max(10.0);
 
     BurnThroughAssessment {
         radar_callsign: radar_callsign.to_string(),
