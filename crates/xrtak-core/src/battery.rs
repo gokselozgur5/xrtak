@@ -89,7 +89,7 @@ pub fn compute_uav_endurance(
     let is_bingo_critical = state.battery_remaining_pct <= bingo_pct;
 
     let r1 = |v: f64| (v * 10.0).round() / 10.0;
-    let steps = polygon_radial_steps.max(16);
+    let steps = polygon_radial_steps.clamp(16, 10_000);
     let mut polygon = Vec::with_capacity(steps);
 
     for i in 0..steps {
