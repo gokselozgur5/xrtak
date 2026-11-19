@@ -402,6 +402,7 @@ impl DistressBeacon {
                                 b"cancel" => {
                                     if parse_str_attr(&a.value) == "true" {
                                         is_cancelled = true;
+                                        emergency_type.get_or_insert(EmergencyType::Alert911);
                                     }
                                 }
                                 b"type" => {
@@ -459,6 +460,7 @@ impl DistressBeacon {
                                 b"cancel" => {
                                     if parse_str_attr(&a.value) == "true" {
                                         is_cancelled = true;
+                                        emergency_type.get_or_insert(EmergencyType::Alert911);
                                     }
                                 }
                                 b"type" => {
