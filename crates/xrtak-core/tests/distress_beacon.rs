@@ -35,3 +35,11 @@ fn test_integration_distress_beacon_lifecycle() {
     let parsed_cancelled = DistressBeacon::from_cot_xml(&cancel_xml).expect("parse cancel");
     assert_eq!(parsed_cancelled.status, EmergencyStatus::Cancelled);
 }
+
+#[test]
+fn atak_cancel_event_without_type_attribute_parses() {
+    let xml = r#"<event version="2.0" uid="ANDROID-1-9-1-1" type="b-a-o-can" how="h-e" time="2026-11-18T10:00:00Z" start="2026-11-18T10:00:00Z" stale="2026-11-18T10:00:10Z"><point lat="34.0" lon="-118.0" hae="100.0" ce="10" le="10"/><detail><emergency cancel="true">EAGLE-6</emergency></detail></event>"#;
+    let beacon = xrtak_core::DistressBeacon::from_cot_xml(xml).expect("cancel event parses");
+    assert_eq!(beacon.status, xrtak_core::EmergencyStatus::Cancelled);
+    assert_eq!(beacon.callsign, "EAGLE-6");
+}
