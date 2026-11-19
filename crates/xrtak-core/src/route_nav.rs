@@ -182,6 +182,7 @@ pub fn estimate_leg_ete_seconds(
 
 impl LegNavEstimate {
     /// Construct a calculated leg navigation estimate.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         idx: usize,
         from: &str,
