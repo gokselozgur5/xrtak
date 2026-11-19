@@ -550,6 +550,24 @@ pub fn parse_cot_xml_with_provider(
     })
 }
 
+/// Read the `stale="YYYY-MM-DDTHH:MM:SSZ"` attribute of a CoT event as unix ms.
+fn cot_stale_ms(xml: &str) -> Option<u64> {
+    let r = &xml[xml.find("stale=\"")? + 7..];
+    let n: Vec<i64> = r[..r.find('"')?]
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|p| !p.is_empty())
+        .map(|p| p.parse().ok())
+        .collect::<Option<_>>()?;
+    if n.len() < 6 || !(1..=12).contains(&n[1]) {
+        return None;
+    }
+    let (y, m) = (n[0] - (n[1] <= 2) as i64, n[1]);
+    let (era, doy) = (y.div_euclid(400), (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + n[2] - 1);
+    let yoe = y - era * 400;
+    let days = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468;
+    u64::try_from(((days * 24 + n[3]) * 60 + n[4]) * 60 + n[5]).ok().map(|s| s * 1000)
+}
+
 /// State manager holding simulated tactical units, SPI gimbal locks, and live external CoT tracks.
 pub struct TacticalWorld {
     pub origin: GeoOrigin,
@@ -565,6 +583,8 @@ pub struct TacticalWorld {
     /// Map from UAV UID (e.g. `UAV-FALCON-01`) to locked SPI ENU target `(east_m, up_m, north_m)`
     pub spi_locks: HashMap<String, (f64, f64, f64)>,
     pub sim_time_sec: f64,
+    /// CoT stale deadline (unix ms) per live uid; entries past it are pruned.
+    pub stale_ms: HashMap<String, u64>,
 }
 
 impl TacticalWorld {
@@ -612,6 +632,7 @@ impl TacticalWorld {
             collab: CollabRoomState::default(),
             spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
+            stale_ms: HashMap::new(),
         }
     }
 
@@ -695,6 +716,10 @@ impl TacticalWorld {
             }
         }
         self.entities.insert(entity.uid.clone(), entity.clone());
+        match cot_stale_ms(xml) {
+            Some(s) => self.stale_ms.insert(entity.uid.clone(), s),
+            None => self.stale_ms.remove(&entity.uid),
+        };
         self.refresh_threat_domes_and_zones();
         Ok(entity)
     }
@@ -751,6 +776,9 @@ impl TacticalWorld {
     /// Advance built-in tactical rehearsal scenario by `dt_sec`.
     pub fn step_simulation(&mut self, dt_sec: f64, now_ms: u64) {
         self.sim_time_sec += dt_sec;
+        self.entities
+            .retain(|u, _| self.stale_ms.get(u).map_or(true, |&s| now_ms < s));
+        self.stale_ms.retain(|_, &mut s| now_ms < s);
         if !self.sim_enabled {
             self.refresh_threat_domes_and_zones();
             self.aar
