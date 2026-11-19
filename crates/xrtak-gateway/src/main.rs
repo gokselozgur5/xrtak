@@ -1385,7 +1385,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(del) = serde_json::from_str::<PinDeleteRequest>(body) {
             let removed = {
-                let mut guard = world.lock().unwrap();
+                let mut guard = lock_world(&world);
                 let r = guard.entities.remove(&del.uid);
                 guard.refresh_threat_domes_and_zones();
                 save_persistent_pins(&guard);
@@ -1401,7 +1401,7 @@ async fn handle_http_connection(
 
     if method == "GET" && path == "/api/export/geojson" {
         let body = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
             ents.sort_by(|a, b| a.uid.cmp(&b.uid));
             let features: Vec<serde_json::Value> = ents
@@ -1443,7 +1443,7 @@ async fn handle_http_connection(
 
     if method == "GET" && path == "/api/export/cot" {
         let body = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
             ents.sort_by(|a, b| a.uid.cmp(&b.uid));
             let events: Vec<String> = ents.into_iter().map(entity_to_cot_xml).collect();
