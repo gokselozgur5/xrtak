@@ -221,10 +221,17 @@ impl CotHeartbeatManager {
 impl CotHeartbeatManager {
     /// Process incoming pong matching ref_uid or sequence number.
     pub fn handle_pong(&mut self, ref_uid: &str, seq: Option<u64>, now_ms: u64) -> Option<u64> {
-        let idx = self
-            .pending_pings
-            .iter()
-            .position(|p| p.ping_uid == ref_uid || seq == Some(p.seq))?;
+        let idx = if ref_uid.is_empty() && seq.is_none() {
+            if self.pending_pings.is_empty() {
+                None
+            } else {
+                Some(0)
+            }
+        } else {
+            self.pending_pings
+                .iter()
+                .position(|p| (!ref_uid.is_empty() && p.ping_uid == ref_uid) || seq == Some(p.seq))
+        }?;
         let ping = self.pending_pings.remove(idx);
         let rtt = now_ms.saturating_sub(ping.sent_unix_ms);
         self.last_pong_received_ms = Some(now_ms);
