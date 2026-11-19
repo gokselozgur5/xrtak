@@ -336,9 +336,8 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
 
     loop {
         match reader.read_event() {
-            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => match e.name().as_ref() {
-                b"crumb" => {
-                    let mut lat = 0.0f64;
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) if e.name().as_ref() == b"crumb" => {
+                let mut lat = 0.0f64;
                     let mut lon = 0.0f64;
                     let mut hae = 0.0f64;
                     let mut time_ms: Option<u64> = None;
@@ -393,9 +392,7 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
                         pt = pt.with_kinematics(s, c);
                     }
                     points.push(pt);
-                }
-                _ => {}
-            },
+            }
 
             Ok(Event::Eof) => break,
             Err(e) => return Err(format!("XML parse error: {}", e)),
