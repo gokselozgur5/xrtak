@@ -126,7 +126,7 @@ pub fn evaluate_rf_propagation(
     let dy = rx.1 - tx.1;
     let dz = rx.2 - tx.2;
     let dist = (dx * dx + dy * dy + dz * dz).sqrt().max(1.0);
-    let n = steps.max(16);
+    let n = steps.clamp(16, 10_000);
     let mut worst_v = -10.0f64;
     let mut min_clear = f64::MAX;
 
