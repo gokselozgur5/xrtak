@@ -551,7 +551,7 @@ mod tests {
         assert_eq!(b.callsign, "RESCUE-1");
         assert_eq!(b.alert_type, EmergencyType::Alert911);
         assert_eq!(b.status, EmergencyStatus::Active);
-        assert_eq!(b.cot_type(), "b-a-o-pan");
+        assert_eq!(b.cot_type(), "b-a-o-tbl");
     }
     #[test]
     fn test_beacon_state_transitions() {
@@ -562,7 +562,7 @@ mod tests {
             34.0,
             -118.0,
         );
-        assert_eq!(b.cot_type(), "b-a-o-tbl");
+        assert_eq!(b.cot_type(), "b-a-o-opn");
         b.cancel("2026-01-01T01:00:00Z");
         assert_eq!(b.status, EmergencyStatus::Cancelled);
         assert_eq!(b.cot_type(), "b-a-o-can");
