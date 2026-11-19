@@ -274,16 +274,16 @@ mod tests {
             min_zoom: 12,
             max_zoom: 15,
         });
-        let m2 = build_mapset_manifest(
-            "ANKARA-AO-SECTOR",
-            ImageryProvider::BingAerial,
-            39.90,
-            32.82,
-            39.94,
-            32.88,
-            12,
-            15,
-        );
+        let m2 = build_mapset_manifest(&ManifestInput {
+            name: "ANKARA-AO-SECTOR",
+            provider: ImageryProvider::BingAerial,
+            south_deg: 39.90,
+            west_deg: 32.82,
+            north_deg: 39.94,
+            east_deg: 32.88,
+            min_zoom: 12,
+            max_zoom: 15,
+        });
         assert_eq!(m1.manifest_hash, m2.manifest_hash);
         assert_eq!(m1.zoom_levels.len(), 4);
         assert!(m1.total_tiles >= 4);
