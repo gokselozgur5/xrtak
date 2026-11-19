@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
@@ -29,6 +29,10 @@ fn json_ok_header(len: usize) -> String {
     format!(
         "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {len}\r\nConnection: close\r\n\r\n"
     )
+}
+
+fn lock_world(world: &Mutex<TacticalWorld>) -> MutexGuard<'_, TacticalWorld> {
+    world.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 /// Entity id, (east, north, up) position, speed in m/s and course in degrees.
