@@ -45,6 +45,27 @@ fn perpendicular_distance_m(pt: (f64, f64), a: (f64, f64), b: (f64, f64)) -> f64
     ((pt.0 - proj_x).powi(2) + (pt.1 - proj_y).powi(2)).sqrt()
 }
 
+fn rdp_mask(pts: &[(f64, f64)], eps: f64) -> Vec<bool> {
+    let (mut keep, mut stk) = (vec![false; pts.len()], vec![(0usize, pts.len() - 1)]);
+    keep[0] = true;
+    keep[pts.len() - 1] = true;
+    while let Some((s, e)) = stk.pop() {
+        let (mut max_d, mut idx) = (0.0, 0usize);
+        for (i, &p) in pts[..e].iter().enumerate().skip(s + 1) {
+            let d = perpendicular_distance_m(p, pts[s], pts[e]);
+            if d > max_d {
+                max_d = d;
+                idx = i;
+            }
+        }
+        if max_d > eps.max(0.5) {
+            keep[idx] = true;
+            stk.extend([(s, idx), (idx, e)]);
+        }
+    }
+    keep
+}
+
 /// Simplifies an ENU polyline using the Ramer-Douglas-Peucker (RDP) algorithm (`REQ-COR-01`).
 pub fn simplify_polyline_rdp(points: &[(f64, f64)], epsilon_m: f64) -> Vec<(f64, f64)> {
     if points.len() <= 2 {
