@@ -253,7 +253,8 @@ impl DistressBeacon {
         match self.status {
             EmergencyStatus::Cancelled => "b-a-o-can",
             EmergencyStatus::Active => match self.alert_type {
-                EmergencyType::InContact => "b-a-o-tbl",
+                EmergencyType::Alert911 => "b-a-o-tbl",
+                EmergencyType::InContact => "b-a-o-opn",
                 _ => "b-a-o-pan",
             },
         }
