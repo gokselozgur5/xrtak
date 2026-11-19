@@ -71,28 +71,13 @@ pub fn simplify_polyline_rdp(points: &[(f64, f64)], epsilon_m: f64) -> Vec<(f64,
     if points.len() <= 2 {
         return points.to_vec();
     }
-    let mut max_dist = 0.0;
-    let mut split_idx = 0usize;
-    let first = points[0];
-    let last = points[points.len() - 1];
-
-    for (i, &pt) in points.iter().enumerate().take(points.len() - 1).skip(1) {
-        let d = perpendicular_distance_m(pt, first, last);
-        if d > max_dist {
-            max_dist = d;
-            split_idx = i;
-        }
-    }
-
-    if max_dist > epsilon_m.max(0.5) {
-        let mut left = simplify_polyline_rdp(&points[..=split_idx], epsilon_m);
-        let right = simplify_polyline_rdp(&points[split_idx..], epsilon_m);
-        left.pop();
-        left.extend_from_slice(&right);
-        left
-    } else {
-        vec![first, last]
-    }
+    let mask = rdp_mask(points, epsilon_m);
+    points
+        .iter()
+        .copied()
+        .enumerate()
+        .filter_map(|(i, p)| mask[i].then_some(p))
+        .collect()
 }
 
 /// Builds a closed 2D buffered corridor polygon ring `(east_m, north_m)` around a polyline (`REQ-COR-02`).
