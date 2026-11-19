@@ -270,8 +270,10 @@ mod tests {
 
     #[test]
     fn test_velocity_clamp() {
-        let mut cfg = TrackSmootherConfig::default();
-        cfg.max_speed_clamp_mps = Some(50.0);
+        let cfg = TrackSmootherConfig {
+            max_speed_clamp_mps: Some(50.0),
+            ..Default::default()
+        };
         let mut smoother = TrackSmoother::new(cfg);
         let obs1 = TrackObservation::new(0.0, 0.0, 0.0, 0.0);
         smoother.update(&obs1);
