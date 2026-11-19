@@ -497,7 +497,7 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
 
     let mut eocd_pos = None;
     for i in (0..=bytes.len() - 22).rev() {
-        if &bytes[i..i + 4] == [0x50, 0x4b, 0x05, 0x06] {
+        if bytes[i..i + 4] == [0x50, 0x4b, 0x05, 0x06] {
             eocd_pos = Some(i);
             break;
         }
@@ -516,7 +516,7 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
     let mut cursor = cd_offset;
 
     for _ in 0..entry_count {
-        if cursor + 46 > bytes.len() || &bytes[cursor..cursor + 4] != [0x50, 0x4b, 0x01, 0x02] {
+        if cursor + 46 > bytes.len() || bytes[cursor..cursor + 4] != [0x50, 0x4b, 0x01, 0x02] {
             return Err(MissionPackageError::InvalidZipArchive("corrupt central directory".into()));
         }
         let fn_len = u16::from_le_bytes([bytes[cursor + 28], bytes[cursor + 29]]) as usize;
@@ -535,7 +535,7 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
             .to_string();
 
         if local_offset + 30 > bytes.len()
-            || &bytes[local_offset..local_offset + 4] != [0x50, 0x4b, 0x03, 0x04]
+            || bytes[local_offset..local_offset + 4] != [0x50, 0x4b, 0x03, 0x04]
         {
             return Err(MissionPackageError::InvalidZipArchive("corrupt local header".into()));
         }
