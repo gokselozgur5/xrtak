@@ -129,7 +129,17 @@ pub fn parse_geotiff_metadata(bytes: &[u8]) -> Result<GeoTiffMetadata, String> {
                         data_offsets.push(off as usize);
                     }
                 } else if let Some(arr_off) = endian.u32(bytes, val_off) {
+                    let item_size = if field_type == 3 { 2 } else { 4 };
+                    let byte_len = count
+                        .checked_mul(item_size)
+                        .ok_or("Offset array length overflow")?;
                     let arr_base = arr_off as usize;
+                    if arr_base
+                        .checked_add(byte_len)
+                        .map_or(true, |end| end > bytes.len())
+                    {
+                        return Err("Offset array exceeds buffer length".to_string());
+                    }
                     for k in 0..count {
                         let item = if field_type == 3 {
                             endian.u16(bytes, arr_base + k * 2).map(|v| v as usize)
