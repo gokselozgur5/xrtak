@@ -1009,7 +1009,7 @@ async fn handle_http_connection(
             };
             let steps = rf_req.steps.unwrap_or(32);
             let result = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 evaluate_rf_link(tx, rx, band, steps, guard.terrain.as_ref())
             };
             let resp_json = serde_json::to_string(&result)?;
@@ -1030,7 +1030,7 @@ async fn handle_http_connection(
         let horizons = p_req.horizons_sec.unwrap_or_else(|| vec![15.0, 30.0, 60.0]);
         let stale_thresh = p_req.stale_threshold_sec.unwrap_or(5.0);
         let predictions: Vec<TrackPrediction> = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             guard
                 .entities
                 .values()
@@ -1058,7 +1058,7 @@ async fn handle_http_connection(
 
     if method == "POST" && path == "/api/airspace/deconflict" {
         let deconflict_res = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let mut list: Vec<DeconflictEntity<'_>> = guard
                 .entities
                 .values()
@@ -1097,7 +1097,7 @@ async fn handle_http_connection(
 
     if method == "GET" && path == "/api/export/opord" {
         let bundle = {
-            let guard = world.lock().unwrap();
+            let guard = lock_world(&world);
             let units: Vec<OpordUnitSummary> = guard
                 .entities
                 .values()
