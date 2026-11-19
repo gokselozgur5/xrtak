@@ -18,9 +18,9 @@ fn test_integration_distress_beacon_lifecycle() {
     .with_severity(EmergencySeverity::Critical)
     .with_sos_flags(flags)
     .with_description("Ambush at checkpoint Charlie");
-    assert_eq!(beacon.cot_type(), "b-a-o-tbl");
+    assert_eq!(beacon.cot_type(), "b-a-o-opn");
     let xml = beacon.to_cot_xml();
-    assert!(xml.contains("b-a-o-tbl"));
+    assert!(xml.contains("b-a-o-opn"));
     assert!(xml.contains("In Contact"));
 
     let parsed = DistressBeacon::from_cot_xml(&xml).expect("parsing CoT XML failed");
