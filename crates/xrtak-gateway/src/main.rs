@@ -301,7 +301,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     loop {
                         if let Ok((len, peer)) = sock.recv_from(&mut buf).await {
                             let xml = String::from_utf8_lossy(&buf[..len]);
-                            let mut guard = world_udp.lock().unwrap();
+                            let mut guard = lock_world(&world_udp);
                             match guard.ingest_cot_xml(&xml, now_unix_ms()) {
                                 Ok(ent) => println!(
                                     "[XR-TAK] Ingested UDP CoT from {peer}: uid={} callsign={} ({})",
@@ -326,7 +326,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             loop {
                 ticker.tick().await;
                 let payload = {
-                    let mut guard = world_sim.lock().unwrap();
+                    let mut guard = lock_world(&world_sim);
                     let now_ms = now_unix_ms();
                     guard.step_simulation(0.05, now_ms);
                     guard.collab.prune_stale(now_ms, 15_000);
