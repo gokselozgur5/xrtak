@@ -29,7 +29,7 @@ fn steep_ramp_terrain_is_unsuitable() {
     let suitability = evaluate_hlz_suitability(100.0, 0.0, 25.0, &SteepRamp, &[]);
     assert!(suitability.max_slope_deg > 8.0);
     assert!(!suitability.is_slope_acceptable);
-    assert_eq!(suitability.overall_suitability, "AMBER - STEEP TERRAIN");
+    assert_eq!(suitability.overall_suitability, "RED - UNSUITABLE");
 }
 
 #[test]
