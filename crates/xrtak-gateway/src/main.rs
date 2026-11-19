@@ -1185,7 +1185,7 @@ async fn handle_http_connection(
             let (e, u, n) = m_req.enu_center;
             let radius = m_req.hlz_radius_m.unwrap_or(25.0);
             let (hlz_suitability, lat, lon) = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 let elev: &dyn xrtak_core::ElevationProvider = guard.terrain.as_ref();
                 let suit =
                     xrtak_core::evaluate_hlz_suitability(e, n, radius, elev, &guard.threat_domes);
@@ -1247,7 +1247,7 @@ async fn handle_http_connection(
             };
             let samples = b_req.samples.unwrap_or(32);
             let solution = {
-                let guard = world.lock().unwrap();
+                let guard = lock_world(&world);
                 let elev: &dyn xrtak_core::ElevationProvider = guard.terrain.as_ref();
                 xrtak_core::compute_ballistic_trajectory(
                     b_req.origin_enu,
@@ -1292,7 +1292,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
             let (xml, ent) = {
-                let mut guard = world.lock().unwrap();
+                let mut guard = lock_world(&world);
                 let ground_h = guard.sample_relief_m(spawn.east_m, spawn.north_m);
                 let up_m = ground_h + spawn.alt_offset_m.unwrap_or(0.0);
                 let (lat, lon, hae) = guard.origin.enu_to_lla(spawn.east_m, up_m, spawn.north_m);
@@ -1337,7 +1337,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(mv) = serde_json::from_str::<PinMoveRequest>(body) {
             let updated = {
-                let mut guard = world.lock().unwrap();
+                let mut guard = lock_world(&world);
                 let ground_h = guard.sample_relief_m(mv.east_m, mv.north_m);
                 let up_m = ground_h + mv.alt_offset_m.unwrap_or(0.0);
                 let (lat, lon, hae) = guard.origin.enu_to_lla(mv.east_m, up_m, mv.north_m);
