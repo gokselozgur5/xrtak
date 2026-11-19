@@ -264,16 +264,16 @@ mod tests {
 
     #[test]
     fn test_mapset_manifest_tile_counts_and_hash() {
-        let m1 = build_mapset_manifest(
-            "ANKARA-AO-SECTOR",
-            ImageryProvider::BingAerial,
-            39.90,
-            32.82,
-            39.94,
-            32.88,
-            12,
-            15,
-        );
+        let m1 = build_mapset_manifest(&ManifestInput {
+            name: "ANKARA-AO-SECTOR",
+            provider: ImageryProvider::BingAerial,
+            south_deg: 39.90,
+            west_deg: 32.82,
+            north_deg: 39.94,
+            east_deg: 32.88,
+            min_zoom: 12,
+            max_zoom: 15,
+        });
         let m2 = build_mapset_manifest(
             "ANKARA-AO-SECTOR",
             ImageryProvider::BingAerial,
