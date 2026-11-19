@@ -83,7 +83,7 @@ pub fn compute_ballistic_trajectory(
     let v_z = v0 * theta_rad.sin();
     let tof = (ground_range / v_h.max(1.0)).max(0.5);
 
-    let n_pts = samples.max(16);
+    let n_pts = samples.clamp(16, 10_000);
     let mut trajectory = Vec::with_capacity(n_pts);
     let mut max_ord: f64 = origin_enu.2;
     let mut min_clearance: f64 = f64::MAX;
