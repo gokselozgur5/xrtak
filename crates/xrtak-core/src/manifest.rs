@@ -180,16 +180,7 @@ pub struct ManifestInput<'a> {
 impl<'a> ManifestInput<'a> {
     /// Build an offline mapset manifest from this input specification (`REQ-MAN-01..02`).
     pub fn build(&self) -> MapsetManifest {
-        build_mapset_manifest(
-            self.name,
-            self.provider,
-            self.south_deg,
-            self.west_deg,
-            self.north_deg,
-            self.east_deg,
-            self.min_zoom,
-            self.max_zoom,
-        )
+        build_mapset_manifest(self)
     }
 }
 
