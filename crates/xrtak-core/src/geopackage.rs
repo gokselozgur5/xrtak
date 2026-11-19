@@ -187,7 +187,7 @@ pub fn encode_point_geom(
     Ok(blob)
 }
 
-/// Decode standard OGC GeoPackage binary geometry BLOB into (lon, lat, Option<elev>).
+/// Decode standard OGC GeoPackage binary geometry BLOB into `(lon, lat, Option<elev>)`.
 pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPackageError> {
     if blob.len() < 8 {
         return Err(GeoPackageError::InvalidGeometryBlob(
