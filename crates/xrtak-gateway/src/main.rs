@@ -35,6 +35,15 @@ fn lock_world(world: &Mutex<TacticalWorld>) -> MutexGuard<'_, TacticalWorld> {
     world.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+fn err_400_response(err: &str) -> (String, String) {
+    let msg = serde_json::json!({ "error": err }).to_string();
+    let hdr = format!(
+        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
+        msg.len()
+    );
+    (hdr, msg)
+}
+
 /// Entity id, (east, north, up) position, speed in m/s and course in degrees.
 type DeconflictEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
 
