@@ -1467,7 +1467,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(ptr_req) = serde_json::from_str::<LaserPointerRequest>(body) {
             let (xml, res) = {
-                let mut guard = world.lock().unwrap();
+                let mut guard = lock_world(&world);
                 let up_m = guard.sample_relief_m(ptr_req.east_m, ptr_req.north_m);
                 let (lat, lon, hae) =
                     guard
@@ -1495,7 +1495,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(c_req) = serde_json::from_str::<CollabSyncRequest>(body) {
             let resp_json = {
-                let mut guard = world.lock().unwrap();
+                let mut guard = lock_world(&world);
                 let now_ms = now_unix_ms();
                 let peer = OperatorPeer {
                     operator_id: c_req.operator_id,
@@ -1529,7 +1529,7 @@ async fn handle_http_connection(
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(report) = serde_json::from_str::<SapientDetectionReport>(body) {
             let res = {
-                let mut guard = world.lock().unwrap();
+                let mut guard = lock_world(&world);
                 guard.ingest_sapient_detection(&report, now_unix_ms())
             };
             if let Ok((xml, entity)) = res {
@@ -1563,7 +1563,7 @@ async fn handle_http_connection(
                                 for part in chunk.split("</event>") {
                                     if let Some(start) = part.find("<event") {
                                         let xml = format!("{}</event>", &part[start..]);
-                                        let mut g = world_tcp.lock().unwrap();
+                                        let mut g = lock_world(&world_tcp);
                                         let _ = g.ingest_cot_xml(&xml, now_unix_ms());
                                     }
                                 }
@@ -1573,7 +1573,7 @@ async fn handle_http_connection(
                 }
             }
             let resp = {
-                let mut guard = world.lock().unwrap();
+                let mut guard = lock_world(&world);
                 if let Some(sim) = cfg.sim_enabled {
                     guard.set_sim_enabled(sim);
                 }
