@@ -10,10 +10,11 @@ use xrtak_core::{
     compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
-    predict_entity_trajectory, predict_entity_trajectory_struct, resolve_tile_with_fallback, AarSummary, GeoOrigin, ImageryProvider,
-    OperatorPeer, OpordUnitSummary, ProceduralReliefModel, RasterDemProvider, RfBand,
-    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
-    ThreatDome, TrackPredictInput, TrackPredictRequest, TrackPrediction,
+    predict_entity_trajectory, predict_entity_trajectory_struct, resolve_tile_with_fallback,
+    AarSummary, GeoOrigin, ImageryProvider, ManifestInput, OperatorPeer, OpordUnitSummary,
+    ProceduralReliefModel, RasterDemProvider, RfBand, SapientDetectionReport, SharedTablePose,
+    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPredictInput,
+    TrackPredictRequest, TrackPrediction,
 };
 
 mod battery_dto;
