@@ -1,4 +1,6 @@
 //! TAK server TLS connection pool and mutual certificate authenticator (ICD-TAK-TLS-POOL-01).
+//!
+//! No TLS is performed here: connections are simulated and start unverified.
 
 use serde::{Deserialize, Serialize};
 
@@ -518,8 +520,6 @@ impl TlsConnectionPool {
 
         let mut new_conn = TlsConnection::new(new_id, endpoint, current_time_ms);
         new_conn.state = ConnectionState::Active;
-        new_conn.is_mtls_verified = self.config.enable_mtls;
-        new_conn.peer_identity = self.config.client_cert_cn.clone();
 
         self.connections.push(new_conn);
         self.total_created += 1;
