@@ -591,7 +591,7 @@ impl MgrsCoord {
         // Zone: 1 or 2 digits
         let (zone_str, rem) = if clean.chars().take(2).all(|c| c.is_ascii_digit()) {
             clean.split_at(2)
-        } else if clean.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+        } else if clean.chars().next().is_some_and(|c| c.is_ascii_digit()) {
             clean.split_at(1)
         } else {
             return Err(MgrsError::InvalidFormat("missing zone digits".to_string()));
