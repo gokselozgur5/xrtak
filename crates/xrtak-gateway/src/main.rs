@@ -550,16 +550,15 @@ async fn handle_http_connection(
     if method == "POST" && path == "/api/terrain" {
         let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
         if let Ok(t_req) = serde_json::from_str::<TerrainSwitchRequest>(body) {
-            let resp_json = {
-                let mut guard = world.lock().unwrap();
+            let res: Result<String, String> = (|| {
+                let mut guard = lock_world(&world);
                 let extent = t_req.extent_m.unwrap_or(guard.origin.extent_m);
                 if let (Some(w), Some(h), Some(heights)) =
                     (t_req.width, t_req.height, t_req.heights_m)
                 {
                     let name = t_req.preset.unwrap_or_else(|| "custom_dem".to_string());
-                    if let Ok(dem) = RasterDemProvider::new(&name, w, h, extent, heights) {
-                        guard.set_terrain_provider(&name, Box::new(dem));
-                    }
+                    let dem = RasterDemProvider::new(&name, w, h, extent, heights)?;
+                    guard.set_terrain_provider(&name, Box::new(dem));
                 } else {
                     let preset = t_req.preset.unwrap_or_else(|| "valley".to_string());
                     if preset == "valley" {
@@ -571,17 +570,20 @@ async fn handle_http_connection(
                 }
                 let res = 65usize;
                 let grid = guard.terrain.export_grid(guard.origin.extent_m, res);
-                serde_json::json!({
+                Ok(serde_json::json!({
                     "name": guard.terrain_name,
                     "resolution": res,
                     "extent_m": guard.origin.extent_m,
                     "heights_m": grid
                 })
-                .to_string()
+                .to_string())
+            })();
+            let (header, body) = match res {
+                Ok(json) => (json_ok_header(json.len()), json),
+                Err(err) => err_400_response(&err),
             };
-            let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
+            stream.write_all(body.as_bytes()).await?;
             return Ok(());
         }
     }
