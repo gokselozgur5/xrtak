@@ -322,6 +322,14 @@ pub fn classify_cot_type(cot_type: &str) -> (Affiliation, Dimension) {
     (affiliation, dimension)
 }
 
+pub fn escape_cot_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
 /// Build a VR-TAK / ATAK compliant `b-m-p-s-p-i` (Sensor Point of Interest) CoT XML packet.
 /// Matches `AGame_Point_SPI::UpdateCOT()` from `TAK-Product-Center/VR`.
 pub fn build_spi_cot_xml(
