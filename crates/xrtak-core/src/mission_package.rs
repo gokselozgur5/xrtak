@@ -1,6 +1,6 @@
 //! TAK Mission Package ZIP manifest generator and SHA256 integrity verifier.
 
-use crate::mission_manifest::escape_xml_attr;
+use crate::mission_manifest::{escape_xml_attr, unescape_xml_attr};
 
 /// Error conditions encountered during mission package generation or verification.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -278,7 +278,7 @@ fn extract_manifest_param(xml: &str, param_name: &str) -> Option<String> {
             if let Some(val_idx) = line.find("value=\"") {
                 let rest = &line[val_idx + 7..];
                 if let Some(end) = rest.find('"') {
-                    return Some(rest[..end].to_string());
+                    return Some(unescape_xml_attr(&rest[..end]));
                 }
             }
         }
@@ -293,14 +293,14 @@ fn extract_content_hashes(xml: &str) -> Vec<(String, String)> {
         if let Some(ze_idx) = line.find("zipEntry=\"") {
             let rest = &line[ze_idx + 10..];
             if let Some(end) = rest.find('"') {
-                current_zip_entry = Some(rest[..end].to_string());
+                current_zip_entry = Some(unescape_xml_attr(&rest[..end]));
             }
         }
         if line.contains("name=\"sha256\"") {
             if let Some(v_idx) = line.find("value=\"") {
                 let rest = &line[v_idx + 7..];
                 if let Some(end) = rest.find('"') {
-                    let sha = rest[..end].to_string();
+                    let sha = unescape_xml_attr(&rest[..end]);
                     if let Some(ref entry) = current_zip_entry {
                         results.push((entry.clone(), sha));
                     }
