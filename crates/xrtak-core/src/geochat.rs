@@ -193,12 +193,12 @@ impl GeoChatPacket {
                     b"__chat" => {
                         for a in e.attributes().flatten() {
                             match a.key.as_ref() {
-                                b"senderCallsign" => sender_callsign = String::from_utf8_lossy(&a.value).into_owned(),
-                                b"chatroom" => chatroom = String::from_utf8_lossy(&a.value).into_owned(),
-                                b"messageId" => message_id = String::from_utf8_lossy(&a.value).into_owned(),
-                                b"parent" => parent_group = String::from_utf8_lossy(&a.value).into_owned(),
-                                b"conversationId" => conversation_id = Some(String::from_utf8_lossy(&a.value).into_owned()),
-                                b"parentMessageId" => parent_message_id = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                                b"senderCallsign" => sender_callsign = a.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned()),
+                                b"chatroom" => chatroom = a.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned()),
+                                b"messageId" => message_id = a.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned()),
+                                b"parent" => parent_group = a.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned()),
+                                b"conversationId" => conversation_id = Some(a.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned())),
+                                b"parentMessageId" => parent_message_id = Some(a.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned())),
                                 _ => {}
                             }
                         }
