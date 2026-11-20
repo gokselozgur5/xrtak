@@ -255,11 +255,7 @@ pub fn simplify_track_with_config(
                 config.include_elevation,
                 &mut max_err,
             );
-            if combined.is_empty() {
-                combined.extend(seg_res);
-            } else {
-                combined.extend(seg_res.into_iter().skip(1));
-            }
+            combined.extend(seg_res);
         }
         combined
     } else {
@@ -511,7 +507,11 @@ mod tests {
             max_time_gap_sec: Some(10.0),
         };
         let res = simplify_track_with_config(&points, &config);
-        assert!(res.points.len() >= 3);
+        assert_eq!(res.points.len(), 4);
+        assert_eq!(res.points[0].lat, 39.0);
+        assert_eq!(res.points[1].lat, 39.01);
+        assert_eq!(res.points[2].lat, 39.02);
+        assert_eq!(res.points[3].lat, 39.03);
     }
 
     #[test]
