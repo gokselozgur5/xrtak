@@ -154,6 +154,14 @@ impl TakTlsConfig {
     }
 }
 
+fn escape_xml(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
 pub struct TakTlsConfigBuilder {
     server_host: String,
     server_port: u16,
