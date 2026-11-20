@@ -244,8 +244,8 @@ pub fn parse_qgc_plan_mission(
         let alt_mode = item
             .get("AltitudeMode")
             .and_then(|a| a.as_u64())
-            .unwrap_or(1);
-        let alt_is_relative = frame == 3 || alt_mode == 1;
+            .unwrap_or(if frame == 3 { 1 } else { 0 });
+        let alt_is_relative = alt_mode == 1 || (frame == 3 && alt_mode != 0);
 
         waypoints.push(RawMissionWaypoint {
             name: format!("QGC-WP-{}", idx + 1),
