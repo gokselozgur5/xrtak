@@ -195,11 +195,12 @@ impl MissionPackageManifest {
         };
         for line in xml[start..end].lines() {
             if let (Some(k), Some(v)) = (extract_attr(line, "name"), extract_attr(line, "value")) {
+                let v = unescape_xml_attr(v);
                 match k {
-                    "uid" => self.uid = v.to_string(),
-                    "name" => self.name = v.to_string(),
+                    "uid" => self.uid = v,
+                    "name" => self.name = v,
                     "onReceiveDelete" => self.on_receive_delete = v == "true",
-                    _ => self.add_parameter(k, v),
+                    _ => self.add_parameter(unescape_xml_attr(k), v),
                 }
             }
         }
@@ -215,7 +216,7 @@ impl MissionPackageManifest {
         for line in xml[start..end].lines() {
             if let Some(ze) = extract_attr(line, "zipEntry") {
                 let ignore = extract_attr(line, "ignore") == Some("true");
-                self.add_content(ze, ignore);
+                self.add_content(unescape_xml_attr(ze), ignore);
             }
         }
     }
