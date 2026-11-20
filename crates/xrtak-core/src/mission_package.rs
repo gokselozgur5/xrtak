@@ -530,6 +530,9 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
         ]) as usize;
 
         let name_start = cursor + 46;
+        if name_start + fn_len > bytes.len() {
+            return Err(MissionPackageError::InvalidZipArchive("name out of bounds".into()));
+        }
         let name_str = std::str::from_utf8(&bytes[name_start..name_start + fn_len])
             .map_err(|e| MissionPackageError::InvalidZipArchive(e.to_string()))?
             .to_string();
