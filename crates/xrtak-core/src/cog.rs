@@ -218,10 +218,17 @@ pub fn ingest_geotiff_dsm(
         }
     };
 
-    let total_pixels = meta.width * meta.height;
+    let total_pixels = meta.width.checked_mul(meta.height).ok_or_else(|| {
+        "GeoTIFF pixel buffer truncated relative to ImageWidth * ImageLength".to_string()
+    })?;
     let first_offset = meta.data_offsets[0];
-    let needed_bytes = total_pixels * bytes_per_sample;
-    if first_offset + needed_bytes > bytes.len() {
+    let needed_bytes = total_pixels
+        .checked_mul(bytes_per_sample)
+        .and_then(|n| first_offset.checked_add(n))
+        .ok_or_else(|| {
+            "GeoTIFF pixel buffer truncated relative to ImageWidth * ImageLength".to_string()
+        })?;
+    if needed_bytes > bytes.len() {
         return Err(
             "GeoTIFF pixel buffer truncated relative to ImageWidth * ImageLength".to_string(),
         );
