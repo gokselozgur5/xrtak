@@ -1,5 +1,6 @@
 //! CoT route plan waypoint sequencer and ETA estimator.
 
+use crate::kml_export::format_iso8601_utc;
 use serde::{Deserialize, Serialize};
 
 const EARTH_RADIUS_M: f64 = 6_371_000.0;
@@ -292,9 +293,16 @@ pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult
         ));
     }
 
+    let start_ms = (plan.start_time_epoch_sec * 1000.0).max(0.0) as u64;
+    let end_ms = (sequenced.estimated_completion_epoch_sec * 1000.0).max(0.0) as u64;
+    let time_iso = format_iso8601_utc(start_ms).replace(".000Z", "Z");
+    let stale_iso = format_iso8601_utc(end_ms).replace(".000Z", "Z");
+
     format!(
-        r#"<event version="2.0" uid="{uid}" type="b-m-r" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{callsign}"/><route total_dist_m="{dist:.1}" total_ete_sec="{dur:.1}"/>{links}<remarks>XR-TAK Sequenced Route Plan</remarks></detail></event>"#,
+        r#"<event version="2.0" uid="{uid}" type="b-m-r" how="h-g-i-g-o" time="{time}" start="{time}" stale="{stale}"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{callsign}"/><route total_dist_m="{dist:.1}" total_ete_sec="{dur:.1}"/>{links}<remarks>XR-TAK Sequenced Route Plan</remarks></detail></event>"#,
         uid = escape_xml_attr(&plan.route_uid),
+        time = time_iso,
+        stale = stale_iso,
         lat = first_lat,
         lon = first_lon,
         hae = first_hae,
