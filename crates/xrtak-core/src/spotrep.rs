@@ -269,7 +269,12 @@ fn apply_text_to_field(tag: SpotrepTag, text: &str, r: &mut SpotReport) {
 fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut SpotReport, name: &[u8]) {
     for a in e.attributes().flatten() {
         if name == b"event" {
-            if a.key.as_ref() == b"uid" { r.cot_uid = String::from_utf8_lossy(&a.value).into_owned(); }
+            if a.key.as_ref() == b"uid" {
+                r.cot_uid = a
+                    .unescape_value()
+                    .map(|v| v.into_owned())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned());
+            }
             if a.key.as_ref() == b"type" { r.cot_type = String::from_utf8_lossy(&a.value).into_owned(); }
             if a.key.as_ref() == b"time" { r.time_iso = String::from_utf8_lossy(&a.value).into_owned(); }
         } else if name == b"point" {
@@ -280,7 +285,10 @@ fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut SpotReport, name
                 _ => {}
             }
         } else if name == b"contact" && a.key.as_ref() == b"callsign" {
-            r.observer_callsign = unescape_xml(&String::from_utf8_lossy(&a.value));
+            r.observer_callsign = a
+                .unescape_value()
+                .map(|v| v.into_owned())
+                .unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned());
         }
     }
 }
