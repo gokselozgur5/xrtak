@@ -2,7 +2,7 @@
 //!
 //! Provides geodetic calculations on the WGS-84 ellipsoid for:
 //! - Universal Transverse Mercator (UTM) zones (80S to 84N)
-//! - Universal Polar Stereographic (UPS) North (>= 80N) and South (<= -80S)
+//! - Universal Polar Stereographic (UPS) North (>= 84N) and South (<= -80S)
 //! - Grid convergence (angle between True North and Grid North)
 //! - Point scale factor (ratio of grid distance to ground distance)
 //! - True and Grid azimuth / distance conversions
@@ -33,7 +33,7 @@ pub const UPS_K0: f64 = 0.9940;
 pub enum GridSystem {
     /// Universal Transverse Mercator with zone (1..=60) and hemisphere.
     Utm { zone: u8, north: bool },
-    /// Universal Polar Stereographic (North polar cap, >= 80N).
+    /// Universal Polar Stereographic (North polar cap, >= 84N).
     UpsNorth,
     /// Universal Polar Stereographic (South polar cap, <= -80S).
     UpsSouth,
@@ -217,7 +217,7 @@ pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridErr
         return Err(GridError::InvalidLongitude(format!("{lon_deg}")));
     }
 
-    let is_north = lat_deg >= 80.0;
+    let is_north = lat_deg >= 84.0;
     let is_south = lat_deg <= -80.0;
 
     if !is_north && !is_south {
@@ -276,7 +276,7 @@ pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridErr
 
 /// Automatically select between UTM and UPS based on latitude, and compute grid solution.
 pub fn calculate_grid_convergence(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridError> {
-    if lat_deg >= 80.0 || lat_deg <= -80.0 {
+    if lat_deg >= 84.0 || lat_deg <= -80.0 {
         calculate_ups(lat_deg, lon_deg)
     } else {
         calculate_utm(lat_deg, lon_deg, None)
@@ -375,8 +375,8 @@ mod tests {
 
     #[test]
     fn test_ups_true_scale_latitude() {
-        // At ~81.1145 deg, UPS scale factor should equal 1.000000
-        let sol = calculate_ups(81.1145, 0.0).unwrap();
+        // At ~81.1145 deg (South: -81.1145), UPS scale factor should equal 1.000000
+        let sol = calculate_ups(-81.1145, 0.0).unwrap();
         assert!((sol.scale_factor - 1.0).abs() < 1e-5);
     }
 
