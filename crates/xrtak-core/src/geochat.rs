@@ -168,7 +168,9 @@ impl GeoChatPacket {
         let mut recipients = Vec::new();
         let (mut lat, mut lon, mut hae) = (0.0, 0.0, 9999999.0);
         loop {
-            match reader.read_event() {
+            let ev = reader.read_event();
+            let is_empty = matches!(ev, Ok(Event::Empty(_)));
+            match ev {
                 Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => match e.name().as_ref() {
                     b"event" => {
                         found_event = true;
@@ -219,7 +221,7 @@ impl GeoChatPacket {
                             }
                         }
                     }
-                    b"remarks" => in_remarks = true,
+                    b"remarks" => in_remarks = !is_empty,
                     _ => {}
                 },
                 Ok(Event::Text(ref e)) => {
