@@ -371,7 +371,7 @@ impl AffiliationMapper {
                         found_event = true;
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"uid" {
-                                uid = String::from_utf8_lossy(&attr.value).to_string();
+                                uid = attr.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&attr.value).to_string());
                             } else if attr.key.as_ref() == b"type" {
                                 cot_type = String::from_utf8_lossy(&attr.value).to_string();
                             }
@@ -380,7 +380,7 @@ impl AffiliationMapper {
                     b"contact" => {
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"callsign" {
-                                callsign = String::from_utf8_lossy(&attr.value).to_string();
+                                callsign = attr.unescape_value().map(|v| v.into_owned()).unwrap_or_else(|_| String::from_utf8_lossy(&attr.value).to_string());
                             }
                         }
                     }
