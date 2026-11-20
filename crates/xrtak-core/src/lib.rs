@@ -332,6 +332,16 @@ pub fn escape_cot_attr(s: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+pub fn default_cot_timestamps() -> (String, String) {
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let time = kml_export::format_iso8601_utc(now_ms).replace(".000Z", "Z");
+    let stale = kml_export::format_iso8601_utc(now_ms.saturating_add(300_000)).replace(".000Z", "Z");
+    (time, stale)
+}
+
 /// Build a VR-TAK / ATAK compliant `b-m-p-s-p-i` (Sensor Point of Interest) CoT XML packet.
 /// Matches `AGame_Point_SPI::UpdateCOT()` from `TAK-Product-Center/VR`.
 pub fn build_spi_cot_xml(
