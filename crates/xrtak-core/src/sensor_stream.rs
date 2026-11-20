@@ -414,7 +414,7 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                     }
                 }
             }
-            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"point" => {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) if e.name().as_ref() == b"point" => {
                 for a in e.attributes().flatten() {
                     match a.key.as_ref() {
                         b"lat" => lat = String::from_utf8_lossy(&a.value).parse::<f64>().ok(),
@@ -425,7 +425,9 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                 }
             }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"detail" => in_detail = true,
-            Ok(Event::Empty(ref e)) if in_detail && (e.name().as_ref() == b"__video" || e.name().as_ref() == b"video") => {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e))
+                if in_detail && (e.name().as_ref() == b"__video" || e.name().as_ref() == b"video") =>
+            {
                 let mut url = None;
                 let mut stream_uid = None;
                 let mut alias = None;
@@ -454,21 +456,27 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                     });
                 }
             }
-            Ok(Event::Empty(ref e)) if in_detail && e.name().as_ref() == b"contact" => {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e))
+                if in_detail && e.name().as_ref() == b"contact" =>
+            {
                 for a in e.attributes().flatten() {
                     if a.key.as_ref() == b"callsign" {
                         callsign = Some(unescape_attr(&a));
                     }
                 }
             }
-            Ok(Event::Empty(ref e)) if in_detail && e.name().as_ref() == b"link" => {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e))
+                if in_detail && e.name().as_ref() == b"link" =>
+            {
                 for a in e.attributes().flatten() {
                     if a.key.as_ref() == b"uid" {
                         parent_uid = Some(unescape_attr(&a));
                     }
                 }
             }
-            Ok(Event::Empty(ref e)) if in_detail && e.name().as_ref() == b"sensor" => {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e))
+                if in_detail && e.name().as_ref() == b"sensor" =>
+            {
                 for a in e.attributes().flatten() {
                     let val = String::from_utf8_lossy(&a.value);
                     match a.key.as_ref() {
