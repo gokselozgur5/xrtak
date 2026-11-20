@@ -536,6 +536,25 @@ impl DistressBeacon {
     }
 }
 
+fn parse_iso_secs(s: &str) -> Option<i64> {
+    let n: Vec<i64> = s
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|p| !p.is_empty())
+        .map(|p| p.parse().ok())
+        .collect::<Option<_>>()?;
+    if n.len() < 6 || !(1..=12).contains(&n[1]) {
+        return None;
+    }
+    let (y, m) = (n[0] - (n[1] <= 2) as i64, n[1]);
+    let (era, doy) = (
+        y.div_euclid(400),
+        (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + n[2] - 1,
+    );
+    let yoe = y - era * 400;
+    let days = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468;
+    Some(((days * 24 + n[3]) * 60 + n[4]) * 60 + n[5])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
