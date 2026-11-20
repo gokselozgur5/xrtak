@@ -1,5 +1,6 @@
 //! KML document exporter for CoT event tracks.
 
+use crate::mission_manifest::escape_xml_attr;
 use serde::{Deserialize, Serialize};
 
 /// WGS84 kinematic position point along a tactical track.
@@ -194,20 +195,19 @@ impl Default for KmlExportConfig {
 /// Formats a single Placemark LineString for a given track.
 fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) -> String {
     let mut xml = String::with_capacity(512);
+    let (cs, uid) = (escape_xml_attr(&track.callsign), escape_xml_attr(&track.uid));
+    let (ct, alt) = (escape_xml_attr(&track.cot_type), escape_xml_attr(&config.altitude_mode));
     xml.push_str("    <Placemark>\n");
-    xml.push_str(&format!("      <name>{} Track</name>\n", track.callsign));
+    xml.push_str(&format!("      <name>{cs} Track</name>\n"));
     xml.push_str(&format!(
-        "      <description>UID: {} | Type: {} | Points: {}</description>\n",
-        track.uid, track.cot_type, track.points.len()
+        "      <description>UID: {uid} | Type: {ct} | Points: {}</description>\n",
+        track.points.len()
     ));
-    xml.push_str(&format!("      <styleUrl>#style-{}</styleUrl>\n", track.uid));
+    xml.push_str(&format!("      <styleUrl>#style-{uid}</styleUrl>\n"));
     xml.push_str("      <LineString>\n");
     xml.push_str("        <extrude>1</extrude>\n");
     xml.push_str("        <tessellate>1</tessellate>\n");
-    xml.push_str(&format!(
-        "        <altitudeMode>{}</altitudeMode>\n",
-        config.altitude_mode
-    ));
+    xml.push_str(&format!("        <altitudeMode>{alt}</altitudeMode>\n"));
     xml.push_str("        <coordinates>\n");
     for pt in &track.points {
         xml.push_str(&format!(
@@ -224,9 +224,10 @@ fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) 
 /// Formats a Google Earth gx:Track Placemark with temporal <when> tags.
 fn build_gx_track_placemark(track: &CotTrack) -> String {
     let mut xml = String::with_capacity(512);
+    let (cs, uid) = (escape_xml_attr(&track.callsign), escape_xml_attr(&track.uid));
     xml.push_str("    <Placemark>\n");
-    xml.push_str(&format!("      <name>{} Animated</name>\n", track.callsign));
-    xml.push_str(&format!("      <styleUrl>#style-{}</styleUrl>\n", track.uid));
+    xml.push_str(&format!("      <name>{cs} Animated</name>\n"));
+    xml.push_str(&format!("      <styleUrl>#style-{uid}</styleUrl>\n"));
     xml.push_str("      <gx:Track>\n");
     xml.push_str("        <altitudeMode>absolute</altitudeMode>\n");
     for pt in &track.points {
