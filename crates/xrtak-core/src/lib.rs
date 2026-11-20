@@ -249,8 +249,9 @@ impl GeoOrigin {
         let meters_per_deg_lat = 111_132.92 - 559.82 * (2.0 * lat_rad).cos();
         let meters_per_deg_lon = 111_412.84 * lat_rad.cos();
 
+        let dlon = ((lon - self.lon + 180.0).rem_euclid(360.0)) - 180.0;
         let north_m = (lat - self.lat) * meters_per_deg_lat;
-        let east_m = (lon - self.lon) * meters_per_deg_lon;
+        let east_m = dlon * meters_per_deg_lon;
         let up_m = hae_m - self.alt_m;
         (east_m, up_m, north_m)
     }
@@ -262,7 +263,8 @@ impl GeoOrigin {
         let meters_per_deg_lon = 111_412.84 * lat_rad.cos();
 
         let lat = self.lat + north_m / meters_per_deg_lat;
-        let lon = self.lon + east_m / meters_per_deg_lon;
+        let raw_lon = self.lon + east_m / meters_per_deg_lon;
+        let lon = ((raw_lon + 180.0).rem_euclid(360.0)) - 180.0;
         let hae_m = self.alt_m + up_m;
         (lat, lon, hae_m)
     }
