@@ -540,14 +540,14 @@ impl TlsConnectionPool {
             .find(|c| c.id == conn_id)
             .ok_or(PoolError::ConnectionNotFound(conn_id))?;
 
-        if conn.state != ConnectionState::Active {
+        if conn.state != ConnectionState::Active && conn.state != ConnectionState::Draining {
             return Err(PoolError::InvalidState(format!(
                 "cannot release connection in state {}",
                 conn.state
             )));
         }
 
-        if conn.is_expired(current_time_ms, lifetime) {
+        if conn.state == ConnectionState::Draining || conn.is_expired(current_time_ms, lifetime) {
             conn.state = ConnectionState::Closed;
         } else {
             conn.state = ConnectionState::Idle;
@@ -623,8 +623,12 @@ impl TlsConnectionPool {
             }
 
             if conn.is_expired(current_time_ms, lifetime) {
-                conn.state = ConnectionState::Closed;
-                pruned += 1;
+                if conn.state == ConnectionState::Active {
+                    conn.state = ConnectionState::Draining;
+                } else {
+                    conn.state = ConnectionState::Closed;
+                    pruned += 1;
+                }
                 continue;
             }
 
@@ -655,7 +659,11 @@ impl TlsConnectionPool {
             summary.total_checked += 1;
 
             if conn.is_expired(current_time_ms, self.config.connection_lifetime_ms) {
-                conn.state = ConnectionState::Closed;
+                if conn.state == ConnectionState::Active {
+                    conn.state = ConnectionState::Draining;
+                } else {
+                    conn.state = ConnectionState::Closed;
+                }
                 conn.failure_reason = Some("connection lifetime expired".into());
                 summary.failed_count += 1;
             } else if conn.failure_reason.is_some() {
