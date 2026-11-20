@@ -534,6 +534,12 @@ pub fn parse_cot_xml_with_provider(
     }
     let lat = lat.ok_or_else(|| "Missing point lat".to_string())?;
     let lon = lon.ok_or_else(|| "Missing point lon".to_string())?;
+    if !lat.is_finite() || !(-90.0..=90.0).contains(&lat) {
+        return Err(format!("Invalid point lat {lat}: must be in -90..90"));
+    }
+    if !lon.is_finite() || !(-180.0..=180.0).contains(&lon) {
+        return Err(format!("Invalid point lon {lon}: must be in -180..180"));
+    }
 
     if callsign.is_empty() {
         callsign = uid.clone();
