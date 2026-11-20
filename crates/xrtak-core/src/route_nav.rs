@@ -331,16 +331,23 @@ impl RouteNavTracker {
 }
 
 impl RouteNavTracker {
-    /// Advance to next waypoint if currently within acceptance radius of target.
-    pub fn advance_if_reached(&mut self, dist_to_target_m: f64) -> bool {
-        if !self.is_completed && dist_to_target_m <= self.acceptance_radius_m {
+    fn advance(&mut self) -> bool {
+        if !self.is_completed {
             if self.current_leg_index + 1 < self.route.legs.len() {
                 self.current_leg_index += 1;
-                true
             } else {
                 self.is_completed = true;
-                true
             }
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Advance to next waypoint if currently within acceptance radius of target.
+    pub fn advance_if_reached(&mut self, dist_to_target_m: f64) -> bool {
+        if dist_to_target_m <= self.acceptance_radius_m {
+            self.advance()
         } else {
             false
         }
@@ -444,7 +451,10 @@ impl RouteNavTracker {
         let to_id = to.id.clone();
         let cue = hdg.and_then(|h| Self::generate_turn_cue(pm.dist_m, pm.brg_deg, h));
         let rem_d = self.remaining_subsequent_distance_m();
-        self.advance_if_reached(pm.dist_m);
+        let h_dist = haversine_distance_m(lat, lon, to.lat, to.lon);
+        let atd = along_track_distance_m(lat, lon, from.lat, from.lon, to.lat, to.lon);
+        let leg_d = haversine_distance_m(from.lat, from.lon, to.lat, to.lon);
+        if atd >= leg_d { self.advance(); } else { self.advance_if_reached(h_dist); }
         Some(RouteNavStatus::from_metrics(
             self.current_leg_index,
             &to_id,
