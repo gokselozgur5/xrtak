@@ -151,7 +151,7 @@ impl CasNineLine {
     /// Serializes CAS 9-Line briefing into CoT XML string.
     pub fn to_cot_xml(&self) -> String {
         let uid = escape_xml(&self.cot_uid);
-        let t = &self.time_iso;
+        let t = escape_xml(&self.time_iso);
         let detail = format_cas_detail_xml(self);
         format!(
             "<event version=\"2.0\" uid=\"{uid}\" type=\"b-m-p-s-p-loc\" how=\"m-g\" time=\"{t}\" start=\"{t}\" stale=\"{t}\">\
@@ -237,8 +237,8 @@ fn apply_text_to_field(tag: CasTag, text: &str, b: &mut CasNineLine) {
 fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, name: &[u8]) {
     for a in e.attributes().flatten() {
         if name == b"event" {
-            if a.key.as_ref() == b"uid" { b.cot_uid = String::from_utf8_lossy(&a.value).into_owned(); }
-            if a.key.as_ref() == b"time" { b.time_iso = String::from_utf8_lossy(&a.value).into_owned(); }
+            if a.key.as_ref() == b"uid" { b.cot_uid = unescape_xml(&String::from_utf8_lossy(&a.value)); }
+            if a.key.as_ref() == b"time" { b.time_iso = unescape_xml(&String::from_utf8_lossy(&a.value)); }
         } else if name == b"point" {
             match a.key.as_ref() {
                 b"lat" => b.lat = parse_f64(&a.value).unwrap_or(0.0),
