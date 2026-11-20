@@ -177,7 +177,7 @@ pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
             total_leg_time_sec: (leg_time * 10.0).round() / 10.0,
             cumulative_dist_m: (cum_dist * 10.0).round() / 10.0,
             cumulative_ete_sec: (cum_time * 10.0).round() / 10.0,
-            eta_epoch_sec: ((plan.start_time_epoch_sec + cum_time) * 10.0).round() / 10.0,
+            eta_epoch_sec: ((plan.start_time_epoch_sec + cum_time - loiter_time) * 10.0).round() / 10.0,
         });
     }
 
@@ -240,7 +240,7 @@ pub fn evaluate_route_progress(
     let next_eta = cur_time_sec + ttg;
 
     let mut remaining_dist = dist_to_next;
-    let mut remaining_time = ttg;
+    let mut remaining_time = ttg + leg.loiter_time_sec;
     for future_leg in &sequenced.legs[active_leg_idx + 1..] {
         remaining_dist += future_leg.slant_distance_m;
         remaining_time += future_leg.total_leg_time_sec;
