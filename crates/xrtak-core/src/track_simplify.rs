@@ -148,6 +148,35 @@ pub fn perpendicular_distance_to_segment_m(
     }
 }
 
+fn rdp_mask(pts: &[TrackPoint], eps: f64, elev: bool, max_err: &mut f64) -> Vec<bool> {
+    let (mut keep, mut stk) = (vec![false; pts.len()], vec![(0usize, pts.len() - 1)]);
+    keep[0] = true;
+    keep[pts.len() - 1] = true;
+    let eps = if eps.is_finite() && eps > 0.0 { eps } else { 0.0 };
+    while let Some((s, e)) = stk.pop() {
+        if e <= s + 1 {
+            continue;
+        }
+        let (mut max_d, mut idx) = (0.0, s);
+        for (i, p) in pts[..e].iter().enumerate().skip(s + 1) {
+            let d = perpendicular_distance_to_segment_m(p, &pts[s], &pts[e], elev);
+            if d > max_d {
+                max_d = d;
+                idx = i;
+            }
+        }
+        if max_d > *max_err {
+            *max_err = max_d;
+        }
+        if max_d > eps {
+            keep[idx] = true;
+            stk.extend([(s, idx), (idx, e)]);
+        }
+    }
+    keep
+}
+
+#[allow(dead_code)]
 fn rdp_recursive(
     points: &[TrackPoint],
     epsilon_m: f64,
