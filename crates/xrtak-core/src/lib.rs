@@ -384,7 +384,9 @@ pub fn parse_cot_xml_with_provider(
     let mut in_remarks = false;
 
     loop {
-        match reader.read_event() {
+        let ev = reader.read_event();
+        let is_empty = matches!(ev, Ok(Event::Empty(_)));
+        match ev {
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
                 let tag_name = e.name();
                 match tag_name.as_ref() {
@@ -484,7 +486,7 @@ pub fn parse_cot_xml_with_provider(
                         }
                     }
                     b"remarks" => {
-                        in_remarks = true;
+                        in_remarks = !is_empty;
                     }
                     _ => {}
                 }
