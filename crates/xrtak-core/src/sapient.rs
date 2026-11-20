@@ -40,16 +40,16 @@ pub fn build_sapient_cot_xml(
     let up_m = ground_m + report.alt_offset_m.unwrap_or(default_offset);
     let (lat, lon, hae_m) = origin.enu_to_lla(report.east_m, up_m, report.north_m);
 
-    let clean_obj = report.object_id.replace(' ', "-");
+    let clean_obj = crate::escape_cot_attr(&report.object_id.replace(' ', "-"));
     let uid = format!("SAPIENT-{clean_obj}");
     let pct = (report.confidence.clamp(0.0, 1.0) * 100.0).round() as u32;
-    let callsign = format!("AI-{} ({pct}%)", report.classification.to_ascii_uppercase());
+    let callsign = crate::escape_cot_attr(&format!("AI-{} ({pct}%)", report.classification.to_ascii_uppercase()));
     let course = report.course_deg.unwrap_or(0.0);
     let speed = report.speed_mps.unwrap_or(0.0);
-    let remarks = format!(
+    let remarks = crate::escape_cot_attr(&format!(
         "[BSI Flex 335 SAPIENT] node={} class={} conf={pct}%",
         report.node_id, report.classification
-    );
+    ));
 
     format!(
         r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="m-g"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="4.0" le="4.0"/><detail><contact callsign="{callsign}"/><track course="{course:.1}" speed="{speed:.1}"/><remarks>{remarks}</remarks></detail></event>"#
