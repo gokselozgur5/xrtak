@@ -512,6 +512,12 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
     })
 }
 
+fn unescape_attr(a: &quick_xml::events::attributes::Attribute) -> String {
+    a.unescape_value()
+        .map(|v| v.into_owned())
+        .unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned())
+}
+
 fn escape_xml_attr(val: &str) -> String {
     val.replace('&', "&amp;")
         .replace('<', "&lt;")
