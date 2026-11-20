@@ -578,6 +578,20 @@ fn format_iso_secs(total_secs: i64) -> String {
     format!("{year:04}-{month:02}-{:02}T{hour:02}:{min:02}:{sec:02}Z", days + 1)
 }
 
+fn refresh_stale_iso(old_time: &str, old_stale: &str, new_time: &str) -> String {
+    let pt0 = parse_iso_secs(old_time);
+    let ps0 = parse_iso_secs(old_stale);
+    let pt1 = parse_iso_secs(new_time);
+    if let (Some(t0), Some(s0), Some(t1)) = (pt0, ps0, pt1) {
+        let dur = (s0 - t0).max(10);
+        format_iso_secs(t1 + dur)
+    } else if let Some(t1) = pt1 {
+        format_iso_secs(t1 + 600)
+    } else {
+        new_time.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
