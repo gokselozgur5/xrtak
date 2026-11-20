@@ -334,7 +334,10 @@ fn parse_f64(val: &[u8]) -> Option<f64> {
 }
 
 fn parse_str_attr(val: &[u8]) -> String {
-    std::str::from_utf8(val).unwrap_or_default().to_string()
+    let s = std::str::from_utf8(val).unwrap_or_default();
+    quick_xml::escape::unescape(s)
+        .map(|v| v.into_owned())
+        .unwrap_or_else(|_| s.to_string())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
