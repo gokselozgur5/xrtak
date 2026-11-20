@@ -262,8 +262,8 @@ impl SensorStreamDescriptor {
     fn format_sensor_tag(&self) -> String {
         format!(
             "<sensor model=\"{}\" type=\"{}\" fov=\"{:.1}\" vfov=\"{:.1}\" range=\"{:.1}\" azimuth=\"{:.1}\" elevation=\"{:.1}\" roll=\"{:.1}\" zoom=\"{:.2}\"/>",
-            self.sensor.model,
-            self.sensor.sensor_type.as_str(),
+            escape_xml_attr(&self.sensor.model),
+            escape_xml_attr(self.sensor.sensor_type.as_str()),
             self.sensor.fov_horizontal_deg,
             self.sensor.fov_vertical_deg,
             self.sensor.slant_range_m,
@@ -277,7 +277,7 @@ impl SensorStreamDescriptor {
     fn format_link_tag(&self) -> String {
         self.parent_uid
             .as_deref()
-            .map(|p| format!("<link relation=\"p-p\" uid=\"{p}\" type=\"a-f-G-U-C\"/>"))
+            .map(|p| format!("<link relation=\"p-p\" uid=\"{}\" type=\"a-f-G-U-C\"/>", escape_xml_attr(p)))
             .unwrap_or_default()
     }
 }
@@ -288,14 +288,14 @@ impl SensorStreamDescriptor {
         let video_elem = self.format_video_tag();
         let sensor_elem = self.format_sensor_tag();
         let link_elem = self.format_link_tag();
-        let contact = format!("<contact callsign=\"{}\"/>", self.callsign);
+        let contact = format!("<contact callsign=\"{}\"/>", escape_xml_attr(&self.callsign));
         format!(
             "<event version=\"2.0\" uid=\"{}\" type=\"{}\" time=\"{}\" start=\"{}\" stale=\"{}\" how=\"m-g\">\n  <point lat=\"{:.6}\" lon=\"{:.6}\" hae=\"{:.1}\" ce=\"10.0\" le=\"10.0\"/>\n  <detail>\n    {contact}\n    {video_elem}\n    {sensor_elem}\n    {link_elem}\n  </detail>\n</event>",
-            self.uid,
-            self.cot_type,
-            self.time_iso,
-            self.time_iso,
-            self.stale_iso,
+            escape_xml_attr(&self.uid),
+            escape_xml_attr(&self.cot_type),
+            escape_xml_attr(&self.time_iso),
+            escape_xml_attr(&self.time_iso),
+            escape_xml_attr(&self.stale_iso),
             self.lat,
             self.lon,
             self.hae,
