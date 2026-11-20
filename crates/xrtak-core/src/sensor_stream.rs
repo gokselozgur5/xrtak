@@ -457,14 +457,14 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
             Ok(Event::Empty(ref e)) if in_detail && e.name().as_ref() == b"contact" => {
                 for a in e.attributes().flatten() {
                     if a.key.as_ref() == b"callsign" {
-                        callsign = Some(String::from_utf8_lossy(&a.value).into_owned());
+                        callsign = Some(unescape_attr(&a));
                     }
                 }
             }
             Ok(Event::Empty(ref e)) if in_detail && e.name().as_ref() == b"link" => {
                 for a in e.attributes().flatten() {
                     if a.key.as_ref() == b"uid" {
-                        parent_uid = Some(String::from_utf8_lossy(&a.value).into_owned());
+                        parent_uid = Some(unescape_attr(&a));
                     }
                 }
             }
