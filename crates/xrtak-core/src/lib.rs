@@ -432,7 +432,12 @@ pub fn parse_cot_xml_with_provider(
                     b"contact" => {
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"callsign" {
-                                callsign = String::from_utf8_lossy(&attr.value).into_owned();
+                                callsign = attr
+                                    .unescape_value()
+                                    .map(|v| v.into_owned())
+                                    .unwrap_or_else(|_| {
+                                        String::from_utf8_lossy(&attr.value).into_owned()
+                                    });
                             }
                         }
                     }
@@ -492,7 +497,13 @@ pub fn parse_cot_xml_with_provider(
                     b"__video" => {
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"url" {
-                                video_url = Some(String::from_utf8_lossy(&attr.value).into_owned());
+                                video_url = Some(
+                                    attr.unescape_value()
+                                        .map(|v| v.into_owned())
+                                        .unwrap_or_else(|_| {
+                                            String::from_utf8_lossy(&attr.value).into_owned()
+                                        }),
+                                );
                             }
                         }
                     }
