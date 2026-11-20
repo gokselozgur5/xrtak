@@ -240,14 +240,14 @@ impl PatientNationality {
 
     pub fn parse_nationality(s: &str) -> Self {
         let upper = s.trim().to_uppercase();
-        if upper.contains("US MIL") {
-            Self::UsMilitary
-        } else if upper.contains("US CIV") {
-            Self::UsCivilian
-        } else if upper.contains("NON-US MIL") {
+        if upper.contains("NON-US MIL") {
             Self::NonUsMilitary
         } else if upper.contains("NON-US CIV") {
             Self::NonUsCivilian
+        } else if upper.contains("US MIL") {
+            Self::UsMilitary
+        } else if upper.contains("US CIV") {
+            Self::UsCivilian
         } else if upper.contains("EPW") || upper.contains("DETAIN") {
             Self::Epw
         } else if upper.contains("CHILD") {
