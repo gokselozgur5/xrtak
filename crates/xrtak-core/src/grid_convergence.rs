@@ -157,7 +157,7 @@ pub fn calculate_utm(
             }
             z
         }
-        None => utm_zone_from_lon(lon_deg),
+        None => utm_zone_for_lat_lon(lat_deg, lon_deg),
     };
 
     let cm_deg = utm_central_meridian_deg(zone)?;
