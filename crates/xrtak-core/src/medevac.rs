@@ -67,7 +67,9 @@ impl MedevacPrecedence {
 
     pub fn parse_code(s: &str) -> Option<Self> {
         let upper = s.trim().to_uppercase();
-        if upper.starts_with('A') || (upper.contains("URGENT") && !upper.contains("SURG")) {
+        if upper.starts_with('E') || upper.contains("CONVENIENCE") {
+            Some(Self::Convenience)
+        } else if upper.starts_with('A') || (upper.contains("URGENT") && !upper.contains("SURG")) {
             Some(Self::Urgent)
         } else if upper.starts_with('B') || upper.contains("SURG") {
             Some(Self::UrgentSurgical)
@@ -75,8 +77,6 @@ impl MedevacPrecedence {
             Some(Self::Priority)
         } else if upper.starts_with('D') || upper.contains("ROUTINE") {
             Some(Self::Routine)
-        } else if upper.starts_with('E') || upper.contains("CONVENIENCE") {
-            Some(Self::Convenience)
         } else {
             None
         }
