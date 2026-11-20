@@ -52,7 +52,6 @@ pub struct BallisticSolution {
     pub trajectory: Vec<TrajectoryPoint3d>,
 }
 
-#[allow(dead_code)]
 fn solve_time_of_flight(v_z: f64, dz: f64, g: f64) -> f64 {
     let disc = v_z * v_z - 2.0 * g * dz;
     if disc >= 0.0 {
@@ -75,24 +74,22 @@ pub fn compute_ballistic_trajectory(
     let dx = target_enu.0 - origin_enu.0;
     let dy = target_enu.1 - origin_enu.1;
     let dz = target_enu.2 - origin_enu.2;
-    let ground_range = (dx.powi(2) + dy.powi(2)).sqrt().max(1.0);
-
+    let target_range = (dx.powi(2) + dy.powi(2)).sqrt();
+    let (dir_e, dir_n) = if target_range > 0.0 { (dx / target_range, dy / target_range) } else { (1.0, 0.0) };
     let g = 9.80665;
     let v0 = munition.nominal_velocity_mps();
-
-    let theta_rad = if let Some(deg) = elevation_angle_deg {
-        deg.to_radians()
-    } else {
-        match munition {
+    let theta_rad = match elevation_angle_deg {
+        Some(deg) => deg.to_radians(),
+        None => match munition {
             MunitionType::Mortar120mm => 65.0_f64.to_radians(),
             MunitionType::LoiteringMunition => 18.0_f64.to_radians(),
             _ => 35.0_f64.to_radians(),
-        }
+        },
     };
-
     let v_h = v0 * theta_rad.cos();
     let v_z = v0 * theta_rad.sin();
-    let tof = (ground_range / v_h.max(1.0)).max(0.5);
+    let tof = solve_time_of_flight(v_z, dz, g);
+    let ground_range = v_h * tof;
 
     let n_pts = samples.clamp(16, 10_000);
     let mut trajectory = Vec::with_capacity(n_pts);
@@ -102,10 +99,10 @@ pub fn compute_ballistic_trajectory(
     for i in 0..=n_pts {
         let frac = i as f64 / n_pts as f64;
         let t = frac * tof;
-        let curr_e = origin_enu.0 + frac * dx;
-        let curr_n = origin_enu.1 + frac * dy;
-        let z_ballistic = origin_enu.2 + (v_z * t) - (0.5 * g * t.powi(2));
-        let curr_u = z_ballistic + frac * (dz - ((v_z * tof) - (0.5 * g * tof.powi(2))));
+        let r = v_h * t;
+        let curr_e = origin_enu.0 + dir_e * r;
+        let curr_n = origin_enu.1 + dir_n * r;
+        let curr_u = origin_enu.2 + (v_z * t) - (0.5 * g * t.powi(2));
 
         if curr_u > max_ord {
             max_ord = curr_u;
