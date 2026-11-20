@@ -664,7 +664,7 @@ fn parse_medevac_attributes(e: &quick_xml::events::BytesStart, r: &mut CotMedeva
 }
 
 fn apply_text_to_medevac(tag: MedevacTag, text: &str, r: &mut CotMedevacReport) {
-    let val = unescape_xml(text);
+    let val = text.to_string();
     match tag {
         MedevacTag::Line1 => r.line1_location = val,
         MedevacTag::Line2 => r.line2_freq_callsign = val,
