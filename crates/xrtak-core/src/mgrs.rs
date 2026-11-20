@@ -606,8 +606,12 @@ impl MgrsCoord {
         }
 
         let mut chars = rem2.chars();
-        let col = chars.next().unwrap();
-        let row = chars.next().unwrap();
+        let col = chars
+            .next()
+            .ok_or_else(|| MgrsError::InvalidFormat("missing 100k square identifier".to_string()))?;
+        let row = chars
+            .next()
+            .ok_or_else(|| MgrsError::InvalidFormat("missing 100k square identifier".to_string()))?;
         let square = HundredKmSquare::new(col, row)?;
         let num_str = chars.as_str();
 
