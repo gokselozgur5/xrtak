@@ -43,3 +43,22 @@ fn atak_cancel_event_without_type_attribute_parses() {
     assert_eq!(beacon.status, xrtak_core::EmergencyStatus::Cancelled);
     assert_eq!(beacon.callsign, "EAGLE-6");
 }
+
+#[test]
+fn cancel_and_reactivate_keep_stale_after_time() {
+    let mut beacon = DistressBeacon::new("B-1", "EAGLE-6", EmergencyType::Alert911, 34.0, -118.0)
+        .with_timestamps("2026-11-18T10:00:00Z", "2026-11-18T10:00:10Z");
+    beacon.cancel("2026-11-18T10:30:00Z");
+    assert!(
+        beacon.stale_iso > beacon.time_iso,
+        "cancel: time={} stale={}",
+        beacon.time_iso,
+        beacon.stale_iso
+    );
+    beacon.activate("2026-11-18T11:00:00Z");
+    assert!(
+        beacon.stale_iso > beacon.time_iso,
+        "activate: stale={}",
+        beacon.stale_iso
+    );
+}
