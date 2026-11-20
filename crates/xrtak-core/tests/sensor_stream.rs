@@ -18,3 +18,19 @@ fn escaped_attribute_values_are_decoded_by_the_parsers() {
     let parsed = CommsChannelPacket::from_cot_xml(&packet.to_cot_xml()).unwrap();
     assert_eq!(parsed.uid, "NET&1");
 }
+
+#[test]
+fn elements_with_explicit_end_tags_are_accepted() {
+    let xml = concat!(
+        r#"<event version="2.0" uid="V1" type="b-i-v" time="t" start="t" stale="s" how="m-g">"#,
+        r#"<point lat="1.0" lon="2.0" hae="0.0" ce="1.0" le="1.0"></point><detail>"#,
+        r#"<contact callsign="CAM-1"></contact>"#,
+        r#"<__video url="rtsp://h:554/live" uid="u" alias="Cam">"#,
+        r#"<ConnectionEntry uid="u" alias="Cam" protocol="rtsp" address="h" port="554" path="/live"/>"#,
+        r#"</__video></detail></event>"#
+    );
+    let desc = parse_sensor_stream_cot_xml(xml).expect("equivalent XML form must parse");
+    assert_eq!(desc.lat, 1.0);
+    assert_eq!(desc.callsign, "CAM-1");
+    assert_eq!(desc.video.url, "rtsp://h:554/live");
+}
