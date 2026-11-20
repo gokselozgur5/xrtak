@@ -205,11 +205,13 @@ fn rdp_recursive(
     }
 
     if max_dist > epsilon_m {
-        let mut left = rdp_recursive(&points[..=split_idx], epsilon_m, include_elevation, max_err);
-        let right = rdp_recursive(&points[split_idx..], epsilon_m, include_elevation, max_err);
-        left.pop();
-        left.extend(right);
-        left
+        let mask = rdp_mask(points, epsilon_m, include_elevation, max_err);
+        points
+            .iter()
+            .cloned()
+            .enumerate()
+            .filter_map(|(i, p)| mask[i].then_some(p))
+            .collect()
     } else {
         vec![first.clone(), last.clone()]
     }
