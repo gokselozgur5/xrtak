@@ -108,6 +108,14 @@ pub(crate) fn escape_xml_attr(val: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+pub(crate) fn unescape_xml_attr(val: &str) -> String {
+    val.replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+}
+
 impl MissionPackageManifest {
     /// Generate a compliant TAK `manifest.xml` file.
     pub fn generate_xml(&self) -> String {
