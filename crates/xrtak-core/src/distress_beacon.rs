@@ -241,12 +241,16 @@ impl DistressBeacon {
 impl DistressBeacon {
     pub fn cancel(&mut self, timestamp_iso: impl Into<String>) {
         self.status = EmergencyStatus::Cancelled;
-        self.time_iso = timestamp_iso.into();
+        let ts = timestamp_iso.into();
+        self.stale_iso = refresh_stale_iso(&self.time_iso, &self.stale_iso, &ts);
+        self.time_iso = ts;
     }
 
     pub fn activate(&mut self, timestamp_iso: impl Into<String>) {
         self.status = EmergencyStatus::Active;
-        self.time_iso = timestamp_iso.into();
+        let ts = timestamp_iso.into();
+        self.stale_iso = refresh_stale_iso(&self.time_iso, &self.stale_iso, &ts);
+        self.time_iso = ts;
     }
 
     pub fn cot_type(&self) -> &'static str {
