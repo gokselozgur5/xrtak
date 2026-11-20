@@ -164,7 +164,18 @@ impl TrackSmoother {
             }
 
             Some(prev) => {
-                let dt = (obs.timestamp_sec - prev.timestamp_sec).max(1e-4);
+                let dt = obs.timestamp_sec - prev.timestamp_sec;
+                if dt <= 0.0 || !dt.is_finite() {
+                    let next = SmoothedTrackState {
+                        timestamp_sec: prev.timestamp_sec,
+                        east_m: smooth_scalar(prev.east_m, obs.east_m, self.config.alpha_pos),
+                        north_m: smooth_scalar(prev.north_m, obs.north_m, self.config.alpha_pos),
+                        up_m: smooth_scalar(prev.up_m, obs.up_m, self.config.alpha_pos),
+                        ..prev.clone()
+                    };
+                    self.state = Some(next.clone());
+                    return next;
+                }
                 let raw_vx = (obs.east_m - prev.east_m) / dt;
                 let raw_vy = (obs.north_m - prev.north_m) / dt;
                 let raw_vz = (obs.up_m - prev.up_m) / dt;
