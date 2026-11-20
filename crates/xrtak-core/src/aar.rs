@@ -126,6 +126,16 @@ pub fn lerp_angle_deg(a_deg: f64, b_deg: f64, t: f64) -> f64 {
     (a_deg + t * delta).rem_euclid(360.0)
 }
 
+/// Shortest-arc longitude interpolation in `[-180, 180]`.
+pub fn lerp_lon_deg(a_deg: f64, b_deg: f64, t: f64) -> f64 {
+    let ang = lerp_angle_deg(a_deg, b_deg, t);
+    if ang > 180.0 {
+        ang - 360.0
+    } else {
+        ang
+    }
+}
+
 fn interpolate_entity(a: &TacticalEntity, b: &TacticalEntity, t: f64) -> TacticalEntity {
     let lerp = |x: f64, y: f64| x + t * (y - x);
     let sensor = match (&a.sensor, &b.sensor) {
@@ -148,7 +158,7 @@ fn interpolate_entity(a: &TacticalEntity, b: &TacticalEntity, t: f64) -> Tactica
         affiliation: b.affiliation,
         dimension: b.dimension,
         lat: lerp(a.lat, b.lat),
-        lon: lerp(a.lon, b.lon),
+        lon: lerp_lon_deg(a.lon, b.lon, t),
         hae_m: lerp(a.hae_m, b.hae_m),
         course_deg: lerp_angle_deg(a.course_deg, b.course_deg, t),
         speed_mps: lerp(a.speed_mps, b.speed_mps),
