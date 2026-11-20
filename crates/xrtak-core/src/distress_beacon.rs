@@ -555,6 +555,29 @@ fn parse_iso_secs(s: &str) -> Option<i64> {
     Some(((days * 24 + n[3]) * 60 + n[4]) * 60 + n[5])
 }
 
+fn format_iso_secs(total_secs: i64) -> String {
+    let (sec, total_mins) = (total_secs.rem_euclid(60), total_secs.div_euclid(60));
+    let (min, total_hours) = (total_mins.rem_euclid(60), total_mins.div_euclid(60));
+    let (hour, mut days) = (total_hours.rem_euclid(24), total_hours.div_euclid(24));
+    let mut year = 1970i64;
+    loop {
+        let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        let diy = if leap { 366 } else { 365 };
+        if days < diy { break; }
+        days -= diy;
+        year += 1;
+    }
+    let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    let dim = [31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let mut month = 1usize;
+    for &d in &dim {
+        if days < d { break; }
+        days -= d;
+        month += 1;
+    }
+    format!("{year:04}-{month:02}-{:02}T{hour:02}:{min:02}:{sec:02}Z", days + 1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
