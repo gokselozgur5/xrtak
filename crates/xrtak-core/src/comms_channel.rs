@@ -200,8 +200,8 @@ impl CommsChannelPacket {
         let uid = escape_xml(&self.uid);
         let ctype = escape_xml(&self.cot_type);
         let callsign = escape_xml(&self.callsign);
-        let t = &self.timestamp_iso;
-        let s = &self.stale_iso;
+        let t = escape_xml(&self.timestamp_iso);
+        let s = escape_xml(&self.stale_iso);
 
         let mut out = String::new();
         out.push_str(&format!(
