@@ -84,6 +84,33 @@ pub struct GridSolution {
     pub central_meridian_deg: f64,
 }
 
+/// Determine the UTM zone number (1..=60) with Norway and Svalbard exceptions.
+pub fn utm_zone_for_lat_lon(lat_deg: f64, lon_deg: f64) -> u8 {
+    let z = utm_zone_from_lon(lon_deg);
+    let mut norm = lon_deg;
+    while norm < -180.0 {
+        norm += 360.0;
+    }
+    while norm >= 180.0 {
+        norm -= 360.0;
+    }
+    if (56.0..64.0).contains(&lat_deg) && (3.0..12.0).contains(&norm) {
+        return 32;
+    }
+    if (72.0..84.0).contains(&lat_deg) {
+        if (0.0..9.0).contains(&norm) {
+            return 31;
+        } else if (9.0..21.0).contains(&norm) {
+            return 33;
+        } else if (21.0..33.0).contains(&norm) {
+            return 35;
+        } else if (33.0..42.0).contains(&norm) {
+            return 37;
+        }
+    }
+    z
+}
+
 /// Determine the standard UTM zone number (1..=60) for a given longitude in degrees.
 pub fn utm_zone_from_lon(lon_deg: f64) -> u8 {
     let mut normalized_lon = lon_deg;
