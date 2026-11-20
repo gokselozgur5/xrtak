@@ -115,8 +115,9 @@ impl GeoChatPacket {
         let room = escape_xml(&self.chatroom);
         let uid = escape_xml(&self.sender_uid);
         let mid = escape_xml(&self.message_id);
+        let grp = escape_xml(&self.parent_group);
         let e_uid = format!("GeoChat.{}.{}.{}", uid, room, mid);
-        let t = &self.timestamp_iso;
+        let t = escape_xml(&self.timestamp_iso);
         let mut out = String::new();
         out.push_str(&format!(
             "<event version=\"2.0\" uid=\"{e_uid}\" type=\"b-t-f\" how=\"h-g-i-g-o\" time=\"{t}\" start=\"{t}\" stale=\"{t}\">"
@@ -127,20 +128,19 @@ impl GeoChatPacket {
         ));
         out.push_str("<detail>");
         let mut chat_tag = format!(
-            "<__chat parent=\"{grp}\" groupOwner=\"false\" messageId=\"{mid}\" chatroom=\"{room}\" id=\"{room}\" senderCallsign=\"{cs}\"",
-            grp = self.parent_group
+            "<__chat parent=\"{grp}\" groupOwner=\"false\" messageId=\"{mid}\" chatroom=\"{room}\" id=\"{room}\" senderCallsign=\"{cs}\""
         );
         if let Some(ref cid) = self.conversation_id {
-            chat_tag.push_str(&format!(" conversationId=\"{cid}\""));
+            chat_tag.push_str(&format!(" conversationId=\"{}\"", escape_xml(cid)));
         }
         if let Some(ref pmid) = self.parent_message_id {
-            chat_tag.push_str(&format!(" parentMessageId=\"{pmid}\""));
+            chat_tag.push_str(&format!(" parentMessageId=\"{}\"", escape_xml(pmid)));
         }
         chat_tag.push('>');
         out.push_str(&chat_tag);
         let mut grp_tag = format!("<chatgrp id=\"{room}\" uid0=\"{uid}\"");
         for (i, r) in self.recipients.iter().enumerate() {
-            grp_tag.push_str(&format!(" uid{}=\"{r}\"", i + 1));
+            grp_tag.push_str(&format!(" uid{}=\"{}\"", i + 1, escape_xml(r)));
         }
         grp_tag.push_str("/>");
         out.push_str(&grp_tag);
