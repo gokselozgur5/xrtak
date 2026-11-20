@@ -123,7 +123,21 @@ pub fn parse_geotiff_metadata(bytes: &[u8]) -> Result<GeoTiffMetadata, String> {
             257 => height = read_scalar_u32().unwrap_or(0) as usize,
             258 => bits_per_sample = read_scalar_u32().unwrap_or(16) as u16,
             339 => sample_format = read_scalar_u32().unwrap_or(1) as u16,
-            273 | 324 => {
+            259 if read_scalar_u32().unwrap_or(1) != 1 => {
+                return Err(
+                    "Unsupported compression: only uncompressed (1) is supported".to_string(),
+                )
+            }
+            277 if read_scalar_u32().unwrap_or(1) != 1 => {
+                return Err("Unsupported SamplesPerPixel: only 1 is supported".to_string())
+            }
+            322 | 323 | 324 => {
+                return Err(
+                    "Tiled GeoTIFF layout is unsupported: only stripped layout is supported"
+                        .to_string(),
+                )
+            }
+            273 => {
                 if count == 1 {
                     if let Some(off) = read_scalar_u32() {
                         data_offsets.push(off as usize);
