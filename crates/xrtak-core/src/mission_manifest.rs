@@ -311,5 +311,8 @@ mod tests {
         let xml = manifest.generate_xml();
         assert!(xml.contains("value=\"UID&lt;&gt;&amp;&quot;\""));
         assert!(xml.contains("value=\"Op &apos;Spear&apos; &amp; Shield\""));
+        let parsed = MissionPackageManifest::parse_xml(&xml).expect("parse manifest");
+        assert_eq!(parsed.uid, "UID<>&\"");
+        assert_eq!(parsed.name, "Op 'Spear' & Shield");
     }
 }
