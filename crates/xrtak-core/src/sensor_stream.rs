@@ -406,10 +406,10 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"event" => {
                 for a in e.attributes().flatten() {
                     match a.key.as_ref() {
-                        b"uid" => uid = Some(String::from_utf8_lossy(&a.value).into_owned()),
-                        b"type" => cot_type = String::from_utf8_lossy(&a.value).into_owned(),
-                        b"time" => time_iso = String::from_utf8_lossy(&a.value).into_owned(),
-                        b"stale" => stale_iso = String::from_utf8_lossy(&a.value).into_owned(),
+                        b"uid" => uid = Some(unescape_attr(&a)),
+                        b"type" => cot_type = unescape_attr(&a),
+                        b"time" => time_iso = unescape_attr(&a),
+                        b"stale" => stale_iso = unescape_attr(&a),
                         _ => {}
                     }
                 }
