@@ -818,10 +818,9 @@ impl TacticalWorld {
     ) -> Result<(String, TacticalEntity), String> {
         let xml = build_sapient_cot_xml(report, &self.origin, self.terrain.as_ref());
         let entity = self.ingest_cot_xml(&xml, now_ms)?;
-        let sensor_uid = report
-            .auto_slew_sensor_uid
-            .clone()
-            .or_else(|| (report.confidence >= 0.85).then(|| "UAV-FALCON-01".to_string()));
+        let sensor_uid = report.auto_slew_sensor_uid.clone().or_else(|| {
+            (self.sim_enabled && report.confidence >= 0.85).then(|| "UAV-FALCON-01".to_string())
+        });
         if let Some(uav_uid) = sensor_uid {
             let _ = self.slew_sensor_to_spi(&uav_uid, entity.east_m, entity.north_m, now_ms);
             self.spi_locks
