@@ -55,7 +55,10 @@ pub fn along_track_distance_m(p_lat: f64, p_lon: f64, a_lat: f64, a_lon: f64, b_
     if at.is_nan() {
         0.0
     } else {
-        at * EARTH_RADIUS_M
+        let brg13 = initial_bearing_deg(a_lat, a_lon, p_lat, p_lon).to_radians();
+        let brg12 = initial_bearing_deg(a_lat, a_lon, b_lat, b_lon).to_radians();
+        let sign = if (brg13 - brg12).cos() < 0.0 { -1.0 } else { 1.0 };
+        sign * at * EARTH_RADIUS_M
     }
 }
 
