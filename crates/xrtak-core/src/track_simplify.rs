@@ -403,6 +403,14 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
     Ok(points)
 }
 
+fn escape_xml_attr(val: &str) -> String {
+    val.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
