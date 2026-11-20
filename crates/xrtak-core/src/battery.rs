@@ -97,9 +97,10 @@ pub fn compute_uav_endurance(
         let az_rad = frac * 2.0 * std::f64::consts::PI;
         let bearing_deg = az_rad.to_degrees();
 
-        let headwind = wind.east_mps * az_rad.cos() + wind.north_mps * az_rad.sin();
-        let ground_speed = (state.cruise_airspeed_mps + headwind).max(1.0);
-        let max_r = (usable_sec * ground_speed * 0.5).max(10.0);
+        let wind_comp = wind.east_mps * az_rad.cos() + wind.north_mps * az_rad.sin();
+        let g_out = (state.cruise_airspeed_mps + wind_comp).max(1.0);
+        let g_back = (state.cruise_airspeed_mps - wind_comp).max(1.0);
+        let max_r = (usable_sec * g_out * g_back / (g_out + g_back)).max(10.0);
 
         polygon.push(RthPolygonVertex {
             bearing_deg: r1(bearing_deg),
