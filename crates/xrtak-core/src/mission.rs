@@ -339,8 +339,9 @@ pub fn export_atak_route_cot_xml(
         ));
     }
 
+    let (time, stale) = crate::default_cot_timestamps();
     format!(
-        r#"<event version="2.0" uid="{route_uid}" type="b-m-r" how="h-g-i-g-o"><point lat="{lat0:.6}" lon="{lon0:.6}" hae="{hae0:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{route_callsign}"/>{links}<strokeColor value="-256"/>< strokeWeight value="3.0"/><remarks>Exported 3D Mission Route from XR-TAK</remarks></detail></event>"#
+        r#"<event version="2.0" uid="{route_uid}" type="b-m-r" how="h-g-i-g-o" time="{time}" start="{time}" stale="{stale}"><point lat="{lat0:.6}" lon="{lon0:.6}" hae="{hae0:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{route_callsign}"/>{links}<strokeColor value="-256"/>< strokeWeight value="3.0"/><remarks>Exported 3D Mission Route from XR-TAK</remarks></detail></event>"#
     )
     .replace("< strokeWeight", "<strokeWeight")
 }
