@@ -217,17 +217,17 @@ impl SensorStreamDescriptor {
             .preferred_uid
             .as_deref()
             .or(self.parent_uid.as_deref())
-            .map(|u| format!("  <entry key=\"preferredUid\" value=\"{u}\"/>\n"))
+            .map(|u| format!("  <entry key=\"preferredUid\" value=\"{}\"/>\n", escape_xml_attr(u)))
             .unwrap_or_default();
         format!(
             "<feed>\n  <entry key=\"uid\" value=\"{}\"/>\n  <entry key=\"alias\" value=\"{}\"/>\n  <entry key=\"url\" value=\"{}\"/>\n  <entry key=\"rtspReliable\" value=\"{}\"/>\n  <entry key=\"ignoreEmbeddedKLV\" value=\"{}\"/>\n  <entry key=\"bufferTime\" value=\"{}\"/>\n  <entry key=\"sensor\" value=\"{}\"/>\n{rover}{pref}</feed>",
-            self.video.stream_uid,
-            self.video.alias,
-            self.video.url,
+            escape_xml_attr(&self.video.stream_uid),
+            escape_xml_attr(&self.video.alias),
+            escape_xml_attr(&self.video.url),
             if self.video.rtsp_reliable { 1 } else { 0 },
             self.video.ignore_embedded_klv,
             self.video.buffer_ms,
-            self.sensor.sensor_type.as_str(),
+            escape_xml_attr(self.sensor.sensor_type.as_str()),
         )
     }
 }
