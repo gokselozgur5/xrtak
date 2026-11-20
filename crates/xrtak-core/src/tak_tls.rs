@@ -144,9 +144,9 @@ impl TakTlsConfig {
                <entry key=\"verifyHost\">{}</entry>\n\
                <entry key=\"timeoutMs\">{}</entry>\n\
              </preference>",
-            self.server_host,
+            escape_xml(&self.server_host),
             self.server_port,
-            sni,
+            escape_xml(sni),
             client_auth,
             self.verify_server_hostname,
             self.handshake_timeout_ms
