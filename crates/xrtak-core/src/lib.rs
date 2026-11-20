@@ -552,7 +552,13 @@ pub fn parse_cot_xml_with_provider(
 
 /// Read the `stale="YYYY-MM-DDTHH:MM:SSZ"` attribute of a CoT event as unix ms.
 fn cot_stale_ms(xml: &str) -> Option<u64> {
-    let r = &xml[xml.find("stale=\"")? + 7..];
+    cot_time_attr_ms(xml, "stale")
+}
+
+/// Read a `name="YYYY-MM-DDTHH:MM:SSZ"` attribute of a CoT event as unix ms.
+fn cot_time_attr_ms(xml: &str, name: &str) -> Option<u64> {
+    let key = format!(" {name}=\"");
+    let r = &xml[xml.find(&key)? + key.len()..];
     let n: Vec<i64> = r[..r.find('"')?]
         .split(|c: char| !c.is_ascii_digit())
         .filter(|p| !p.is_empty())
@@ -585,6 +591,7 @@ pub struct TacticalWorld {
     pub sim_time_sec: f64,
     /// CoT stale deadline (unix ms) per live uid; entries past it are pruned.
     pub stale_ms: HashMap<String, u64>,
+    event_ms: HashMap<String, u64>,
 }
 
 impl TacticalWorld {
@@ -633,6 +640,7 @@ impl TacticalWorld {
             spi_locks: HashMap::new(),
             sim_time_sec: 0.0,
             stale_ms: HashMap::new(),
+            event_ms: HashMap::new(),
         }
     }
 
@@ -714,6 +722,12 @@ impl TacticalWorld {
                 self.spi_locks
                     .insert(parent.clone(), (entity.east_m, entity.up_m, entity.north_m));
             }
+        }
+        if let Some(t) = cot_time_attr_ms(xml, "time") {
+            if self.event_ms.get(&entity.uid).is_some_and(|&p| t < p) {
+                return Ok(self.entities.get(&entity.uid).cloned().unwrap_or(entity));
+            }
+            self.event_ms.insert(entity.uid.clone(), t);
         }
         self.entities.insert(entity.uid.clone(), entity.clone());
         match cot_stale_ms(xml) {
