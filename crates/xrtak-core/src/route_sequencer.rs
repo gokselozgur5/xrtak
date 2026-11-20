@@ -302,6 +302,14 @@ pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult
     )
 }
 
+fn escape_xml_attr(val: &str) -> String {
+    val.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
