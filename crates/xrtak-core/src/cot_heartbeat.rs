@@ -153,21 +153,24 @@ impl CotHeartbeatManager {
 
 /// Build a standard TAK Cursor-on-Target ping event XML (`t-x-c-t`).
 pub fn build_ping_cot(client_uid: &str, seq: u64, now_ms: u64) -> String {
-    let uid = format!("{client_uid}-ping-{seq}");
+    let esc_client = crate::escape_cot_attr(client_uid);
+    let uid = format!("{esc_client}-ping-{seq}");
     let time_iso = format_iso8601_utc(now_ms).replace(".000Z", "Z");
     let stale_iso = format_iso8601_utc(now_ms.saturating_add(10_000)).replace(".000Z", "Z");
     format!(
-        r#"<event version="2.0" uid="{uid}" type="t-x-c-t" how="m-g" time="{time_iso}" start="{time_iso}" stale="{stale_iso}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><ping seq="{seq}" client="{client_uid}"/></detail></event>"#
+        r#"<event version="2.0" uid="{uid}" type="t-x-c-t" how="m-g" time="{time_iso}" start="{time_iso}" stale="{stale_iso}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><ping seq="{seq}" client="{esc_client}"/></detail></event>"#
     )
 }
 
 /// Build a standard TAK Cursor-on-Target pong response XML (`t-x-c-t-r`).
 pub fn build_pong_cot(client_uid: &str, ping_uid: &str, seq: u64, now_ms: u64) -> String {
-    let uid = format!("{client_uid}-pong-{seq}");
+    let esc_client = crate::escape_cot_attr(client_uid);
+    let esc_ping = crate::escape_cot_attr(ping_uid);
+    let uid = format!("{esc_client}-pong-{seq}");
     let time_iso = format_iso8601_utc(now_ms).replace(".000Z", "Z");
     let stale_iso = format_iso8601_utc(now_ms.saturating_add(10_000)).replace(".000Z", "Z");
     format!(
-        r#"<event version="2.0" uid="{uid}" type="t-x-c-t-r" how="m-g" time="{time_iso}" start="{time_iso}" stale="{stale_iso}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><pong seq="{seq}" ref_uid="{ping_uid}"/></detail></event>"#
+        r#"<event version="2.0" uid="{uid}" type="t-x-c-t-r" how="m-g" time="{time_iso}" start="{time_iso}" stale="{stale_iso}"><point lat="0.000000" lon="0.000000" hae="0.0" ce="9999999" le="9999999"/><detail><pong seq="{seq}" ref_uid="{esc_ping}"/></detail></event>"#
     )
 }
 
