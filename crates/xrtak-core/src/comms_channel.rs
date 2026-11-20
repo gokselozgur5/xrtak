@@ -270,7 +270,14 @@ impl CommsChannelPacket {
                         found_event = true;
                         for a in e.attributes().flatten() {
                             match a.key.as_ref() {
-                                b"uid" => uid = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"uid" => {
+                                    uid = a
+                                        .unescape_value()
+                                        .map(|v| v.into_owned())
+                                        .unwrap_or_else(|_| {
+                                            String::from_utf8_lossy(&a.value).into_owned()
+                                        })
+                                }
                                 b"type" => cot_type = String::from_utf8_lossy(&a.value).into_owned(),
                                 b"time" => time_str = String::from_utf8_lossy(&a.value).into_owned(),
                                 b"stale" => stale_str = String::from_utf8_lossy(&a.value).into_owned(),
