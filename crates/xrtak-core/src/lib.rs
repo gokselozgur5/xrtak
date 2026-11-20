@@ -357,8 +357,9 @@ pub fn build_spi_cot_xml(
     let p_ty = escape_cot_attr(parent_type);
     let spi_uid = format!("{p_uid}.SPI1");
     let spi_callsign = format!("{p_cs}.SPI1");
+    let (time, stale) = default_cot_timestamps();
     format!(
-        r#"<event version="2.0" uid="{spi_uid}" type="b-m-p-s-p-i" how="h-e"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="5.0" le="5.0"/><detail><contact callsign="{spi_callsign}"/><link uid="{p_uid}" relation="p-p" type="{p_ty}"/><remarks>SPI Gimbal Lock Target</remarks></detail></event>"#
+        r#"<event version="2.0" uid="{spi_uid}" type="b-m-p-s-p-i" how="h-e" time="{time}" start="{time}" stale="{stale}"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="5.0" le="5.0"/><detail><contact callsign="{spi_callsign}"/><link uid="{p_uid}" relation="p-p" type="{p_ty}"/><remarks>SPI Gimbal Lock Target</remarks></detail></event>"#
     )
 }
 
