@@ -134,10 +134,12 @@ impl FragmentReassemblyBuffer {
     }
 
     pub fn insert_fragment(&mut self, frag: MeshFragment, now_ms: u64) -> bool {
-        if frag.header.message_id != self.message_id {
-            return false;
-        }
-        if frag.header.fragment_index >= self.total_fragments {
+        if frag.header.message_id != self.message_id
+            || frag.header.total_fragments != self.total_fragments
+            || frag.header.total_length != self.total_length
+            || frag.header.fragment_index >= self.total_fragments
+            || frag.payload.len() > MAX_FRAGMENT_PAYLOAD
+        {
             return false;
         }
         self.updated_unix_ms = now_ms;
@@ -150,7 +152,7 @@ impl FragmentReassemblyBuffer {
         if !self.is_complete() {
             return None;
         }
-        let mut assembled = Vec::with_capacity(self.total_length as usize);
+        let mut assembled = Vec::new();
         for idx in 0..self.total_fragments {
             let part = self.received_fragments.get(&idx)?;
             assembled.extend_from_slice(part);
