@@ -1,4 +1,5 @@
 use crate::geo::ElevationProvider;
+use crate::mission_manifest::escape_xml_attr;
 use crate::GeoOrigin;
 use serde::{Deserialize, Serialize};
 
@@ -330,18 +331,20 @@ pub fn export_atak_route_cot_xml(
     };
 
     let mut links = String::new();
+    let esc_uid = escape_xml_attr(route_uid);
+    let esc_callsign = escape_xml_attr(route_callsign);
     for (idx, &(east_m, north_m, agl_m)) in waypoints_en_agl.iter().enumerate() {
         let relief_m = terrain.sample_relief_m(east_m, north_m);
         let (lat, lon, hae) = origin.enu_to_lla(east_m, relief_m + agl_m, north_m);
         links.push_str(&format!(
-            r#"<link uid="{route_uid}-WP{wp}" callsign="WP-{wp}" type="b-m-p-w" point="{lat:.6},{lon:.6},{hae:.1}" relation="c"/>"#,
+            r#"<link uid="{esc_uid}-WP{wp}" callsign="WP-{wp}" type="b-m-p-w" point="{lat:.6},{lon:.6},{hae:.1}" relation="c"/>"#,
             wp = idx + 1
         ));
     }
 
     let (time, stale) = crate::default_cot_timestamps();
     format!(
-        r#"<event version="2.0" uid="{route_uid}" type="b-m-r" how="h-g-i-g-o" time="{time}" start="{time}" stale="{stale}"><point lat="{lat0:.6}" lon="{lon0:.6}" hae="{hae0:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{route_callsign}"/>{links}<strokeColor value="-256"/>< strokeWeight value="3.0"/><remarks>Exported 3D Mission Route from XR-TAK</remarks></detail></event>"#
+        r#"<event version="2.0" uid="{esc_uid}" type="b-m-r" how="h-g-i-g-o" time="{time}" start="{time}" stale="{stale}"><point lat="{lat0:.6}" lon="{lon0:.6}" hae="{hae0:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{esc_callsign}"/>{links}<strokeColor value="-256"/>< strokeWeight value="3.0"/><remarks>Exported 3D Mission Route from XR-TAK</remarks></detail></event>"#
     )
     .replace("< strokeWeight", "<strokeWeight")
 }
