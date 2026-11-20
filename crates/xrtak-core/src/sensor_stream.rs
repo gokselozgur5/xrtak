@@ -340,8 +340,8 @@ pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorSt
                 let mut v = None;
                 for attr in e.attributes().flatten() {
                     match attr.key.as_ref() {
-                        b"key" => k = Some(String::from_utf8_lossy(&attr.value).into_owned()),
-                        b"value" => v = Some(String::from_utf8_lossy(&attr.value).into_owned()),
+                        b"key" => k = Some(unescape_attr(&attr)),
+                        b"value" => v = Some(unescape_attr(&attr)),
                         _ => {}
                     }
                 }
