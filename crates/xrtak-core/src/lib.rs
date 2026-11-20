@@ -373,8 +373,9 @@ pub fn build_laser_pointer_cot_xml(
     let clean = escape_cot_attr(&operator_callsign.replace(' ', "-"));
     let uid = format!("XR-LASER-{clean}");
     let cs = format!("LASER-{clean}");
+    let (time, stale) = default_cot_timestamps();
     format!(
-        r#"<event version="2.0" uid="{uid}" type="b-m-p-c" how="h-e"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="3.0" le="3.0"/><detail><contact callsign="{cs}"/><remarks>Quest 3 XR Spatial Laser Pointer</remarks></detail></event>"#
+        r#"<event version="2.0" uid="{uid}" type="b-m-p-c" how="h-e" time="{time}" start="{time}" stale="{stale}"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="3.0" le="3.0"/><detail><contact callsign="{cs}"/><remarks>Quest 3 XR Spatial Laser Pointer</remarks></detail></event>"#
     )
 }
 
