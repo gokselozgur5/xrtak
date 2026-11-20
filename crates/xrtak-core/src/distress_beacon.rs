@@ -309,9 +309,10 @@ impl DistressBeacon {
         let callsign_esc = escape_xml(&self.callsign);
         let uid_esc = escape_xml(&self.beacon_uid);
         let desc_esc = escape_xml(&self.description);
+        let time_esc = escape_xml(&self.time_iso);
+        let stale_esc = escape_xml(&self.stale_iso);
         let mut xml = format!(
-            "<event version=\"2.0\" uid=\"{uid_esc}\" type=\"{cot_type}\"              how=\"m-g\" time=\"{}\" start=\"{}\" stale=\"{}\">             <point lat=\"{:.7}\" lon=\"{:.7}\" hae=\"{:.2}\" ce=\"{:.1}\" le=\"{:.1}\"/>             <detail>             <emergency cancel=\"{cancel_str}\" type=\"{alert_type_str}\">{callsign_esc}</emergency>             <contact callsign=\"{callsign_esc}\"/>",
-            self.time_iso, self.time_iso, self.stale_iso,
+            "<event version=\"2.0\" uid=\"{uid_esc}\" type=\"{cot_type}\"              how=\"m-g\" time=\"{time_esc}\" start=\"{time_esc}\" stale=\"{stale_esc}\">             <point lat=\"{:.7}\" lon=\"{:.7}\" hae=\"{:.2}\" ce=\"{:.1}\" le=\"{:.1}\"/>             <detail>             <emergency cancel=\"{cancel_str}\" type=\"{alert_type_str}\">{callsign_esc}</emergency>             <contact callsign=\"{callsign_esc}\"/>",
             self.lat, self.lon, self.hae, self.ce, self.le
         );
         if !self.description.is_empty() {
