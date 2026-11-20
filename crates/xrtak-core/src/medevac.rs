@@ -192,17 +192,20 @@ impl HlzMarking {
     }
 
     pub fn parse_marking(s: &str) -> Self {
-        let lower = s.trim().to_lowercase();
+        let trimmed = s.trim();
+        let lower = trimmed.to_lowercase();
         if lower.contains("panel") {
             Self::Panels
         } else if lower.contains("pyro") {
             Self::PyrotechnicSignal
-        } else if lower.contains("smoke") {
-            Self::Smoke(s.trim().to_string())
+        } else if let Some(idx) = lower.find("smoke") {
+            let rest = trimmed[idx + 5..].trim();
+            let col = rest.strip_prefix('(').and_then(|r| r.strip_suffix(')')).unwrap_or(rest).trim();
+            Self::Smoke(if col.is_empty() { trimmed.to_string() } else { col.to_string() })
         } else if lower == "none" || lower.is_empty() {
             Self::None
         } else {
-            Self::Custom(s.trim().to_string())
+            Self::Custom(trimmed.to_string())
         }
     }
 }
