@@ -3,10 +3,12 @@
 //! Provides Cursor-on-Target (CoT) `b-i-v` XML event generation and
 //! TAK video connection `<feed>` descriptor XML serialization.
 
+use crate::kml_export::format_iso8601_utc;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Errors arising during sensor video stream descriptor XML operations.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,6 +168,12 @@ impl SensorStreamDescriptor {
         hae: f64,
         video: VideoStreamConnection,
     ) -> Self {
+        let now_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        let time_iso = format_iso8601_utc(now_ms).replace(".000Z", "Z");
+        let stale_iso = format_iso8601_utc(now_ms.saturating_add(300_000)).replace(".000Z", "Z");
         Self {
             uid: uid.into(),
             callsign: callsign.into(),
@@ -173,8 +181,8 @@ impl SensorStreamDescriptor {
             lat,
             lon,
             hae,
-            time_iso: "2026-11-16T12:00:00Z".to_string(),
-            stale_iso: "2026-11-16T12:05:00Z".to_string(),
+            time_iso,
+            stale_iso,
             video,
             sensor: SensorGimbal::default(),
             parent_uid: None,
