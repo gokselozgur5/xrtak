@@ -435,13 +435,13 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                 let mut pref = None;
                 for a in e.attributes().flatten() {
                     match a.key.as_ref() {
-                        b"url" => url = Some(String::from_utf8_lossy(&a.value).into_owned()),
-                        b"uid" => stream_uid = Some(String::from_utf8_lossy(&a.value).into_owned()),
-                        b"alias" => alias = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                        b"url" => url = Some(unescape_attr(&a)),
+                        b"uid" => stream_uid = Some(unescape_attr(&a)),
+                        b"alias" => alias = Some(unescape_attr(&a)),
                         b"roverPort" => rover_port = String::from_utf8_lossy(&a.value).parse::<u16>().ok(),
                         b"rtspReliable" => rtsp_reliable = a.value.as_ref() == b"1" || a.value.as_ref() == b"true",
                         b"ignoreEmbeddedKLV" => ignore_klv = a.value.as_ref() == b"true",
-                        b"preferredUid" => pref = Some(String::from_utf8_lossy(&a.value).into_owned()),
+                        b"preferredUid" => pref = Some(unescape_attr(&a)),
                         _ => {}
                     }
                 }
