@@ -85,11 +85,14 @@ impl CotParseHarness {
 
 impl CotParseHarness {
     fn map_error(err_str: String) -> CotHarnessError {
-        if err_str.contains("missing point") || err_str.contains("point") {
-            CotHarnessError::MissingPoint
-        } else if err_str.contains("missing uid") {
+        let lower = err_str.to_ascii_lowercase();
+        if lower.starts_with("xml parse error:") {
+            CotHarnessError::InvalidXml(err_str)
+        } else if lower.contains("missing cot event uid") || lower.contains("missing uid") {
             CotHarnessError::MissingUid
-        } else if err_str.contains("range") || err_str.contains("coordinate") {
+        } else if lower.contains("missing point") {
+            CotHarnessError::MissingPoint
+        } else if lower.contains("must be in") || lower.contains("range") || lower.contains("coordinate") {
             CotHarnessError::CoordinateRange(err_str)
         } else {
             CotHarnessError::InvalidXml(err_str)
