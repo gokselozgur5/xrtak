@@ -44,3 +44,18 @@ fn test_integration_cas_atak_xml_variants() {
     assert_eq!(cas.remarks, "Danger Close 300m");
     assert_eq!(cas.lat, 36.5);
 }
+
+#[test]
+fn cas_uid_with_ampersand_survives_round_trip() {
+    let brief = CasNineLine::new("CAS&1", "WARRIOR 21");
+    let parsed = CasNineLine::from_cot_xml(&brief.to_cot_xml()).unwrap();
+    assert_eq!(parsed.cot_uid, "CAS&1");
+}
+
+#[test]
+fn cas_time_is_escaped_in_event_attributes() {
+    let brief = CasNineLine::new("CAS-1", "WARRIOR 21")
+        .with_time("2026-11-16T09:00:00Z\" uid=\"SPOOFED");
+    let xml = brief.to_cot_xml();
+    assert!(!xml.contains("uid=\"SPOOFED\""), "attribute injected: {}", &xml[..160]);
+}
