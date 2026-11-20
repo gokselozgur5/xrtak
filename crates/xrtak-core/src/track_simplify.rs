@@ -176,7 +176,6 @@ fn rdp_mask(pts: &[TrackPoint], eps: f64, elev: bool, max_err: &mut f64) -> Vec<
     keep
 }
 
-#[allow(dead_code)]
 fn rdp_recursive(
     points: &[TrackPoint],
     epsilon_m: f64,
@@ -186,17 +185,12 @@ fn rdp_recursive(
     if points.len() <= 2 {
         return points.to_vec();
     }
-    let first = &points[0];
-    let last = &points[points.len() - 1];
-
+    let (first, last) = (&points[0], &points[points.len() - 1]);
     let mut max_dist = 0.0;
-    let mut split_idx = 0usize;
-
-    for (i, pt) in points.iter().enumerate().take(points.len() - 1).skip(1) {
+    for pt in points.iter().take(points.len() - 1).skip(1) {
         let dist = perpendicular_distance_to_segment_m(pt, first, last, include_elevation);
         if dist > max_dist {
             max_dist = dist;
-            split_idx = i;
         }
     }
 
