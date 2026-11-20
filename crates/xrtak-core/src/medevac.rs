@@ -832,8 +832,8 @@ mod tests {
         assert_eq!(sec, SiteSecurity::ArmedEscortRequired);
         assert_eq!(sec.as_str(), "X - Armed escort required");
 
-        let hlz = HlzMarking::parse_marking("Smoke Green");
-        assert_eq!(hlz, HlzMarking::Smoke("Smoke Green".into()));
+        let hlz = HlzMarking::parse_marking("Smoke (Green)");
+        assert_eq!(hlz, HlzMarking::Smoke("Green".into()));
 
         let nat = PatientNationality::parse_nationality("US MILITARY");
         assert_eq!(nat, PatientNationality::UsMilitary);
