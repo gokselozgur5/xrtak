@@ -254,11 +254,12 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
     kml.push_str("<kml xmlns=\"http://www.opengis.net/kml/2.2\" ");
     kml.push_str("xmlns:gx=\"http://www.google.com/kml/ext/2.2\">\n");
     kml.push_str("  <Document>\n");
-    kml.push_str(&format!("    <name>{}</name>\n", config.doc_name));
+    kml.push_str(&format!("    <name>{}</name>\n", escape_xml_attr(&config.doc_name)));
 
     for track in tracks {
         let color = cot_type_to_kml_color(&track.cot_type);
-        kml.push_str(&format!("    <Style id=\"style-{}\">\n", track.uid));
+        let esc_uid = escape_xml_attr(&track.uid);
+        kml.push_str(&format!("    <Style id=\"style-{esc_uid}\">\n"));
         kml.push_str("      <LineStyle>\n");
         kml.push_str(&format!("        <color>{}</color>\n", color));
         kml.push_str(&format!("        <width>{:.1}</width>\n", config.line_width));
@@ -275,16 +276,17 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
             }
 
             if config.include_placemarks {
+                let esc_cs = escape_xml_attr(&track.callsign);
                 if let Some(first) = track.points.first() {
                     kml.push_str("    <Placemark>\n");
-                    kml.push_str(&format!("      <name>{} Start</name>\n", track.callsign));
+                    kml.push_str(&format!("      <name>{esc_cs} Start</name>\n"));
                     kml.push_str("      <Point>\n");
                     kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", first.lon, first.lat, first.hae_m));
                     kml.push_str("      </Point>\n    </Placemark>\n");
                 }
                 if let Some(last) = track.points.last() {
                     kml.push_str("    <Placemark>\n");
-                    kml.push_str(&format!("      <name>{} Current</name>\n", track.callsign));
+                    kml.push_str(&format!("      <name>{esc_cs} Current</name>\n"));
                     kml.push_str("      <Point>\n");
                     kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", last.lon, last.lat, last.hae_m));
                     kml.push_str("      </Point>\n    </Placemark>\n");
