@@ -2,6 +2,7 @@
 //!
 //! Complies with REQ-TRK-03 and ICD-20 for track history compression and ATAK breadcrumbs.
 
+use crate::kml_export::format_iso8601_utc;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
@@ -337,10 +338,17 @@ pub fn generate_cot_track_history_xml(uid: &str, callsign: &str, points: &[Track
         ));
     }
 
+    let start_ms = points.first().and_then(|p| p.timestamp_ms).unwrap_or(0);
+    let end_ms = points.last().and_then(|p| p.timestamp_ms).unwrap_or(start_ms);
+    let time_iso = format_iso8601_utc(start_ms).replace(".000Z", "Z");
+    let stale_iso = format_iso8601_utc(end_ms).replace(".000Z", "Z");
+
     format!(
-        r#"<event version="2.0" uid="{uid}" type="b-t-f" how="m-g"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{callsign}"/><track_history count="{count}">{crumbs}</track_history></detail></event>"#,
+        r#"<event version="2.0" uid="{uid}" type="b-t-f" how="m-g" time="{time}" start="{time}" stale="{stale}"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{callsign}"/><track_history count="{count}">{crumbs}</track_history></detail></event>"#,
         uid = escape_xml_attr(uid),
         callsign = escape_xml_attr(callsign),
+        time = time_iso,
+        stale = stale_iso,
         lat = first_lat,
         lon = first_lon,
         hae = first_hae,
