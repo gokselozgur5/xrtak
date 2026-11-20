@@ -318,8 +318,8 @@ pub fn generate_cot_track_history_xml(uid: &str, callsign: &str, points: &[Track
 
     format!(
         r#"<event version="2.0" uid="{uid}" type="b-t-f" how="m-g"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="10.0" le="10.0"/><detail><contact callsign="{callsign}"/><track_history count="{count}">{crumbs}</track_history></detail></event>"#,
-        uid = uid,
-        callsign = callsign,
+        uid = escape_xml_attr(uid),
+        callsign = escape_xml_attr(callsign),
         lat = first_lat,
         lon = first_lon,
         hae = first_hae,
