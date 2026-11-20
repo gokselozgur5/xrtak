@@ -519,6 +519,16 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
         if cursor + 46 > bytes.len() || bytes[cursor..cursor + 4] != [0x50, 0x4b, 0x01, 0x02] {
             return Err(MissionPackageError::InvalidZipArchive("corrupt central directory".into()));
         }
+        let method = u16::from_le_bytes([bytes[cursor + 10], bytes[cursor + 11]]);
+        if method != 0 {
+            return Err(MissionPackageError::InvalidZipArchive("unsupported compression method".into()));
+        }
+        let comp_size = u32::from_le_bytes([
+            bytes[cursor + 20],
+            bytes[cursor + 21],
+            bytes[cursor + 22],
+            bytes[cursor + 23],
+        ]) as usize;
         let fn_len = u16::from_le_bytes([bytes[cursor + 28], bytes[cursor + 29]]) as usize;
         let extra_len = u16::from_le_bytes([bytes[cursor + 30], bytes[cursor + 31]]) as usize;
         let comment_len = u16::from_le_bytes([bytes[cursor + 32], bytes[cursor + 33]]) as usize;
@@ -544,12 +554,6 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
         }
         let l_fn_len = u16::from_le_bytes([bytes[local_offset + 26], bytes[local_offset + 27]]) as usize;
         let l_ex_len = u16::from_le_bytes([bytes[local_offset + 28], bytes[local_offset + 29]]) as usize;
-        let comp_size = u32::from_le_bytes([
-            bytes[local_offset + 18],
-            bytes[local_offset + 19],
-            bytes[local_offset + 20],
-            bytes[local_offset + 21],
-        ]) as usize;
 
         let data_start = local_offset + 30 + l_fn_len + l_ex_len;
         if data_start + comp_size > bytes.len() {
