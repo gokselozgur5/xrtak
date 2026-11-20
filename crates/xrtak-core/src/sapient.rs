@@ -51,8 +51,9 @@ pub fn build_sapient_cot_xml(
         report.node_id, report.classification
     ));
 
+    let (time, stale) = crate::default_cot_timestamps();
     format!(
-        r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="m-g"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="4.0" le="4.0"/><detail><contact callsign="{callsign}"/><track course="{course:.1}" speed="{speed:.1}"/><remarks>{remarks}</remarks></detail></event>"#
+        r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="m-g" time="{time}" start="{time}" stale="{stale}"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae_m:.1}" ce="4.0" le="4.0"/><detail><contact callsign="{callsign}"/><track course="{course:.1}" speed="{speed:.1}"/><remarks>{remarks}</remarks></detail></event>"#
     )
 }
 
