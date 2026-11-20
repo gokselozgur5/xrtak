@@ -52,6 +52,17 @@ pub struct BallisticSolution {
     pub trajectory: Vec<TrajectoryPoint3d>,
 }
 
+#[allow(dead_code)]
+fn solve_time_of_flight(v_z: f64, dz: f64, g: f64) -> f64 {
+    let disc = v_z * v_z - 2.0 * g * dz;
+    if disc >= 0.0 {
+        let t = (v_z + disc.sqrt()) / g;
+        if t > 0.0 { t } else { (v_z - disc.sqrt()) / g }
+    } else {
+        v_z / g
+    }.max(0.5)
+}
+
 /// Compute 3D ballistic trajectory arc and verify crest clearance against DEM.
 pub fn compute_ballistic_trajectory(
     origin_enu: (f64, f64, f64),
