@@ -197,15 +197,7 @@ impl GridZoneDesignator {
             return Err(MgrsError::InvalidLongitude(lon_deg));
         }
 
-        let mut norm_lon = lon_deg;
-        while norm_lon < -180.0 {
-            norm_lon += 360.0;
-        }
-        while norm_lon >= 180.0 {
-            norm_lon -= 360.0;
-        }
-
-        let zone = (((norm_lon + 180.0) / 6.0).floor() as i32 + 1).clamp(1, 60) as u8;
+        let zone = crate::grid_convergence::utm_zone_for_lat_lon(lat_deg, lon_deg);
 
         let band = LATITUDE_BANDS
             .iter()
