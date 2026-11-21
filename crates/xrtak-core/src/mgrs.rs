@@ -441,9 +441,12 @@ impl UtmCoord {
                 - 3.0 * WGS84_E2.powi(2) / 64.0
                 - 5.0 * WGS84_E2.powi(3) / 256.0)
                 * phi
-                - (3.0 * WGS84_E2 / 8.0 + 3.0 * WGS84_E2.powi(2) / 32.0 + 45.0 * WGS84_E2.powi(3) / 1024.0)
+                - (3.0 * WGS84_E2 / 8.0
+                    + 3.0 * WGS84_E2.powi(2) / 32.0
+                    + 45.0 * WGS84_E2.powi(3) / 1024.0)
                     * (2.0 * phi).sin()
-                + (15.0 * WGS84_E2.powi(2) / 256.0 + 45.0 * WGS84_E2.powi(3) / 1024.0) * (4.0 * phi).sin()
+                + (15.0 * WGS84_E2.powi(2) / 256.0 + 45.0 * WGS84_E2.powi(3) / 1024.0)
+                    * (4.0 * phi).sin()
                 - (35.0 * WGS84_E2.powi(3) / 3072.0) * (6.0 * phi).sin());
 
         let easting = FALSE_EASTING
@@ -457,7 +460,8 @@ impl UtmCoord {
                 * tan_p
                 * (a.powi(2) / 2.0
                     + (5.0 - t + 9.0 * c + 4.0 * c * c) * a.powi(4) / 24.0
-                    + (61.0 - 58.0 * t + t * t + 600.0 * c - 330.0 * WGS84_EP2) * a.powi(6) / 720.0));
+                    + (61.0 - 58.0 * t + t * t + 600.0 * c - 330.0 * WGS84_EP2) * a.powi(6)
+                        / 720.0));
 
         let is_northern = lat_deg >= 0.0;
         if !is_northern {
@@ -511,7 +515,8 @@ impl UtmCoord {
         let lat_rad = phi1
             - (n1 * tan_p1 / r1)
                 * (d.powi(2) / 2.0
-                    - (5.0 + 3.0 * t1 + 10.0 * c1 - 4.0 * c1 * c1 - 9.0 * WGS84_EP2) * d.powi(4) / 24.0
+                    - (5.0 + 3.0 * t1 + 10.0 * c1 - 4.0 * c1 * c1 - 9.0 * WGS84_EP2) * d.powi(4)
+                        / 24.0
                     + (61.0 + 90.0 * t1 + 298.0 * c1 + 45.0 * t1 * t1
                         - 252.0 * WGS84_EP2
                         - 3.0 * c1 * c1)
@@ -566,10 +571,14 @@ impl MgrsCoord {
         precision: MgrsPrecision,
     ) -> Result<Self, MgrsError> {
         if easting >= 100_000 {
-            return Err(MgrsError::InvalidFormat(format!("easting {easting} >= 100,000")));
+            return Err(MgrsError::InvalidFormat(format!(
+                "easting {easting} >= 100,000"
+            )));
         }
         if northing >= 100_000 {
-            return Err(MgrsError::InvalidFormat(format!("northing {northing} >= 100,000")));
+            return Err(MgrsError::InvalidFormat(format!(
+                "northing {northing} >= 100,000"
+            )));
         }
         Ok(Self {
             gzd,
@@ -589,7 +598,9 @@ impl MgrsCoord {
             .collect();
 
         if clean.len() < 3 {
-            return Err(MgrsError::InvalidFormat(format!("input '{input}' is too short")));
+            return Err(MgrsError::InvalidFormat(format!(
+                "input '{input}' is too short"
+            )));
         }
 
         // Zone: 1 or 2 digits
@@ -601,9 +612,7 @@ impl MgrsCoord {
             return Err(MgrsError::InvalidFormat("missing zone digits".to_string()));
         };
 
-        let zone: u8 = zone_str
-            .parse()
-            .map_err(|_| MgrsError::InvalidUtmZone(0))?;
+        let zone: u8 = zone_str.parse().map_err(|_| MgrsError::InvalidUtmZone(0))?;
 
         if rem.is_empty() {
             return Err(MgrsError::InvalidFormat("missing latitude band".to_string()));
