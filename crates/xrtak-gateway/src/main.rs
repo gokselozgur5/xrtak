@@ -528,6 +528,19 @@ async fn handle_http_connection(
     let method = parts[0];
     let path = parts[1];
 
+    if is_state_changing(method, path) {
+        if let Some((code, err)) = check_request_auth(&req) {
+            let status = if code == 401 { "401 Unauthorized" } else { "403 Forbidden" };
+            let resp = format!(
+                "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                err.len(),
+                err
+            );
+            stream.write_all(resp.as_bytes()).await?;
+            return Ok(());
+        }
+    }
+
     if method == "OPTIONS" {
         let header = format!(
             "HTTP/1.1 204 No Content\r\n{CORS_HEADERS}Content-Length: 0\r\nConnection: close\r\n\r\n"
