@@ -7,7 +7,7 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
     build_laser_pointer_cot_xml, build_mapset_manifest, build_opord_bundle, compute_link_los,
-    compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
+    compute_viewshed_with_provider, escape_cot_attr, evaluate_mission_corridor, evaluate_rf_link,
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
     predict_entity_trajectory, predict_entity_trajectory_struct, resolve_tile_with_fallback,
@@ -330,15 +330,15 @@ fn load_persistent_pins(world: &mut TacticalWorld) {
 fn entity_to_cot_xml(ent: &TacticalEntity) -> String {
     format!(
         r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="5.0" le="5.0"/><detail><contact callsign="{callsign}"/><track course="{course:.1}" speed="{speed:.1}"/><remarks>{remarks}</remarks></detail></event>"#,
-        uid = ent.uid,
-        cot_type = ent.cot_type,
+        uid = escape_cot_attr(&ent.uid),
+        cot_type = escape_cot_attr(&ent.cot_type),
         lat = ent.lat,
         lon = ent.lon,
         hae = ent.hae_m,
-        callsign = ent.callsign,
+        callsign = escape_cot_attr(&ent.callsign),
         course = ent.course_deg,
         speed = ent.speed_mps,
-        remarks = ent.remarks
+        remarks = escape_cot_attr(&ent.remarks)
     )
 }
 
@@ -1442,8 +1442,10 @@ async fn handle_http_connection(
                 });
                 let xml = format!(
                     r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="5" le="5"/><detail><contact callsign="{callsign}"/><track course="0.0" speed="0.0"/><remarks>{remarks}</remarks></detail></event>"#,
-                    cot_type = spawn.cot_type,
-                    callsign = spawn.callsign
+                    uid = escape_cot_attr(&uid),
+                    cot_type = escape_cot_attr(&spawn.cot_type),
+                    callsign = escape_cot_attr(&spawn.callsign),
+                    remarks = escape_cot_attr(&remarks)
                 );
                 let r = guard.ingest_cot_xml(&xml, now_unix_ms());
                 if r.is_ok() {
