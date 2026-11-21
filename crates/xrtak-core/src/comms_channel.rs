@@ -491,8 +491,13 @@ mod tests {
     #[test]
     fn test_channel_lookup_methods() {
         let ch = RadioChannel::new(10, "Convoy-Net", 156_800_000, 25000, RadioMode::Fm);
-        let packet = CommsChannelPacket::new("PLAN-2", "BRAVO", "2026-11-16T10:00:00Z", "2026-11-16T11:00:00Z")
-            .add_channel(ch);
+        let packet = CommsChannelPacket::new(
+            "PLAN-2",
+            "BRAVO",
+            "2026-11-16T10:00:00Z",
+            "2026-11-16T11:00:00Z",
+        )
+        .add_channel(ch);
 
         assert!(packet.find_channel(10).is_some());
         assert!(packet.find_channel(99).is_none());
@@ -502,9 +507,15 @@ mod tests {
 
     #[test]
     fn test_xml_attribute_escaping() {
-        let ch = RadioChannel::new(1, "Ops & Intel <Air>", 450_000_000, 12500, RadioMode::NarrowbandFm)
-            .with_net_preset("Preset \"X\"")
-            .with_encryption("Type-1 & Suite-B");
+        let ch = RadioChannel::new(
+            1,
+            "Ops & Intel <Air>",
+            450_000_000,
+            12500,
+            RadioMode::NarrowbandFm,
+        )
+        .with_net_preset("Preset \"X\"")
+        .with_encryption("Type-1 & Suite-B");
 
         let packet = CommsChannelPacket::new("PLAN-ESC", "TOC <Leader>", "2026-11-16T10:00:00Z", "2026-11-16T11:00:00Z")
             .add_channel(ch);
