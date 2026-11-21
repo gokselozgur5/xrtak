@@ -73,3 +73,15 @@ fn resolve_clamps_zoom_and_caps_fallback() {
     assert_eq!(low.fallback_zoom, 5);
     assert_eq!(low.primary_url, low.fallback_url);
 }
+
+#[test]
+fn tms_conversion_does_not_panic_for_zoom_32() {
+    let outcome = std::panic::catch_unwind(|| TileCoord::from_tms(32, 0, 0));
+    assert!(outcome.is_ok(), "from_tms panicked");
+}
+
+#[test]
+fn parent_tile_does_not_panic_for_large_zoom_difference() {
+    let outcome = std::panic::catch_unwind(|| parent_tile_xy(1, 1, 40, 0));
+    assert_eq!(outcome.ok(), Some((0, 0, 0)));
+}
