@@ -125,19 +125,20 @@ impl GeofencePolygon {
         }
         if let Some(z) = point.z {
             if let Some(floor) = self.floor_m {
-                if z < floor { return false; }
+                if z < floor {
+                    return false;
+                }
             }
             if let Some(ceiling) = self.ceiling_m {
-                if z > ceiling { return false; }
+                if z > ceiling {
+                    return false;
+                }
             }
         }
         true
     }
     /// Filters tracks that breach the geofence perimeter.
-    pub fn find_breaching_tracks<'a>(
-        &self,
-        tracks: &'a [(String, GeofencePoint)],
-    ) -> Vec<&'a str> {
+    pub fn find_breaching_tracks<'a>(&self, tracks: &'a [(String, GeofencePoint)]) -> Vec<&'a str> {
         tracks
             .iter()
             .filter(|(_, pt)| self.contains_point(pt))
@@ -154,7 +155,10 @@ mod tests {
     fn test_degenerate_polygon() {
         let empty = GeofencePolygon::new("poly-0", "Empty", vec![]);
         assert!(!empty.contains_2d(0.0, 0.0));
-        let two_pts = vec![GeofencePoint::new_2d(0.0, 0.0), GeofencePoint::new_2d(1.0, 1.0)];
+        let two_pts = vec![
+            GeofencePoint::new_2d(0.0, 0.0),
+            GeofencePoint::new_2d(1.0, 1.0),
+        ];
         let poly2 = GeofencePolygon::new("poly-1", "TwoPts", two_pts);
         assert!(!poly2.contains_2d(0.5, 0.5));
     }
