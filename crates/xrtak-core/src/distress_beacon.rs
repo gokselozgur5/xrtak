@@ -159,6 +159,22 @@ impl SosFlags {
         }
         flags
     }
+
+    pub fn from_indicators(s: &str) -> Self {
+        let mut flags = Self::default();
+        for part in s.split([',', ';', '|']) {
+            match part.trim() {
+                "OFFICER_DOWN" => flags.officer_down = true,
+                "UNDER_FIRE" => flags.under_fire = true,
+                "MED_CRITICAL" => flags.medical_critical = true,
+                "TRAPPED" => flags.trapped = true,
+                "SILENT_ALARM" => flags.silent_alarm = true,
+                "RADIO_FAIL" => flags.radio_failure = true,
+                _ => {}
+            }
+        }
+        flags
+    }
 }
 
 /// Cursor-on-Target Emergency Beacon / 911 distress alert record.
@@ -335,8 +351,10 @@ impl DistressBeacon {
         let desc_esc = escape_xml(&self.description);
         let time_esc = escape_xml(&self.time_iso);
         let stale_esc = escape_xml(&self.stale_iso);
+        let severity_str = escape_xml(self.severity.as_str());
+        let flags_str = escape_xml(&self.sos_flags.active_indicators().join(","));
         let mut xml = format!(
-            "<event version=\"2.0\" uid=\"{uid_esc}\" type=\"{cot_type}\"              how=\"m-g\" time=\"{time_esc}\" start=\"{time_esc}\" stale=\"{stale_esc}\">             <point lat=\"{:.7}\" lon=\"{:.7}\" hae=\"{:.2}\" ce=\"{:.1}\" le=\"{:.1}\"/>             <detail>             <emergency cancel=\"{cancel_str}\" type=\"{alert_type_str}\">{callsign_esc}</emergency>             <contact callsign=\"{callsign_esc}\"/>",
+            "<event version=\"2.0\" uid=\"{uid_esc}\" type=\"{cot_type}\"              how=\"m-g\" time=\"{time_esc}\" start=\"{time_esc}\" stale=\"{stale_esc}\">             <point lat=\"{:.7}\" lon=\"{:.7}\" hae=\"{:.2}\" ce=\"{:.1}\" le=\"{:.1}\"/>             <detail>             <emergency cancel=\"{cancel_str}\" type=\"{alert_type_str}\" severity=\"{severity_str}\" sos_flags=\"{flags_str}\">{callsign_esc}</emergency>             <contact callsign=\"{callsign_esc}\"/>",
             self.lat, self.lon, self.hae, self.ce, self.le
         );
         if !self.description.is_empty() {
@@ -388,6 +406,8 @@ impl DistressBeacon {
         let mut callsign = None;
         let mut emergency_type = None;
         let mut is_cancelled = false;
+        let mut severity = None;
+        let mut sos_flags = None;
         let mut emergency_text = String::new();
         let mut remarks = String::new();
         let mut parent_uid = None;
@@ -440,6 +460,14 @@ impl DistressBeacon {
                                 b"type" => {
                                     let s = parse_str_attr(&a.value);
                                     emergency_type = Some(EmergencyType::from_str_type(&s));
+                                }
+                                b"severity" => {
+                                    let s = parse_str_attr(&a.value);
+                                    severity = Some(EmergencySeverity::from_str_severity(&s));
+                                }
+                                b"sos_flags" => {
+                                    let s = parse_str_attr(&a.value);
+                                    sos_flags = Some(SosFlags::from_indicators(&s));
                                 }
                                 _ => {}
                             }
@@ -499,6 +527,14 @@ impl DistressBeacon {
                                     let s = parse_str_attr(&a.value);
                                     emergency_type = Some(EmergencyType::from_str_type(&s));
                                 }
+                                b"severity" => {
+                                    let s = parse_str_attr(&a.value);
+                                    severity = Some(EmergencySeverity::from_str_severity(&s));
+                                }
+                                b"sos_flags" => {
+                                    let s = parse_str_attr(&a.value);
+                                    sos_flags = Some(SosFlags::from_indicators(&s));
+                                }
                                 _ => {}
                             }
                         }
@@ -557,8 +593,8 @@ impl DistressBeacon {
             callsign: cs,
             alert_type: emg_type,
             status,
-            severity: EmergencySeverity::Critical,
-            sos_flags: SosFlags::default(),
+            severity: severity.unwrap_or(EmergencySeverity::Critical),
+            sos_flags: sos_flags.unwrap_or_default(),
             lat,
             lon,
             hae,
