@@ -474,15 +474,20 @@ impl GeoChatThreader {
         let thread_id = if let Some(ref cid) = pkt.conversation_id {
             cid.clone()
         } else if let Some(ref pmid) = pkt.parent_message_id {
-            self.message_to_thread.get(pmid).cloned().unwrap_or_else(|| pmid.clone())
+            self.message_to_thread
+                .get(pmid)
+                .cloned()
+                .unwrap_or_else(|| pmid.clone())
         } else {
             pkt.chatroom.clone()
         };
 
-        self.message_to_thread.insert(pkt.message_id.clone(), thread_id.clone());
-        let thread = self.threads.entry(thread_id.clone()).or_insert_with(|| {
-            ConversationThread::new(&thread_id)
-        });
+        self.message_to_thread
+            .insert(pkt.message_id.clone(), thread_id.clone());
+        let thread = self
+            .threads
+            .entry(thread_id.clone())
+            .or_insert_with(|| ConversationThread::new(&thread_id));
         thread.add_message(pkt);
         thread_id
     }
@@ -557,20 +562,27 @@ mod tests {
             "MSG-9901",
             "Target location identified & verified.",
             "2026-11-16T12:00:00Z",
-        ).with_coordinates(34.123456, -118.654321, 150.0);
+        )
+        .with_coordinates(34.123456, -118.654321, 150.0);
 
         let xml = pkt.to_cot_xml();
         let parsed = GeoChatPacket::from_cot_xml(&xml).expect("roundtrip parse failed");
         assert_eq!(parsed.sender_uid, "UID-VIPER-1");
         assert_eq!(parsed.sender_callsign, "VIPER-1");
         assert_eq!(parsed.chatroom, "Alpha-Squad");
-        assert_eq!(parsed.message_text, "Target location identified & verified.");
+        assert_eq!(
+            parsed.message_text,
+            "Target location identified & verified."
+        );
         assert_eq!(parsed.lat, 34.123456);
     }
     #[test]
     fn test_xml_escaping_in_message() {
         let pkt = GeoChatPacket::new(
-            "UID-1", "LEAD", "HQ", "M-1",
+            "UID-1",
+            "LEAD",
+            "HQ",
+            "M-1",
             "Danger: <Enemy> & Alert!",
             "2026-11-16T12:00:00Z",
         );
