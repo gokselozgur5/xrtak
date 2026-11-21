@@ -200,8 +200,16 @@ impl HlzMarking {
             Self::PyrotechnicSignal
         } else if let Some(idx) = lower.find("smoke") {
             let rest = trimmed[idx + 5..].trim();
-            let col = rest.strip_prefix('(').and_then(|r| r.strip_suffix(')')).unwrap_or(rest).trim();
-            Self::Smoke(if col.is_empty() { trimmed.to_string() } else { col.to_string() })
+            let col = rest
+                .strip_prefix('(')
+                .and_then(|r| r.strip_suffix(')'))
+                .unwrap_or(rest)
+                .trim();
+            Self::Smoke(if col.is_empty() {
+                trimmed.to_string()
+            } else {
+                col.to_string()
+            })
         } else if lower == "none" || lower.is_empty() {
             Self::None
         } else {
