@@ -115,3 +115,23 @@ fn token_auth_rejects_missing_and_accepts_canonicalized() {
     let _ = gw.kill();
     let _ = gw.wait();
 }
+
+#[test]
+fn tak_tcp_addr_reconfiguration_replaces_prior_connection() {
+    let mock1 = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port1 = mock1.local_addr().unwrap().port();
+    let mock2 = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port2 = mock2.local_addr().unwrap().port();
+    let (gw, port) = start();
+    let b1 = format!(r#"{{"tak_tcp_addr":"127.0.0.1:{port1}"}}"#);
+    let _ = send(port, "POST", "/api/tak-config", &b1);
+    let (mut client1, _) = mock1.accept().unwrap();
+    let b2 = format!(r#"{{"tak_tcp_addr":"127.0.0.1:{port2}"}}"#);
+    let _ = send(port, "POST", "/api/tak-config", &b2);
+    let (_client2, _) = mock2.accept().unwrap();
+    let mut buf = [0u8; 16];
+    client1.set_read_timeout(Some(Duration::from_millis(1500))).unwrap();
+    let n = client1.read(&mut buf).unwrap_or(0);
+    assert_eq!(n, 0);
+    stop(gw);
+}
