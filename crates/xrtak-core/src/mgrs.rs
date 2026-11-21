@@ -702,7 +702,10 @@ impl MgrsCoord {
     pub fn to_spaced_string(&self) -> String {
         let p = self.precision.digits_per_coord();
         if p == 0 {
-            format!("{}{} {}{}", self.gzd.zone, self.gzd.band, self.square.col, self.square.row)
+            format!(
+                "{}{} {}{}",
+                self.gzd.zone, self.gzd.band, self.square.col, self.square.row
+            )
         } else {
             let divisor = 10u32.pow((5 - p) as u32);
             let e = self.easting / divisor;
@@ -826,7 +829,10 @@ mod tests {
         assert_eq!(MgrsPrecision::OneMeter.digits_per_coord(), 5);
         assert_eq!(MgrsPrecision::OneMeter.resolution_meters(), 1.0);
         assert_eq!(MgrsPrecision::HundredKilometers.digits_per_coord(), 0);
-        assert_eq!(MgrsPrecision::HundredKilometers.resolution_meters(), 100_000.0);
+        assert_eq!(
+            MgrsPrecision::HundredKilometers.resolution_meters(),
+            100_000.0
+        );
 
         assert_eq!(
             MgrsPrecision::from_digits_per_coord(3).expect("3 digits"),
@@ -839,7 +845,9 @@ mod tests {
     fn test_paris_eiffel_tower_precision() {
         // Eiffel Tower: ~48.8584°N, 2.2945°E -> 31U DQ 48251 11943
         let coord = GeodeticCoord::new(48.8584, 2.2945).expect("valid Paris coordinate");
-        let mgrs = coord.to_mgrs(MgrsPrecision::OneMeter).expect("MGRS converted");
+        let mgrs = coord
+            .to_mgrs(MgrsPrecision::OneMeter)
+            .expect("MGRS converted");
 
         assert_eq!(mgrs.gzd.zone, 31);
         assert_eq!(mgrs.gzd.band, 'U');
@@ -862,7 +870,9 @@ mod tests {
     fn test_washington_monument_precision() {
         // Washington Monument: 38.8895°N, -77.0353°W -> 18S UJ 23478 06483
         let coord = GeodeticCoord::new(38.8895, -77.0353).expect("valid DC coordinate");
-        let mgrs = coord.to_mgrs(MgrsPrecision::OneMeter).expect("MGRS converted");
+        let mgrs = coord
+            .to_mgrs(MgrsPrecision::OneMeter)
+            .expect("MGRS converted");
 
         assert_eq!(mgrs.gzd.zone, 18);
         assert_eq!(mgrs.gzd.band, 'S');
@@ -884,7 +894,9 @@ mod tests {
     fn test_sydney_opera_house_southern_hemisphere() {
         // Sydney Opera House: -33.8568°S, 151.2153°E -> 56H LH 34901 52289
         let coord = GeodeticCoord::new(-33.8568, 151.2153).expect("valid Sydney coordinate");
-        let mgrs = coord.to_mgrs(MgrsPrecision::OneMeter).expect("MGRS converted");
+        let mgrs = coord
+            .to_mgrs(MgrsPrecision::OneMeter)
+            .expect("MGRS converted");
 
         assert_eq!(mgrs.gzd.zone, 56);
         assert_eq!(mgrs.gzd.band, 'H');
@@ -899,7 +911,9 @@ mod tests {
     #[test]
     fn test_mgrs_bounding_box_and_precision_scaling() {
         let coord = GeodeticCoord::new(48.8584, 2.2945).expect("valid geodetic");
-        let mgrs_100m = coord.to_mgrs(MgrsPrecision::HundredMeters).expect("100m MGRS");
+        let mgrs_100m = coord
+            .to_mgrs(MgrsPrecision::HundredMeters)
+            .expect("100m MGRS");
         assert_eq!(mgrs_100m.to_compact_string().len(), 11); // 31UDQ + 3 digits + 3 digits
 
         let bbox = mgrs_100m.bounding_box().expect("bounding box calculated");
