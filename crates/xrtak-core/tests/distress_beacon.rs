@@ -60,3 +60,11 @@ fn cancel_and_reactivate_keep_stale_after_time() {
         beacon.stale_iso
     );
 }
+
+#[test]
+fn default_beacon_emits_current_time_not_stale_in_past() {
+    let b = DistressBeacon::new("B1", "CS", EmergencyType::Alert911, 34.0, -118.0);
+    let xml = b.to_cot_xml();
+    assert!(!xml.contains("2026-01-01T00:10:00Z"));
+    assert!(b.stale_iso.as_str() > "2026-11-01T00:00:00Z");
+}
