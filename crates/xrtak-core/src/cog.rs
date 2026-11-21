@@ -58,6 +58,14 @@ impl Endian {
         })
     }
 
+    fn i32(self, b: &[u8], off: usize) -> Option<i32> {
+        let s = b.get(off..off + 4)?;
+        Some(match self {
+            Self::Little => i32::from_le_bytes([s[0], s[1], s[2], s[3]]),
+            Self::Big => i32::from_be_bytes([s[0], s[1], s[2], s[3]]),
+        })
+    }
+
     fn f32(self, b: &[u8], off: usize) -> Option<f32> {
         let s = b.get(off..off + 4)?;
         Some(match self {
