@@ -122,13 +122,16 @@ impl MissionPackageArchive {
     }
 
     pub fn generate_manifest_xml(&self) -> String {
-        let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
+        let mut out =
+            String::from("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
         out.push_str("<MissionPackageManifest version=\"2\">\n");
         out.push_str("  <Configuration>\n");
         let uid = escape_xml_attr(&self.uid);
         let name = escape_xml_attr(&self.name);
         out.push_str(&format!("    <Parameter name=\"uid\" value=\"{uid}\"/>\n"));
-        out.push_str(&format!("    <Parameter name=\"name\" value=\"{name}\"/>\n"));
+        out.push_str(&format!(
+            "    <Parameter name=\"name\" value=\"{name}\"/>\n"
+        ));
         out.push_str(&format!(
             "    <Parameter name=\"onReceiveDelete\" value=\"{}\"/>\n",
             self.on_receive_delete
@@ -142,7 +145,9 @@ impl MissionPackageArchive {
                 entry.ignore
             ));
             let mime = escape_xml_attr(&entry.content_type);
-            out.push_str(&format!("      <Parameter name=\"contentType\" value=\"{mime}\"/>\n"));
+            out.push_str(&format!(
+                "      <Parameter name=\"contentType\" value=\"{mime}\"/>\n"
+            ));
             out.push_str(&format!(
                 "      <Parameter name=\"sha256\" value=\"{}\"/>\n",
                 entry.sha256_hex
@@ -160,7 +165,10 @@ impl MissionPackageArchive {
         }
         let manifest_xml = self.generate_manifest_xml();
         let mut zip_files = Vec::with_capacity(self.entries.len() + 1);
-        zip_files.push(("MANIFEST/manifest.xml".to_string(), manifest_xml.into_bytes()));
+        zip_files.push((
+            "MANIFEST/manifest.xml".to_string(),
+            manifest_xml.into_bytes(),
+        ));
         for e in &self.entries {
             zip_files.push((e.zip_entry.clone(), e.data.clone()));
         }
@@ -178,8 +186,10 @@ impl MissionPackageArchive {
         let manifest_str = std::str::from_utf8(manifest_bytes)
             .map_err(|e| MissionPackageError::XmlError(e.to_string()))?;
 
-        let uid = extract_manifest_param(manifest_str, "uid").unwrap_or_else(|| "TAK-PKG".to_string());
-        let name = extract_manifest_param(manifest_str, "name").unwrap_or_else(|| "Package".to_string());
+        let uid =
+            extract_manifest_param(manifest_str, "uid").unwrap_or_else(|| "TAK-PKG".to_string());
+        let name =
+            extract_manifest_param(manifest_str, "name").unwrap_or_else(|| "Package".to_string());
         let on_receive_delete = extract_manifest_param(manifest_str, "onReceiveDelete")
             .map(|v| v == "true")
             .unwrap_or(false);
@@ -492,7 +502,9 @@ pub fn create_zip_archive(files: &[(String, Vec<u8>)]) -> Vec<u8> {
 
 pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, MissionPackageError> {
     if bytes.len() < 22 {
-        return Err(MissionPackageError::InvalidZipArchive("file too short".into()));
+        return Err(MissionPackageError::InvalidZipArchive(
+            "file too short".into(),
+        ));
     }
 
     let mut eocd_pos = None;
@@ -502,7 +514,8 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
             break;
         }
     }
-    let eocd = eocd_pos.ok_or_else(|| MissionPackageError::InvalidZipArchive("EOCD missing".into()))?;
+    let eocd =
+        eocd_pos.ok_or_else(|| MissionPackageError::InvalidZipArchive("EOCD missing".into()))?;
 
     let entry_count = u16::from_le_bytes([bytes[eocd + 10], bytes[eocd + 11]]) as usize;
     let cd_offset = u32::from_le_bytes([
