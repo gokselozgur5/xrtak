@@ -68,8 +68,8 @@ pub const COL_SETS: [[char; 8]; 3] = [
 
 /// 100,000-meter square row letters (repeating every 2,000,000 meters).
 pub const ROW_LETTERS: [char; 20] = [
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T',
-    'U', 'V',
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U',
+    'V',
 ];
 
 /// Errors during MGRS / UTM / Geodetic conversion and parsing.
@@ -97,7 +97,9 @@ impl std::fmt::Display for MgrsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidLatitude(lat) => write!(f, "latitude {lat} out of range [-80.0, 84.0]"),
-            Self::InvalidLongitude(lon) => write!(f, "longitude {lon} out of range [-180.0, 180.0]"),
+            Self::InvalidLongitude(lon) => {
+                write!(f, "longitude {lon} out of range [-180.0, 180.0]")
+            }
             Self::InvalidUtmZone(z) => write!(f, "invalid UTM zone {z}, must be 1..=60"),
             Self::InvalidLatitudeBand(b) => write!(f, "invalid MGRS latitude band '{b}'"),
             Self::Invalid100kSquare(sq) => write!(f, "invalid 100k square '{sq}'"),
@@ -182,7 +184,10 @@ impl GridZoneDesignator {
             return Err(MgrsError::InvalidUtmZone(zone));
         }
         let b = band.to_ascii_uppercase();
-        if !LATITUDE_BANDS.iter().any(|(band_char, _, _)| *band_char == b) {
+        if !LATITUDE_BANDS
+            .iter()
+            .any(|(band_char, _, _)| *band_char == b)
+        {
             return Err(MgrsError::InvalidLatitudeBand(band));
         }
         Ok(Self { zone, band: b })
@@ -201,7 +206,9 @@ impl GridZoneDesignator {
 
         let band = LATITUDE_BANDS
             .iter()
-            .find(|(_, min, max)| lat_deg >= *min && (lat_deg < *max || (lat_deg == 84.0 && *max == 84.0)))
+            .find(|(_, min, max)| {
+                lat_deg >= *min && (lat_deg < *max || (lat_deg == 84.0 && *max == 84.0))
+            })
             .map(|(b, _, _)| *b)
             .unwrap_or('X');
 
@@ -267,7 +274,8 @@ impl HundredKmSquare {
         let col = COL_SETS[set_idx][(col_num - 1) as usize];
 
         let row_offset = if zone % 2 == 0 { 5 } else { 0 };
-        let row_num = (((northing / 100_000.0).floor() as isize + row_offset).rem_euclid(20)) as usize;
+        let row_num =
+            (((northing / 100_000.0).floor() as isize + row_offset).rem_euclid(20)) as usize;
         let row = ROW_LETTERS[row_num];
 
         Self::new(col, row)
@@ -324,7 +332,8 @@ impl HundredKmSquare {
             }
         }
 
-        let base_northing = best_northing.ok_or(MgrsError::NorthingOutOfRange(base_northing_mod))?;
+        let base_northing =
+            best_northing.ok_or(MgrsError::NorthingOutOfRange(base_northing_mod))?;
         Ok((base_easting, base_northing))
     }
 }
@@ -427,7 +436,10 @@ impl UtmCoord {
 
         // Meridional arc distance M from equator.
         let m = WGS84_A
-            * ((1.0 - WGS84_E2 / 4.0 - 3.0 * WGS84_E2.powi(2) / 64.0 - 5.0 * WGS84_E2.powi(3) / 256.0)
+            * ((1.0
+                - WGS84_E2 / 4.0
+                - 3.0 * WGS84_E2.powi(2) / 64.0
+                - 5.0 * WGS84_E2.powi(3) / 256.0)
                 * phi
                 - (3.0 * WGS84_E2 / 8.0 + 3.0 * WGS84_E2.powi(2) / 32.0 + 45.0 * WGS84_E2.powi(3) / 1024.0)
                     * (2.0 * phi).sin()
