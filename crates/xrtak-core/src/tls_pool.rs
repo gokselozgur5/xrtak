@@ -472,8 +472,12 @@ impl TlsConnectionPool {
     pub fn remove_endpoint(&mut self, endpoint: &str) {
         self.config.server_endpoints.retain(|e| e != endpoint);
         for conn in &mut self.connections {
-            if conn.endpoint == endpoint && conn.state == ConnectionState::Idle {
-                conn.state = ConnectionState::Closed;
+            if conn.endpoint == endpoint {
+                if conn.state == ConnectionState::Idle {
+                    conn.state = ConnectionState::Closed;
+                } else if conn.state == ConnectionState::Active {
+                    conn.state = ConnectionState::Draining;
+                }
             }
         }
     }
