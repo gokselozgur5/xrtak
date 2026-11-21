@@ -54,8 +54,12 @@ fn cas_uid_with_ampersand_survives_round_trip() {
 
 #[test]
 fn cas_time_is_escaped_in_event_attributes() {
-    let brief = CasNineLine::new("CAS-1", "WARRIOR 21")
-        .with_time("2026-11-16T09:00:00Z\" uid=\"SPOOFED");
+    let brief =
+        CasNineLine::new("CAS-1", "WARRIOR 21").with_time("2026-11-16T09:00:00Z\" uid=\"SPOOFED");
     let xml = brief.to_cot_xml();
-    assert!(!xml.contains("uid=\"SPOOFED\""), "attribute injected: {}", &xml[..160]);
+    assert!(
+        !xml.contains("uid=\"SPOOFED\""),
+        "attribute injected: {}",
+        &xml[..160]
+    );
 }
