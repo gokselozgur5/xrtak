@@ -2,6 +2,7 @@
 //!
 //! Complies with REQ-OPO-01..02 and ICD-22 for operational order synthesis.
 
+use crate::mission_manifest::escape_xml_attr;
 use serde::{Deserialize, Serialize};
 
 /// Lightweight tactical entity snapshot for operational order summaries.
@@ -38,7 +39,7 @@ pub fn generate_kml_tactical_scene(
     kml.push_str("  <Document>\n");
     kml.push_str(&format!(
         "    <name>XR-TAK Tactical Scene: {}</name>\n",
-        scene_name
+        escape_xml_attr(scene_name)
     ));
     kml.push_str(&format!(
         "    <description>Exported from XR-TAK Sand Table at origin {:.5}N, {:.5}E, {:.1}m</description>\n",
@@ -47,10 +48,14 @@ pub fn generate_kml_tactical_scene(
 
     for u in units {
         kml.push_str("    <Placemark>\n");
-        kml.push_str(&format!("      <name>{}</name>\n", u.callsign));
+        kml.push_str(&format!(
+            "      <name>{}</name>\n",
+            escape_xml_attr(&u.callsign)
+        ));
         kml.push_str(&format!(
             "      <description>Type: {} | Affiliation: {}</description>\n",
-            u.cot_type, u.affiliation
+            escape_xml_attr(&u.cot_type),
+            escape_xml_attr(&u.affiliation)
         ));
         kml.push_str("      <Point>\n");
         kml.push_str("        <altitudeMode>absolute</altitudeMode>\n");
