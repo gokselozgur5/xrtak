@@ -418,7 +418,16 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
                         }
                         _ => {}
                     }
-                    points.push(pt);
+                }
+
+                let mut pt = TrackPoint::new(lat, lon, hae);
+                if let Some(t) = time_ms {
+                    pt = pt.with_time(t);
+                }
+                if let (Some(s), Some(c)) = (speed, course) {
+                    pt = pt.with_kinematics(s, c);
+                }
+                points.push(pt);
             }
 
             Ok(Event::Eof) => break,
