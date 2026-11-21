@@ -135,9 +135,21 @@ fn unescape_xml(s: &str) -> String {
 
 fn format_cas_detail_xml(b: &CasNineLine) -> String {
     let (cs, rem) = (escape_xml(&b.jtac_callsign), escape_xml(&b.remarks));
-    let (l1, l2, l3) = (escape_xml(&b.line1_ip_bp), escape_xml(&b.line2_heading), escape_xml(&b.line3_distance));
-    let (l4, l5, l6) = (escape_xml(&b.line4_elevation), escape_xml(&b.line5_description), escape_xml(&b.line6_location));
-    let (l7, l8, l9) = (escape_xml(&b.line7_mark_type), escape_xml(&b.line8_friendlies), escape_xml(&b.line9_egress));
+    let (l1, l2, l3) = (
+        escape_xml(&b.line1_ip_bp),
+        escape_xml(&b.line2_heading),
+        escape_xml(&b.line3_distance),
+    );
+    let (l4, l5, l6) = (
+        escape_xml(&b.line4_elevation),
+        escape_xml(&b.line5_description),
+        escape_xml(&b.line6_location),
+    );
+    let (l7, l8, l9) = (
+        escape_xml(&b.line7_mark_type),
+        escape_xml(&b.line8_friendlies),
+        escape_xml(&b.line9_egress),
+    );
     format!(
         "<detail><contact callsign=\"{cs}\"/>\
 <cas9line line1=\"{l1}\" line2=\"{l2}\" line3=\"{l3}\" line4=\"{l4}\" line5=\"{l5}\" line6=\"{l6}\" line7=\"{l7}\" line8=\"{l8}\" line9=\"{l9}\" remarks=\"{rem}\">\
@@ -237,8 +249,12 @@ fn apply_text_to_field(tag: CasTag, text: &str, b: &mut CasNineLine) {
 fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, name: &[u8]) {
     for a in e.attributes().flatten() {
         if name == b"event" {
-            if a.key.as_ref() == b"uid" { b.cot_uid = unescape_xml(&String::from_utf8_lossy(&a.value)); }
-            if a.key.as_ref() == b"time" { b.time_iso = unescape_xml(&String::from_utf8_lossy(&a.value)); }
+            if a.key.as_ref() == b"uid" {
+                b.cot_uid = unescape_xml(&String::from_utf8_lossy(&a.value));
+            }
+            if a.key.as_ref() == b"time" {
+                b.time_iso = unescape_xml(&String::from_utf8_lossy(&a.value));
+            }
         } else if name == b"point" {
             match a.key.as_ref() {
                 b"lat" => b.lat = parse_f64(&a.value).unwrap_or(0.0),
