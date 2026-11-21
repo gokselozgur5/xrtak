@@ -11,10 +11,7 @@ impl HudTelemetryElement {
         };
         format!(
             "[{}] BAT: {:.0}% | LINK: {} ({:.0}ms)",
-            self.callsign,
-            self.battery.percentage,
-            conn_str,
-            self.connection.ping_latency_ms
+            self.callsign, self.battery.percentage, conn_str, self.connection.ping_latency_ms
         )
     }
 }
