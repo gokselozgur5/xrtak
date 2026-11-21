@@ -462,10 +462,6 @@ impl RouteNavTracker {
         hdg: Option<f64>,
     ) -> Option<RouteNavStatus> {
         let (from, to) = self.current_leg_endpoints()?;
-        let pm = PositionMetrics::compute(lat, lon, alt, from, to);
-        let to_id = to.id.clone();
-        let cue = hdg.and_then(|h| Self::generate_turn_cue(pm.dist_m, pm.brg_deg, h));
-        let rem_d = self.remaining_subsequent_distance_m();
         let h_dist = haversine_distance_m(lat, lon, to.lat, to.lon);
         let atd = along_track_distance_m(lat, lon, from.lat, from.lon, to.lat, to.lon);
         let leg_d = haversine_distance_m(from.lat, from.lon, to.lat, to.lon);
@@ -474,6 +470,11 @@ impl RouteNavTracker {
         } else {
             self.advance_if_reached(h_dist);
         }
+        let (from, to) = self.current_leg_endpoints()?;
+        let pm = PositionMetrics::compute(lat, lon, alt, from, to);
+        let to_id = to.id.clone();
+        let cue = hdg.and_then(|h| Self::generate_turn_cue(pm.dist_m, pm.brg_deg, h));
+        let rem_d = self.remaining_subsequent_distance_m();
         Some(RouteNavStatus::from_metrics(
             self.current_leg_index,
             &to_id,
