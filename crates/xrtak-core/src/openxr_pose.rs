@@ -291,8 +291,11 @@ mod tests {
 
     #[test]
     fn test_adapter_pose_transformation() {
-        let adapter = OpenXrPoseAdapter::new("OP-1", "VIPER", "Quest 3")
-            .with_table_transform((10.0, 1.5, 20.0), 0.0, 1.0);
+        let adapter = OpenXrPoseAdapter::new("OP-1", "VIPER", "Quest 3").with_table_transform(
+            (10.0, 1.5, 20.0),
+            0.0,
+            1.0,
+        );
         let sample = OpenXrPoseSample {
             position: PosePosition::new(0.0, 0.0, 0.0),
             orientation: PoseOrientation::IDENTITY,
