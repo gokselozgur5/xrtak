@@ -168,13 +168,25 @@ pub fn compute_raster_extent(
         }
     }
     for &y in &ys[1..] {
-        if y < min_y { min_y = y; }
-        if y > max_y { max_y = y; }
+        if y < min_y {
+            min_y = y;
+        }
+        if y > max_y {
+            max_y = y;
+        }
     }
 
     Ok(GeoRasterExtent {
-        min_x, max_x, min_y, max_y, width_px, height_px,
-        top_left, top_right, bottom_left, bottom_right,
+        min_x,
+        max_x,
+        min_y,
+        max_y,
+        width_px,
+        height_px,
+        top_left,
+        top_right,
+        bottom_left,
+        bottom_right,
     })
 }
 
@@ -268,10 +280,7 @@ mod tests {
     #[test]
     fn test_geotiff_model_transform_4x4() {
         let matrix = [
-            1.5, 0.0, 0.0, 32.0,
-            0.0, -1.5, 0.0, 40.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
+            1.5, 0.0, 0.0, 32.0, 0.0, -1.5, 0.0, 40.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         ];
         let tf = parse_geotiff_model_transform_4x4(&matrix).expect("valid 4x4 matrix");
         assert_eq!(tf.a, 1.5);
