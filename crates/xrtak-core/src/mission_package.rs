@@ -195,11 +195,22 @@ impl MissionPackageArchive {
             .unwrap_or(false);
 
         let mut archive = Self::new(uid, name).with_on_receive_delete(on_receive_delete);
+        let hashes = extract_content_hashes(manifest_str);
         for (fname, data) in files {
             if fname == "MANIFEST/manifest.xml" || fname == "manifest.xml" {
                 continue;
             }
-            archive.add_file(fname, data, "application/octet-stream", false);
+            let hash = hashes
+                .iter()
+                .find(|(n, _)| n == &fname)
+                .map(|(_, h)| h.clone());
+            archive.entries.push(MissionPackageEntry {
+                zip_entry: fname,
+                sha256_hex: hash.unwrap_or_default(),
+                data,
+                content_type: "application/octet-stream".to_string(),
+                ignore: false,
+            });
         }
         Ok(archive)
     }
@@ -269,7 +280,12 @@ impl MissionPackageArchive {
             }
         }
 
-        let is_valid = failed_entries.is_empty();
+        let unverified = files.iter().any(|(f, _)| {
+            f != "MANIFEST/manifest.xml"
+                && f != "manifest.xml"
+                && !expected_hashes.iter().any(|(n, _)| n == f)
+        });
+        let is_valid = failed_entries.is_empty() && !unverified;
         Ok(VerificationReport {
             package_uid: uid,
             package_name: name,
