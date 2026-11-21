@@ -2,6 +2,24 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Error types for mesh fragmentation and reassembly.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MeshFragError {
+    PayloadTooLarge(usize),
+    TooManyFragments(usize),
+}
+
+impl std::fmt::Display for MeshFragError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PayloadTooLarge(len) => write!(f, "payload length {len} exceeds u32::MAX"),
+            Self::TooManyFragments(count) => write!(f, "fragment count {count} exceeds u16::MAX"),
+        }
+    }
+}
+
+impl std::error::Error for MeshFragError {}
+
 /// Header length in bytes for serialized wire packet.
 pub const MESH_FRAGMENT_HEADER_SIZE: usize = 12;
 
@@ -67,10 +85,17 @@ impl MeshFragment {
 }
 
 /// Splits payload into fragment chunks bounded by max_chunk_size.
-pub fn fragment_payload(msg_id: u32, payload: &[u8], max_chunk: usize) -> Vec<MeshFragment> {
+pub fn fragment_payload(
+    msg_id: u32,
+    payload: &[u8],
+    max_chunk: usize,
+) -> Result<Vec<MeshFragment>, MeshFragError> {
+    if payload.len() > u32::MAX as usize {
+        return Err(MeshFragError::PayloadTooLarge(payload.len()));
+    }
     let chunk_sz = max_chunk.clamp(1, MAX_FRAGMENT_PAYLOAD);
     if payload.is_empty() {
-        return vec![MeshFragment {
+        return Ok(vec![MeshFragment {
             header: FragmentHeader {
                 message_id: msg_id,
                 fragment_index: 0,
@@ -78,17 +103,24 @@ pub fn fragment_payload(msg_id: u32, payload: &[u8], max_chunk: usize) -> Vec<Me
                 total_length: 0,
             },
             payload: Vec::new(),
-        }];
+        }]);
     }
     split_payload(msg_id, payload, chunk_sz)
 }
 
-fn split_payload(msg_id: u32, payload: &[u8], chunk_sz: usize) -> Vec<MeshFragment> {
-    let chunks: Vec<&[u8]> = payload.chunks(chunk_sz).collect();
-    let total = chunks.len() as u16;
+fn split_payload(
+    msg_id: u32,
+    payload: &[u8],
+    chunk_sz: usize,
+) -> Result<Vec<MeshFragment>, MeshFragError> {
+    let num_chunks = payload.len().div_ceil(chunk_sz);
+    if num_chunks > u16::MAX as usize {
+        return Err(MeshFragError::TooManyFragments(num_chunks));
+    }
+    let total = num_chunks as u16;
     let len = payload.len() as u32;
-    chunks
-        .into_iter()
+    Ok(payload
+        .chunks(chunk_sz)
         .enumerate()
         .map(|(idx, chunk)| MeshFragment {
             header: FragmentHeader {
@@ -99,7 +131,7 @@ fn split_payload(msg_id: u32, payload: &[u8], chunk_sz: usize) -> Vec<MeshFragme
             },
             payload: chunk.to_vec(),
         })
-        .collect()
+        .collect())
 }
 
 use std::collections::HashMap;
