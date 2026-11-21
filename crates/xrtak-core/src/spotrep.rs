@@ -275,8 +275,12 @@ fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut SpotReport, name
                     .map(|v| v.into_owned())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned());
             }
-            if a.key.as_ref() == b"type" { r.cot_type = String::from_utf8_lossy(&a.value).into_owned(); }
-            if a.key.as_ref() == b"time" { r.time_iso = String::from_utf8_lossy(&a.value).into_owned(); }
+            if a.key.as_ref() == b"type" {
+                r.cot_type = String::from_utf8_lossy(&a.value).into_owned();
+            }
+            if a.key.as_ref() == b"time" {
+                r.time_iso = String::from_utf8_lossy(&a.value).into_owned();
+            }
         } else if name == b"point" {
             match a.key.as_ref() {
                 b"lat" => r.lat = parse_f64(&a.value).unwrap_or(0.0),
@@ -299,8 +303,12 @@ fn handle_start_empty(
     flags: &mut (bool, bool, bool),
 ) -> SpotrepTag {
     let name = e.name().into_inner();
-    if name == b"event" { flags.0 = true; }
-    if name == b"point" { flags.1 = true; }
+    if name == b"event" {
+        flags.0 = true;
+    }
+    if name == b"point" {
+        flags.1 = true;
+    }
     if name == b"spotrep" || name == b"salute" {
         flags.2 = true;
         parse_spotrep_attributes(e, res);
