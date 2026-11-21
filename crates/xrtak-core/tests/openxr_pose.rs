@@ -1,12 +1,14 @@
 use xrtak_core::openxr_pose::{
-    OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition,
-    PoseTrackingFlags,
+    OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition, PoseTrackingFlags,
 };
 
 #[test]
 fn test_integration_openxr_pose_transformation_and_gaze() {
-    let adapter = OpenXrPoseAdapter::new("OP-TEST", "EAGLE-1", "Quest 3")
-        .with_table_transform((50.0, 2.0, 100.0), 90.0, 2.0);
+    let adapter = OpenXrPoseAdapter::new("OP-TEST", "EAGLE-1", "Quest 3").with_table_transform(
+        (50.0, 2.0, 100.0),
+        90.0,
+        2.0,
+    );
 
     let sample = OpenXrPoseSample {
         position: PosePosition::new(1.0, 0.5, -2.0),
