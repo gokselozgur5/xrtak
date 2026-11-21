@@ -483,38 +483,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn read_http_request(
     stream: &mut TcpStream,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-    let mut buf = vec![0u8; 65536];
-    let mut n = stream.read(&mut buf).await?;
-    if n == 0 {
-        return Ok(Vec::new());
-    }
-    if let Some(hdr_end) = buf[..n].windows(4).position(|w| w == b"\r\n\r\n") {
-        let body_start = hdr_end + 4;
-        let hdr_str = String::from_utf8_lossy(&buf[..hdr_end]);
-        let content_len: usize = hdr_str
-            .lines()
-            .find_map(|l| {
-                let lower = l.to_ascii_lowercase();
-                if lower.starts_with("content-length:") {
-                    l.split(':').nth(1)?.trim().parse().ok()
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(0);
-        let total_needed = body_start + content_len;
-        if total_needed > buf.len() && total_needed <= 4 * 1024 * 1024 {
-            buf.resize(total_needed, 0);
+    let mut buf = Vec::with_capacity(4096);
+    let mut chunk = [0u8; 8192];
+    let (hdr_end, content_len) = loop {
+        if let Some(pos) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+            let cl = String::from_utf8_lossy(&buf[..pos])
+                .lines()
+                .find_map(|l| {
+                    let (k, v) = l.split_once(':')?;
+                    if k.trim().eq_ignore_ascii_case("content-length") {
+                        v.trim().parse::<usize>().ok()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(0);
+            break (pos, cl);
         }
-        while n < total_needed && n < buf.len() {
-            let r = stream.read(&mut buf[n..total_needed]).await?;
-            if r == 0 {
-                break;
-            }
-            n += r;
+        let r = stream.read(&mut chunk).await?;
+        if r == 0 {
+            return Ok(buf);
         }
+        buf.extend_from_slice(&chunk[..r]);
+    };
+
+    let total_needed = hdr_end + 4 + content_len;
+    while buf.len() < total_needed {
+        let r = stream.read(&mut chunk).await?;
+        if r == 0 {
+            break;
+        }
+        buf.extend_from_slice(&chunk[..r]);
     }
-    buf.truncate(n);
     Ok(buf)
 }
 
