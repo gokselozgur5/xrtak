@@ -687,15 +687,9 @@ mod tests {
         let mut flags = SosFlags::new();
         flags.officer_down = true;
         flags.under_fire = true;
-        let b = DistressBeacon::new(
-            "BEACON-03",
-            "BRAVO-3",
-            EmergencyType::Ambush,
-            35.0,
-            -115.0,
-        )
-        .with_sos_flags(flags)
-        .with_description("Pinned down in ravine");
+        let b = DistressBeacon::new("BEACON-03", "BRAVO-3", EmergencyType::Ambush, 35.0, -115.0)
+            .with_sos_flags(flags)
+            .with_description("Pinned down in ravine");
         let voice = b.format_distress_voice_readback();
         assert!(voice.contains("MAYDAY"));
         assert!(voice.contains("OFFICER_DOWN"));
@@ -725,13 +719,8 @@ mod tests {
     }
     #[test]
     fn test_cancelled_xml_and_errors() {
-        let mut b = DistressBeacon::new(
-            "BEACON-05",
-            "DELTA-5",
-            EmergencyType::Sniper,
-            33.0,
-            -112.0,
-        );
+        let mut b =
+            DistressBeacon::new("BEACON-05", "DELTA-5", EmergencyType::Sniper, 33.0, -112.0);
         b.cancel("2026-01-01T02:00:00Z");
         let xml = b.to_cot_xml();
         assert!(xml.contains("cancel=\"true\""));
