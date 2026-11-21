@@ -271,16 +271,19 @@ impl CommsChannelPacket {
                         for a in e.attributes().flatten() {
                             match a.key.as_ref() {
                                 b"uid" => {
-                                    uid = a
-                                        .unescape_value()
-                                        .map(|v| v.into_owned())
-                                        .unwrap_or_else(|_| {
-                                            String::from_utf8_lossy(&a.value).into_owned()
-                                        })
+                                    uid = a.unescape_value().map(|v| v.into_owned()).unwrap_or_else(
+                                        |_| String::from_utf8_lossy(&a.value).into_owned(),
+                                    )
                                 }
-                                b"type" => cot_type = String::from_utf8_lossy(&a.value).into_owned(),
-                                b"time" => time_str = String::from_utf8_lossy(&a.value).into_owned(),
-                                b"stale" => stale_str = String::from_utf8_lossy(&a.value).into_owned(),
+                                b"type" => {
+                                    cot_type = String::from_utf8_lossy(&a.value).into_owned()
+                                }
+                                b"time" => {
+                                    time_str = String::from_utf8_lossy(&a.value).into_owned()
+                                }
+                                b"stale" => {
+                                    stale_str = String::from_utf8_lossy(&a.value).into_owned()
+                                }
                                 _ => {}
                             }
                         }
@@ -325,7 +328,9 @@ impl CommsChannelPacket {
                         for a in e.attributes().flatten() {
                             match a.key.as_ref() {
                                 b"id" => ch_id = parse_u32(&a.value).unwrap_or(0),
-                                b"name" => ch_name = unescape_xml(&String::from_utf8_lossy(&a.value)),
+                                b"name" => {
+                                    ch_name = unescape_xml(&String::from_utf8_lossy(&a.value))
+                                }
                                 b"frequency" => ch_freq = parse_u64(&a.value).unwrap_or(0),
                                 b"bandwidth" => ch_bw = parse_u32(&a.value).unwrap_or(25000),
                                 b"mode" => {
@@ -334,7 +339,8 @@ impl CommsChannelPacket {
                                 }
                                 b"power" => ch_pwr = parse_f64(&a.value),
                                 b"netPreset" => {
-                                    ch_preset = Some(unescape_xml(&String::from_utf8_lossy(&a.value)))
+                                    ch_preset =
+                                        Some(unescape_xml(&String::from_utf8_lossy(&a.value)))
                                 }
                                 b"encryption" => {
                                     ch_enc = Some(unescape_xml(&String::from_utf8_lossy(&a.value)))
