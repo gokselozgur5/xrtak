@@ -163,7 +163,11 @@ pub fn encode_point_geom(
     }
 
     let is_3d = elev.is_some();
-    let cap = if is_3d { 8 + 1 + 4 + 24 } else { 8 + 1 + 4 + 16 };
+    let cap = if is_3d {
+        8 + 1 + 4 + 24
+    } else {
+        8 + 1 + 4 + 16
+    };
     let mut blob = Vec::with_capacity(cap);
 
     blob.push(0x47);
@@ -208,7 +212,11 @@ pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPack
         1 => 32,
         2 | 3 => 48,
         4 => 64,
-        _ => return Err(GeoPackageError::InvalidGeometryBlob("invalid envelope indicator".into())),
+        _ => {
+            return Err(GeoPackageError::InvalidGeometryBlob(
+                "invalid envelope indicator".into(),
+            ))
+        }
     };
 
     let wkb_offset = 8 + envelope_len;
@@ -535,6 +543,9 @@ mod tests {
         let invalid = vec![0x00, 0x01, 0x02];
         assert!(decode_point_geom(&invalid).is_err());
         let bad_magic = vec![0x41, 0x42, 0x00, 0x01, 0x06, 0x11, 0x00, 0x00];
-        assert_eq!(decode_point_geom(&bad_magic), Err(GeoPackageError::InvalidMagic));
+        assert_eq!(
+            decode_point_geom(&bad_magic),
+            Err(GeoPackageError::InvalidMagic)
+        );
     }
 }
