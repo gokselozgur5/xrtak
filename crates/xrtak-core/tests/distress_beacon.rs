@@ -68,3 +68,15 @@ fn default_beacon_emits_current_time_not_stale_in_past() {
     assert!(!xml.contains("2026-01-01T00:10:00Z"));
     assert!(b.stale_iso.as_str() > "2026-11-01T00:00:00Z");
 }
+
+#[test]
+fn severity_and_sos_flags_survive_cot_round_trip() {
+    let mut flags = SosFlags::new();
+    flags.officer_down = true;
+    let beacon = DistressBeacon::new("B-1", "EAGLE-6", EmergencyType::Medical, 34.0, -118.0)
+        .with_severity(EmergencySeverity::Low)
+        .with_sos_flags(flags);
+    let parsed = DistressBeacon::from_cot_xml(&beacon.to_cot_xml()).expect("round trip");
+    assert_eq!(parsed.severity, EmergencySeverity::Low);
+    assert_eq!(parsed.sos_flags, flags);
+}
