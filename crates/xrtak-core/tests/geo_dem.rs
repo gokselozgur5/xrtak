@@ -2,6 +2,15 @@ use xrtak_core::geo::*;
 use xrtak_core::GeoOrigin;
 
 #[test]
+fn first_hgt_row_is_the_northern_edge() {
+    let samples: [i16; 4] = [300, 300, 100, 100];
+    let bytes: Vec<u8> = samples.iter().flat_map(|v| v.to_be_bytes()).collect();
+    let dem = RasterDemProvider::from_srtm_i16_be("N39E032", 2, 2, 500.0, &bytes).expect("valid grid");
+    assert_eq!(dem.sample_relief_m(0.0, 500.0), 200.0, "northern edge");
+    assert_eq!(dem.sample_relief_m(0.0, -500.0), 0.0, "southern edge");
+}
+
+#[test]
 fn new_rejects_invalid_grids() {
     assert!(RasterDemProvider::new("a", 1, 2, 10.0, vec![0.0; 2]).is_err());
     assert!(RasterDemProvider::new("a", 2, 2, 0.0, vec![0.0; 4]).is_err());
