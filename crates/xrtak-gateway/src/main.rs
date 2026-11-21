@@ -455,6 +455,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Raw CoT UDP Input  : udp://{udp_cot_addr}");
     println!("==============================================================");
 
+    let tak_client = Arc::new(Mutex::new(None::<tokio::task::JoinHandle<()>>));
     let conn_limit = Arc::new(Semaphore::new(256));
     loop {
         let (stream, _) = match listener.accept().await {
@@ -471,9 +472,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let world_http = Arc::clone(&world);
         let tx_http = tx.clone();
+        let tak_client_http = Arc::clone(&tak_client);
         tokio::spawn(async move {
             let _permit = permit;
-            let _ = handle_http_connection(stream, world_http, tx_http).await;
+            let _ = handle_http_connection(stream, world_http, tx_http, tak_client_http).await;
         });
     }
 }
@@ -520,6 +522,7 @@ async fn handle_http_connection(
     mut stream: TcpStream,
     world: Arc<Mutex<TacticalWorld>>,
     tx: broadcast::Sender<String>,
+    tak_client: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let buf =
         match tokio::time::timeout(Duration::from_secs(10), read_http_request(&mut stream)).await {
@@ -1678,7 +1681,7 @@ async fn handle_http_connection(
             if let Some(addr) = cfg.tak_tcp_addr.clone() {
                 if !addr.trim().is_empty() {
                     let world_tcp = Arc::clone(&world);
-                    tokio::spawn(async move {
+                    let handle = tokio::spawn(async move {
                         if let Ok(mut tcp) = TcpStream::connect(addr.trim()).await {
                             println!("[XR-TAK] Connected to Live TAK Server TCP stream at {addr}");
                             let mut buf = vec![0u8; 65535];
@@ -1697,6 +1700,11 @@ async fn handle_http_connection(
                             }
                         }
                     });
+                    let mut lock = tak_client.lock().unwrap_or_else(PoisonError::into_inner);
+                    if let Some(prev) = lock.take() {
+                        prev.abort();
+                    }
+                    *lock = Some(handle);
                 }
             }
             let resp = {
