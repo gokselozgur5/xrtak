@@ -84,6 +84,48 @@ fn is_state_changing(method: &str, path: &str) -> bool {
         )
 }
 
+fn check_request_auth(req: &str) -> Option<(u16, &'static str)> {
+    let mut origin_hdr: Option<&str> = None;
+    let mut host_hdr: Option<&str> = None;
+    let mut token_hdr: Option<&str> = None;
+    for line in req.lines().skip(1) {
+        if line.is_empty() {
+            break;
+        }
+        if let Some((name, val)) = line.split_once(':') {
+            let name = name.trim();
+            let val = val.trim();
+            if name.eq_ignore_ascii_case("origin") {
+                origin_hdr = Some(val);
+            } else if name.eq_ignore_ascii_case("host") {
+                host_hdr = Some(val);
+            } else if name.eq_ignore_ascii_case("x-xrtak-token") {
+                token_hdr = Some(val);
+            }
+        }
+    }
+    if let Some(origin) = origin_hdr {
+        let orig = normalize_host(origin);
+        let host = normalize_host(host_hdr.unwrap_or(""));
+        if !orig.eq_ignore_ascii_case(host) {
+            return Some((403, r#"{"error":"forbidden_cross_origin"}"#));
+        }
+    }
+    if let Ok(expected) = std::env::var("XRTAK_TOKEN") {
+        match token_hdr {
+            Some(provided) => {
+                if !constant_time_eq(provided.as_bytes(), expected.as_bytes()) {
+                    return Some((401, r#"{"error":"unauthorized"}"#));
+                }
+            }
+            None => {
+                return Some((401, r#"{"error":"unauthorized"}"#));
+            }
+        }
+    }
+    None
+}
+
 /// Entity id, (east, north, up) position, speed in m/s and course in degrees.
 type DeconflictEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
 
