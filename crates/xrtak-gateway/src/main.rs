@@ -23,7 +23,7 @@ mod fires_dto;
 mod medevac_dto;
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
-const CORS_HEADERS: &str = "Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nAccess-Control-Allow-Private-Network: true\r\n";
+const CORS_HEADERS: &str = "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n";
 
 fn json_ok_header(len: usize) -> String {
     format!(
