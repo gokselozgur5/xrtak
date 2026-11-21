@@ -141,10 +141,10 @@ pub fn predict_entity_trajectory(
             let cep_radius_m = compute_cep_radius_m(initial_ce_m, speed_mps, dt_sec);
             TrackPredictionPoint {
                 dt_sec,
-                east_m,
-                north_m,
-                up_m,
-                cep_radius_m,
+                east_m: (east_m * 100.0).round() / 100.0,
+                north_m: (north_m * 100.0).round() / 100.0,
+                up_m: (up_m * 100.0).round() / 100.0,
+                cep_radius_m: (cep_radius_m * 100.0).round() / 100.0,
             }
         })
         .collect();
