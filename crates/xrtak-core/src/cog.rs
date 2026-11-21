@@ -58,6 +58,14 @@ impl Endian {
         })
     }
 
+    fn i32(self, b: &[u8], off: usize) -> Option<i32> {
+        let s = b.get(off..off + 4)?;
+        Some(match self {
+            Self::Little => i32::from_le_bytes([s[0], s[1], s[2], s[3]]),
+            Self::Big => i32::from_be_bytes([s[0], s[1], s[2], s[3]]),
+        })
+    }
+
     fn f32(self, b: &[u8], off: usize) -> Option<f32> {
         let s = b.get(off..off + 4)?;
         Some(match self {
@@ -222,12 +230,12 @@ pub fn ingest_geotiff_dsm(
         Endian::Big
     };
 
-    let bytes_per_sample = match meta.bits_per_sample {
-        32 => 4usize,
-        16 => 2usize,
-        other => {
+    let bytes_per_sample = match (meta.bits_per_sample, meta.sample_format) {
+        (32, 1 | 2 | 3) => 4usize,
+        (16, 1 | 2) => 2usize,
+        (b, s) => {
             return Err(format!(
-                "Unsupported GeoTIFF DSM BitsPerSample={other} (expected 16 or 32)"
+                "Unsupported GeoTIFF DSM BitsPerSample={b} SampleFormat={s}"
             ))
         }
     };
@@ -254,10 +262,13 @@ pub fn ingest_geotiff_dsm(
 
     for idx in 0..total_pixels {
         let off = first_offset + idx * bytes_per_sample;
-        let val = if bytes_per_sample == 4 {
-            endian.f32(bytes, off).unwrap_or(f32::NAN) as f64
-        } else {
-            endian.i16(bytes, off).unwrap_or(-32768) as f64
+        let val = match (meta.bits_per_sample, meta.sample_format) {
+            (32, 3) => endian.f32(bytes, off).unwrap_or(f32::NAN) as f64,
+            (32, 2) => endian.i32(bytes, off).unwrap_or(i32::MIN) as f64,
+            (32, 1) => endian.u32(bytes, off).unwrap_or(0) as f64,
+            (16, 2) => endian.i16(bytes, off).unwrap_or(i16::MIN) as f64,
+            (16, 1) => endian.u16(bytes, off).unwrap_or(0) as f64,
+            _ => f64::NAN,
         };
         if val.is_finite() && val > -9999.0 {
             min_asl_m = min_asl_m.min(val);
