@@ -290,9 +290,19 @@ impl GeoChatPacket {
             return Err(GeoChatError::MissingSenderUid);
         }
         Ok(Self {
-            sender_uid, sender_callsign, chatroom, message_id,
-            message_text, timestamp_iso, lat, lon, hae, parent_group,
-            conversation_id, parent_message_id, recipients,
+            sender_uid,
+            sender_callsign,
+            chatroom,
+            message_id,
+            message_text,
+            timestamp_iso,
+            lat,
+            lon,
+            hae,
+            parent_group,
+            conversation_id,
+            parent_message_id,
+            recipients,
         })
     }
 }
@@ -377,11 +387,17 @@ impl GeoChatBuilder {
     }
     pub fn build(self) -> Result<GeoChatPacket, GeoChatError> {
         let sender_uid = self.sender_uid.ok_or(GeoChatError::MissingSenderUid)?;
-        let sender_callsign = self.sender_callsign.unwrap_or_else(|| "UNKNOWN".to_string());
-        let chatroom = self.chatroom.unwrap_or_else(|| "All Chat Rooms".to_string());
+        let sender_callsign = self
+            .sender_callsign
+            .unwrap_or_else(|| "UNKNOWN".to_string());
+        let chatroom = self
+            .chatroom
+            .unwrap_or_else(|| "All Chat Rooms".to_string());
         let message_id = self.message_id.ok_or(GeoChatError::MissingMessageId)?;
         let message_text = self.message_text.unwrap_or_default();
-        let timestamp_iso = self.timestamp_iso.unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string());
+        let timestamp_iso = self
+            .timestamp_iso
+            .unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string());
 
         Ok(GeoChatPacket {
             sender_uid,
