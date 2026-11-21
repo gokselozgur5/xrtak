@@ -261,16 +261,18 @@ impl RasterDemProvider {
         if !min_valid.is_finite() {
             min_valid = 0.0;
         }
-        let heights_m: Vec<f64> = raw
-            .into_iter()
-            .map(|v| {
-                if v.is_finite() {
+        let mut heights_m = Vec::with_capacity(width * height);
+        for row in (0..height).rev() {
+            let start = row * width;
+            for &v in &raw[start..start + width] {
+                let h = if v.is_finite() {
                     (v - min_valid).max(0.0)
                 } else {
                     0.0
-                }
-            })
-            .collect();
+                };
+                heights_m.push(h);
+            }
+        }
         Self::new(name, width, height, extent_m, heights_m)
     }
 
@@ -402,10 +404,10 @@ mod tests {
         }
         let dem = RasterDemProvider::from_srtm_i16_be("srtm-tile", 2, 2, 500.0, &bytes)
             .expect("valid SRTM buffer");
-        assert!((dem.sample_relief_m(-500.0, -500.0) - 0.0).abs() < 1e-6);
-        assert!((dem.sample_relief_m(500.0, -500.0) - 50.0).abs() < 1e-6);
+        assert!((dem.sample_relief_m(-500.0, 500.0) - 0.0).abs() < 1e-6);
+        assert!((dem.sample_relief_m(500.0, 500.0) - 50.0).abs() < 1e-6);
         // Void sample (-32768) replaced with 0.0
-        assert!((dem.sample_relief_m(500.0, 500.0) - 0.0).abs() < 1e-6);
+        assert!((dem.sample_relief_m(500.0, -500.0) - 0.0).abs() < 1e-6);
 
         let alpine = RasterDemProvider::from_preset("alpine", 1500.0, 32);
         assert!(alpine.sample_relief_m(0.0, 0.0) > 20.0);
@@ -439,6 +441,6 @@ mod tests {
         let raw: [i16; 4] = [200, 300, 100, 400];
         let bytes: Vec<u8> = raw.iter().flat_map(|v| v.to_be_bytes()).collect();
         let dem = RasterDemProvider::from_srtm_i16_be("chunks", 2, 2, 100.0, &bytes).unwrap();
-        assert_eq!(dem.heights_m, vec![100.0, 200.0, 0.0, 300.0]);
+        assert_eq!(dem.heights_m, vec![0.0, 300.0, 100.0, 200.0]);
     }
 }

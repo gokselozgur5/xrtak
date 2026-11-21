@@ -5,7 +5,8 @@ use xrtak_core::GeoOrigin;
 fn first_hgt_row_is_the_northern_edge() {
     let samples: [i16; 4] = [300, 300, 100, 100];
     let bytes: Vec<u8> = samples.iter().flat_map(|v| v.to_be_bytes()).collect();
-    let dem = RasterDemProvider::from_srtm_i16_be("N39E032", 2, 2, 500.0, &bytes).expect("valid grid");
+    let dem =
+        RasterDemProvider::from_srtm_i16_be("N39E032", 2, 2, 500.0, &bytes).expect("valid grid");
     assert_eq!(dem.sample_relief_m(0.0, 500.0), 200.0, "northern edge");
     assert_eq!(dem.sample_relief_m(0.0, -500.0), 0.0, "southern edge");
 }
@@ -29,7 +30,7 @@ fn srtm_normalizes_to_minimum_and_zeroes_voids() {
     let raw: [i16; 4] = [100, 120, -32768, 110];
     let bytes: Vec<u8> = raw.iter().flat_map(|v| v.to_be_bytes()).collect();
     let dem = RasterDemProvider::from_srtm_i16_be("s", 2, 2, 50.0, &bytes).unwrap();
-    assert_eq!(dem.heights_m, vec![0.0, 20.0, 0.0, 10.0]);
+    assert_eq!(dem.heights_m, vec![0.0, 10.0, 0.0, 20.0]);
     assert!(RasterDemProvider::from_srtm_i16_be("s", 2, 2, 50.0, &bytes[..6]).is_err());
 }
 
