@@ -609,10 +609,15 @@ fn cot_time_attr_ms(xml: &str, name: &str) -> Option<u64> {
         return None;
     }
     let (y, m) = (n[0] - (n[1] <= 2) as i64, n[1]);
-    let (era, doy) = (y.div_euclid(400), (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + n[2] - 1);
+    let (era, doy) = (
+        y.div_euclid(400),
+        (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + n[2] - 1,
+    );
     let yoe = y - era * 400;
     let days = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468;
-    u64::try_from(((days * 24 + n[3]) * 60 + n[4]) * 60 + n[5]).ok().map(|s| s * 1000)
+    u64::try_from(((days * 24 + n[3]) * 60 + n[4]) * 60 + n[5])
+        .ok()
+        .map(|s| s * 1000)
 }
 
 /// State manager holding simulated tactical units, SPI gimbal locks, and live external CoT tracks.
