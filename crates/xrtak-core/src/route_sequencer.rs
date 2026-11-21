@@ -62,7 +62,14 @@ pub fn cross_track_error_m(
 }
 
 /// Along-track distance in meters from start waypoint A toward B for point P.
-pub fn along_track_distance_m(p_lat: f64, p_lon: f64, a_lat: f64, a_lon: f64, b_lat: f64, b_lon: f64) -> f64 {
+pub fn along_track_distance_m(
+    p_lat: f64,
+    p_lon: f64,
+    a_lat: f64,
+    a_lon: f64,
+    b_lat: f64,
+    b_lon: f64,
+) -> f64 {
     let d13 = haversine_distance_m(a_lat, a_lon, p_lat, p_lon) / EARTH_RADIUS_M;
     let d_xt = cross_track_error_m(p_lat, p_lon, a_lat, a_lon, b_lat, b_lon) / EARTH_RADIUS_M;
     let at = (d13.cos() / d_xt.cos()).acos();
@@ -71,7 +78,11 @@ pub fn along_track_distance_m(p_lat: f64, p_lon: f64, a_lat: f64, a_lon: f64, b_
     } else {
         let brg13 = initial_bearing_deg(a_lat, a_lon, p_lat, p_lon).to_radians();
         let brg12 = initial_bearing_deg(a_lat, a_lon, b_lat, b_lon).to_radians();
-        let sign = if (brg13 - brg12).cos() < 0.0 { -1.0 } else { 1.0 };
+        let sign = if (brg13 - brg12).cos() < 0.0 {
+            -1.0
+        } else {
+            1.0
+        };
         sign * at * EARTH_RADIUS_M
     }
 }
@@ -166,7 +177,9 @@ pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
         let curr = &plan.waypoints[i];
 
         let h_dist = haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon);
-        let s_dist = slant_distance_3d_m(prev.lat, prev.lon, prev.hae_m, curr.lat, curr.lon, curr.hae_m);
+        let s_dist = slant_distance_3d_m(
+            prev.lat, prev.lon, prev.hae_m, curr.lat, curr.lon, curr.hae_m,
+        );
         let brg = initial_bearing_deg(prev.lat, prev.lon, curr.lat, curr.lon);
 
         let spd = curr.planned_speed_mps.unwrap_or(default_spd).max(0.1);
@@ -191,7 +204,8 @@ pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
             total_leg_time_sec: (leg_time * 10.0).round() / 10.0,
             cumulative_dist_m: (cum_dist * 10.0).round() / 10.0,
             cumulative_ete_sec: (cum_time * 10.0).round() / 10.0,
-            eta_epoch_sec: ((plan.start_time_epoch_sec + cum_time - loiter_time) * 10.0).round() / 10.0,
+            eta_epoch_sec: ((plan.start_time_epoch_sec + cum_time - loiter_time) * 10.0).round()
+                / 10.0,
         });
     }
 
@@ -200,7 +214,8 @@ pub fn sequence_route_plan(plan: &RoutePlan) -> SequencedRouteResult {
         callsign: plan.callsign.clone(),
         total_distance_m: (cum_dist * 10.0).round() / 10.0,
         total_duration_sec: (cum_time * 10.0).round() / 10.0,
-        estimated_completion_epoch_sec: ((plan.start_time_epoch_sec + cum_time) * 10.0).round() / 10.0,
+        estimated_completion_epoch_sec: ((plan.start_time_epoch_sec + cum_time) * 10.0).round()
+            / 10.0,
         legs,
     }
 }
