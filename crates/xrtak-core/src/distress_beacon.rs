@@ -605,14 +605,32 @@ fn format_iso_secs(total_secs: i64) -> String {
         year += 1;
     }
     let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-    let dim = [31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let dim = [
+        31,
+        if leap { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     let mut month = 1usize;
     for &d in &dim {
-        if days < d { break; }
+        if days < d {
+            break;
+        }
         days -= d;
         month += 1;
     }
-    format!("{year:04}-{month:02}-{:02}T{hour:02}:{min:02}:{sec:02}Z", days + 1)
+    format!(
+        "{year:04}-{month:02}-{:02}T{hour:02}:{min:02}:{sec:02}Z",
+        days + 1
+    )
 }
 
 fn refresh_stale_iso(old_time: &str, old_stale: &str, new_time: &str) -> String {
