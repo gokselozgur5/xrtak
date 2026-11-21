@@ -306,14 +306,20 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
                     kml.push_str("    <Placemark>\n");
                     kml.push_str(&format!("      <name>{esc_cs} Start</name>\n"));
                     kml.push_str("      <Point>\n");
-                    kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", first.lon, first.lat, first.hae_m));
+                    kml.push_str(&format!(
+                        "        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n",
+                        first.lon, first.lat, first.hae_m
+                    ));
                     kml.push_str("      </Point>\n    </Placemark>\n");
                 }
                 if let Some(last) = track.points.last() {
                     kml.push_str("    <Placemark>\n");
                     kml.push_str(&format!("      <name>{esc_cs} Current</name>\n"));
                     kml.push_str("      <Point>\n");
-                    kml.push_str(&format!("        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n", last.lon, last.lat, last.hae_m));
+                    kml.push_str(&format!(
+                        "        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n",
+                        last.lon, last.lat, last.hae_m
+                    ));
                     kml.push_str("      </Point>\n    </Placemark>\n");
                 }
             }
