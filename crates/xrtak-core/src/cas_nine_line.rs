@@ -12,6 +12,7 @@ pub enum CasNineLineError {
     MissingEventTag,
     MissingPointTag,
     MissingCasTag,
+    InvalidCoordinate(String),
 }
 
 impl fmt::Display for CasNineLineError {
@@ -21,6 +22,7 @@ impl fmt::Display for CasNineLineError {
             Self::MissingEventTag => write!(f, "Missing event tag"),
             Self::MissingPointTag => write!(f, "Missing point tag"),
             Self::MissingCasTag => write!(f, "Missing cas9line tag"),
+            Self::InvalidCoordinate(e) => write!(f, "Invalid coordinate: {e}"),
         }
     }
 }
@@ -246,7 +248,17 @@ fn apply_text_to_field(tag: CasTag, text: &str, b: &mut CasNineLine) {
     }
 }
 
-fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, name: &[u8]) {
+fn parse_coord(val: &[u8], min: f64, max: f64) -> Result<f64, CasNineLineError> {
+    parse_f64(val)
+        .filter(|v| v.is_finite() && (min..=max).contains(v))
+        .ok_or_else(|| CasNineLineError::InvalidCoordinate("invalid coord".into()))
+}
+
+fn parse_event_point(
+    e: &quick_xml::events::BytesStart,
+    b: &mut CasNineLine,
+    name: &[u8],
+) -> Result<(), CasNineLineError> {
     for a in e.attributes().flatten() {
         if name == b"event" {
             if a.key.as_ref() == b"uid" {
@@ -257,22 +269,23 @@ fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, nam
             }
         } else if name == b"point" {
             match a.key.as_ref() {
-                b"lat" => b.lat = parse_f64(&a.value).unwrap_or(0.0),
-                b"lon" => b.lon = parse_f64(&a.value).unwrap_or(0.0),
-                b"hae" => b.hae = parse_f64(&a.value).unwrap_or(0.0),
+                b"lat" => b.lat = parse_coord(&a.value, -90.0, 90.0)?,
+                b"lon" => b.lon = parse_coord(&a.value, -180.0, 180.0)?,
+                b"hae" => b.hae = parse_coord(&a.value, f64::MIN, f64::MAX)?,
                 _ => {}
             }
         } else if name == b"contact" && a.key.as_ref() == b"callsign" {
             b.jtac_callsign = unescape_xml(&String::from_utf8_lossy(&a.value));
         }
     }
+    Ok(())
 }
 
 fn handle_start_empty(
     e: &quick_xml::events::BytesStart,
     res: &mut CasNineLine,
     flags: &mut (bool, bool, bool),
-) -> CasTag {
+) -> Result<CasTag, CasNineLineError> {
     let name = e.name().into_inner();
     if name == b"event" {
         flags.0 = true;
@@ -284,8 +297,8 @@ fn handle_start_empty(
         flags.2 = true;
         parse_cas_attributes(e, res);
     }
-    parse_event_point(e, res, name);
-    match_tag(name)
+    parse_event_point(e, res, name)?;
+    Ok(match_tag(name))
 }
 
 fn run_parser_loop(
@@ -297,7 +310,7 @@ fn run_parser_loop(
     loop {
         match reader.read_event() {
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
-                tag = handle_start_empty(e, res, &mut flags)
+                tag = handle_start_empty(e, res, &mut flags)?
             }
             Ok(Event::Text(ref e)) => {
                 apply_text_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res)
