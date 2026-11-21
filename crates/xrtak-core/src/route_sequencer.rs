@@ -257,7 +257,14 @@ pub fn evaluate_route_progress(
 
     let dist_to_next = haversine_distance_m(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
     let brg_to_next = initial_bearing_deg(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
-    let xte = cross_track_error_m(cur_lat, cur_lon, from_wp.lat, from_wp.lon, to_wp.lat, to_wp.lon);
+    let xte = cross_track_error_m(
+        cur_lat,
+        cur_lon,
+        from_wp.lat,
+        from_wp.lon,
+        to_wp.lat,
+        to_wp.lon,
+    );
 
     let spd = if cur_speed_mps > 0.5 {
         cur_speed_mps
@@ -375,7 +382,9 @@ mod tests {
     fn test_route_sequencing_and_eta() {
         let wps = vec![
             RouteWaypoint::new("ALPHA", 34.0, -118.0, 100.0),
-            RouteWaypoint::new("BRAVO", 34.0, -117.9, 100.0).with_speed(20.0).with_loiter(60.0),
+            RouteWaypoint::new("BRAVO", 34.0, -117.9, 100.0)
+                .with_speed(20.0)
+                .with_loiter(60.0),
             RouteWaypoint::new("CHARLIE", 34.1, -117.9, 200.0).with_speed(25.0),
         ];
 
@@ -416,7 +425,8 @@ mod tests {
         assert!(!prog.has_reached_waypoint);
         assert!(prog.distance_to_next_m > 9_000.0);
 
-        let prog_arrived = evaluate_route_progress(&plan, &seq, 0, 0.0, 0.1, 10.0, 2000.0, 50.0).unwrap();
+        let prog_arrived =
+            evaluate_route_progress(&plan, &seq, 0, 0.0, 0.1, 10.0, 2000.0, 50.0).unwrap();
         assert!(prog_arrived.has_reached_waypoint);
     }
 
