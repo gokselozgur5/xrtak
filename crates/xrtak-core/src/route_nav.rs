@@ -55,12 +55,27 @@ pub fn cross_track_error_m(
 }
 
 /// Along-track distance in meters from start waypoint A toward B for point P.
-pub fn along_track_distance_m(plat: f64, plon: f64, alat: f64, alon: f64, blat: f64, blon: f64) -> f64 {
+pub fn along_track_distance_m(
+    plat: f64,
+    plon: f64,
+    alat: f64,
+    alon: f64,
+    blat: f64,
+    blon: f64,
+) -> f64 {
     let d13 = haversine_distance_m(alat, alon, plat, plon) / EARTH_RADIUS_M;
     let xtd = cross_track_error_m(plat, plon, alat, alon, blat, blon) / EARTH_RADIUS_M;
     let atd = (d13.cos() / xtd.cos()).clamp(-1.0, 1.0).acos() * EARTH_RADIUS_M;
-    let diff = (initial_bearing_deg(alat, alon, plat, plon) - initial_bearing_deg(alat, alon, blat, blon) + 180.0) % 360.0 - 180.0;
-    if diff.abs() > 90.0 { -atd } else { atd }
+    let diff = (initial_bearing_deg(alat, alon, plat, plon)
+        - initial_bearing_deg(alat, alon, blat, blon)
+        + 180.0)
+        % 360.0
+        - 180.0;
+    if diff.abs() > 90.0 {
+        -atd
+    } else {
+        atd
+    }
 }
 
 /// Tactical waypoint classification.
@@ -454,7 +469,11 @@ impl RouteNavTracker {
         let h_dist = haversine_distance_m(lat, lon, to.lat, to.lon);
         let atd = along_track_distance_m(lat, lon, from.lat, from.lon, to.lat, to.lon);
         let leg_d = haversine_distance_m(from.lat, from.lon, to.lat, to.lon);
-        if atd >= leg_d { self.advance(); } else { self.advance_if_reached(h_dist); }
+        if atd >= leg_d {
+            self.advance();
+        } else {
+            self.advance_if_reached(h_dist);
+        }
         Some(RouteNavStatus::from_metrics(
             self.current_leg_index,
             &to_id,
