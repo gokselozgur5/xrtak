@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
     build_laser_pointer_cot_xml, build_mapset_manifest, build_opord_bundle, compute_link_los,
     compute_viewshed_with_provider, evaluate_mission_corridor, evaluate_rf_link,
@@ -373,11 +373,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Raw CoT UDP Input  : udp://{udp_cot_addr}");
     println!("==============================================================");
 
+    let conn_limit = Arc::new(Semaphore::new(256));
     loop {
-        let (stream, _) = listener.accept().await?;
+        let (stream, _) = match listener.accept().await {
+            Ok(conn) => conn,
+            Err(e) => {
+                eprintln!("[gateway] accept error: {e}");
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                continue;
+            }
+        };
+        let permit = match conn_limit.clone().try_acquire_owned() {
+            Ok(p) => p,
+            Err(_) => continue,
+        };
         let world_http = Arc::clone(&world);
         let tx_http = tx.clone();
         tokio::spawn(async move {
+            let _permit = permit;
             let _ = handle_http_connection(stream, world_http, tx_http).await;
         });
     }
@@ -389,7 +402,7 @@ async fn handle_http_connection(
     tx: broadcast::Sender<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut buf = vec![0u8; 65536];
-    let mut n = stream.read(&mut buf).await?;
+    let mut n = tokio::time::timeout(Duration::from_secs(10), stream.read(&mut buf)).await??;
     if n == 0 {
         return Ok(());
     }
