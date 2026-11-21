@@ -96,6 +96,19 @@ class ThreadingHTTPSServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
+    def __init__(self, server_address, RequestHandlerClass, ssl_context):
+        super().__init__(server_address, RequestHandlerClass)
+        self.ssl_context = ssl_context
+
+    def finish_request(self, sock, client_address):
+        sock.settimeout(5.0)
+        try:
+            sock = self.ssl_context.wrap_socket(sock, server_side=True)
+        except (ssl.SSLError, OSError):
+            sock.close()
+            return
+        super().finish_request(sock, client_address)
+
 
 class ReverseProxyHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -192,8 +205,7 @@ def main():
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(certfile=CERT_PATH, keyfile=KEY_PATH)
 
-    httpd = ThreadingHTTPSServer(("0.0.0.0", HTTPS_PORT), ReverseProxyHandler)
-    httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+    httpd = ThreadingHTTPSServer(("0.0.0.0", HTTPS_PORT), ReverseProxyHandler, ctx)
     print(
         f"[xrtak-https] Quest 3 WebXR HTTPS Passthrough Gateway listening on https://{lan_ip}:{HTTPS_PORT} -> http://{UPSTREAM_HOST}:{UPSTREAM_PORT}",
         flush=True,
