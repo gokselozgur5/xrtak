@@ -245,7 +245,10 @@ pub fn smooth_trajectory(
     config: Option<TrackSmootherConfig>,
 ) -> Vec<SmoothedTrackState> {
     let mut smoother = TrackSmoother::new(config.unwrap_or_default());
-    observations.iter().map(|obs| smoother.update(obs)).collect()
+    observations
+        .iter()
+        .map(|obs| smoother.update(obs))
+        .collect()
 }
 
 #[cfg(test)]
@@ -309,6 +312,8 @@ mod tests {
         }
         let states = smooth_trajectory(&obs, None);
         assert_eq!(states.len(), 15);
-        assert!(states.last().unwrap().course_deg > 80.0 && states.last().unwrap().course_deg < 100.0);
+        assert!(
+            states.last().unwrap().course_deg > 80.0 && states.last().unwrap().course_deg < 100.0
+        );
     }
 }
