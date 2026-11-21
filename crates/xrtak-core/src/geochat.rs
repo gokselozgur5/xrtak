@@ -87,7 +87,11 @@ impl GeoChatPacket {
         self
     }
 
-    pub fn with_conversation(mut self, conv_id: impl Into<String>, parent_id: Option<String>) -> Self {
+    pub fn with_conversation(
+        mut self,
+        conv_id: impl Into<String>,
+        parent_id: Option<String>,
+    ) -> Self {
         self.conversation_id = Some(conv_id.into());
         self.parent_message_id = parent_id;
         self
@@ -145,8 +149,12 @@ impl GeoChatPacket {
         grp_tag.push_str("/>");
         out.push_str(&grp_tag);
         out.push_str("</__chat>");
-        out.push_str(&format!("<link uid=\"{uid}\" type=\"a-f-G-U-C\" relation=\"p-p\"/>"));
-        out.push_str(&format!("<remarks source=\"BAO.F.ATAK.{uid}\" to=\"{room}\" time=\"{t}\">{msg}</remarks>"));
+        out.push_str(&format!(
+            "<link uid=\"{uid}\" type=\"a-f-G-U-C\" relation=\"p-p\"/>"
+        ));
+        out.push_str(&format!(
+            "<remarks source=\"BAO.F.ATAK.{uid}\" to=\"{room}\" time=\"{t}\">{msg}</remarks>"
+        ));
         out.push_str("</detail></event>");
         out
     }
