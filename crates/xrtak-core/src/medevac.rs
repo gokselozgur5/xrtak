@@ -431,16 +431,22 @@ impl CotMedevacBuilder {
     }
 
     fn validate_coordinates(&self) -> Result<(), MedevacError> {
-        if self.lat < -90.0 || self.lat > 90.0 {
+        if !self.lat.is_finite() || !(-90.0..=90.0).contains(&self.lat) {
             return Err(MedevacError::InvalidCoordinate(format!(
                 "Latitude {} out of [-90, 90]",
                 self.lat
             )));
         }
-        if self.lon < -180.0 || self.lon > 180.0 {
+        if !self.lon.is_finite() || !(-180.0..=180.0).contains(&self.lon) {
             return Err(MedevacError::InvalidCoordinate(format!(
                 "Longitude {} out of [-180, 180]",
                 self.lon
+            )));
+        }
+        if !self.hae.is_finite() {
+            return Err(MedevacError::InvalidCoordinate(format!(
+                "HAE {} is non-finite",
+                self.hae
             )));
         }
         Ok(())
@@ -696,20 +702,31 @@ fn apply_text_to_medevac(tag: MedevacTag, text: &str, r: &mut CotMedevacReport) 
     }
 }
 
-fn parse_event_point(e: &quick_xml::events::BytesStart, r: &mut CotMedevacReport, name: &[u8]) {
+fn parse_coord(val: &[u8], min: f64, max: f64) -> Result<f64, MedevacError> {
+    parse_f64(val)
+        .filter(|v| v.is_finite() && (min..=max).contains(v))
+        .ok_or_else(|| MedevacError::InvalidCoordinate("invalid coord".into()))
+}
+
+fn parse_event_point(
+    e: &quick_xml::events::BytesStart,
+    r: &mut CotMedevacReport,
+    name: &[u8],
+) -> Result<(), MedevacError> {
     for a in e.attributes().flatten() {
         let val = unescape_xml(&String::from_utf8_lossy(&a.value));
         match (name, a.key.as_ref()) {
             (b"event", b"uid") => r.cot_uid = val,
             (b"event", b"type") => r.cot_type = val,
             (b"event", b"time") => r.time_iso = val,
-            (b"point", b"lat") => r.lat = parse_f64(&a.value).unwrap_or(0.0),
-            (b"point", b"lon") => r.lon = parse_f64(&a.value).unwrap_or(0.0),
-            (b"point", b"hae") => r.hae = parse_f64(&a.value).unwrap_or(0.0),
+            (b"point", b"lat") => r.lat = parse_coord(&a.value, -90.0, 90.0)?,
+            (b"point", b"lon") => r.lon = parse_coord(&a.value, -180.0, 180.0)?,
+            (b"point", b"hae") => r.hae = parse_coord(&a.value, f64::MIN, f64::MAX)?,
             (b"contact", b"callsign") => r.callsign = val,
             _ => {}
         }
     }
+    Ok(())
 }
 
 fn handle_start_empty(
@@ -719,24 +736,25 @@ fn handle_start_empty(
     has_event: &mut bool,
     has_point: &mut bool,
     has_medevac: &mut bool,
-) {
+) -> Result<(), MedevacError> {
     let name = e.name().into_inner();
     match name {
         b"event" => {
             *has_event = true;
-            parse_event_point(e, r, name);
+            parse_event_point(e, r, name)?;
         }
         b"point" => {
             *has_point = true;
-            parse_event_point(e, r, name);
+            parse_event_point(e, r, name)?;
         }
         b"medevac" | b"casevac" => {
             *has_medevac = true;
             parse_medevac_attributes(e, r);
         }
-        b"contact" => parse_event_point(e, r, name),
+        b"contact" => parse_event_point(e, r, name)?,
         _ => *cur = match_medevac_tag(name),
     }
+    Ok(())
 }
 
 fn run_medevac_parser_loop(
@@ -750,8 +768,8 @@ fn run_medevac_parser_loop(
     let mut cur = MedevacTag::None;
     loop {
         match reader.read_event_into(buf) {
-            Ok(Event::Start(ref e)) => handle_start_empty(e, r, &mut cur, ev, pt, md),
-            Ok(Event::Empty(ref e)) => handle_start_empty(e, r, &mut cur, ev, pt, md),
+            Ok(Event::Start(ref e)) => handle_start_empty(e, r, &mut cur, ev, pt, md)?,
+            Ok(Event::Empty(ref e)) => handle_start_empty(e, r, &mut cur, ev, pt, md)?,
             Ok(Event::Text(ref e)) => {
                 let text = e
                     .unescape()
