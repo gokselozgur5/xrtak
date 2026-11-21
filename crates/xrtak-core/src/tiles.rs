@@ -1,3 +1,6 @@
+/// Maximum Web Mercator zoom level supported by 32-bit slippy tile indexing.
+pub const MAX_ZOOM: u8 = 23;
+
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
@@ -65,7 +68,7 @@ pub struct ResolvedTileSpec {
 pub fn latlon_to_tile_xy(lat_deg: f64, lon_deg: f64, zoom: u8) -> (u32, u32) {
     let lat = lat_deg.clamp(-85.051_128_78, 85.051_128_78);
     let lon = lon_deg.clamp(-180.0, 180.0);
-    let n = (1u32 << zoom.min(23)) as f64;
+    let n = (1u32 << zoom.min(MAX_ZOOM)) as f64;
     let x = ((lon + 180.0) / 360.0 * n).floor().clamp(0.0, n - 1.0) as u32;
     let lat_rad = lat.to_radians();
     let y = ((1.0 - (lat_rad.tan() + 1.0 / lat_rad.cos()).ln() / PI) * 0.5 * n)
@@ -76,7 +79,7 @@ pub fn latlon_to_tile_xy(lat_deg: f64, lon_deg: f64, zoom: u8) -> (u32, u32) {
 
 /// Encodes Web Mercator `(tile_x, tile_y, zoom)` into a Bing Maps Quadkey string (`0`..`3`).
 pub fn tile_xy_to_quadkey(tile_x: u32, tile_y: u32, zoom: u8) -> String {
-    let z = zoom.min(23);
+    let z = zoom.min(MAX_ZOOM);
     let mut qk = String::with_capacity(z as usize);
     for i in (1..=z).rev() {
         let mask = 1u32 << (i - 1);
@@ -102,7 +105,11 @@ pub const fn parent_tile_xy(tile_x: u32, tile_y: u32, zoom: u8, target_zoom: u8)
         return (tile_x, tile_y, zoom);
     }
     let shift = zoom - target_zoom;
-    (tile_x >> shift, tile_y >> shift, target_zoom)
+    if shift >= 32 {
+        (0, 0, target_zoom)
+    } else {
+        (tile_x >> shift, tile_y >> shift, target_zoom)
+    }
 }
 
 /// Resolves both the primary high-zoom tile and the offshore `z=13` parent fallback tile.
@@ -153,9 +160,10 @@ impl TileCoord {
 
     /// Converts TMS tile coordinates (`tms_y = (1 << zoom) - 1 - tile_y`) to XYZ tile coordinates.
     pub const fn from_tms(zoom: u8, tile_x: u32, tms_y: u32) -> Self {
-        let max_idx = (1u32 << zoom).saturating_sub(1);
+        let z = if zoom > MAX_ZOOM { MAX_ZOOM } else { zoom };
+        let max_idx = (1u32 << z).saturating_sub(1);
         Self {
-            zoom,
+            zoom: z,
             tile_x,
             tile_y: max_idx.saturating_sub(tms_y),
         }
@@ -163,8 +171,9 @@ impl TileCoord {
 
     /// Converts XYZ tile coordinates to TMS tile coordinates.
     pub const fn to_tms(self) -> (u8, u32, u32) {
-        let max_idx = (1u32 << self.zoom).saturating_sub(1);
-        (self.zoom, self.tile_x, max_idx.saturating_sub(self.tile_y))
+        let z = if self.zoom > MAX_ZOOM { MAX_ZOOM } else { self.zoom };
+        let max_idx = (1u32 << z).saturating_sub(1);
+        (z, self.tile_x, max_idx.saturating_sub(self.tile_y))
     }
 }
 
