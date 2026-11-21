@@ -396,15 +396,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn handle_http_connection(
-    mut stream: TcpStream,
-    world: Arc<Mutex<TacticalWorld>>,
-    tx: broadcast::Sender<String>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn read_http_request(
+    stream: &mut TcpStream,
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
     let mut buf = vec![0u8; 65536];
     let mut n = stream.read(&mut buf).await?;
     if n == 0 {
-        return Ok(());
+        return Ok(Vec::new());
     }
     if let Some(hdr_end) = buf[..n].windows(4).position(|w| w == b"\r\n\r\n") {
         let body_start = hdr_end + 4;
@@ -432,7 +430,24 @@ async fn handle_http_connection(
             n += r;
         }
     }
-    let req = String::from_utf8_lossy(&buf[..n]);
+    buf.truncate(n);
+    Ok(buf)
+}
+
+async fn handle_http_connection(
+    mut stream: TcpStream,
+    world: Arc<Mutex<TacticalWorld>>,
+    tx: broadcast::Sender<String>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let buf =
+        match tokio::time::timeout(Duration::from_secs(10), read_http_request(&mut stream)).await {
+            Ok(Ok(b)) => b,
+            _ => return Ok(()),
+        };
+    if buf.is_empty() {
+        return Ok(());
+    }
+    let req = String::from_utf8_lossy(&buf);
     let first_line = req.lines().next().unwrap_or("");
     let parts: Vec<&str> = first_line.split_whitespace().collect();
     if parts.len() < 2 {
