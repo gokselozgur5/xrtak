@@ -46,8 +46,7 @@ pub fn haversine_distance_m(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let r_lat1 = lat1.to_radians();
     let r_lat2 = lat2.to_radians();
 
-    let a = (d_lat / 2.0).sin().powi(2)
-        + r_lat1.cos() * r_lat2.cos() * (d_lon / 2.0).sin().powi(2);
+    let a = (d_lat / 2.0).sin().powi(2) + r_lat1.cos() * r_lat2.cos() * (d_lon / 2.0).sin().powi(2);
     let c = 2.0 * a.sqrt().asin();
     R * c
 }
@@ -103,12 +102,8 @@ impl CotTrack {
         }
         let mut total = 0.0;
         for window in self.points.windows(2) {
-            total += haversine_distance_m(
-                window[0].lat,
-                window[0].lon,
-                window[1].lat,
-                window[1].lon,
-            );
+            total +=
+                haversine_distance_m(window[0].lat, window[0].lon, window[1].lat, window[1].lon);
         }
         total
     }
@@ -146,14 +141,27 @@ pub fn format_iso8601_utc(unix_ms: u64) -> String {
     loop {
         let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
         let days_in_year = if leap { 366 } else { 365 };
-        if days < days_in_year { break; }
+        if days < days_in_year {
+            break;
+        }
         days -= days_in_year;
         year += 1;
     }
 
     let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
     let days_in_months = [
-        31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+        31,
+        if leap { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
     ];
 
     let mut month = 1usize;
