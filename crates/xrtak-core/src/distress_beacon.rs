@@ -189,6 +189,7 @@ impl DistressBeacon {
         lat: f64,
         lon: f64,
     ) -> Self {
+        let (time_iso, stale_iso) = crate::default_cot_timestamps();
         Self {
             beacon_uid: beacon_uid.into(),
             callsign: callsign.into(),
@@ -201,8 +202,8 @@ impl DistressBeacon {
             hae: 0.0,
             ce: 10.0,
             le: 10.0,
-            time_iso: "2026-01-01T00:00:00Z".to_string(),
-            stale_iso: "2026-01-01T00:10:00Z".to_string(),
+            time_iso,
+            stale_iso,
             description: String::new(),
             parent_uid: None,
         }
