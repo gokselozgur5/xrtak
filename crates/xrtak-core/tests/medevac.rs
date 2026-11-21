@@ -81,3 +81,27 @@ fn remarks_with_literal_entity_text_survive_round_trip() {
     let d = CotMedevacReport::from_cot_xml(&r.to_cot_xml()).unwrap();
     assert_eq!(d.remarks, "type &lt; to page");
 }
+
+#[test]
+fn medevac_parser_rejects_bad_latitude() {
+    const TAIL: &str = "lon=\"43.1\" hae=\"0\"/><detail><medevac line1=\"38SMB12345678\"/></detail></event>";
+    for lat in ["abc", "95.0", "NaN"] {
+        let xml = format!("<event version=\"2.0\" uid=\"M\"><point lat=\"{lat}\" {TAIL}");
+        let res = CotMedevacReport::from_cot_xml(&xml);
+        assert!(res.is_err(), "lat={lat} accepted as {:?}", res.map(|r| r.lat));
+    }
+}
+
+#[test]
+fn medevac_builder_rejects_nan_latitude() {
+    let res = CotMedevacBuilder::new("1", "A").coordinates(f64::NAN, 10.0, 0.0).build();
+    assert!(res.is_err());
+}
+
+#[test]
+fn cas_parser_rejects_unparsable_target_latitude() {
+    let xml = "<event uid=\"C\"><point lat=\"abc\" lon=\"-115.0\" hae=\"0\"/>\
+        <detail><cas9line line6=\"38SMC99887766\"/></detail></event>";
+    let res = xrtak_core::cas_nine_line::CasNineLine::from_cot_xml(xml);
+    assert!(res.is_err(), "lat=abc accepted as {:?}", res.map(|b| b.lat));
+}
