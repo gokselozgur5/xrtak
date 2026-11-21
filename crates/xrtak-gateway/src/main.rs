@@ -44,6 +44,46 @@ fn err_400_response(err: &str) -> (String, String) {
     (hdr, msg)
 }
 
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut res = 0u8;
+    for (&x, &y) in a.iter().zip(b.iter()) {
+        res |= x ^ y;
+    }
+    res == 0
+}
+
+fn normalize_host(h: &str) -> &str {
+    let s = h.trim();
+    let s = if let Some(idx) = s.find("://") {
+        &s[idx + 3..]
+    } else {
+        s
+    };
+    s.split('/').next().unwrap_or(s)
+}
+
+fn is_state_changing(method: &str, path: &str) -> bool {
+    method == "POST"
+        && matches!(
+            path,
+            "/api/cot"
+                | "/api/spawn"
+                | "/api/pin/move"
+                | "/api/pin/delete"
+                | "/api/sapient"
+                | "/api/pointer"
+                | "/api/spi"
+                | "/api/collab/sync"
+                | "/api/terrain"
+                | "/api/terrain/geotiff"
+                | "/api/mission/import"
+                | "/api/tak-config"
+        )
+}
+
 /// Entity id, (east, north, up) position, speed in m/s and course in degrees.
 type DeconflictEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
 
