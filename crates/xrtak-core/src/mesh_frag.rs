@@ -67,11 +67,7 @@ impl MeshFragment {
 }
 
 /// Splits payload into fragment chunks bounded by max_chunk_size.
-pub fn fragment_payload(
-    msg_id: u32,
-    payload: &[u8],
-    max_chunk: usize,
-) -> Vec<MeshFragment> {
+pub fn fragment_payload(msg_id: u32, payload: &[u8], max_chunk: usize) -> Vec<MeshFragment> {
     let chunk_sz = max_chunk.clamp(1, MAX_FRAGMENT_PAYLOAD);
     if payload.is_empty() {
         return vec![MeshFragment {
