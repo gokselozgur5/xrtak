@@ -57,7 +57,7 @@ pub fn parse_cot_polygon_zone(xml: &str, origin: &GeoOrigin) -> Option<TacticalZ
         }
     }
 
-    if uid.is_empty() || vertices_en.len() < 3 {
+    if !cot_type.starts_with("u-d-") || uid.is_empty() || vertices_en.len() < 3 {
         return None;
     }
     let name = if callsign.is_empty() {
