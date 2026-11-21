@@ -285,6 +285,7 @@ struct RfLinkBudgetRequest {
 
 const PINS_STORE_PATH: &str = "data/real_pins.json";
 
+#[allow(dead_code)]
 fn is_simulated_uid(uid: &str) -> bool {
     matches!(
         uid,
@@ -299,12 +300,16 @@ fn is_simulated_uid(uid: &str) -> bool {
     )
 }
 
+static OPERATOR_PINS: std::sync::LazyLock<Mutex<std::collections::HashSet<String>>> =
+    std::sync::LazyLock::new(|| Mutex::new(std::collections::HashSet::new()));
+
 fn save_persistent_pins(world: &TacticalWorld) {
     let _ = std::fs::create_dir_all("data");
+    let op_pins = OPERATOR_PINS.lock().unwrap();
     let mut pins: Vec<&TacticalEntity> = world
         .entities
         .values()
-        .filter(|e| !is_simulated_uid(&e.uid) && !e.cot_type.starts_with("b-m-p-c"))
+        .filter(|e| op_pins.contains(&e.uid))
         .collect();
     pins.sort_by(|a, b| a.uid.cmp(&b.uid));
     if let Ok(json) = serde_json::to_string_pretty(&pins) {
@@ -320,6 +325,7 @@ fn load_persistent_pins(world: &mut TacticalWorld) {
                 p.east_m = e;
                 p.up_m = u.max(world.sample_relief_m(e, n));
                 p.north_m = n;
+                OPERATOR_PINS.lock().unwrap().insert(p.uid.clone());
                 world.entities.insert(p.uid.clone(), p);
             }
             world.refresh_threat_domes_and_zones();
@@ -1449,6 +1455,7 @@ async fn handle_http_connection(
                 );
                 let r = guard.ingest_cot_xml(&xml, now_unix_ms());
                 if r.is_ok() {
+                    OPERATOR_PINS.lock().unwrap().insert(uid.clone());
                     save_persistent_pins(&guard);
                 }
                 (xml, r)
@@ -1520,6 +1527,7 @@ async fn handle_http_connection(
             let removed = {
                 let mut guard = lock_world(&world);
                 let r = guard.entities.remove(&del.uid);
+                OPERATOR_PINS.lock().unwrap().remove(&del.uid);
                 guard.refresh_threat_domes_and_zones();
                 save_persistent_pins(&guard);
                 r.is_some()
