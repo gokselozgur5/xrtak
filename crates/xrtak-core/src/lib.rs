@@ -1,8 +1,8 @@
-pub mod affiliation;
 pub mod aar;
+pub mod affiliation;
 pub mod battery;
-pub mod casevac;
 pub mod cas_nine_line;
+pub mod casevac;
 pub mod cog;
 pub mod collab;
 pub mod comms_channel;
@@ -17,17 +17,18 @@ pub mod ffi;
 pub mod fires;
 pub mod fresnel_zone;
 pub mod geo;
-pub mod geopackage;
-pub mod geofence;
 pub mod geochat;
-pub mod grid_convergence;
-pub mod geotiff_bounds;
 pub mod geodesy;
+pub mod geofence;
+pub mod geopackage;
+pub mod geotiff_bounds;
+pub mod grid_convergence;
 pub mod hud;
 pub mod hud_telemetry;
 pub mod kml_export;
 pub mod manifest;
 pub mod marker;
+pub mod medevac;
 pub mod mesh_frag;
 pub mod mgrs;
 pub mod mission;
@@ -40,37 +41,29 @@ pub mod rf;
 pub mod route_sequencer;
 pub mod sapient;
 pub mod sensor_stream;
-pub mod medevac;
 pub mod spotrep;
 pub mod tak_tls;
-pub mod tls_pool;
 pub mod thermal;
 pub mod tiles;
-pub mod tracker;
+pub mod tls_pool;
 pub mod track_simplify;
 pub mod track_smoother;
+pub mod tracker;
 pub mod viewshed;
 pub mod zones;
 
-pub use grid_convergence::{
-    calculate_grid_convergence, calculate_ups, calculate_utm, grid_to_ground_distance,
-    grid_to_true_azimuth, ground_to_grid_distance, true_to_grid_azimuth, utm_central_meridian_deg,
-    utm_zone_from_lon, GridError, GridSolution, GridSystem,
-};
+pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use affiliation::{
     AffiliationError, AffiliationMapper, CoTAffiliation, ContactMarker, ContactStats,
     MarkerShapeGlyph, StandardIdentity, TacticalColor, TacticalThreatLevel,
 };
-pub use aar::{AarFrame, AarSummary, AarTimeline};
 pub use battery::{
     compute_uav_endurance, RthPolygonVertex, UavBatteryState, UavEnduranceSolution, WindVector,
 };
+pub use cas_nine_line::{format_cas_nine_line_text, CasNineLine, CasNineLineError};
 pub use casevac::{
     evaluate_hlz_suitability, format_nato_nine_line_text, HlzSuitability, MedevacReport,
     PatientPrecedence,
-};
-pub use cas_nine_line::{
-    format_cas_nine_line_text, CasNineLine, CasNineLineError,
 };
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
