@@ -153,7 +153,11 @@ fn rdp_mask(pts: &[TrackPoint], eps: f64, elev: bool, max_err: &mut f64) -> Vec<
     let (mut keep, mut stk) = (vec![false; pts.len()], vec![(0usize, pts.len() - 1)]);
     keep[0] = true;
     keep[pts.len() - 1] = true;
-    let eps = if eps.is_finite() && eps > 0.0 { eps } else { 0.0 };
+    let eps = if eps.is_finite() && eps > 0.0 {
+        eps
+    } else {
+        0.0
+    };
     while let Some((s, e)) = stk.pop() {
         if e <= s + 1 {
             continue;
@@ -339,7 +343,10 @@ pub fn generate_cot_track_history_xml(uid: &str, callsign: &str, points: &[Track
     }
 
     let start_ms = points.first().and_then(|p| p.timestamp_ms).unwrap_or(0);
-    let end_ms = points.last().and_then(|p| p.timestamp_ms).unwrap_or(start_ms);
+    let end_ms = points
+        .last()
+        .and_then(|p| p.timestamp_ms)
+        .unwrap_or(start_ms);
     let time_iso = format_iso8601_utc(start_ms).replace(".000Z", "Z");
     let stale_iso = format_iso8601_utc(end_ms).replace(".000Z", "Z");
 
