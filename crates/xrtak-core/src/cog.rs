@@ -230,12 +230,12 @@ pub fn ingest_geotiff_dsm(
         Endian::Big
     };
 
-    let bytes_per_sample = match meta.bits_per_sample {
-        32 => 4usize,
-        16 => 2usize,
-        other => {
+    let bytes_per_sample = match (meta.bits_per_sample, meta.sample_format) {
+        (32, 1 | 2 | 3) => 4usize,
+        (16, 1 | 2) => 2usize,
+        (b, s) => {
             return Err(format!(
-                "Unsupported GeoTIFF DSM BitsPerSample={other} (expected 16 or 32)"
+                "Unsupported GeoTIFF DSM BitsPerSample={b} SampleFormat={s}"
             ))
         }
     };
