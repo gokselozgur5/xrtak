@@ -405,14 +405,18 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
                                 .ok()
                                 .and_then(|s| s.parse().ok());
                         }
-                    }
 
-                    let mut pt = TrackPoint::new(lat, lon, hae);
-                    if let Some(t) = time_ms {
-                        pt = pt.with_time(t);
-                    }
-                    if let (Some(s), Some(c)) = (speed, course) {
-                        pt = pt.with_kinematics(s, c);
+                        b"speed" => {
+                            speed = std::str::from_utf8(&a.value)
+                                .ok()
+                                .and_then(|s| s.parse().ok());
+                        }
+                        b"course" => {
+                            course = std::str::from_utf8(&a.value)
+                                .ok()
+                                .and_then(|s| s.parse().ok());
+                        }
+                        _ => {}
                     }
                     points.push(pt);
             }
