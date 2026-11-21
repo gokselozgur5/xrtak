@@ -268,10 +268,18 @@ fn parse_event_point(e: &quick_xml::events::BytesStart, b: &mut CasNineLine, nam
     }
 }
 
-fn handle_start_empty(e: &quick_xml::events::BytesStart, res: &mut CasNineLine, flags: &mut (bool, bool, bool)) -> CasTag {
+fn handle_start_empty(
+    e: &quick_xml::events::BytesStart,
+    res: &mut CasNineLine,
+    flags: &mut (bool, bool, bool),
+) -> CasTag {
     let name = e.name().into_inner();
-    if name == b"event" { flags.0 = true; }
-    if name == b"point" { flags.1 = true; }
+    if name == b"event" {
+        flags.0 = true;
+    }
+    if name == b"point" {
+        flags.1 = true;
+    }
     if name == b"cas9line" || name == b"cas" || name == b"nine_line" {
         flags.2 = true;
         parse_cas_attributes(e, res);
@@ -280,13 +288,20 @@ fn handle_start_empty(e: &quick_xml::events::BytesStart, res: &mut CasNineLine, 
     match_tag(name)
 }
 
-fn run_parser_loop(mut reader: Reader<&[u8]>, res: &mut CasNineLine) -> Result<(bool, bool, bool), CasNineLineError> {
+fn run_parser_loop(
+    mut reader: Reader<&[u8]>,
+    res: &mut CasNineLine,
+) -> Result<(bool, bool, bool), CasNineLineError> {
     let mut flags = (false, false, false);
     let mut tag = CasTag::None;
     loop {
         match reader.read_event() {
-            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => tag = handle_start_empty(e, res, &mut flags),
-            Ok(Event::Text(ref e)) => apply_text_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res),
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
+                tag = handle_start_empty(e, res, &mut flags)
+            }
+            Ok(Event::Text(ref e)) => {
+                apply_text_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res)
+            }
             Ok(Event::End(_)) => tag = CasTag::None,
             Ok(Event::Eof) => break,
             Err(e) => return Err(CasNineLineError::InvalidXml(e.to_string())),
