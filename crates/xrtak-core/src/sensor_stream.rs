@@ -225,7 +225,12 @@ impl SensorStreamDescriptor {
             .preferred_uid
             .as_deref()
             .or(self.parent_uid.as_deref())
-            .map(|u| format!("  <entry key=\"preferredUid\" value=\"{}\"/>\n", escape_xml_attr(u)))
+            .map(|u| {
+                format!(
+                    "  <entry key=\"preferredUid\" value=\"{}\"/>\n",
+                    escape_xml_attr(u)
+                )
+            })
             .unwrap_or_default();
         format!(
             "<feed>\n  <entry key=\"uid\" value=\"{}\"/>\n  <entry key=\"alias\" value=\"{}\"/>\n  <entry key=\"url\" value=\"{}\"/>\n  <entry key=\"rtspReliable\" value=\"{}\"/>\n  <entry key=\"ignoreEmbeddedKLV\" value=\"{}\"/>\n  <entry key=\"bufferTime\" value=\"{}\"/>\n  <entry key=\"sensor\" value=\"{}\"/>\n{rover}{pref}</feed>",
@@ -285,7 +290,12 @@ impl SensorStreamDescriptor {
     fn format_link_tag(&self) -> String {
         self.parent_uid
             .as_deref()
-            .map(|p| format!("<link relation=\"p-p\" uid=\"{}\" type=\"a-f-G-U-C\"/>", escape_xml_attr(p)))
+            .map(|p| {
+                format!(
+                    "<link relation=\"p-p\" uid=\"{}\" type=\"a-f-G-U-C\"/>",
+                    escape_xml_attr(p)
+                )
+            })
             .unwrap_or_default()
     }
 }
@@ -296,7 +306,10 @@ impl SensorStreamDescriptor {
         let video_elem = self.format_video_tag();
         let sensor_elem = self.format_sensor_tag();
         let link_elem = self.format_link_tag();
-        let contact = format!("<contact callsign=\"{}\"/>", escape_xml_attr(&self.callsign));
+        let contact = format!(
+            "<contact callsign=\"{}\"/>",
+            escape_xml_attr(&self.callsign)
+        );
         format!(
             "<event version=\"2.0\" uid=\"{}\" type=\"{}\" time=\"{}\" start=\"{}\" stale=\"{}\" how=\"m-g\">\n  <point lat=\"{:.6}\" lon=\"{:.6}\" hae=\"{:.1}\" ce=\"10.0\" le=\"10.0\"/>\n  <detail>\n    {contact}\n    {video_elem}\n    {sensor_elem}\n    {link_elem}\n  </detail>\n</event>",
             escape_xml_attr(&self.uid),
@@ -359,7 +372,9 @@ pub fn parse_feed_entry_xml(xml: &str) -> Result<VideoStreamConnection, SensorSt
                         "alias" => alias = Some(v),
                         "url" => url = Some(v),
                         "roverPort" => rover_port = v.parse::<u16>().ok(),
-                        "rtspReliable" => rtsp_reliable = v == "1" || v.eq_ignore_ascii_case("true"),
+                        "rtspReliable" => {
+                            rtsp_reliable = v == "1" || v.eq_ignore_ascii_case("true")
+                        }
                         "ignoreEmbeddedKLV" => ignore_klv = v.eq_ignore_ascii_case("true"),
                         "bufferTime" => buffer_ms = v.parse::<u32>().unwrap_or(500),
                         "preferredUid" => preferred_uid = Some(v),
@@ -427,7 +442,11 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                     match a.key.as_ref() {
                         b"lat" => lat = String::from_utf8_lossy(&a.value).parse::<f64>().ok(),
                         b"lon" => lon = String::from_utf8_lossy(&a.value).parse::<f64>().ok(),
-                        b"hae" => hae = String::from_utf8_lossy(&a.value).parse::<f64>().unwrap_or(0.0),
+                        b"hae" => {
+                            hae = String::from_utf8_lossy(&a.value)
+                                .parse::<f64>()
+                                .unwrap_or(0.0)
+                        }
                         _ => {}
                     }
                 }
