@@ -56,10 +56,15 @@ fn solve_time_of_flight(v_z: f64, dz: f64, g: f64) -> f64 {
     let disc = v_z * v_z - 2.0 * g * dz;
     if disc >= 0.0 {
         let t = (v_z + disc.sqrt()) / g;
-        if t > 0.0 { t } else { (v_z - disc.sqrt()) / g }
+        if t > 0.0 {
+            t
+        } else {
+            (v_z - disc.sqrt()) / g
+        }
     } else {
         v_z / g
-    }.max(0.5)
+    }
+    .max(0.5)
 }
 
 /// Compute 3D ballistic trajectory arc and verify crest clearance against DEM.
@@ -75,7 +80,11 @@ pub fn compute_ballistic_trajectory(
     let dy = target_enu.1 - origin_enu.1;
     let dz = target_enu.2 - origin_enu.2;
     let target_range = (dx.powi(2) + dy.powi(2)).sqrt();
-    let (dir_e, dir_n) = if target_range > 0.0 { (dx / target_range, dy / target_range) } else { (1.0, 0.0) };
+    let (dir_e, dir_n) = if target_range > 0.0 {
+        (dx / target_range, dy / target_range)
+    } else {
+        (1.0, 0.0)
+    };
     let g = 9.80665;
     let v0 = munition.nominal_velocity_mps();
     let theta_rad = match elevation_angle_deg {
