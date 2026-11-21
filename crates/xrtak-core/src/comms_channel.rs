@@ -434,10 +434,16 @@ mod tests {
 
     #[test]
     fn test_comms_channel_roundtrip() {
-        let ch1 = RadioChannel::new(1, "TAC-1 Primary", 225_500_000, 25000, RadioMode::FrequencyHopping)
-            .with_tx_power(10.0)
-            .with_net_preset("Alpha-Net")
-            .with_encryption("AES-256");
+        let ch1 = RadioChannel::new(
+            1,
+            "TAC-1 Primary",
+            225_500_000,
+            25000,
+            RadioMode::FrequencyHopping,
+        )
+        .with_tx_power(10.0)
+        .with_net_preset("Alpha-Net")
+        .with_encryption("AES-256");
 
         let ch2 = RadioChannel::new(2, "GUARD Air Distress", 121_500_000, 12500, RadioMode::Am)
             .with_tx_power(5.0);
@@ -465,7 +471,9 @@ mod tests {
         assert_eq!(parsed.primary_channel_id, Some(1));
         assert_eq!(parsed.emergency_channel_id, Some(2));
 
-        let p_ch = parsed.primary_channel().expect("primary channel should exist");
+        let p_ch = parsed
+            .primary_channel()
+            .expect("primary channel should exist");
         assert_eq!(p_ch.name, "TAC-1 Primary");
         assert_eq!(p_ch.frequency_hz, 225_500_000);
         assert_eq!(p_ch.mode, RadioMode::FrequencyHopping);
@@ -473,7 +481,9 @@ mod tests {
         assert_eq!(p_ch.net_preset.as_deref(), Some("Alpha-Net"));
         assert_eq!(p_ch.encryption.as_deref(), Some("AES-256"));
 
-        let e_ch = parsed.emergency_channel().expect("emergency channel should exist");
+        let e_ch = parsed
+            .emergency_channel()
+            .expect("emergency channel should exist");
         assert_eq!(e_ch.name, "GUARD Air Distress");
         assert_eq!(e_ch.mode, RadioMode::Am);
     }
