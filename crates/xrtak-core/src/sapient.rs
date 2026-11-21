@@ -43,7 +43,10 @@ pub fn build_sapient_cot_xml(
     let clean_obj = crate::escape_cot_attr(&report.object_id.replace(' ', "-"));
     let uid = format!("SAPIENT-{clean_obj}");
     let pct = (report.confidence.clamp(0.0, 1.0) * 100.0).round() as u32;
-    let callsign = crate::escape_cot_attr(&format!("AI-{} ({pct}%)", report.classification.to_ascii_uppercase()));
+    let callsign = crate::escape_cot_attr(&format!(
+        "AI-{} ({pct}%)",
+        report.classification.to_ascii_uppercase()
+    ));
     let course = report.course_deg.unwrap_or(0.0);
     let speed = report.speed_mps.unwrap_or(0.0);
     let remarks = crate::escape_cot_attr(&format!(
