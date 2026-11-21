@@ -262,10 +262,13 @@ pub fn ingest_geotiff_dsm(
 
     for idx in 0..total_pixels {
         let off = first_offset + idx * bytes_per_sample;
-        let val = if bytes_per_sample == 4 {
-            endian.f32(bytes, off).unwrap_or(f32::NAN) as f64
-        } else {
-            endian.i16(bytes, off).unwrap_or(-32768) as f64
+        let val = match (meta.bits_per_sample, meta.sample_format) {
+            (32, 3) => endian.f32(bytes, off).unwrap_or(f32::NAN) as f64,
+            (32, 2) => endian.i32(bytes, off).unwrap_or(i32::MIN) as f64,
+            (32, 1) => endian.u32(bytes, off).unwrap_or(0) as f64,
+            (16, 2) => endian.i16(bytes, off).unwrap_or(i16::MIN) as f64,
+            (16, 1) => endian.u16(bytes, off).unwrap_or(0) as f64,
+            _ => f64::NAN,
         };
         if val.is_finite() && val > -9999.0 {
             min_asl_m = min_asl_m.min(val);
