@@ -724,6 +724,45 @@ impl TacticalWorld {
             ] {
                 self.entities.remove(sim_uid);
             }
+            self.tactical_zones
+                .retain(|z| z.uid != "ZONE-ROZ-KILLBOX-1" && z.uid != "ZONE-FOB-SAFE");
+            self.refresh_threat_domes_and_zones();
+        } else {
+            let demo_zones = [
+                TacticalZone {
+                    uid: "ZONE-ROZ-KILLBOX-1".to_string(),
+                    name: "KILLBOX RED-ALPHA [ROZ]".to_string(),
+                    affiliation: Affiliation::Hostile,
+                    vertices_en: vec![
+                        (-380.0, -280.0),
+                        (60.0, -280.0),
+                        (90.0, 40.0),
+                        (-340.0, 60.0),
+                    ],
+                    floor_m: 0.0,
+                    ceiling_m: 380.0,
+                    inside_uids: Vec::new(),
+                },
+                TacticalZone {
+                    uid: "ZONE-FOB-SAFE".to_string(),
+                    name: "OP-BRAVO OVERWATCH SECTOR".to_string(),
+                    affiliation: Affiliation::Friendly,
+                    vertices_en: vec![
+                        (280.0, -480.0),
+                        (640.0, -480.0),
+                        (640.0, -140.0),
+                        (280.0, -140.0),
+                    ],
+                    floor_m: 0.0,
+                    ceiling_m: 340.0,
+                    inside_uids: Vec::new(),
+                },
+            ];
+            for zone in demo_zones {
+                if !self.tactical_zones.iter().any(|z| z.uid == zone.uid) {
+                    self.tactical_zones.push(zone);
+                }
+            }
             self.refresh_threat_domes_and_zones();
         }
     }
