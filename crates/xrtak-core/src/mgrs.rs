@@ -615,7 +615,9 @@ impl MgrsCoord {
         let zone: u8 = zone_str.parse().map_err(|_| MgrsError::InvalidUtmZone(0))?;
 
         if rem.is_empty() {
-            return Err(MgrsError::InvalidFormat("missing latitude band".to_string()));
+            return Err(MgrsError::InvalidFormat(
+                "missing latitude band".to_string(),
+            ));
         }
 
         let band = rem.chars().next().unwrap();
@@ -623,21 +625,25 @@ impl MgrsCoord {
         let rem2 = &rem[band.len_utf8()..];
 
         if rem2.len() < 2 {
-            return Err(MgrsError::InvalidFormat("missing 100k square identifier".to_string()));
+            return Err(MgrsError::InvalidFormat(
+                "missing 100k square identifier".to_string(),
+            ));
         }
 
         let mut chars = rem2.chars();
-        let col = chars
-            .next()
-            .ok_or_else(|| MgrsError::InvalidFormat("missing 100k square identifier".to_string()))?;
-        let row = chars
-            .next()
-            .ok_or_else(|| MgrsError::InvalidFormat("missing 100k square identifier".to_string()))?;
+        let col = chars.next().ok_or_else(|| {
+            MgrsError::InvalidFormat("missing 100k square identifier".to_string())
+        })?;
+        let row = chars.next().ok_or_else(|| {
+            MgrsError::InvalidFormat("missing 100k square identifier".to_string())
+        })?;
         let square = HundredKmSquare::new(col, row)?;
         let num_str = chars.as_str();
 
         if !num_str.chars().all(|c| c.is_ascii_digit()) {
-            return Err(MgrsError::InvalidFormat("non-numeric coordinate digits".to_string()));
+            return Err(MgrsError::InvalidFormat(
+                "non-numeric coordinate digits".to_string(),
+            ));
         }
 
         if num_str.len() % 2 != 0 {
@@ -671,7 +677,10 @@ impl MgrsCoord {
     pub fn to_compact_string(&self) -> String {
         let p = self.precision.digits_per_coord();
         if p == 0 {
-            format!("{}{}{}{}", self.gzd.zone, self.gzd.band, self.square.col, self.square.row)
+            format!(
+                "{}{}{}{}",
+                self.gzd.zone, self.gzd.band, self.square.col, self.square.row
+            )
         } else {
             let divisor = 10u32.pow((5 - p) as u32);
             let e = self.easting / divisor;
