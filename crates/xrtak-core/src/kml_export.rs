@@ -166,7 +166,9 @@ pub fn format_iso8601_utc(unix_ms: u64) -> String {
 
     let mut month = 1usize;
     for &dim in &days_in_months {
-        if days < dim { break; }
+        if days < dim {
+            break;
+        }
         days -= dim;
         month += 1;
     }
@@ -203,8 +205,14 @@ impl Default for KmlExportConfig {
 /// Formats a single Placemark LineString for a given track.
 fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) -> String {
     let mut xml = String::with_capacity(512);
-    let (cs, uid) = (escape_xml_attr(&track.callsign), escape_xml_attr(&track.uid));
-    let (ct, alt) = (escape_xml_attr(&track.cot_type), escape_xml_attr(&config.altitude_mode));
+    let (cs, uid) = (
+        escape_xml_attr(&track.callsign),
+        escape_xml_attr(&track.uid),
+    );
+    let (ct, alt) = (
+        escape_xml_attr(&track.cot_type),
+        escape_xml_attr(&config.altitude_mode),
+    );
     xml.push_str("    <Placemark>\n");
     xml.push_str(&format!("      <name>{cs} Track</name>\n"));
     xml.push_str(&format!(
@@ -232,7 +240,10 @@ fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) 
 /// Formats a Google Earth gx:Track Placemark with temporal <when> tags.
 fn build_gx_track_placemark(track: &CotTrack) -> String {
     let mut xml = String::with_capacity(512);
-    let (cs, uid) = (escape_xml_attr(&track.callsign), escape_xml_attr(&track.uid));
+    let (cs, uid) = (
+        escape_xml_attr(&track.callsign),
+        escape_xml_attr(&track.uid),
+    );
     xml.push_str("    <Placemark>\n");
     xml.push_str(&format!("      <name>{cs} Animated</name>\n"));
     xml.push_str(&format!("      <styleUrl>#style-{uid}</styleUrl>\n"));
@@ -262,7 +273,10 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
     kml.push_str("<kml xmlns=\"http://www.opengis.net/kml/2.2\" ");
     kml.push_str("xmlns:gx=\"http://www.google.com/kml/ext/2.2\">\n");
     kml.push_str("  <Document>\n");
-    kml.push_str(&format!("    <name>{}</name>\n", escape_xml_attr(&config.doc_name)));
+    kml.push_str(&format!(
+        "    <name>{}</name>\n",
+        escape_xml_attr(&config.doc_name)
+    ));
 
     for track in tracks {
         let color = cot_type_to_kml_color(&track.cot_type);
@@ -270,7 +284,10 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
         kml.push_str(&format!("    <Style id=\"style-{esc_uid}\">\n"));
         kml.push_str("      <LineStyle>\n");
         kml.push_str(&format!("        <color>{}</color>\n", color));
-        kml.push_str(&format!("        <width>{:.1}</width>\n", config.line_width));
+        kml.push_str(&format!(
+            "        <width>{:.1}</width>\n",
+            config.line_width
+        ));
         kml.push_str("      </LineStyle>\n");
         kml.push_str("    </Style>\n");
     }
