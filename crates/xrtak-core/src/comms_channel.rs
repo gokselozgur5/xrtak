@@ -223,24 +223,28 @@ impl CommsChannelPacket {
         }
 
         out.push_str(&format!("<radioChannels{radio_attr}>"));
-        for ch in &self.channels {
-            let ch_name = escape_xml(&ch.name);
-            let mode_str = ch.mode.as_str();
-            let mut ch_xml = format!(
-                "<channel id=\"{}\" name=\"{}\" frequency=\"{}\" bandwidth=\"{}\" mode=\"{}\"",
-                ch.id, ch_name, ch.frequency_hz, ch.bandwidth_hz, mode_str
-            );
-            if let Some(pwr) = ch.tx_power_watts {
-                ch_xml.push_str(&format!(" power=\"{}\"", pwr));
+        if self.channels.is_empty() {
+            out.push_str("<channel id=\"1\" name=\"DEFAULT\" frequency=\"30000000\" bandwidth=\"25000\" mode=\"FM\"/>");
+        } else {
+            for ch in &self.channels {
+                let ch_name = escape_xml(&ch.name);
+                let mode_str = ch.mode.as_str();
+                let mut ch_xml = format!(
+                    "<channel id=\"{}\" name=\"{}\" frequency=\"{}\" bandwidth=\"{}\" mode=\"{}\"",
+                    ch.id, ch_name, ch.frequency_hz, ch.bandwidth_hz, mode_str
+                );
+                if let Some(pwr) = ch.tx_power_watts {
+                    ch_xml.push_str(&format!(" power=\"{}\"", pwr));
+                }
+                if let Some(preset) = &ch.net_preset {
+                    ch_xml.push_str(&format!(" netPreset=\"{}\"", escape_xml(preset)));
+                }
+                if let Some(enc) = &ch.encryption {
+                    ch_xml.push_str(&format!(" encryption=\"{}\"", escape_xml(enc)));
+                }
+                ch_xml.push_str("/>");
+                out.push_str(&ch_xml);
             }
-            if let Some(preset) = &ch.net_preset {
-                ch_xml.push_str(&format!(" netPreset=\"{}\"", escape_xml(preset)));
-            }
-            if let Some(enc) = &ch.encryption {
-                ch_xml.push_str(&format!(" encryption=\"{}\"", escape_xml(enc)));
-            }
-            ch_xml.push_str("/>");
-            out.push_str(&ch_xml);
         }
         out.push_str("</radioChannels></detail></event>");
         out
@@ -316,9 +320,9 @@ impl CommsChannelPacket {
                         }
                     }
                     b"channel" => {
-                        let mut ch_id = 0u32;
+                        let mut ch_id = None;
                         let mut ch_name = String::new();
-                        let mut ch_freq = 0u64;
+                        let mut ch_freq = None;
                         let mut ch_bw = 25000u32;
                         let mut ch_mode = RadioMode::Fm;
                         let mut ch_pwr = None;
@@ -327,11 +331,11 @@ impl CommsChannelPacket {
 
                         for a in e.attributes().flatten() {
                             match a.key.as_ref() {
-                                b"id" => ch_id = parse_u32(&a.value).unwrap_or(0),
+                                b"id" => ch_id = parse_u32(&a.value),
                                 b"name" => {
                                     ch_name = unescape_xml(&String::from_utf8_lossy(&a.value))
                                 }
-                                b"frequency" => ch_freq = parse_u64(&a.value).unwrap_or(0),
+                                b"frequency" => ch_freq = parse_u64(&a.value),
                                 b"bandwidth" => ch_bw = parse_u32(&a.value).unwrap_or(25000),
                                 b"mode" => {
                                     let m_str = String::from_utf8_lossy(&a.value);
@@ -348,10 +352,16 @@ impl CommsChannelPacket {
                                 _ => {}
                             }
                         }
+                        let id = ch_id.ok_or_else(|| {
+                            CommsChannelError::InvalidXml("missing or invalid channel id".into())
+                        })?;
+                        let frequency_hz = ch_freq.ok_or_else(|| {
+                            CommsChannelError::InvalidXml("missing or invalid frequency".into())
+                        })?;
                         channels.push(RadioChannel {
-                            id: ch_id,
+                            id,
                             name: ch_name,
-                            frequency_hz: ch_freq,
+                            frequency_hz,
                             bandwidth_hz: ch_bw,
                             mode: ch_mode,
                             tx_power_watts: ch_pwr,
@@ -375,6 +385,22 @@ impl CommsChannelPacket {
         }
         if !found_radio_channels {
             return Err(CommsChannelError::MissingRadioChannelsTag);
+        }
+        if callsign.is_empty() {
+            return Err(CommsChannelError::MissingCallsign);
+        }
+        if channels.is_empty() {
+            return Err(CommsChannelError::EmptyChannelList);
+        }
+        if let Some(pri) = primary_id {
+            if !channels.iter().any(|c| c.id == pri) {
+                return Err(CommsChannelError::ChannelNotFound(pri));
+            }
+        }
+        if let Some(emg) = emergency_id {
+            if !channels.iter().any(|c| c.id == emg) {
+                return Err(CommsChannelError::ChannelNotFound(emg));
+            }
         }
 
         Ok(Self {
