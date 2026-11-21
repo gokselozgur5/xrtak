@@ -656,7 +656,8 @@ mod tests {
             Err(SensorStreamError::MissingFeedTag)
         ));
 
-        let no_video_cot = r#"<event uid="U1" type="b-i-v"><point lat="1" lon="2"/><detail></detail></event>"#;
+        let no_video_cot =
+            r#"<event uid="U1" type="b-i-v"><point lat="1" lon="2"/><detail></detail></event>"#;
         assert!(matches!(
             parse_sensor_stream_cot_xml(no_video_cot),
             Err(SensorStreamError::MissingVideoTag)
