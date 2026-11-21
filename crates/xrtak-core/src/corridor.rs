@@ -1,3 +1,4 @@
+use crate::mission_manifest::escape_xml_attr;
 use crate::GeoOrigin;
 use serde::{Deserialize, Serialize};
 
@@ -189,13 +190,14 @@ pub fn evaluate_swath_corridor(
         coords_str.push(format!("{lon:.6},{lat:.6},0"));
     }
 
+    let esc_name = escape_xml_attr(&name_str);
     let kml_polygon = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>{name_str}</name>
+    <name>{esc_name}</name>
     <Placemark>
-      <name>{name_str} Corridor ({swath:.0}m swath)</name>
+      <name>{esc_name} Corridor ({swath:.0}m swath)</name>
       <Polygon>
         <outerBoundaryIs>
           <LinearRing>
