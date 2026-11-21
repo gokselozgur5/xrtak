@@ -405,6 +405,13 @@ pub fn parse_cot_xml_with_provider(
     let mut parent_uid: Option<String> = None;
     let mut in_remarks = false;
 
+    let parse_finite = |val: &str, default: f64| -> f64 {
+        val.parse::<f64>()
+            .ok()
+            .filter(|v| v.is_finite())
+            .unwrap_or(default)
+    };
+
     loop {
         let ev = reader.read_event();
         let is_empty = matches!(ev, Ok(Event::Empty(_)));
@@ -474,8 +481,8 @@ pub fn parse_cot_xml_with_provider(
                         for attr in e.attributes().flatten() {
                             let val_str = String::from_utf8_lossy(&attr.value);
                             match attr.key.as_ref() {
-                                b"course" => course_deg = val_str.parse::<f64>().unwrap_or(0.0),
-                                b"speed" => speed_mps = val_str.parse::<f64>().unwrap_or(0.0),
+                                b"course" => course_deg = parse_finite(&val_str, 0.0),
+                                b"speed" => speed_mps = parse_finite(&val_str, 0.0),
                                 _ => {}
                             }
                         }
@@ -489,11 +496,11 @@ pub fn parse_cot_xml_with_provider(
                         for attr in e.attributes().flatten() {
                             let val_str = String::from_utf8_lossy(&attr.value);
                             match attr.key.as_ref() {
-                                b"azimuth" => az = val_str.parse::<f64>().unwrap_or(0.0),
-                                b"elevation" => el = val_str.parse::<f64>().unwrap_or(-35.0),
-                                b"fov" | b"hfov" => hfov = val_str.parse::<f64>().unwrap_or(36.0),
-                                b"vfov" => vfov = val_str.parse::<f64>().unwrap_or(22.0),
-                                b"range" => range = val_str.parse::<f64>().unwrap_or(650.0),
+                                b"azimuth" => az = parse_finite(&val_str, 0.0),
+                                b"elevation" => el = parse_finite(&val_str, -35.0),
+                                b"fov" | b"hfov" => hfov = parse_finite(&val_str, 36.0),
+                                b"vfov" => vfov = parse_finite(&val_str, 22.0),
+                                b"range" => range = parse_finite(&val_str, 650.0),
                                 _ => {}
                             }
                         }
