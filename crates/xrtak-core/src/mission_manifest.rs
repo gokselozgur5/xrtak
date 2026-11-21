@@ -160,7 +160,10 @@ impl MissionPackageManifest {
                     c.ignore
                 ));
             } else {
-                out.push_str(&format!("    <Content zipEntry=\"{ze}\" ignore=\"{}\">\n", c.ignore));
+                out.push_str(&format!(
+                    "    <Content zipEntry=\"{ze}\" ignore=\"{}\">\n",
+                    c.ignore
+                ));
                 for p in &c.parameters {
                     let k = escape_xml_attr(&p.name);
                     let v = escape_xml_attr(&p.value);
@@ -245,8 +248,8 @@ mod tests {
         assert_eq!(p.name, "tool");
         assert_eq!(p.value, "public");
 
-        let entry = ManifestContentEntry::new("overlays/perimeter.kml", false)
-            .with_param("uid", "PERIM-1");
+        let entry =
+            ManifestContentEntry::new("overlays/perimeter.kml", false).with_param("uid", "PERIM-1");
         assert_eq!(entry.zip_entry, "overlays/perimeter.kml");
         assert!(!entry.ignore);
         assert_eq!(entry.parameters.len(), 1);
@@ -255,8 +258,8 @@ mod tests {
 
     #[test]
     fn test_manifest_defaults_and_builders() {
-        let mut manifest = MissionPackageManifest::new("PKG-001", "Op Spear")
-            .with_on_receive_delete(true);
+        let mut manifest =
+            MissionPackageManifest::new("PKG-001", "Op Spear").with_on_receive_delete(true);
         manifest.add_parameter("tool", "public");
         assert_eq!(manifest.version, 2);
         assert_eq!(manifest.uid, "PKG-001");
