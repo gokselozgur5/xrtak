@@ -92,11 +92,20 @@ fn check_request_auth(req: &str) -> Option<(u16, &'static str)> {
         if line.is_empty() {
             break;
         }
-        if let Some(val) = line.strip_prefix("Origin: ").or_else(|| line.strip_prefix("origin: ")) {
+        if let Some(val) = line
+            .strip_prefix("Origin: ")
+            .or_else(|| line.strip_prefix("origin: "))
+        {
             origin_hdr = Some(val.trim());
-        } else if let Some(val) = line.strip_prefix("Host: ").or_else(|| line.strip_prefix("host: ")) {
+        } else if let Some(val) = line
+            .strip_prefix("Host: ")
+            .or_else(|| line.strip_prefix("host: "))
+        {
             host_hdr = Some(val.trim());
-        } else if let Some(val) = line.strip_prefix("X-XRTAK-Token: ").or_else(|| line.strip_prefix("x-xrtak-token: ")) {
+        } else if let Some(val) = line
+            .strip_prefix("X-XRTAK-Token: ")
+            .or_else(|| line.strip_prefix("x-xrtak-token: "))
+        {
             token_hdr = Some(val.trim());
         }
     }
@@ -533,7 +542,11 @@ async fn handle_http_connection(
 
     if is_state_changing(method, path) {
         if let Some((code, err)) = check_request_auth(&req) {
-            let status = if code == 401 { "401 Unauthorized" } else { "403 Forbidden" };
+            let status = if code == 401 {
+                "401 Unauthorized"
+            } else {
+                "403 Forbidden"
+            };
             let resp = format!(
                 "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 err.len(),
