@@ -130,8 +130,8 @@ pub use mission::{
 };
 pub use mission_manifest::{ManifestContentEntry, ManifestParameter, MissionPackageManifest};
 pub use mission_package::{
-    compute_crc32, compute_sha256, compute_sha256_hex, MissionPackageArchive,
-    MissionPackageEntry, MissionPackageError, VerificationReport,
+    compute_crc32, compute_sha256, compute_sha256_hex, MissionPackageArchive, MissionPackageEntry,
+    MissionPackageError, VerificationReport,
 };
 pub use openxr_pose::{
     OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition, PoseTrackingFlags,
@@ -152,18 +152,10 @@ pub use route_sequencer::{
     RouteWaypoint, SequencedLeg, SequencedRouteResult,
 };
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
-pub use medevac::{
-    format_nine_line_voice_brief, HlzMarking, CotMedevacBuilder, MedevacEquipment, MedevacError,
-    MedevacPrecedence, CotMedevacReport, PatientNationality, SiteSecurity,
-};
 pub use spotrep::{format_salute_report_text, SpotReport, SpotReportError};
 pub use tak_tls::{
     CertificateFormat, ClientAuthMode, TakTlsConfig, TakTlsConfigBuilder, TakTlsError,
     TlsCertificate, TlsVersion,
-};
-pub use tls_pool::{
-    AuthError, ConnectionState, HealthCheckSummary, MutualCertAuthenticator, PeerCertificateInfo,
-    PoolError, PoolMetrics, TlsConnection, TlsConnectionPool, TlsPoolConfig,
 };
 pub use tiles::{
     bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy,
@@ -171,10 +163,9 @@ pub use tiles::{
     GeoPackageTileEntry, GeoPackageTileMatrixMetadata, ImageryProvider, LruTileCache,
     ResolvedTileSpec, TileCoord,
 };
-pub use tracker::{
-    compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
-    predict_entity_trajectory_struct, TrackPredictInput, TrackPredictRequest, TrackPrediction,
-    TrackPredictionPoint,
+pub use tls_pool::{
+    AuthError, ConnectionState, HealthCheckSummary, MutualCertAuthenticator, PeerCertificateInfo,
+    PoolError, PoolMetrics, TlsConnection, TlsConnectionPool, TlsPoolConfig,
 };
 pub use track_simplify::{
     generate_cot_track_history_xml, haversine_distance_m as track_haversine_distance_m,
@@ -186,6 +177,11 @@ pub use track_simplify::{
 pub use track_smoother::{
     heading_delta_deg, smooth_heading_deg, smooth_scalar, smooth_trajectory, wrap_heading_deg,
     SmoothedTrackState, TrackObservation, TrackSmoother, TrackSmootherConfig,
+};
+pub use tracker::{
+    compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
+    predict_entity_trajectory_struct, TrackPredictInput, TrackPredictRequest, TrackPrediction,
+    TrackPredictionPoint,
 };
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
 pub use zones::{
@@ -338,7 +334,8 @@ pub fn default_cot_timestamps() -> (String, String) {
         .map(|d| d.as_millis() as u64)
         .unwrap_or(0);
     let time = kml_export::format_iso8601_utc(now_ms).replace(".000Z", "Z");
-    let stale = kml_export::format_iso8601_utc(now_ms.saturating_add(300_000)).replace(".000Z", "Z");
+    let stale =
+        kml_export::format_iso8601_utc(now_ms.saturating_add(300_000)).replace(".000Z", "Z");
     (time, stale)
 }
 
