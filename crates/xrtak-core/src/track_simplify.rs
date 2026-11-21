@@ -374,49 +374,36 @@ pub fn parse_cot_track_history_xml(xml: &str) -> Result<Vec<TrackPoint>, String>
         match reader.read_event() {
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) if e.name().as_ref() == b"crumb" => {
                 let mut lat = 0.0f64;
-                    let mut lon = 0.0f64;
-                    let mut hae = 0.0f64;
-                    let mut time_ms: Option<u64> = None;
-                    let mut speed: Option<f64> = None;
-                    let mut course: Option<f64> = None;
+                let mut lon = 0.0f64;
+                let mut hae = 0.0f64;
+                let mut time_ms: Option<u64> = None;
+                let mut speed: Option<f64> = None;
+                let mut course: Option<f64> = None;
 
-                    for a in e.attributes().flatten() {
-                        match a.key.as_ref() {
-                            b"lat" => {
-                                lat = std::str::from_utf8(&a.value)
-                                    .ok()
-                                    .and_then(|s| s.parse().ok())
-                                    .unwrap_or(0.0);
-                            }
-                            b"lon" => {
-                                lon = std::str::from_utf8(&a.value)
-                                    .ok()
-                                    .and_then(|s| s.parse().ok())
-                                    .unwrap_or(0.0);
-                            }
-                            b"hae" => {
-                                hae = std::str::from_utf8(&a.value)
-                                    .ok()
-                                    .and_then(|s| s.parse().ok())
-                                    .unwrap_or(0.0);
-                            }
-                            b"time" => {
-                                time_ms = std::str::from_utf8(&a.value)
-                                    .ok()
-                                    .and_then(|s| s.parse().ok());
-                            }
-
-                            b"speed" => {
-                                speed = std::str::from_utf8(&a.value)
-                                    .ok()
-                                    .and_then(|s| s.parse().ok());
-                            }
-                            b"course" => {
-                                course = std::str::from_utf8(&a.value)
-                                    .ok()
-                                    .and_then(|s| s.parse().ok());
-                            }
-                            _ => {}
+                for a in e.attributes().flatten() {
+                    match a.key.as_ref() {
+                        b"lat" => {
+                            lat = std::str::from_utf8(&a.value)
+                                .ok()
+                                .and_then(|s| s.parse().ok())
+                                .unwrap_or(0.0);
+                        }
+                        b"lon" => {
+                            lon = std::str::from_utf8(&a.value)
+                                .ok()
+                                .and_then(|s| s.parse().ok())
+                                .unwrap_or(0.0);
+                        }
+                        b"hae" => {
+                            hae = std::str::from_utf8(&a.value)
+                                .ok()
+                                .and_then(|s| s.parse().ok())
+                                .unwrap_or(0.0);
+                        }
+                        b"time" => {
+                            time_ms = std::str::from_utf8(&a.value)
+                                .ok()
+                                .and_then(|s| s.parse().ok());
                         }
                     }
 
