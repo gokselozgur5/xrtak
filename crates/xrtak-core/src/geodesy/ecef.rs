@@ -73,8 +73,9 @@ pub fn ecef_to_geodetic(ecef: &EcefCoord) -> GeodeticCoord {
     let lon_rad = ecef.y_m.atan2(ecef.x_m);
 
     let sin_lat = lat_rad.sin();
-    let n = WGS84_A / (1.0 - WGS84_E2 * sin_lat * sin_lat).sqrt();
-    let alt_m = p / lat_rad.cos() - n;
+    let cos_lat = lat_rad.cos();
+    let alt_m =
+        p * cos_lat + ecef.z_m * sin_lat - WGS84_A * (1.0 - WGS84_E2 * sin_lat * sin_lat).sqrt();
 
     GeodeticCoord::new(lat_rad.to_degrees(), lon_rad.to_degrees(), alt_m)
 }
