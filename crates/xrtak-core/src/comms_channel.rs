@@ -559,6 +559,9 @@ mod tests {
         );
 
         let missing_channels = "<event version=\"2.0\" uid=\"U1\"><detail></detail></event>";
-        assert_eq!(CommsChannelPacket::from_cot_xml(missing_channels), Err(CommsChannelError::MissingRadioChannelsTag));
+        assert_eq!(
+            CommsChannelPacket::from_cot_xml(missing_channels),
+            Err(CommsChannelError::MissingRadioChannelsTag)
+        );
     }
 }
