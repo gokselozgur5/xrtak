@@ -143,13 +143,14 @@ impl TrackSmoother {
     pub fn update(&mut self, obs: &TrackObservation) -> SmoothedTrackState {
         let next_state = match &self.state {
             None => {
-                let (vx, vy, speed, course) = match (obs.measured_speed_mps, obs.measured_course_deg) {
-                    (Some(spd), Some(crs)) => {
-                        let rad = crs.to_radians();
-                        (spd * rad.sin(), spd * rad.cos(), spd, wrap_heading_deg(crs))
-                    }
-                    _ => (0.0, 0.0, 0.0, 0.0),
-                };
+                let (vx, vy, speed, course) =
+                    match (obs.measured_speed_mps, obs.measured_course_deg) {
+                        (Some(spd), Some(crs)) => {
+                            let rad = crs.to_radians();
+                            (spd * rad.sin(), spd * rad.cos(), spd, wrap_heading_deg(crs))
+                        }
+                        _ => (0.0, 0.0, 0.0, 0.0),
+                    };
                 SmoothedTrackState {
                     timestamp_sec: obs.timestamp_sec,
                     east_m: obs.east_m,
@@ -180,10 +181,14 @@ impl TrackSmoother {
                 let raw_vy = (obs.north_m - prev.north_m) / dt;
                 let raw_vz = (obs.up_m - prev.up_m) / dt;
 
-                let (target_vx, target_vy) = match (obs.measured_speed_mps, obs.measured_course_deg) {
+                let (target_vx, target_vy) = match (obs.measured_speed_mps, obs.measured_course_deg)
+                {
                     (Some(spd), Some(crs)) => {
                         let rad = crs.to_radians();
-                        (0.5 * raw_vx + 0.5 * spd * rad.sin(), 0.5 * raw_vy + 0.5 * spd * rad.cos())
+                        (
+                            0.5 * raw_vx + 0.5 * spd * rad.sin(),
+                            0.5 * raw_vy + 0.5 * spd * rad.cos(),
+                        )
                     }
                     _ => (raw_vx, raw_vy),
                 };
@@ -209,8 +214,10 @@ impl TrackSmoother {
                     prev.course_deg
                 };
 
-                let s_east = smooth_scalar(prev.east_m + s_vx * dt, obs.east_m, self.config.alpha_pos);
-                let s_north = smooth_scalar(prev.north_m + s_vy * dt, obs.north_m, self.config.alpha_pos);
+                let s_east =
+                    smooth_scalar(prev.east_m + s_vx * dt, obs.east_m, self.config.alpha_pos);
+                let s_north =
+                    smooth_scalar(prev.north_m + s_vy * dt, obs.north_m, self.config.alpha_pos);
                 let s_up = smooth_scalar(prev.up_m + s_vz * dt, obs.up_m, self.config.alpha_pos);
 
                 SmoothedTrackState {
