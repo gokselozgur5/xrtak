@@ -297,7 +297,11 @@ impl DistressBeacon {
         } else {
             flags.join(", ")
         };
-        let desc = if self.description.is_empty() { "NONE" } else { &self.description };
+        let desc = if self.description.is_empty() {
+            "NONE"
+        } else {
+            &self.description
+        };
         format!(
             "{status_str}\n\
              BEACON: {}\n\
@@ -307,8 +311,15 @@ impl DistressBeacon {
              FLAGS: {}\n\
              POSITION: {:.6}, {:.6} (HAE: {:.1}m)\n\
              REMARKS: {}",
-            self.beacon_uid, self.callsign, self.alert_type.as_str(),
-            self.severity.as_str(), flags_str, self.lat, self.lon, self.hae, desc
+            self.beacon_uid,
+            self.callsign,
+            self.alert_type.as_str(),
+            self.severity.as_str(),
+            flags_str,
+            self.lat,
+            self.lon,
+            self.hae,
+            desc
         )
     }
 }
@@ -528,7 +539,11 @@ impl DistressBeacon {
         let cs = callsign
             .or_else(|| {
                 let trimmed = emergency_text.trim();
-                if !trimmed.is_empty() { Some(trimmed.to_string()) } else { None }
+                if !trimmed.is_empty() {
+                    Some(trimmed.to_string())
+                } else {
+                    None
+                }
             })
             .unwrap_or_else(|| beacon_uid.clone());
         let status = if is_cancelled || cot_type.as_deref() == Some("b-a-o-can") {
@@ -583,7 +598,9 @@ fn format_iso_secs(total_secs: i64) -> String {
     loop {
         let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
         let diy = if leap { 366 } else { 365 };
-        if days < diy { break; }
+        if days < diy {
+            break;
+        }
         days -= diy;
         year += 1;
     }
