@@ -1686,16 +1686,20 @@ async fn handle_http_connection(
                         if let Ok(mut tcp) = TcpStream::connect(addr.trim()).await {
                             println!("[XR-TAK] Connected to Live TAK Server TCP stream at {addr}");
                             let mut buf = vec![0u8; 65535];
+                            let mut carry = String::new();
                             while let Ok(n) = tcp.read(&mut buf).await {
                                 if n == 0 {
                                     break;
                                 }
-                                let chunk = String::from_utf8_lossy(&buf[..n]);
-                                for part in chunk.split("</event>") {
-                                    if let Some(start) = part.find("<event") {
-                                        let xml = format!("{}</event>", &part[start..]);
+                                carry.push_str(&String::from_utf8_lossy(&buf[..n]));
+                                while let Some(end_idx) = carry.find("</event>") {
+                                    let end = end_idx + "</event>".len();
+                                    let segment = carry[..end].to_string();
+                                    carry = carry[end..].to_string();
+                                    if let Some(start) = segment.find("<event") {
+                                        let xml = &segment[start..];
                                         let mut g = lock_world(&world_tcp);
-                                        let _ = g.ingest_cot_xml(&xml, now_unix_ms());
+                                        let _ = g.ingest_cot_xml(xml, now_unix_ms());
                                     }
                                 }
                             }
