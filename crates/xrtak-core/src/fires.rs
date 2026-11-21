@@ -68,6 +68,7 @@ fn solve_time_of_flight(v_z: f64, dz: f64, g: f64) -> f64 {
 }
 
 /// Compute 3D ballistic trajectory arc and verify crest clearance against DEM.
+/// Origin and target coordinates are in local tangent plane (East, Up, North) in meters.
 pub fn compute_ballistic_trajectory(
     origin_enu: (f64, f64, f64),
     target_enu: (f64, f64, f64),
@@ -76,9 +77,11 @@ pub fn compute_ballistic_trajectory(
     elevation_provider: &dyn ElevationProvider,
     samples: usize,
 ) -> BallisticSolution {
-    let dx = target_enu.0 - origin_enu.0;
-    let dy = target_enu.1 - origin_enu.1;
-    let dz = target_enu.2 - origin_enu.2;
+    let (origin_e, origin_u, origin_n) = origin_enu;
+    let (target_e, target_u, target_n) = target_enu;
+    let dx = target_e - origin_e;
+    let dy = target_n - origin_n;
+    let dz = target_u - origin_u;
     let target_range = (dx.powi(2) + dy.powi(2)).sqrt();
     let (dir_e, dir_n) = if target_range > 0.0 {
         (dx / target_range, dy / target_range)
@@ -98,20 +101,20 @@ pub fn compute_ballistic_trajectory(
     let v_h = v0 * theta_rad.cos();
     let v_z = v0 * theta_rad.sin();
     let tof = solve_time_of_flight(v_z, dz, g);
-    let ground_range = v_h * tof;
+    let ground_range = target_range;
 
     let n_pts = samples.clamp(16, 10_000);
     let mut trajectory = Vec::with_capacity(n_pts);
-    let mut max_ord: f64 = origin_enu.2;
+    let mut max_ord: f64 = origin_u;
     let mut min_clearance: f64 = f64::MAX;
 
     for i in 0..=n_pts {
         let frac = i as f64 / n_pts as f64;
         let t = frac * tof;
         let r = v_h * t;
-        let curr_e = origin_enu.0 + dir_e * r;
-        let curr_n = origin_enu.1 + dir_n * r;
-        let curr_u = origin_enu.2 + (v_z * t) - (0.5 * g * t.powi(2));
+        let curr_e = origin_e + dir_e * r;
+        let curr_n = origin_n + dir_n * r;
+        let curr_u = origin_u + (v_z * t) - (0.5 * g * t.powi(2));
 
         if curr_u > max_ord {
             max_ord = curr_u;
@@ -159,8 +162,8 @@ mod tests {
     fn test_compute_ballistic_trajectory_mortar_plunging() {
         let model = ProceduralReliefModel;
         let sol = compute_ballistic_trajectory(
-            (0.0, 0.0, 50.0),
-            (1500.0, 1500.0, 80.0),
+            (0.0, 50.0, 0.0),
+            (1500.0, 80.0, 1500.0),
             MunitionType::Mortar120mm,
             Some(60.0),
             &model,
@@ -176,8 +179,8 @@ mod tests {
     fn test_compute_ballistic_trajectory_artillery_crest_clearance() {
         let model = ProceduralReliefModel;
         let sol = compute_ballistic_trajectory(
-            (-1000.0, -1000.0, 100.0),
-            (1000.0, 1000.0, 120.0),
+            (-1000.0, 100.0, -1000.0),
+            (1000.0, 120.0, 1000.0),
             MunitionType::Artillery155mm,
             Some(40.0),
             &model,
