@@ -109,7 +109,6 @@ impl<'a> TrackPredictInput<'a> {
     }
 }
 
-
 pub fn predict_entity_trajectory_struct(input: &TrackPredictInput) -> TrackPrediction {
     predict_entity_trajectory(
         input.uid,
@@ -137,7 +136,8 @@ pub fn predict_entity_trajectory(
     let points = horizons
         .iter()
         .map(|&dt_sec| {
-            let (east_m, north_m, up_m) = compute_kinematic_extrapolation(current_enu, speed_mps, course_deg, 0.0, dt_sec);
+            let (east_m, north_m, up_m) =
+                compute_kinematic_extrapolation(current_enu, speed_mps, course_deg, 0.0, dt_sec);
             let cep_radius_m = compute_cep_radius_m(initial_ce_m, speed_mps, dt_sec);
             TrackPredictionPoint {
                 dt_sec,
