@@ -82,7 +82,8 @@ impl MissionPackageManifest {
     }
 
     pub fn add_content(&mut self, zip_entry: impl Into<String>, ignore: bool) {
-        self.contents.push(ManifestContentEntry::new(zip_entry, ignore));
+        self.contents
+            .push(ManifestContentEntry::new(zip_entry, ignore));
     }
 
     pub fn find_entry(&self, zip_entry: &str) -> Option<&ManifestContentEntry> {
@@ -119,14 +120,23 @@ pub(crate) fn unescape_xml_attr(val: &str) -> String {
 impl MissionPackageManifest {
     /// Generate a compliant TAK `manifest.xml` file.
     pub fn generate_xml(&self) -> String {
-        let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
-        out.push_str(&format!("<MissionPackageManifest version=\"{}\">\n", self.version));
+        let mut out =
+            String::from("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
+        out.push_str(&format!(
+            "<MissionPackageManifest version=\"{}\">\n",
+            self.version
+        ));
         out.push_str("  <Configuration>\n");
         let uid = escape_xml_attr(&self.uid);
         let name = escape_xml_attr(&self.name);
         out.push_str(&format!("    <Parameter name=\"uid\" value=\"{uid}\"/>\n"));
-        out.push_str(&format!("    <Parameter name=\"name\" value=\"{name}\"/>\n"));
-        out.push_str(&format!("    <Parameter name=\"onReceiveDelete\" value=\"{}\"/>\n", self.on_receive_delete));
+        out.push_str(&format!(
+            "    <Parameter name=\"name\" value=\"{name}\"/>\n"
+        ));
+        out.push_str(&format!(
+            "    <Parameter name=\"onReceiveDelete\" value=\"{}\"/>\n",
+            self.on_receive_delete
+        ));
         for p in &self.parameters {
             let k = escape_xml_attr(&p.name);
             let v = escape_xml_attr(&p.value);
@@ -145,7 +155,10 @@ impl MissionPackageManifest {
         for c in &self.contents {
             let ze = escape_xml_attr(&c.zip_entry);
             if c.parameters.is_empty() {
-                out.push_str(&format!("    <Content zipEntry=\"{ze}\" ignore=\"{}\"/>\n", c.ignore));
+                out.push_str(&format!(
+                    "    <Content zipEntry=\"{ze}\" ignore=\"{}\"/>\n",
+                    c.ignore
+                ));
             } else {
                 out.push_str(&format!("    <Content zipEntry=\"{ze}\" ignore=\"{}\">\n", c.ignore));
                 for p in &c.parameters {
