@@ -678,7 +678,7 @@ impl MgrsCoord {
         let p = self.precision.digits_per_coord();
         if p == 0 {
             format!(
-                "{}{}{}{}",
+                "{:02}{}{}{}",
                 self.gzd.zone, self.gzd.band, self.square.col, self.square.row
             )
         } else {
@@ -686,7 +686,7 @@ impl MgrsCoord {
             let e = self.easting / divisor;
             let n = self.northing / divisor;
             format!(
-                "{}{}{}{}{:0width$}{:0width$}",
+                "{:02}{}{}{}{:0width$}{:0width$}",
                 self.gzd.zone,
                 self.gzd.band,
                 self.square.col,
@@ -703,7 +703,7 @@ impl MgrsCoord {
         let p = self.precision.digits_per_coord();
         if p == 0 {
             format!(
-                "{}{} {}{}",
+                "{:02}{} {}{}",
                 self.gzd.zone, self.gzd.band, self.square.col, self.square.row
             )
         } else {
@@ -711,7 +711,7 @@ impl MgrsCoord {
             let e = self.easting / divisor;
             let n = self.northing / divisor;
             format!(
-                "{}{} {}{} {:0width$} {:0width$}",
+                "{:02}{} {}{} {:0width$} {:0width$}",
                 self.gzd.zone,
                 self.gzd.band,
                 self.square.col,
