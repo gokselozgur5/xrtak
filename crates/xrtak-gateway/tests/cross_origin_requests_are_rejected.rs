@@ -65,3 +65,22 @@ fn cross_origin_post_cannot_reconfigure_the_gateway() {
         "state was changed by the cross-origin POST"
     );
 }
+
+#[test]
+fn origin_with_mixed_case_and_no_space_is_rejected() {
+    let (gw, port) = start();
+    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    let body = r#"{"sim_enabled":false,"tak_tcp_addr":"127.0.0.1:9"}"#;
+    let len = body.len();
+    write!(
+        s,
+        "POST /api/tak-config HTTP/1.1\r\nORIGIN:http://evil.example\r\nContent-Type: text/plain\r\nContent-Length: {len}\r\n\r\n{body}"
+    )
+    .unwrap();
+    let mut out = String::new();
+    let _ = s.read_to_string(&mut out);
+    let state = send(port, "GET", "/api/state", "");
+    stop(gw);
+    assert!(!out.starts_with("HTTP/1.1 200"));
+    assert!(state.contains(r#""sim_enabled":true"#));
+}
