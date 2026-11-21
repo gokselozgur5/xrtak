@@ -678,7 +678,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/terrain" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(t_req) = serde_json::from_str::<TerrainSwitchRequest>(body) {
             let res: Result<String, String> = (|| {
                 let mut guard = lock_world(&world);
@@ -719,7 +719,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/terrain/geotiff" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(gt_req) = serde_json::from_str::<GeoTiffUploadRequest>(body) {
             let name = gt_req.name.unwrap_or_else(|| "GEOTIFF-DSM".to_string());
             let extent = {
@@ -789,7 +789,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/cot" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         let res = {
             let mut guard = lock_world(&world);
             let r = guard.ingest_cot_xml(body, now_unix_ms());
@@ -819,7 +819,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/spi" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(spi_req) = serde_json::from_str::<SpiSlewRequest>(body) {
             let sensor_uid = spi_req
                 .sensor_uid
@@ -854,7 +854,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/viewshed" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(vs_req) = serde_json::from_str::<ViewshedRequest>(body) {
             let vs = {
                 let guard = lock_world(&world);
@@ -877,7 +877,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/los" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(los_req) = serde_json::from_str::<LinkLosRequest>(body) {
             let res = {
                 let guard = lock_world(&world);
@@ -911,7 +911,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/elevation-profile" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(prof_req) = serde_json::from_str::<ElevationProfileRequest>(body) {
             let prof = {
                 let guard = lock_world(&world);
@@ -926,7 +926,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/mission/import" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(m_req) = serde_json::from_str::<MissionImportRequest>(body) {
             let trimmed = m_req.content.trim();
             let is_qgc = m_req
@@ -998,7 +998,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/mission/export" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(ex_req) = serde_json::from_str::<MissionExportRequest>(body) {
             let route_uid = ex_req
                 .route_uid
@@ -1044,7 +1044,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/tiles/resolve" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(t_req) = serde_json::from_str::<TileResolveRequest>(body) {
             let (lat, lon) = {
                 let guard = lock_world(&world);
@@ -1065,7 +1065,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/mission/corridor-polygon" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(c_req) = serde_json::from_str::<CorridorPolygonRequest>(body) {
             let origin = {
                 let guard = lock_world(&world);
@@ -1092,7 +1092,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/mapset/plan" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(mp_req) = serde_json::from_str::<MapsetPlanRequest>(body) {
             let origin = {
                 let guard = lock_world(&world);
@@ -1128,7 +1128,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/rf/link-budget" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(rf_req) = serde_json::from_str::<RfLinkBudgetRequest>(body) {
             let tx = rf_req.tx_enu.unwrap_or((-600.0, -400.0, 150.0));
             let rx = rf_req.rx_enu.unwrap_or((800.0, 600.0, 180.0));
@@ -1151,7 +1151,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/tracks/predict" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         let p_req: TrackPredictRequest =
             serde_json::from_str(body).unwrap_or_else(|_| TrackPredictRequest {
                 horizons_sec: Some(vec![15.0, 30.0, 60.0]),
@@ -1259,7 +1259,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/ew/jamming" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(ew_req) = serde_json::from_str::<ew_dto::EwJammingRequest>(body) {
             let band = match ew_req.band.as_deref() {
                 Some("gnss") | Some("gnss_l1") => xrtak_core::EwTargetBand::GnssL1,
@@ -1303,7 +1303,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/medevac/nine-line" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(m_req) = serde_json::from_str::<medevac_dto::MedevacNineLineRequest>(body) {
             let prec = match m_req.precedence.as_deref() {
                 Some("urgent") => xrtak_core::PatientPrecedence::Urgent,
@@ -1367,7 +1367,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/fires/ballistics" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(b_req) = serde_json::from_str::<fires_dto::BallisticsRequest>(body) {
             let munition = match b_req.munition.as_deref() {
                 Some("mortar") | Some("mortar120") => xrtak_core::MunitionType::Mortar120mm,
@@ -1401,7 +1401,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/uav/endurance" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(bat_req) = serde_json::from_str::<battery_dto::UavEnduranceRequest>(body) {
             let wind = bat_req.wind.unwrap_or_default();
             let steps = bat_req.radial_steps.unwrap_or(32);
@@ -1419,7 +1419,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/spawn" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
             let (xml, ent) = {
                 let mut guard = lock_world(&world);
@@ -1464,7 +1464,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/pin/move" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(mv) = serde_json::from_str::<PinMoveRequest>(body) {
             let updated = {
                 let mut guard = lock_world(&world);
@@ -1512,7 +1512,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/pin/delete" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(del) = serde_json::from_str::<PinDeleteRequest>(body) {
             let removed = {
                 let mut guard = lock_world(&world);
@@ -1594,7 +1594,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/pointer" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(ptr_req) = serde_json::from_str::<LaserPointerRequest>(body) {
             let (xml, res) = {
                 let mut guard = lock_world(&world);
@@ -1622,7 +1622,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/collab/sync" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(c_req) = serde_json::from_str::<CollabSyncRequest>(body) {
             let resp_json = {
                 let mut guard = lock_world(&world);
@@ -1656,7 +1656,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/sapient" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(report) = serde_json::from_str::<SapientDetectionReport>(body) {
             let res = {
                 let mut guard = lock_world(&world);
@@ -1676,7 +1676,7 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/tak-config" {
-        let body = req.split("\r\n\r\n").nth(1).unwrap_or("").trim();
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
         if let Ok(cfg) = serde_json::from_str::<TakConfigRequest>(body) {
             if let Some(addr) = cfg.tak_tcp_addr.clone() {
                 if !addr.trim().is_empty() {
