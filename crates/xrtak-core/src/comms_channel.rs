@@ -517,8 +517,13 @@ mod tests {
         .with_net_preset("Preset \"X\"")
         .with_encryption("Type-1 & Suite-B");
 
-        let packet = CommsChannelPacket::new("PLAN-ESC", "TOC <Leader>", "2026-11-16T10:00:00Z", "2026-11-16T11:00:00Z")
-            .add_channel(ch);
+        let packet = CommsChannelPacket::new(
+            "PLAN-ESC",
+            "TOC <Leader>",
+            "2026-11-16T10:00:00Z",
+            "2026-11-16T11:00:00Z",
+        )
+        .add_channel(ch);
 
         let xml = packet.to_cot_xml();
         assert!(xml.contains("Ops &amp; Intel &lt;Air&gt;"));
@@ -536,13 +541,22 @@ mod tests {
     #[test]
     fn test_error_handling() {
         let bad_xml = "<invalid_xml";
-        assert!(matches!(CommsChannelPacket::from_cot_xml(bad_xml), Err(CommsChannelError::InvalidXml(_))));
+        assert!(matches!(
+            CommsChannelPacket::from_cot_xml(bad_xml),
+            Err(CommsChannelError::InvalidXml(_))
+        ));
 
         let missing_event = "<someOtherRoot></someOtherRoot>";
-        assert_eq!(CommsChannelPacket::from_cot_xml(missing_event), Err(CommsChannelError::MissingEventTag));
+        assert_eq!(
+            CommsChannelPacket::from_cot_xml(missing_event),
+            Err(CommsChannelError::MissingEventTag)
+        );
 
         let missing_uid = "<event version=\"2.0\"><detail><radioChannels/></detail></event>";
-        assert_eq!(CommsChannelPacket::from_cot_xml(missing_uid), Err(CommsChannelError::MissingUid));
+        assert_eq!(
+            CommsChannelPacket::from_cot_xml(missing_uid),
+            Err(CommsChannelError::MissingUid)
+        );
 
         let missing_channels = "<event version=\"2.0\" uid=\"U1\"><detail></detail></event>";
         assert_eq!(CommsChannelPacket::from_cot_xml(missing_channels), Err(CommsChannelError::MissingRadioChannelsTag));
