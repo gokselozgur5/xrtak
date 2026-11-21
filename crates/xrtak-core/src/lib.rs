@@ -68,13 +68,13 @@ pub use casevac::{
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
 pub use comms_channel::{CommsChannelError, CommsChannelPacket, RadioChannel, RadioMode};
-pub use cot_heartbeat::{
-    build_ping_cot, build_pong_cot, CotHeartbeatConfig, CotHeartbeatManager, HeartbeatAction,
-    HeartbeatStatus, PingRecord,
-};
 pub use corridor::{
     build_buffered_corridor_polygon, compute_camera_swath_width_m, evaluate_swath_corridor,
     simplify_polyline_rdp, CorridorPolygonResult,
+};
+pub use cot_heartbeat::{
+    build_ping_cot, build_pong_cot, CotHeartbeatConfig, CotHeartbeatManager, HeartbeatAction,
+    HeartbeatStatus, PingRecord,
 };
 pub use deconflict::{
     compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction,
@@ -93,13 +93,18 @@ pub use ew::{
     BurnThroughScenario, EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
 };
 pub use fires::{compute_ballistic_trajectory, BallisticSolution, MunitionType, TrajectoryPoint3d};
-pub use geopackage::{
-    bytes_to_hex_literal, decode_point_geom, encode_point_geom, GeoPackageBounds,
-    GeoPackageError, GeoPackageFeatureDataset, GeoPackageWaypoint,
-};
 pub use geo::{
     compute_elevation_profile, ElevationProfileResult, ElevationProfileSample, ElevationProvider,
     ProceduralReliefModel, RasterDemProvider,
+};
+pub use geopackage::{
+    bytes_to_hex_literal, decode_point_geom, encode_point_geom, GeoPackageBounds, GeoPackageError,
+    GeoPackageFeatureDataset, GeoPackageWaypoint,
+};
+pub use grid_convergence::{
+    calculate_grid_convergence, calculate_ups, calculate_utm, grid_to_ground_distance,
+    grid_to_true_azimuth, ground_to_grid_distance, true_to_grid_azimuth, utm_central_meridian_deg,
+    utm_zone_from_lon, GridError, GridSolution, GridSystem,
 };
 pub use hud::{compute_hud_cue, HudCue};
 pub use hud_telemetry::battery::BatteryTelemetry;
@@ -111,6 +116,10 @@ pub use manifest::{
     format_copernicus_glo30_cell_id, CopernicusDemCell, ManifestInput, MapsetManifest,
     ZoomTileEstimate,
 };
+pub use medevac::{
+    format_nine_line_voice_brief, CotMedevacBuilder, CotMedevacReport, HlzMarking,
+    MedevacEquipment, MedevacError, MedevacPrecedence, PatientNationality, SiteSecurity,
+};
 pub use mgrs::{
     GeodeticCoord, GridZoneDesignator, HundredKmSquare, MgrsBoundingBox, MgrsCoord, MgrsError,
     MgrsPrecision, UtmCoord,
@@ -119,9 +128,7 @@ pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
     parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
 };
-pub use mission_manifest::{
-    ManifestContentEntry, ManifestParameter, MissionPackageManifest,
-};
+pub use mission_manifest::{ManifestContentEntry, ManifestParameter, MissionPackageManifest};
 pub use mission_package::{
     compute_crc32, compute_sha256, compute_sha256_hex, MissionPackageArchive,
     MissionPackageEntry, MissionPackageError, VerificationReport,
