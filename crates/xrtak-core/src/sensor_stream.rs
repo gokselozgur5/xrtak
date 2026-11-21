@@ -453,7 +453,8 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
             }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"detail" => in_detail = true,
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e))
-                if in_detail && (e.name().as_ref() == b"__video" || e.name().as_ref() == b"video") =>
+                if in_detail
+                    && (e.name().as_ref() == b"__video" || e.name().as_ref() == b"video") =>
             {
                 let mut url = None;
                 let mut stream_uid = None;
@@ -467,8 +468,12 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                         b"url" => url = Some(unescape_attr(&a)),
                         b"uid" => stream_uid = Some(unescape_attr(&a)),
                         b"alias" => alias = Some(unescape_attr(&a)),
-                        b"roverPort" => rover_port = String::from_utf8_lossy(&a.value).parse::<u16>().ok(),
-                        b"rtspReliable" => rtsp_reliable = a.value.as_ref() == b"1" || a.value.as_ref() == b"true",
+                        b"roverPort" => {
+                            rover_port = String::from_utf8_lossy(&a.value).parse::<u16>().ok()
+                        }
+                        b"rtspReliable" => {
+                            rtsp_reliable = a.value.as_ref() == b"1" || a.value.as_ref() == b"true"
+                        }
                         b"ignoreEmbeddedKLV" => ignore_klv = a.value.as_ref() == b"true",
                         b"preferredUid" => pref = Some(unescape_attr(&a)),
                         _ => {}
@@ -478,8 +483,14 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                     let a = alias.unwrap_or_else(|| "Video Stream".to_string());
                     let su = stream_uid.unwrap_or_else(|| format!("feed-{a}"));
                     video_conn = Some(VideoStreamConnection {
-                        url: u, stream_uid: su, alias: a, rover_port, rtsp_reliable,
-                        ignore_embedded_klv: ignore_klv, buffer_ms: 500, preferred_uid: pref,
+                        url: u,
+                        stream_uid: su,
+                        alias: a,
+                        rover_port,
+                        rtsp_reliable,
+                        ignore_embedded_klv: ignore_klv,
+                        buffer_ms: 500,
+                        preferred_uid: pref,
                     });
                 }
             }
@@ -604,9 +615,10 @@ mod tests {
             roll_deg: 2.5,
             zoom_ratio: 4.0,
         };
-        let desc = SensorStreamDescriptor::new("DESC-COT-1", "DRONE-ALPHA", 41.01, 28.97, 850.0, conn)
-            .with_sensor(gimbal)
-            .with_parent_uid("UAV-DRONE-ALPHA");
+        let desc =
+            SensorStreamDescriptor::new("DESC-COT-1", "DRONE-ALPHA", 41.01, 28.97, 850.0, conn)
+                .with_sensor(gimbal)
+                .with_parent_uid("UAV-DRONE-ALPHA");
         let xml = desc.to_cot_xml();
         let parsed = parse_sensor_stream_cot_xml(&xml).expect("cot parse succeeds");
         assert_eq!(parsed.uid, "DESC-COT-1");
