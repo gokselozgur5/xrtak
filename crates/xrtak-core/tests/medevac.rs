@@ -52,15 +52,24 @@ fn test_integration_medevac_xml_child_tags_parsing() {
 #[test]
 fn line8_non_us_military_survives_round_trip() {
     let b = CotMedevacBuilder::new("M1", "D1");
-    let r = b.nationality(PatientNationality::NonUsMilitary).build().unwrap();
+    let r = b
+        .nationality(PatientNationality::NonUsMilitary)
+        .build()
+        .unwrap();
     let d = CotMedevacReport::from_cot_xml(&r.to_cot_xml()).unwrap();
-    assert_eq!(d.line8_patient_nationality, PatientNationality::NonUsMilitary);
+    assert_eq!(
+        d.line8_patient_nationality,
+        PatientNationality::NonUsMilitary
+    );
 }
 
 #[test]
 fn line7_smoke_colour_survives_round_trip() {
     let b = CotMedevacBuilder::new("M1", "D1");
-    let r = b.marking(HlzMarking::Smoke("Green".into())).build().unwrap();
+    let r = b
+        .marking(HlzMarking::Smoke("Green".into()))
+        .build()
+        .unwrap();
     let d = CotMedevacReport::from_cot_xml(&r.to_cot_xml()).unwrap();
     assert_eq!(d.line7_hlz_marking, HlzMarking::Smoke("Green".into()));
 }
@@ -72,5 +81,3 @@ fn remarks_with_literal_entity_text_survive_round_trip() {
     let d = CotMedevacReport::from_cot_xml(&r.to_cot_xml()).unwrap();
     assert_eq!(d.remarks, "type &lt; to page");
 }
-
-
