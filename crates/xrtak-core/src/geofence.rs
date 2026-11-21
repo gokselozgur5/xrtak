@@ -37,12 +37,25 @@ impl BoundingBox {
         let mut min_y = first.y;
         let mut max_y = first.y;
         for p in points.iter().skip(1) {
-            if p.x < min_x { min_x = p.x; }
-            if p.x > max_x { max_x = p.x; }
-            if p.y < min_y { min_y = p.y; }
-            if p.y > max_y { max_y = p.y; }
+            if p.x < min_x {
+                min_x = p.x;
+            }
+            if p.x > max_x {
+                max_x = p.x;
+            }
+            if p.y < min_y {
+                min_y = p.y;
+            }
+            if p.y > max_y {
+                max_y = p.y;
+            }
         }
-        Some(Self { min_x, min_y, max_x, max_y })
+        Some(Self {
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        })
     }
     pub fn contains_2d(&self, x: f64, y: f64) -> bool {
         x >= self.min_x && x <= self.max_x && y >= self.min_y && y <= self.max_y
@@ -61,7 +74,11 @@ pub struct GeofencePolygon {
 }
 
 impl GeofencePolygon {
-    pub fn new(id: impl Into<String>, name: impl Into<String>, vertices: Vec<GeofencePoint>) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        vertices: Vec<GeofencePoint>,
+    ) -> Self {
         let bbox = BoundingBox::from_points(&vertices);
         Self {
             id: id.into(),
