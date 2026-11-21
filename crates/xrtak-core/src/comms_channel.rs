@@ -231,7 +231,7 @@ impl CommsChannelPacket {
                 ch.id, ch_name, ch.frequency_hz, ch.bandwidth_hz, mode_str
             );
             if let Some(pwr) = ch.tx_power_watts {
-                ch_xml.push_str(&format!(" power=\"{:.1}\"", pwr));
+                ch_xml.push_str(&format!(" power=\"{}\"", pwr));
             }
             if let Some(preset) = &ch.net_preset {
                 ch_xml.push_str(&format!(" netPreset=\"{}\"", escape_xml(preset)));
