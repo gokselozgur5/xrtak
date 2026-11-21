@@ -10,7 +10,15 @@ fn test_marker_color_mapping() {
     let b = color_for_affiliation(Affiliation::Friendly);
     let g = color_for_affiliation(Affiliation::Neutral);
     let y = color_for_affiliation(Affiliation::Unknown);
-    assert_eq!((r, b, g, y), (MarkerColor::RED, MarkerColor::BLUE, MarkerColor::GREEN, MarkerColor::YELLOW));
+    assert_eq!(
+        (r, b, g, y),
+        (
+            MarkerColor::RED,
+            MarkerColor::BLUE,
+            MarkerColor::GREEN,
+            MarkerColor::YELLOW
+        )
+    );
 }
 
 #[test]
@@ -19,7 +27,15 @@ fn test_marker_shape_mapping() {
     let r = shape_for_affiliation(Affiliation::Friendly);
     let c = shape_for_affiliation(Affiliation::Neutral);
     let s = shape_for_affiliation(Affiliation::Unknown);
-    assert_eq!((d, r, c, s), (MarkerShape::Diamond, MarkerShape::Rectangle, MarkerShape::Circle, MarkerShape::Square));
+    assert_eq!(
+        (d, r, c, s),
+        (
+            MarkerShape::Diamond,
+            MarkerShape::Rectangle,
+            MarkerShape::Circle,
+            MarkerShape::Square
+        )
+    );
 }
 
 #[test]
