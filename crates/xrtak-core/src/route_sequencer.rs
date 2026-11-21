@@ -12,14 +12,20 @@ pub fn haversine_distance_m(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let r_lat1 = lat1.to_radians();
     let r_lat2 = lat2.to_radians();
 
-    let a = (d_lat / 2.0).sin().powi(2)
-        + r_lat1.cos() * r_lat2.cos() * (d_lon / 2.0).sin().powi(2);
+    let a = (d_lat / 2.0).sin().powi(2) + r_lat1.cos() * r_lat2.cos() * (d_lon / 2.0).sin().powi(2);
     let c = 2.0 * a.sqrt().asin();
     EARTH_RADIUS_M * c
 }
 
 /// 3D slant distance taking elevation difference into account.
-pub fn slant_distance_3d_m(lat1: f64, lon1: f64, alt1: f64, lat2: f64, lon2: f64, alt2: f64) -> f64 {
+pub fn slant_distance_3d_m(
+    lat1: f64,
+    lon1: f64,
+    alt1: f64,
+    lat2: f64,
+    lon2: f64,
+    alt2: f64,
+) -> f64 {
     let h_dist = haversine_distance_m(lat1, lon1, lat2, lon2);
     let v_dist = alt2 - alt1;
     (h_dist.powi(2) + v_dist.powi(2)).sqrt()
@@ -39,7 +45,14 @@ pub fn initial_bearing_deg(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
 
 /// Cross-track error in meters from point P to geodesic track segment A->B.
 /// Positive value indicates right of track; negative indicates left of track.
-pub fn cross_track_error_m(p_lat: f64, p_lon: f64, a_lat: f64, a_lon: f64, b_lat: f64, b_lon: f64) -> f64 {
+pub fn cross_track_error_m(
+    p_lat: f64,
+    p_lon: f64,
+    a_lat: f64,
+    a_lon: f64,
+    b_lat: f64,
+    b_lon: f64,
+) -> f64 {
     let d13 = haversine_distance_m(a_lat, a_lon, p_lat, p_lon) / EARTH_RADIUS_M;
     let brg13 = initial_bearing_deg(a_lat, a_lon, p_lat, p_lon).to_radians();
     let brg12 = initial_bearing_deg(a_lat, a_lon, b_lat, b_lon).to_radians();
