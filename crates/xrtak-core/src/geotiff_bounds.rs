@@ -76,7 +76,10 @@ pub struct GeoRasterExtent {
 
 impl GeoRasterExtent {
     pub fn center(&self) -> (f64, f64) {
-        ((self.min_x + self.max_x) * 0.5, (self.min_y + self.max_y) * 0.5)
+        (
+            (self.min_x + self.max_x) * 0.5,
+            (self.min_y + self.max_y) * 0.5,
+        )
     }
 
     pub fn span_x(&self) -> f64 {
@@ -107,11 +110,16 @@ pub fn parse_world_file(content: &str) -> Result<WorldFileTransform, String> {
         .collect();
 
     if tokens.len() != 6 {
-        return Err(format!("Expected 6 numerical values, found {}", tokens.len()));
+        return Err(format!(
+            "Expected 6 numerical values, found {}",
+            tokens.len()
+        ));
     }
 
     let parse_val = |idx: usize, name: &'static str| -> Result<f64, String> {
-        tokens[idx].parse::<f64>().map_err(|e| format!("{}: {}", name, e))
+        tokens[idx]
+            .parse::<f64>()
+            .map_err(|e| format!("{}: {}", name, e))
     };
 
     let a = parse_val(0, "Line 1")?;
@@ -152,8 +160,12 @@ pub fn compute_raster_extent(
     let mut max_y = ys[0];
 
     for &x in &xs[1..] {
-        if x < min_x { min_x = x; }
-        if x > max_x { max_x = x; }
+        if x < min_x {
+            min_x = x;
+        }
+        if x > max_x {
+            max_x = x;
+        }
     }
     for &y in &ys[1..] {
         if y < min_y { min_y = y; }
