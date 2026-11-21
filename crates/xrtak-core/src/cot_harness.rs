@@ -92,7 +92,10 @@ impl CotParseHarness {
             CotHarnessError::MissingUid
         } else if lower.contains("missing point") {
             CotHarnessError::MissingPoint
-        } else if lower.contains("must be in") || lower.contains("range") || lower.contains("coordinate") {
+        } else if lower.contains("must be in")
+            || lower.contains("range")
+            || lower.contains("coordinate")
+        {
             CotHarnessError::CoordinateRange(err_str)
         } else {
             CotHarnessError::InvalidXml(err_str)
@@ -101,10 +104,7 @@ impl CotParseHarness {
 }
 
 impl CotParseHarness {
-    pub fn parse_raw(
-        &mut self,
-        raw: &RawCotMessage,
-    ) -> Result<ParsedCotMessage, CotHarnessError> {
+    pub fn parse_raw(&mut self, raw: &RawCotMessage) -> Result<ParsedCotMessage, CotHarnessError> {
         self.parse_raw_with_provider(raw, &ProceduralReliefModel)
     }
 }
@@ -130,11 +130,19 @@ impl CotParseHarness {
         self.metrics.total_processed += 1;
         self.metrics.total_bytes_ingested += raw.payload.len();
         let start = std::time::Instant::now();
-        let res = parse_cot_xml_with_provider(&raw.payload, &self.origin, provider, raw.received_unix_ms);
+        let res =
+            parse_cot_xml_with_provider(&raw.payload, &self.origin, provider, raw.received_unix_ms);
         let elapsed = start.elapsed().as_micros() as u64;
-        let entity = res.map_err(|e| { self.metrics.total_failed += 1; Self::map_error(e) })?;
+        let entity = res.map_err(|e| {
+            self.metrics.total_failed += 1;
+            Self::map_error(e)
+        })?;
         self.record_affiliation(entity.affiliation);
-        Ok(ParsedCotMessage { entity, raw_bytes_len: raw.payload.len(), parse_duration_micros: elapsed })
+        Ok(ParsedCotMessage {
+            entity,
+            raw_bytes_len: raw.payload.len(),
+            parse_duration_micros: elapsed,
+        })
     }
 }
 
