@@ -238,17 +238,18 @@ fn build_track_linestring_placemark(track: &CotTrack, config: &KmlExportConfig) 
 }
 
 /// Formats a Google Earth gx:Track Placemark with temporal <when> tags.
-fn build_gx_track_placemark(track: &CotTrack) -> String {
+fn build_gx_track_placemark(track: &CotTrack, config: &KmlExportConfig) -> String {
     let mut xml = String::with_capacity(512);
     let (cs, uid) = (
         escape_xml_attr(&track.callsign),
         escape_xml_attr(&track.uid),
     );
+    let alt = escape_xml_attr(&config.altitude_mode);
     xml.push_str("    <Placemark>\n");
     xml.push_str(&format!("      <name>{cs} Animated</name>\n"));
     xml.push_str(&format!("      <styleUrl>#style-{uid}</styleUrl>\n"));
     xml.push_str("      <gx:Track>\n");
-    xml.push_str("        <altitudeMode>absolute</altitudeMode>\n");
+    xml.push_str(&format!("        <altitudeMode>{alt}</altitudeMode>\n"));
     for pt in &track.points {
         if let Some(ms) = pt.timestamp_ms {
             let iso = format_iso8601_utc(ms);
@@ -256,10 +257,12 @@ fn build_gx_track_placemark(track: &CotTrack) -> String {
         }
     }
     for pt in &track.points {
-        xml.push_str(&format!(
-            "        <gx:coord>{:.6} {:.6} {:.1}</gx:coord>\n",
-            pt.lon, pt.lat, pt.hae_m
-        ));
+        if pt.timestamp_ms.is_some() {
+            xml.push_str(&format!(
+                "        <gx:coord>{:.6} {:.6} {:.1}</gx:coord>\n",
+                pt.lon, pt.lat, pt.hae_m
+            ));
+        }
     }
     xml.push_str("      </gx:Track>\n");
     xml.push_str("    </Placemark>\n");
@@ -297,7 +300,7 @@ pub fn export_cot_tracks_kml(tracks: &[CotTrack], config: &KmlExportConfig) -> S
             kml.push_str(&build_track_linestring_placemark(track, config));
 
             if config.include_gx_track && track.points.iter().any(|p| p.timestamp_ms.is_some()) {
-                kml.push_str(&build_gx_track_placemark(track));
+                kml.push_str(&build_gx_track_placemark(track, config));
             }
 
             if config.include_placemarks {
