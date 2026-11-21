@@ -75,7 +75,8 @@ pub fn compute_uav_endurance(
 
     let dx_home = state.home_east_m - state.current_east_m;
     let dy_home = state.home_north_m - state.current_north_m;
-    let dist_to_home = (dx_home.powi(2) + dy_home.powi(2)).sqrt();
+    let dz_home = state.home_up_m - state.current_up_m;
+    let dist_to_home = (dx_home.powi(2) + dy_home.powi(2) + dz_home.powi(2)).sqrt();
 
     let bearing_to_home_rad = dy_home.atan2(dx_home);
     let headwind_comp =
