@@ -530,11 +530,15 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
 
     for _ in 0..entry_count {
         if cursor + 46 > bytes.len() || bytes[cursor..cursor + 4] != [0x50, 0x4b, 0x01, 0x02] {
-            return Err(MissionPackageError::InvalidZipArchive("corrupt central directory".into()));
+            return Err(MissionPackageError::InvalidZipArchive(
+                "corrupt central directory".into(),
+            ));
         }
         let method = u16::from_le_bytes([bytes[cursor + 10], bytes[cursor + 11]]);
         if method != 0 {
-            return Err(MissionPackageError::InvalidZipArchive("unsupported compression method".into()));
+            return Err(MissionPackageError::InvalidZipArchive(
+                "unsupported compression method".into(),
+            ));
         }
         let comp_size = u32::from_le_bytes([
             bytes[cursor + 20],
@@ -554,7 +558,9 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
 
         let name_start = cursor + 46;
         if name_start + fn_len > bytes.len() {
-            return Err(MissionPackageError::InvalidZipArchive("name out of bounds".into()));
+            return Err(MissionPackageError::InvalidZipArchive(
+                "name out of bounds".into(),
+            ));
         }
         let name_str = std::str::from_utf8(&bytes[name_start..name_start + fn_len])
             .map_err(|e| MissionPackageError::InvalidZipArchive(e.to_string()))?
@@ -563,14 +569,20 @@ pub fn extract_zip_archive(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Missi
         if local_offset + 30 > bytes.len()
             || bytes[local_offset..local_offset + 4] != [0x50, 0x4b, 0x03, 0x04]
         {
-            return Err(MissionPackageError::InvalidZipArchive("corrupt local header".into()));
+            return Err(MissionPackageError::InvalidZipArchive(
+                "corrupt local header".into(),
+            ));
         }
-        let l_fn_len = u16::from_le_bytes([bytes[local_offset + 26], bytes[local_offset + 27]]) as usize;
-        let l_ex_len = u16::from_le_bytes([bytes[local_offset + 28], bytes[local_offset + 29]]) as usize;
+        let l_fn_len =
+            u16::from_le_bytes([bytes[local_offset + 26], bytes[local_offset + 27]]) as usize;
+        let l_ex_len =
+            u16::from_le_bytes([bytes[local_offset + 28], bytes[local_offset + 29]]) as usize;
 
         let data_start = local_offset + 30 + l_fn_len + l_ex_len;
         if data_start + comp_size > bytes.len() {
-            return Err(MissionPackageError::InvalidZipArchive("entry data out of bounds".into()));
+            return Err(MissionPackageError::InvalidZipArchive(
+                "entry data out of bounds".into(),
+            ));
         }
         let file_data = bytes[data_start..data_start + comp_size].to_vec();
         files.push((name_str, file_data));
