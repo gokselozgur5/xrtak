@@ -331,9 +331,11 @@ impl MutualCertAuthenticator {
         if p == h {
             return true;
         }
-        if let Some(suffix) = p.strip_prefix("*.") {
-            if let Some((_, host_domain)) = h.split_once('.') {
-                return host_domain == suffix;
+        if h.parse::<std::net::IpAddr>().is_err() {
+            if let Some(suffix) = p.strip_prefix("*.") {
+                if let Some((_, host_domain)) = h.split_once('.') {
+                    return host_domain == suffix;
+                }
             }
         }
         false
@@ -358,12 +360,22 @@ impl MutualCertAuthenticator {
             });
         }
 
-        let host_candidate = expected_host.split(':').next().unwrap_or(expected_host);
-        let host_matched = Self::matches_host_or_pattern(&cert.subject_cn, host_candidate)
-            || cert
-                .subject_alt_names
+        let host_candidate = if expected_host.starts_with('[') {
+            expected_host
+                .split(']')
+                .next()
+                .map(|s| s.trim_start_matches('['))
+                .unwrap_or(expected_host)
+        } else {
+            expected_host.split(':').next().unwrap_or(expected_host)
+        };
+        let host_matched = if cert.subject_alt_names.is_empty() {
+            Self::matches_host_or_pattern(&cert.subject_cn, host_candidate)
+        } else {
+            cert.subject_alt_names
                 .iter()
-                .any(|san| Self::matches_host_or_pattern(san, host_candidate));
+                .any(|san| Self::matches_host_or_pattern(san, host_candidate))
+        };
 
         if !host_matched {
             return Err(AuthError::HostnameMismatch {
@@ -797,7 +809,7 @@ mod tests {
 
         let cert = PeerCertificateInfo {
             subject_cn: "tak.example.com".into(),
-            subject_alt_names: vec!["*.internal.tak".into()],
+            subject_alt_names: vec!["tak.example.com".into(), "*.internal.tak".into()],
             issuer: "Root TAK CA".into(),
             not_before_epoch_ms: 500,
             not_after_epoch_ms: 5000,
