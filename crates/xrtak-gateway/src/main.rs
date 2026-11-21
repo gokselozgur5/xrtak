@@ -1158,14 +1158,15 @@ async fn handle_http_connection(
                 stale_threshold_sec: Some(5.0),
             });
         let horizons = p_req.horizons_sec.unwrap_or_else(|| vec![15.0, 30.0, 60.0]);
-        let stale_thresh = p_req.stale_threshold_sec.unwrap_or(5.0);
+        let stale_thresh_ms = (p_req.stale_threshold_sec.unwrap_or(5.0) * 1000.0) as u64;
+        let now_ms = now_unix_ms();
         let predictions: Vec<TrackPrediction> = {
             let guard = lock_world(&world);
             guard
                 .entities
                 .values()
                 .map(|e| {
-                    let is_stale = e.speed_mps <= stale_thresh;
+                    let is_stale = now_ms.saturating_sub(e.updated_unix_ms) >= stale_thresh_ms;
                     predict_entity_trajectory_struct(&TrackPredictInput {
                         uid: &e.uid,
                         callsign: &e.callsign,
