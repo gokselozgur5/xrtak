@@ -59,3 +59,23 @@ fn test_predict_trajectory_points_and_cep_rounding() {
         assert_eq!(pt.cep_radius_m, (pt.cep_radius_m * 100.0).round() / 100.0);
     }
 }
+
+#[test]
+fn test_predict_entity_trajectory_rounds_to_centimetres() {
+    let pred = predict_entity_trajectory(
+        "T-ROUND",
+        "Track R",
+        (10.123, 20.456, 30.789),
+        15.555,
+        45.0,
+        false,
+        3.333,
+        &[1.234, 5.678],
+    );
+    for pt in &pred.points {
+        assert_eq!(pt.east_m, (pt.east_m * 100.0).round() / 100.0);
+        assert_eq!(pt.north_m, (pt.north_m * 100.0).round() / 100.0);
+        assert_eq!(pt.up_m, (pt.up_m * 100.0).round() / 100.0);
+        assert_eq!(pt.cep_radius_m, (pt.cep_radius_m * 100.0).round() / 100.0);
+    }
+}
