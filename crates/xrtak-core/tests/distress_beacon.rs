@@ -1,6 +1,4 @@
-use xrtak_core::{
-    DistressBeacon, EmergencySeverity, EmergencyStatus, EmergencyType, SosFlags,
-};
+use xrtak_core::{DistressBeacon, EmergencySeverity, EmergencyStatus, EmergencyType, SosFlags};
 
 #[test]
 fn test_integration_distress_beacon_lifecycle() {
