@@ -286,9 +286,9 @@ fn now_unix_ms() -> u64 {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let http_addr_str =
-        std::env::var("XRTAK_HTTP_ADDR").unwrap_or_else(|_| "0.0.0.0:8090".to_string());
+        std::env::var("XRTAK_HTTP_ADDR").unwrap_or_else(|_| "127.0.0.1:8090".to_string());
     let udp_addr_str =
-        std::env::var("XRTAK_UDP_ADDR").unwrap_or_else(|_| "0.0.0.0:4242".to_string());
+        std::env::var("XRTAK_UDP_ADDR").unwrap_or_else(|_| "127.0.0.1:4242".to_string());
     let http_addr: SocketAddr = http_addr_str.parse()?;
     let udp_cot_addr: SocketAddr = udp_addr_str.parse()?;
 
@@ -364,7 +364,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 3. HTTP + SSE + CoT/SPI/Viewshed Server on :8090 (with automatic fallback to :8091)
     let listener = match TcpListener::bind(http_addr).await {
         Ok(l) => l,
-        Err(_) => TcpListener::bind("0.0.0.0:8091").await?,
+        Err(_) => TcpListener::bind("127.0.0.1:8091").await?,
     };
     let bound_port = listener.local_addr()?.port();
     println!("==============================================================");
