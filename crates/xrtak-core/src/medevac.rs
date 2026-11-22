@@ -244,6 +244,44 @@ impl PatientNationality {
     }
 }
 
+/// Line 9: Nuclear, Biological, Chemical (NBC) contamination status.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum NbcContamination {
+    #[default]
+    None,
+    Nuclear,
+    Biological,
+    Chemical,
+    Custom(String),
+}
+
+impl NbcContamination {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::None => "None",
+            Self::Nuclear => "Nuclear",
+            Self::Biological => "Biological",
+            Self::Chemical => "Chemical",
+            Self::Custom(s) => s.as_str(),
+        }
+    }
+
+    pub fn parse_nbc(s: &str) -> Self {
+        let upper = s.trim().to_uppercase();
+        if upper.starts_with("N - NONE") || upper == "NONE" || upper.is_empty() {
+            Self::None
+        } else if upper.starts_with("N - NUC") || upper.contains("NUCLEAR") {
+            Self::Nuclear
+        } else if upper.starts_with('B') || upper.contains("BIO") {
+            Self::Biological
+        } else if upper.starts_with('C') || upper.contains("CHEM") {
+            Self::Chemical
+        } else {
+            Self::Custom(s.trim().to_string())
+        }
+    }
+}
+
 /// NATO 9-Line MEDEVAC and CASEVAC incident report packet.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CotMedevacReport {
