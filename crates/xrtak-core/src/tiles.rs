@@ -171,7 +171,11 @@ impl TileCoord {
 
     /// Converts XYZ tile coordinates to TMS tile coordinates.
     pub const fn to_tms(self) -> (u8, u32, u32) {
-        let z = if self.zoom > MAX_ZOOM { MAX_ZOOM } else { self.zoom };
+        let z = if self.zoom > MAX_ZOOM {
+            MAX_ZOOM
+        } else {
+            self.zoom
+        };
         let max_idx = (1u32 << z).saturating_sub(1);
         (z, self.tile_x, max_idx.saturating_sub(self.tile_y))
     }
