@@ -567,3 +567,34 @@ fn test_collab_sync_peer_map_capacity_cap() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_gateway_fallback_retains_configured_host() {
+    let dummy_listener = std::net::TcpListener::bind("[::1]:0").unwrap();
+    let occupied_port = dummy_listener.local_addr().unwrap().port();
+
+    let configured_addr = format!("[::1]:{occupied_port}");
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_xrtak-gateway"));
+    cmd.env("XRTAK_HTTP_ADDR", &configured_addr)
+        .env("XRTAK_UDP_ADDR", "127.0.0.1:0");
+    let mut child = cmd.spawn().unwrap();
+
+    let fallback_addr = "[::1]:8091";
+    let mut connected = false;
+    for _ in 0..30 {
+        if TcpStream::connect(fallback_addr).is_ok() {
+            connected = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    let _ = child.kill();
+    let _ = child.wait();
+    drop(dummy_listener);
+
+    assert!(
+        connected,
+        "gateway did not fall back to port 8091 on configured host [::1]"
+    );
+}
