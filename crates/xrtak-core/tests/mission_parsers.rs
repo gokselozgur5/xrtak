@@ -20,8 +20,14 @@ fn kml_parses_names_altitudes_and_modes() {
 
 #[test]
 fn kml_without_coordinates_is_rejected() {
-    assert!(parse_kml_mission("<kml><Document/></kml>").is_err());
-    assert!(parse_kml_mission("<a><b></a>").is_err());
+    let err_empty = parse_kml_mission("<kml><Document/></kml>").unwrap_err();
+    assert_eq!(err_empty, "No valid <coordinates> waypoints found in KML");
+
+    let err_malformed = parse_kml_mission("<a><b></a>").unwrap_err();
+    assert!(
+        err_malformed.starts_with("KML XML parse error:"),
+        "expected XML parse error, got: {err_malformed}"
+    );
 }
 
 #[test]
