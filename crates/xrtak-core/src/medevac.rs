@@ -30,19 +30,14 @@ impl fmt::Display for MedevacError {
 impl std::error::Error for MedevacError {}
 
 /// Line 3: Patient evacuation precedence category.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum MedevacPrecedence {
     Urgent,
     UrgentSurgical,
+    #[default]
     Priority,
     Routine,
     Convenience,
-}
-
-impl Default for MedevacPrecedence {
-    fn default() -> Self {
-        Self::Priority
-    }
 }
 
 impl MedevacPrecedence {
@@ -84,19 +79,14 @@ impl MedevacPrecedence {
 }
 
 /// Line 4: Special equipment requirements.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum MedevacEquipment {
+    #[default]
     None,
     Hoist,
     ExtractionEquipment,
     Ventilator,
     Custom(String),
-}
-
-impl Default for MedevacEquipment {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl MedevacEquipment {
@@ -122,19 +112,14 @@ impl MedevacEquipment {
 }
 
 /// Line 6: Security at pickup site.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SiteSecurity {
+    #[default]
     NoEnemy,
     PossibleEnemy,
     EnemyInArea,
     ArmedEscortRequired,
     Custom(String),
-}
-
-impl Default for SiteSecurity {
-    fn default() -> Self {
-        Self::NoEnemy
-    }
 }
 
 impl SiteSecurity {
@@ -165,19 +150,14 @@ impl SiteSecurity {
 }
 
 /// Line 7: Helicopter landing zone marking method.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum HlzMarking {
     Panels,
     PyrotechnicSignal,
     Smoke(String),
+    #[default]
     None,
     Custom(String),
-}
-
-impl Default for HlzMarking {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl HlzMarking {
@@ -219,8 +199,9 @@ impl HlzMarking {
 }
 
 /// Line 8: Patient nationality and status.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PatientNationality {
+    #[default]
     UsMilitary,
     UsCivilian,
     NonUsMilitary,
@@ -228,12 +209,6 @@ pub enum PatientNationality {
     Epw,
     Child,
     Custom(String),
-}
-
-impl Default for PatientNationality {
-    fn default() -> Self {
-        Self::UsMilitary
-    }
 }
 
 impl PatientNationality {
