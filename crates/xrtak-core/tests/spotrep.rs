@@ -62,3 +62,15 @@ fn report_and_chat_events_are_not_stale_on_creation() {
         assert!(attr(&xml, "stale") > attr(&xml, "start"), "{xml}");
     }
 }
+
+#[test]
+fn spotrep_with_stale_time_overrides_derived_stale() {
+    let t = "2026-11-18T10:00:00Z";
+    let stale = "2026-11-18T10:30:00Z";
+    let spot = SpotReport::new("S-2", "OBS")
+        .with_time(t)
+        .with_stale_time(stale)
+        .to_cot_xml();
+    assert_eq!(attr(&spot, "stale"), stale);
+    assert_eq!(attr(&spot, "start"), t);
+}
