@@ -170,23 +170,17 @@ pub struct LinkBudgetResult {
 
 /// Computes signal wavelength in meters from frequency in Hertz.
 pub fn compute_wavelength(frequency_hz: f64) -> f64 {
-    if frequency_hz <= 0.0 {
-        return 0.0;
-    }
-    SPEED_OF_LIGHT_MPS / frequency_hz
+    crate::rf::compute_wavelength_m(frequency_hz)
 }
 
 /// Calculates radius of nth Fresnel zone in meters at distances d1 and d2.
 pub fn compute_fresnel_radius(n: u32, d1_m: f64, d2_m: f64, frequency_hz: f64) -> f64 {
-    let total_d = d1_m + d2_m;
-    if total_d <= 1e-4 || d1_m <= 0.0 || d2_m <= 0.0 || n == 0 {
-        return 0.0;
+    if n == 1 {
+        crate::rf::compute_fresnel_radius_m(d1_m, d2_m, frequency_hz)
+    } else {
+        let r1 = crate::rf::compute_fresnel_radius_m(d1_m, d2_m, frequency_hz);
+        r1 * (n as f64).sqrt()
     }
-    let lambda = compute_wavelength(frequency_hz);
-    if lambda <= 0.0 {
-        return 0.0;
-    }
-    ((n as f64 * lambda * d1_m * d2_m) / total_d).sqrt()
 }
 
 /// Computes Earth curvature bulge elevation in meters along a line of sight.
@@ -200,12 +194,7 @@ pub fn compute_earth_bulge(d1_m: f64, d2_m: f64, k_factor: f64, earth_radius_m: 
 
 /// Computes Free-Space Path Loss (FSPL) in decibels.
 pub fn compute_fspl(distance_m: f64, frequency_hz: f64) -> f64 {
-    let d = distance_m.max(1.0);
-    let lambda = compute_wavelength(frequency_hz);
-    if lambda <= 0.0 {
-        return 0.0;
-    }
-    20.0 * (4.0 * std::f64::consts::PI * d / lambda).log10()
+    crate::rf::compute_fspl_db_hz(distance_m, frequency_hz)
 }
 
 /// Computes dimensionless Fresnel-Kirchhoff knife-edge diffraction parameter v.
@@ -217,16 +206,7 @@ pub fn compute_diffraction_param_v(
     d2_m: f64,
     frequency_hz: f64,
 ) -> f64 {
-    let total_d = d1_m + d2_m;
-    if total_d <= 1e-4 || d1_m <= 0.0 || d2_m <= 0.0 {
-        return -1.0;
-    }
-    let lambda = compute_wavelength(frequency_hz);
-    if lambda <= 0.0 {
-        return -1.0;
-    }
-    let geometry_factor = (2.0 * total_d / (lambda * d1_m * d2_m)).sqrt();
-    obstacle_penetration_m * geometry_factor
+    crate::rf::compute_diffraction_v(obstacle_penetration_m, d1_m, d2_m, frequency_hz)
 }
 
 /// Computes Knife-Edge Diffraction Loss J(v) in dB using ITU-R P.526-15 approximation.
@@ -234,18 +214,7 @@ pub fn compute_diffraction_param_v(
 /// v is the dimensionless diffraction parameter.
 /// If v <= -0.7, obstacle is outside 0.6 Fresnel clearance (0 dB loss).
 pub fn compute_knife_edge_diffraction(v: f64) -> f64 {
-    if v <= -0.7 {
-        0.0
-    } else {
-        let diff = v - 0.1;
-        let term = (diff.powi(2) + 1.0).sqrt() + diff;
-        if term <= 0.0 {
-            0.0
-        } else {
-            let loss = 6.9 + 20.0 * term.log10();
-            loss.max(0.0)
-        }
-    }
+    crate::rf::compute_knife_edge_diffraction_db(v)
 }
 
 /// Classifies clearance ratio into standard operational clearance categories.
