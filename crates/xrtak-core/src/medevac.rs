@@ -566,34 +566,9 @@ fn build_medevac_inner_tags(r: &CotMedevacReport) -> String {
 
 fn format_medevac_detail_xml(r: &CotMedevacReport) -> String {
     let (cs, rem) = (escape_xml(&r.callsign), escape_xml(&r.remarks));
-    let (l1, l2) = (
-        escape_xml(&r.line1_location),
-        escape_xml(&r.line2_freq_callsign),
-    );
-    let (l3, l4) = (
-        escape_xml(r.line3_precedence.code()),
-        escape_xml(r.line4_equipment.as_str()),
-    );
-    let (l6, l7) = (
-        escape_xml(r.line6_security.as_str()),
-        escape_xml(&r.line7_hlz_marking.as_str()),
-    );
-    let (l8, l9) = (
-        escape_xml(r.line8_patient_nationality.as_str()),
-        escape_xml(&r.line9_terrain_nbc),
-    );
     let inner = build_medevac_inner_tags(r);
     format!(
-        "<detail><contact callsign=\"{cs}\"/><remarks>{rem}</remarks>\
-<medevac line1=\"{l1}\" line2=\"{l2}\" line3=\"{l3}\" line4=\"{l4}\" \
-urgent=\"{}\" priority=\"{}\" routine=\"{}\" \
-litter=\"{}\" ambulatory=\"{}\" \
-line6=\"{l6}\" line7=\"{l7}\" line8=\"{l8}\" line9=\"{l9}\">{inner}</medevac></detail>",
-        r.line3_urgent_count,
-        r.line3_priority_count,
-        r.line3_routine_count,
-        r.line5_litter_count,
-        r.line5_ambulatory_count
+        "<detail><contact callsign=\"{cs}\"/><remarks>{rem}</remarks><medevac>{inner}</medevac></detail>"
     )
 }
 
@@ -983,7 +958,7 @@ mod tests {
         assert!(xml.contains("<event version=\"2.0\" uid=\"MED-101\""));
         assert!(xml.contains("<point lat=\"34.550000\" lon=\"43.120000\""));
         assert!(xml.contains("<contact callsign=\"DUSTOFF-42\""));
-        assert!(xml.contains("<medevac "));
+        assert!(xml.contains("<medevac>"));
 
         let parsed = CotMedevacReport::from_cot_xml(&xml).expect("parse xml");
         assert_eq!(parsed.cot_uid, report.cot_uid);
