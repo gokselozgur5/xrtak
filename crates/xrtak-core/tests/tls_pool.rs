@@ -44,7 +44,7 @@ fn test_integration_mtls_san_and_wildcard_verification() {
 
     let valid_cert = PeerCertificateInfo {
         subject_cn: "tak-gw.defense.gov".into(),
-        subject_alt_names: vec!["edge.tactical.network".into()],
+        subject_alt_names: vec!["tak-gw.defense.gov".into(), "edge.tactical.network".into()],
         issuer: "DoD Interoperability CA".into(),
         not_before_epoch_ms: 10_000,
         not_after_epoch_ms: 90_000,
