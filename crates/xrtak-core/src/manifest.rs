@@ -67,6 +67,9 @@ pub fn format_copernicus_glo30_cell_id(lat_floor_deg: i32, lon_floor_deg: i32) -
 }
 
 /// Compute all 1°×1° Copernicus GLO-30 DEM cells intersecting the WGS84 bounding box `(south, west, north, east)`.
+///
+/// Bounding boxes crossing the antimeridian where `west_deg > east_deg` (RFC 7946 section 5.2)
+/// are enumerated in two longitude segments: `[west_deg, 180.0]` and `[-180.0, east_deg]`.
 pub fn copernicus_glo30_cells_for_bounds(
     south_deg: f64,
     west_deg: f64,
@@ -75,33 +78,46 @@ pub fn copernicus_glo30_cells_for_bounds(
 ) -> Vec<CopernicusDemCell> {
     let s = south_deg.min(north_deg).clamp(-89.999, 89.999);
     let n = south_deg.max(north_deg).clamp(-89.999, 89.999);
-    let w = west_deg.min(east_deg).clamp(-179.999, 179.999);
-    let e = west_deg.max(east_deg).clamp(-179.999, 179.999);
+    let w = west_deg.clamp(-180.0, 180.0);
+    let e = east_deg.clamp(-180.0, 180.0);
 
     let min_lat = s.floor() as i32;
     let max_lat = (n - 1e-9).max(s).floor() as i32;
-    let min_lon = w.floor() as i32;
-    let max_lon = (e - 1e-9).max(w).floor() as i32;
+
+    let lon_segments: &[(f64, f64)] = if w > e {
+        &[(w, 180.0), (-180.0, e)]
+    } else {
+        &[(w, e)]
+    };
 
     let mut cells = Vec::new();
     for lat_floor in min_lat..=max_lat {
-        for lon_floor in min_lon..=max_lon {
-            let cell_id = format_copernicus_glo30_cell_id(lat_floor, lon_floor);
-            let s3_url =
-                format!("https://copernicus-dem-30m.s3.amazonaws.com/{cell_id}/{cell_id}.tif");
-            cells.push(CopernicusDemCell {
-                cell_id,
-                lat_floor_deg: lat_floor,
-                lon_floor_deg: lon_floor,
-                s3_url,
-                estimated_bytes: 28_500_000,
-            });
+        for &(seg_w, seg_e) in lon_segments {
+            let seg_w_clamped = seg_w.clamp(-179.999, 179.999);
+            let seg_e_clamped = seg_e.clamp(-179.999, 179.999);
+            let min_lon = seg_w_clamped.floor() as i32;
+            let max_lon = (seg_e_clamped - 1e-9).max(seg_w_clamped).floor() as i32;
+            for lon_floor in min_lon..=max_lon {
+                let cell_id = format_copernicus_glo30_cell_id(lat_floor, lon_floor);
+                let s3_url =
+                    format!("https://copernicus-dem-30m.s3.amazonaws.com/{cell_id}/{cell_id}.tif");
+                cells.push(CopernicusDemCell {
+                    cell_id,
+                    lat_floor_deg: lat_floor,
+                    lon_floor_deg: lon_floor,
+                    s3_url,
+                    estimated_bytes: 28_500_000,
+                });
+            }
         }
     }
     cells
 }
 
 /// Compute Web Mercator tile range and estimated byte size for a single zoom level (`REQ-MAN-02`).
+///
+/// If `west_deg > east_deg`, the bounding box crosses the antimeridian (RFC 7946 §5.2) and
+/// `tiles_x` is computed as the sum of tiles from `[x_west, 2^zoom - 1]` and `[0, x_east]`.
 pub fn estimate_tiles_for_bounds(
     south_deg: f64,
     west_deg: f64,
@@ -111,22 +127,25 @@ pub fn estimate_tiles_for_bounds(
 ) -> ZoomTileEstimate {
     let s = south_deg.min(north_deg);
     let n = south_deg.max(north_deg);
-    let w = west_deg.min(east_deg);
-    let e = west_deg.max(east_deg);
+    let w = west_deg.clamp(-180.0, 180.0);
+    let e = east_deg.clamp(-180.0, 180.0);
 
-    // Note: in XYZ/Slippy tiles, north has smaller Y index than south
     let (x0, y_north) = latlon_to_tile_xy(n, w, zoom);
     let (x1, y_south) = latlon_to_tile_xy(s, e, zoom);
 
-    let min_tile_x = x0.min(x1);
-    let max_tile_x = x0.max(x1);
     let min_tile_y = y_north.min(y_south);
     let max_tile_y = y_north.max(y_south);
-
-    let tiles_x = max_tile_x - min_tile_x + 1;
     let tiles_y = max_tile_y - min_tile_y + 1;
+
+    let (min_tile_x, max_tile_x, tiles_x) = if w > e {
+        let n_tiles = 1u32 << zoom.min(crate::tiles::MAX_ZOOM);
+        let span = (n_tiles - x0) + x1 + 1;
+        (x0, x1, span)
+    } else {
+        (x0.min(x1), x0.max(x1), x0.max(x1) - x0.min(x1) + 1)
+    };
+
     let total_tiles = (tiles_x as u64) * (tiles_y as u64);
-    // Average compressed 256x256 JPEG/WebP satellite tile ~ 24 KB
     let estimated_bytes = total_tiles * 24_576;
 
     ZoomTileEstimate {
@@ -190,8 +209,8 @@ impl<'a> ManifestInput<'a> {
 pub fn build_mapset_manifest(input: &ManifestInput) -> MapsetManifest {
     let s = input.south_deg.min(input.north_deg);
     let n = input.south_deg.max(input.north_deg);
-    let w = input.west_deg.min(input.east_deg);
-    let e = input.west_deg.max(input.east_deg);
+    let w = input.west_deg.clamp(-180.0, 180.0);
+    let e = input.east_deg.clamp(-180.0, 180.0);
     let z_min = input.min_zoom.min(input.max_zoom).clamp(1, 20);
     let z_max = input.min_zoom.max(input.max_zoom).clamp(1, 20);
 
