@@ -85,3 +85,34 @@ fn parent_tile_does_not_panic_for_large_zoom_difference() {
     let outcome = std::panic::catch_unwind(|| parent_tile_xy(1, 1, 40, 0));
     assert_eq!(outcome.ok(), Some((0, 0, 0)));
 }
+
+#[test]
+fn resolve_tile_with_placeholder_check_detects_and_falls_back() {
+    let mut beige = Vec::with_capacity(64 * 3);
+    for _ in 0..64 {
+        beige.extend_from_slice(&[245, 243, 239]);
+    }
+    let res = resolve_tile_with_placeholder_check(
+        ImageryProvider::BingAerial,
+        52.725,
+        -4.216,
+        18,
+        Some(&beige),
+    );
+    assert!(res.is_placeholder);
+    assert_eq!(res.effective_url, res.spec.fallback_url);
+
+    let mut sea = Vec::with_capacity(64 * 3);
+    for i in 0..64u8 {
+        sea.extend_from_slice(&[12, 45 + (i % 20), 95 + (i % 30)]);
+    }
+    let res_sea = resolve_tile_with_placeholder_check(
+        ImageryProvider::BingAerial,
+        52.725,
+        -4.216,
+        18,
+        Some(&sea),
+    );
+    assert!(!res_sea.is_placeholder);
+    assert_eq!(res_sea.effective_url, res_sea.spec.primary_url);
+}
