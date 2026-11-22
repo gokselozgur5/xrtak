@@ -1,5 +1,6 @@
 //! SPOTREP / SALUTE tactical incident report CoT generator and parser.
 
+use crate::{escape_xml, unescape_xml};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
@@ -148,14 +149,6 @@ pub fn format_salute_report_text(report: &SpotReport) -> String {
     )
 }
 
-fn escape_xml(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
 fn derive_stale_iso(time_iso: &str) -> String {
     let b = time_iso.as_bytes();
     if b.len() == 20
@@ -213,14 +206,6 @@ fn derive_stale_iso(time_iso: &str) -> String {
         }
     }
     time_iso.to_string()
-}
-
-fn unescape_xml(s: &str) -> String {
-    s.replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
 }
 
 fn format_spotrep_detail_xml(r: &SpotReport) -> String {
