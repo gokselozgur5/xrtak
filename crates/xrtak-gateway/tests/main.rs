@@ -389,7 +389,10 @@ fn test_advanced_domain_analysis_routes() {
     })
     .to_string();
     let res = send_req(port, "POST", "/api/uav/endurance", &uav_body);
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/uav/endurance: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/uav/endurance: {res}"
+    );
     assert!(res.contains("\"solution\""), "shape /api/uav/endurance");
 
     stop_gateway(gw);
@@ -404,12 +407,23 @@ fn test_pin_management_and_export_routes() {
     assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/spawn: {res}");
 
     // 28. POST /api/pin/move
-    let res = send_req(port, "POST", "/api/pin/move", "{\"uid\":\"PIN-MOVE-1\",\"east_m\":15.0,\"north_m\":25.0}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/pin/move: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/pin/move",
+        "{\"uid\":\"PIN-MOVE-1\",\"east_m\":15.0,\"north_m\":25.0}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/pin/move: {res}"
+    );
 
     // 29. POST /api/pin/delete
     let res = send_req(port, "POST", "/api/pin/delete", "{\"uid\":\"PIN-MOVE-1\"}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/pin/delete: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/pin/delete: {res}"
+    );
 
     // 30. GET /api/export/geojson
     let res = send_req(port, "GET", "/api/export/geojson", "");
