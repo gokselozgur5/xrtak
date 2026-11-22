@@ -525,10 +525,15 @@ mod tests {
         )
         .add_channel(ch);
 
-        assert!(packet.find_channel(10).is_some());
+        let found = packet.find_channel(10).expect("channel 10 should exist");
+        assert_eq!(found.id, 10);
+        assert_eq!(found.name, "Convoy-Net");
+        assert_eq!(found.frequency_hz, 156_800_000);
+        assert_eq!(found.bandwidth_hz, 25000);
+        assert_eq!(found.mode, RadioMode::Fm);
         assert!(packet.find_channel(99).is_none());
-        assert!(packet.primary_channel().is_none());
-        assert!(packet.emergency_channel().is_none());
+        assert_eq!(packet.primary_channel(), None);
+        assert_eq!(packet.emergency_channel(), None);
     }
 
     #[test]
