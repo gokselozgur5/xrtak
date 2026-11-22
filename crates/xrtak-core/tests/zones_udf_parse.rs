@@ -40,6 +40,14 @@ fn parse_cot_polygon_zone_fewer_than_three_points_rejected() {
         </detail>
     </event>"#;
     assert!(parse_cot_polygon_zone(two_points, &origin).is_none());
+
+    let three_points = two_points.replace(
+        "</detail>",
+        "<link point=\"39.9220,32.8520,850.0\"/></detail>",
+    );
+    let zone = parse_cot_polygon_zone(&three_points, &origin).expect("three points accepted");
+    assert_eq!(zone.uid, "POLY-03");
+    assert_eq!(zone.vertices_en.len(), 3);
 }
 
 #[test]
@@ -59,4 +67,16 @@ fn parse_cot_polygon_zone_non_udf_type_rejected() {
         <detail><contact callsign="NO-LINKS"/></detail>
     </event>"#;
     assert!(parse_cot_polygon_zone(no_links, &origin).is_none());
+
+    let with_links = no_links.replace(
+        "</detail>",
+        "<link point=\"39.9180,32.8480,850.0\"/><link point=\"39.9180,32.8520,850.0\"/><link point=\"39.9220,32.8520,850.0\"/></detail>",
+    );
+    let zone = parse_cot_polygon_zone(&with_links, &origin).expect("links accepted");
+    assert_eq!(zone.uid, "POLY-04");
+    assert_eq!(zone.name, "NO-LINKS");
+    assert_eq!(zone.vertices_en.len(), 3);
+
+    let wrong_type = with_links.replace("u-d-f", "a-f-A");
+    assert!(parse_cot_polygon_zone(&wrong_type, &origin).is_none());
 }
