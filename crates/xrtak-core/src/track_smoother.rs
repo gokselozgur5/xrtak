@@ -214,11 +214,22 @@ impl TrackSmoother {
                     prev.course_deg
                 };
 
-                let s_east =
+                let mut s_east =
                     smooth_scalar(prev.east_m + s_vx * dt, obs.east_m, self.config.alpha_pos);
-                let s_north =
+                let mut s_north =
                     smooth_scalar(prev.north_m + s_vy * dt, obs.north_m, self.config.alpha_pos);
                 let s_up = smooth_scalar(prev.up_m + s_vz * dt, obs.up_m, self.config.alpha_pos);
+
+                if let Some(clamp) = self.config.max_speed_clamp_mps {
+                    let d_east = s_east - prev.east_m;
+                    let d_north = s_north - prev.north_m;
+                    let disp_speed = (d_east.powi(2) + d_north.powi(2)).sqrt() / dt;
+                    if disp_speed > clamp && disp_speed > 1e-6 {
+                        let scale = (clamp * dt) / (disp_speed * dt);
+                        s_east = prev.east_m + d_east * scale;
+                        s_north = prev.north_m + d_north * scale;
+                    }
+                }
 
                 SmoothedTrackState {
                     timestamp_sec: obs.timestamp_sec,
