@@ -160,9 +160,10 @@ pub use tak_tls::{
 };
 pub use tiles::{
     bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy,
-    resolve_tile_with_fallback, tile_xy_to_quadkey, GeoPackageCachedLayer, GeoPackageMemoryReader,
-    GeoPackageTileEntry, GeoPackageTileMatrixMetadata, ImageryProvider, LruTileCache,
-    ResolvedTileSpec, TileCoord,
+    resolve_tile_with_fallback, resolve_tile_with_placeholder_check, tile_xy_to_quadkey,
+    GeoPackageCachedLayer, GeoPackageMemoryReader, GeoPackageTileEntry,
+    GeoPackageTileMatrixMetadata, ImageryProvider, LruTileCache, ResolvedTileSpec, TileCoord,
+    TileResolutionResult,
 };
 pub use tls_pool::{
     AuthError, ConnectionState, HealthCheckSummary, MutualCertAuthenticator, PeerCertificateInfo,
