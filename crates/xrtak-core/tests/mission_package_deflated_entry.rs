@@ -16,6 +16,10 @@ const DEFLATED_ZIP: [u8; 122] = [
 fn deflated_entry_is_inflated_or_rejected() {
     match extract_zip_archive(&DEFLATED_ZIP) {
         Err(_) => {}
-        Ok(files) => assert_eq!(files[0].1, vec![b'A'; 64], "compressed bytes returned as content"),
+        Ok(files) => assert_eq!(
+            files[0].1,
+            vec![b'A'; 64],
+            "compressed bytes returned as content"
+        ),
     }
 }
