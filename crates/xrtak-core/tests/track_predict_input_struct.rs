@@ -35,4 +35,11 @@ fn test_track_predict_input_predict_method() {
     let pred = input.predict();
     assert_eq!(pred.uid, "UAV-01");
     assert_eq!(pred.points.len(), 3);
+    assert_eq!(pred.points[0].east_m, 212.13);
+    assert_eq!(pred.points[0].north_m, 212.13);
+    assert_eq!(pred.points[0].up_m, 100.0);
+    assert_eq!(pred.points[1].east_m, 424.26);
+    assert_eq!(pred.points[1].north_m, 424.26);
+    assert_eq!(pred.points[2].east_m, 848.53);
+    assert_eq!(pred.points[2].north_m, 848.53);
 }
