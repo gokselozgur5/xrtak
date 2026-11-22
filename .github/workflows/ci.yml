@@ -1,3 +1,4 @@
+# CI workflow for fmt, clippy, build, and test checks
 name: CI
 
 on:
