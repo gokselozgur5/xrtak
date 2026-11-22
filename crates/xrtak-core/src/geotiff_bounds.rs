@@ -225,8 +225,11 @@ mod tests {
 
     #[test]
     fn test_world_file_parsing_invalid() {
-        assert!(parse_world_file("0.5 0.0 0.0").is_err());
-        assert!(parse_world_file("0.5 0.0 0.0 -0.5 32.85 bad_float").is_err());
+        let err1 = parse_world_file("0.5 0.0 0.0").unwrap_err();
+        assert_eq!(err1, "Expected 6 numerical values, found 3");
+
+        let err2 = parse_world_file("0.5 0.0 0.0 -0.5 32.85 bad_float").unwrap_err();
+        assert!(err2.starts_with("Line 6:"));
     }
 
     #[test]
@@ -245,7 +248,8 @@ mod tests {
     #[test]
     fn test_singular_transform_error() {
         let singular = WorldFileTransform::new(0.0, 0.0, 0.0, 0.0, 10.0, 10.0);
-        assert!(singular.world_to_pixel(10.0, 10.0).is_err());
+        let err = singular.world_to_pixel(10.0, 10.0).unwrap_err();
+        assert_eq!(err, "Singular non-invertible affine transform matrix");
     }
 
     #[test]
