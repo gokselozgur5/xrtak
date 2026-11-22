@@ -263,7 +263,7 @@ pub fn parse_qgc_plan_mission(
     Ok(("QGC-PLAN-MISSION".to_string(), waypoints))
 }
 
-/// Exports ENU + AGL waypoints `(east_m, north_m, agl_m)` into a QGroundControl `.plan` v1 JSON document (`REQ-MAV-01`).
+/// Exports ENU + AGL waypoints `(east_m, north_m, agl_m)` into an offline QGroundControl `.plan` v1 JSON file (`REQ-MAV-01`).
 pub fn export_qgc_plan_json(
     origin: &GeoOrigin,
     terrain: &dyn ElevationProvider,
@@ -298,7 +298,7 @@ pub fn export_qgc_plan_json(
     serde_json::to_string_pretty(&serde_json::json!({
         "fileType": "Plan",
         "geoFence": { "circles": [], "polygons": [], "version": 2 },
-        "groundStation": "XR-TAK Mixed-Reality C2",
+        "groundStation": "XR-TAK Offline Plan Export",
         "mission": {
             "cruiseSpeed": 18,
             "firmwareType": 12,
