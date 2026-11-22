@@ -623,3 +623,53 @@ fn test_opord_kml_scene_export_includes_zones_and_domes() {
 
     stop_gateway(gw);
 }
+
+#[tokio::test]
+async fn test_sse_stream_survives_broadcast_lag() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    struct Guard(Child);
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            let _ = (self.0.kill(), self.0.wait());
+        }
+    }
+    let (gw, port) = start_gateway();
+    let (_gw, pad) = (Guard(gw), "X".repeat(131_072));
+    for i in 0..12 {
+        let p = format!("<event uid='P{i}' type='a-f-G'><point lat='1' lon='2'/><detail><remarks>{pad}</remarks></detail></event>");
+        assert!(send_req(port, "POST", "/api/cot", &p).starts_with("HTTP/1.1 200"));
+    }
+    let sock = tokio::net::TcpSocket::new_v4().unwrap();
+    sock.set_recv_buffer_size(4096).unwrap();
+    let mut sse = sock.connect(([127, 0, 0, 1], port).into()).await.unwrap();
+    let _ = sse.write_all(b"GET /api/stream HTTP/1.1\r\n\r\n").await;
+    assert!(sse.read(&mut [0u8; 64]).await.unwrap() > 0);
+    let sim_t = || -> f64 {
+        let r = send_req(port, "GET", "/api/state", "");
+        let v: serde_json::Value =
+            serde_json::from_str(r.split_once("\r\n\r\n").unwrap().1).unwrap();
+        v["sim_time_sec"].as_f64().unwrap()
+    };
+    let t0 = sim_t();
+    while sim_t() < t0 + 5.0 {
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    let m = "<event uid='AFTER-LAG-OK' type='a-f-G'><point lat='3' lon='4'/></event>";
+    assert!(send_req(port, "POST", "/api/cot", m).starts_with("HTTP/1.1 200"));
+    let (mut buf, mut tail) = (vec![0u8; 65_536], Vec::new());
+    let ok = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let n = sse.read(&mut buf).await.unwrap_or(0);
+            if n == 0 {
+                return false;
+            }
+            tail.drain(..tail.len().saturating_sub(32));
+            tail.extend_from_slice(&buf[..n]);
+            if tail.windows(12).any(|w| w == b"AFTER-LAG-OK") {
+                return true;
+            }
+        }
+    })
+    .await;
+    assert_eq!(ok, Ok(true), "SSE stream closed on broadcast lag");
+}
