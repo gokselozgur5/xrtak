@@ -23,15 +23,17 @@ fn test_ballistic_time_of_flight_is_positive() {
     let target = (1500.0, 500.0, 10.0);
     let terrain = FlatTerrain;
 
-    for munition in [
-        MunitionType::Artillery155mm,
-        MunitionType::Mortar120mm,
-        MunitionType::LoiteringMunition,
-        MunitionType::TacticalRocket,
-    ] {
+    let expected = [
+        (MunitionType::Artillery155mm, 66.3, 1500.0),
+        (MunitionType::Mortar120mm, 41.9, 1500.0),
+        (MunitionType::LoiteringMunition, 2.0, 1500.0),
+        (MunitionType::TacticalRocket, 94.8, 1500.0),
+    ];
+
+    for (munition, expected_tof, expected_range) in expected {
         let sol = compute_ballistic_trajectory(origin, target, munition, None, &terrain, 32);
-        assert!(sol.time_of_flight_sec > 0.0);
-        assert!(sol.ground_range_m > 0.0);
+        assert_eq!(sol.time_of_flight_sec, expected_tof);
+        assert_eq!(sol.ground_range_m, expected_range);
     }
 }
 
