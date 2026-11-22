@@ -534,3 +534,36 @@ fn test_medevac_nine_line_enu_coordinates_order() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_collab_sync_peer_map_capacity_cap() {
+    let (gw, port) = start_gateway();
+
+    for i in 0..150 {
+        let body = serde_json::json!({
+            "operator_id": format!("OP-{i}"),
+            "callsign": format!("PEER-{i}")
+        })
+        .to_string();
+        let _ = send_req(port, "POST", "/api/collab/sync", &body);
+    }
+
+    let check_body = serde_json::json!({
+        "operator_id": "OP-PROBE",
+        "callsign": "PROBE"
+    })
+    .to_string();
+    let res = send_req(port, "POST", "/api/collab/sync", &check_body);
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "expected 200 OK: {res}");
+
+    let body = res.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("");
+    let json: serde_json::Value = serde_json::from_str(body).expect("valid json response");
+    let ops = json["operators"].as_array().expect("operators array");
+    assert!(
+        ops.len() <= 64,
+        "operator peer map exceeded capacity cap: got {}",
+        ops.len()
+    );
+
+    stop_gateway(gw);
+}
