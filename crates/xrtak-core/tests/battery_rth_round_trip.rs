@@ -16,7 +16,10 @@ fn downwind_vertex_allows_return_within_usable_time() {
         home_north_m: 0.0,
         home_up_m: 0.0,
     };
-    let wind = WindVector { east_mps: 10.0, north_mps: 0.0 };
+    let wind = WindVector {
+        east_mps: 10.0,
+        north_mps: 0.0,
+    };
     let sol = compute_uav_endurance(&state, &wind, 16);
     let r = sol.rth_polygon[0].max_radius_m;
     let round_trip_sec = r / (18.0 + 10.0) + r / (18.0 - 10.0);
