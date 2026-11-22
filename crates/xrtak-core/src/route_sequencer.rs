@@ -259,6 +259,14 @@ pub fn evaluate_route_progress(
 
 /// Generates ATAK CoT Route XML (b-m-r) from a sequenced route result and plan.
 pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult) -> String {
+    let recomputed;
+    let sequenced = if is_sequence_aligned(plan, sequenced) {
+        sequenced
+    } else {
+        recomputed = sequence_route_plan(plan);
+        &recomputed
+    };
+
     let (first_lat, first_lon, first_hae) = if let Some(first_wp) = plan.waypoints.first() {
         (first_wp.lat, first_wp.lon, first_wp.hae_m)
     } else {
@@ -270,9 +278,10 @@ pub fn generate_cot_route_xml(plan: &RoutePlan, sequenced: &SequencedRouteResult
     for (i, wp) in plan.waypoints.iter().enumerate() {
         let eta_str = if i == 0 {
             format!("{:.0}", plan.start_time_epoch_sec)
-        } else {
-            let leg = &sequenced.legs[i - 1];
+        } else if let Some(leg) = sequenced.legs.get(i - 1) {
             format!("{:.0}", leg.eta_epoch_sec)
+        } else {
+            format!("{:.0}", sequenced.estimated_completion_epoch_sec)
         };
 
         links.push_str(&format!(
