@@ -1326,7 +1326,7 @@ async fn handle_http_connection(
                 let elev: &dyn xrtak_core::ElevationProvider = guard.terrain.as_ref();
                 let suit =
                     xrtak_core::evaluate_hlz_suitability(e, n, radius, elev, &guard.threat_domes);
-                let (lat, lon, _) = guard.origin.enu_to_lla(e, n, u);
+                let (lat, lon, _) = guard.origin.enu_to_lla(e, u, n);
                 (suit, lat, lon)
             };
             let report = xrtak_core::MedevacReport {
