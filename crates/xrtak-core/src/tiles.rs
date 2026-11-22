@@ -142,6 +142,38 @@ pub fn resolve_tile_with_fallback(
     }
 }
 
+/// Evaluates tile resolution against an optional RGB pixel sample, falling back
+/// to the z=13 parent tile when a low-variance sea placeholder is detected (`REQ-MAP-02`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TileResolutionResult {
+    pub spec: ResolvedTileSpec,
+    pub is_placeholder: bool,
+    pub effective_url: String,
+}
+
+pub fn resolve_tile_with_placeholder_check(
+    provider: ImageryProvider,
+    lat_deg: f64,
+    lon_deg: f64,
+    zoom: u8,
+    rgb_sample: Option<&[u8]>,
+) -> TileResolutionResult {
+    let spec = resolve_tile_with_fallback(provider, lat_deg, lon_deg, zoom);
+    let is_placeholder = rgb_sample
+        .map(|sample| !sample.is_empty() && is_placeholder_rgb_tile(sample))
+        .unwrap_or(false);
+    let effective_url = if is_placeholder {
+        spec.fallback_url.clone()
+    } else {
+        spec.primary_url.clone()
+    };
+    TileResolutionResult {
+        spec,
+        is_placeholder,
+        effective_url,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TileCoord {
     pub zoom: u8,
