@@ -84,16 +84,33 @@ pub struct GridSolution {
     pub central_meridian_deg: f64,
 }
 
+/// Normalize a longitude or angle to `[-180.0, 180.0)`.
+#[inline]
+fn normalize_lon_half_open(deg: f64) -> f64 {
+    (deg + 180.0).rem_euclid(360.0) - 180.0
+}
+
+/// Normalize an angular difference to `[-180.0, 180.0]`.
+#[inline]
+fn normalize_angle_sym(deg: f64) -> f64 {
+    let norm = (deg + 180.0).rem_euclid(360.0) - 180.0;
+    if norm == -180.0 && deg > 0.0 {
+        180.0
+    } else {
+        norm
+    }
+}
+
+/// Normalize an azimuth in degrees to `[0.0, 360.0)`.
+#[inline]
+fn normalize_azimuth(deg: f64) -> f64 {
+    deg.rem_euclid(360.0)
+}
+
 /// Determine the UTM zone number (1..=60) with Norway and Svalbard exceptions.
 pub fn utm_zone_for_lat_lon(lat_deg: f64, lon_deg: f64) -> u8 {
     let z = utm_zone_from_lon(lon_deg);
-    let mut norm = lon_deg;
-    while norm < -180.0 {
-        norm += 360.0;
-    }
-    while norm >= 180.0 {
-        norm -= 360.0;
-    }
+    let norm = normalize_lon_half_open(lon_deg);
     if (56.0..64.0).contains(&lat_deg) && (3.0..12.0).contains(&norm) {
         return 32;
     }
@@ -113,13 +130,7 @@ pub fn utm_zone_for_lat_lon(lat_deg: f64, lon_deg: f64) -> u8 {
 
 /// Determine the standard UTM zone number (1..=60) for a given longitude in degrees.
 pub fn utm_zone_from_lon(lon_deg: f64) -> u8 {
-    let mut normalized_lon = lon_deg;
-    while normalized_lon < -180.0 {
-        normalized_lon += 360.0;
-    }
-    while normalized_lon >= 180.0 {
-        normalized_lon -= 360.0;
-    }
+    let normalized_lon = normalize_lon_half_open(lon_deg);
     let zone = ((normalized_lon + 180.0) / 6.0).floor() as i32 + 1;
     zone.clamp(1, 60) as u8
 }
@@ -161,13 +172,7 @@ pub fn calculate_utm(
     };
 
     let cm_deg = utm_central_meridian_deg(zone)?;
-    let mut dlam_deg = lon_deg - cm_deg;
-    while dlam_deg > 180.0 {
-        dlam_deg -= 360.0;
-    }
-    while dlam_deg < -180.0 {
-        dlam_deg += 360.0;
-    }
+    let dlam_deg = normalize_angle_sym(lon_deg - cm_deg);
 
     let phi = lat_deg.to_radians();
     let dlam = dlam_deg.to_radians();
@@ -245,24 +250,10 @@ pub fn calculate_ups(lat_deg: f64, lon_deg: f64) -> Result<GridSolution, GridErr
 
     let (system, convergence_deg, cm_deg) = if is_north {
         // North UPS: Grid North along 180th meridian, gamma = lon
-        let mut conv = lon_deg;
-        while conv > 180.0 {
-            conv -= 360.0;
-        }
-        while conv < -180.0 {
-            conv += 360.0;
-        }
-        (GridSystem::UpsNorth, conv, 0.0)
+        (GridSystem::UpsNorth, normalize_angle_sym(lon_deg), 0.0)
     } else {
         // South UPS: Grid North along Prime Meridian, gamma = -lon
-        let mut conv = -lon_deg;
-        while conv > 180.0 {
-            conv -= 360.0;
-        }
-        while conv < -180.0 {
-            conv += 360.0;
-        }
-        (GridSystem::UpsSouth, conv, 0.0)
+        (GridSystem::UpsSouth, normalize_angle_sym(-lon_deg), 0.0)
     };
 
     Ok(GridSolution {
@@ -287,28 +278,14 @@ pub fn calculate_grid_convergence(lat_deg: f64, lon_deg: f64) -> Result<GridSolu
 ///
 /// Formula: Grid Azimuth = True Azimuth - Convergence Angle.
 pub fn true_to_grid_azimuth(true_azimuth_deg: f64, convergence_deg: f64) -> f64 {
-    let mut grid_azimuth = true_azimuth_deg - convergence_deg;
-    while grid_azimuth < 0.0 {
-        grid_azimuth += 360.0;
-    }
-    while grid_azimuth >= 360.0 {
-        grid_azimuth -= 360.0;
-    }
-    grid_azimuth
+    normalize_azimuth(true_azimuth_deg - convergence_deg)
 }
 
 /// Convert grid azimuth (degrees from Grid North) to true azimuth (degrees from True North).
 ///
 /// Formula: True Azimuth = Grid Azimuth + Convergence Angle.
 pub fn grid_to_true_azimuth(grid_azimuth_deg: f64, convergence_deg: f64) -> f64 {
-    let mut true_azimuth = grid_azimuth_deg + convergence_deg;
-    while true_azimuth < 0.0 {
-        true_azimuth += 360.0;
-    }
-    while true_azimuth >= 360.0 {
-        true_azimuth -= 360.0;
-    }
-    true_azimuth
+    normalize_azimuth(grid_azimuth_deg + convergence_deg)
 }
 
 /// Apply scale factor to ground distance to get projected grid distance in meters.
