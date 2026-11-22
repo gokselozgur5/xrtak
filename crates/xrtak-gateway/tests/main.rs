@@ -77,3 +77,51 @@ fn test_request_parser_split_body() {
     stop_gateway(gw);
     assert!(out.starts_with("HTTP/1.1 200 OK"), "got: {out}");
 }
+
+#[test]
+fn test_core_api_routes_status_and_shape() {
+    let (gw, port) = start_gateway();
+
+    // 1. GET /
+    let res = send_req(port, "GET", "/", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /: {res}");
+
+    // 2. OPTIONS /api/state
+    let res = send_req(port, "OPTIONS", "/api/state", "");
+    assert!(res.starts_with("HTTP/1.1 204 No Content"), "OPTIONS: {res}");
+
+    // 3. GET /api/state
+    let res = send_req(port, "GET", "/api/state", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/state: {res}");
+    assert!(res.contains("\"origin\""), "shape /api/state");
+
+    // 4. GET /api/aar
+    let res = send_req(port, "GET", "/api/aar", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/aar: {res}");
+    assert!(res.contains("\"summary\""), "shape /api/aar");
+
+    // 5. GET /api/hud
+    let res = send_req(port, "GET", "/api/hud", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/hud: {res}");
+    assert!(res.contains("\"cues\""), "shape /api/hud");
+
+    // 6. GET /api/terrain
+    let res = send_req(port, "GET", "/api/terrain", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/terrain: {res}");
+    assert!(res.contains("\"heights_m\""), "shape /api/terrain");
+
+    // 7. POST /api/terrain
+    let res = send_req(port, "POST", "/api/terrain", "{\"preset\":\"flat\",\"extent_m\":1000.0}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/terrain: {res}");
+
+    // 8. POST /api/terrain/geotiff
+    let res = send_req(port, "POST", "/api/terrain/geotiff", "{\"name\":\"test\",\"bytes\":[]}");
+    assert!(res.starts_with("HTTP/1.1 400 Bad Request") || res.starts_with("HTTP/1.1 200 OK"), "POST /api/terrain/geotiff: {res}");
+
+    // 9. POST /api/cot
+    let cot_body = "<event version=\"2.0\" uid=\"T1\" type=\"a-f-G\" time=\"2026-01-01T00:00:00Z\" start=\"2026-01-01T00:00:00Z\" stale=\"2026-01-01T01:00:00Z\" how=\"m-g\"><point lat=\"10.0\" lon=\"20.0\" hae=\"0.0\" ce=\"1.0\" le=\"1.0\"/></event>";
+    let res = send_req(port, "POST", "/api/cot", cot_body);
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/cot: {res}");
+
+    stop_gateway(gw);
+}
