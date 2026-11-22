@@ -331,6 +331,10 @@ impl CotMedevacReport {
     pub fn requires_armed_escort(&self) -> bool {
         matches!(self.line6_security, SiteSecurity::ArmedEscortRequired)
     }
+
+    pub fn nbc_contamination(&self) -> NbcContamination {
+        NbcContamination::parse_nbc(&self.line9_terrain_nbc)
+    }
 }
 
 /// Builder for constructing validated 9-Line MEDEVAC reports.
