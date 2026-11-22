@@ -573,15 +573,75 @@ impl CotMedevacReport {
             escape_xml(&self.cot_type),
             escape_xml(&self.time_iso),
         );
+        let stale = escape_xml(&Self::derive_stale_iso(&self.time_iso));
         let detail = format_medevac_detail_xml(self);
         format!(
             "<event version=\"2.0\" uid=\"{uid}\" type=\"{typ}\" \
-time=\"{time}\" start=\"{time}\" stale=\"{time}\" how=\"m-g\">\
+time=\"{time}\" start=\"{time}\" stale=\"{stale}\" how=\"m-g\">\
 <point lat=\"{:.6}\" lon=\"{:.6}\" \
 hae=\"{:.1}\" ce=\"9999999\" le=\"9999999\"/>\
 {detail}</event>",
             self.lat, self.lon, self.hae
         )
+    }
+
+    fn derive_stale_iso(time_iso: &str) -> String {
+        let b = time_iso.as_bytes();
+        if b.len() == 20
+            && b[4] == b'-'
+            && b[7] == b'-'
+            && b[10] == b'T'
+            && b[13] == b':'
+            && b[16] == b':'
+            && b[19] == b'Z'
+        {
+            let (mut y, mut mo, mut d) = (
+                time_iso[0..4].parse::<i64>().unwrap_or(0),
+                time_iso[5..7].parse::<i64>().unwrap_or(0),
+                time_iso[8..10].parse::<i64>().unwrap_or(0),
+            );
+            let (mut h, mut mi, s) = (
+                time_iso[11..13].parse::<i64>().unwrap_or(0),
+                time_iso[14..16].parse::<i64>().unwrap_or(0),
+                time_iso[17..19].parse::<i64>().unwrap_or(0),
+            );
+            if (1..=12).contains(&mo) && (1..=31).contains(&d) && h < 24 && mi < 60 && s < 60 {
+                mi += 5;
+                if mi >= 60 {
+                    mi -= 60;
+                    h += 1;
+                    if h >= 24 {
+                        h -= 24;
+                        d += 1;
+                        let leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
+                        let dim = [
+                            31,
+                            if leap { 29 } else { 28 },
+                            31,
+                            30,
+                            31,
+                            30,
+                            31,
+                            31,
+                            30,
+                            31,
+                            30,
+                            31,
+                        ];
+                        if d > dim[(mo - 1) as usize] {
+                            d = 1;
+                            mo += 1;
+                            if mo > 12 {
+                                mo = 1;
+                                y += 1;
+                            }
+                        }
+                    }
+                }
+                return format!("{y:04}-{mo:02}-{d:02}T{h:02}:{mi:02}:{s:02}Z");
+            }
+        }
+        time_iso.to_string()
     }
 }
 
