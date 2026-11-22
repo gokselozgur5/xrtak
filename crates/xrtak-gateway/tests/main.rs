@@ -227,12 +227,28 @@ fn test_spatial_and_tactical_planning_routes() {
     let (gw, port) = start_gateway();
 
     // 16. POST /api/tiles/resolve
-    let res = send_req(port, "POST", "/api/tiles/resolve", "{\"lat\":37.0,\"lon\":-122.0,\"zoom\":10}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/tiles/resolve: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/tiles/resolve",
+        "{\"lat\":37.0,\"lon\":-122.0,\"zoom\":10}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/tiles/resolve: {res}"
+    );
 
     // 17. POST /api/mission/corridor-polygon
-    let res = send_req(port, "POST", "/api/mission/corridor-polygon", "{\"waypoints_en\":[[0.0,0.0],[100.0,100.0]]}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/mission/corridor-polygon: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/mission/corridor-polygon",
+        "{\"waypoints_en\":[[0.0,0.0],[100.0,100.0]]}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/mission/corridor-polygon: {res}"
+    );
 
     // 18. POST /api/mapset/plan
     let res = send_req(port, "POST", "/api/mapset/plan", "{\"south\":36.0,\"west\":-122.0,\"north\":37.0,\"east\":-121.0}");
