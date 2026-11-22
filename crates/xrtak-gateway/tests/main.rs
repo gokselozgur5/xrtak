@@ -195,3 +195,76 @@ fn test_spatial_and_tactical_planning_routes() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_advanced_domain_analysis_routes() {
+    let (gw, port) = start_gateway();
+
+    // 23. POST /api/ew/jamming
+    let ew_body = serde_json::json!({
+        "jammer": {
+            "callsign": "JAM",
+            "transmitter_power_w": 10.0,
+            "antenna_gain_dbi": 10.0,
+            "bandwidth_mhz": 20.0,
+            "east_m": 0.0,
+            "north_m": 100.0,
+            "up_m": 50.0
+        },
+        "link": {
+            "callsign": "LINK",
+            "transmitter_power_w": 1.0,
+            "tx_antenna_gain_dbi": 2.0,
+            "rx_antenna_gain_dbi": 2.0,
+            "signal_bandwidth_mhz": 10.0,
+            "receiver_sensitivity_dbm": -95.0,
+            "tx_east_m": 0.0,
+            "tx_north_m": 5000.0,
+            "tx_up_m": 100.0,
+            "rx_east_m": 0.0,
+            "rx_north_m": 0.0,
+            "rx_up_m": 10.0
+        }
+    }).to_string();
+    let res = send_req(port, "POST", "/api/ew/jamming", &ew_body);
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/ew/jamming: {res}");
+    assert!(res.contains("\"assessment\""), "shape /api/ew/jamming");
+
+    // 24. POST /api/medevac/nine-line
+    let med_body = serde_json::json!({
+        "location": "GRID 123 456",
+        "freq_callsign": "30.00 DUSTOFF",
+        "enu_center": [0.0, 0.0, 0.0]
+    }).to_string();
+    let res = send_req(port, "POST", "/api/medevac/nine-line", &med_body);
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/medevac/nine-line: {res}");
+    assert!(res.contains("\"formatted_nine_line\""), "shape /api/medevac/nine-line");
+
+    // 25. POST /api/fires/ballistics
+    let res = send_req(port, "POST", "/api/fires/ballistics", "{\"origin_enu\":[0.0,0.0,0.0],\"target_enu\":[1000.0,0.0,1000.0]}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/fires/ballistics: {res}");
+    assert!(res.contains("\"solution\""), "shape /api/fires/ballistics");
+
+    // 26. POST /api/uav/endurance
+    let uav_body = serde_json::json!({
+        "state": {
+            "callsign": "VALK",
+            "battery_remaining_pct": 50.0,
+            "battery_capacity_wh": 100.0,
+            "current_power_draw_w": 200.0,
+            "reserve_margin_pct": 15.0,
+            "cruise_airspeed_mps": 15.0,
+            "current_east_m": 0.0,
+            "current_north_m": 0.0,
+            "current_up_m": 500.0,
+            "home_east_m": 0.0,
+            "home_north_m": 0.0,
+            "home_up_m": 0.0
+        }
+    }).to_string();
+    let res = send_req(port, "POST", "/api/uav/endurance", &uav_body);
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/uav/endurance: {res}");
+    assert!(res.contains("\"solution\""), "shape /api/uav/endurance");
+
+    stop_gateway(gw);
+}
