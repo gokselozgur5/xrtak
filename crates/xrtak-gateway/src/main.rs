@@ -11,11 +11,10 @@ use xrtak_core::{
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
     predict_entity_trajectory_struct, resolve_tile_with_fallback,
-    resolve_tile_with_placeholder_check, AarSummary, GeoOrigin,
-    ImageryProvider, ManifestInput, OperatorPeer, OpordUnitSummary, ProceduralReliefModel,
-    RasterDemProvider, RfBand, SapientDetectionReport, SharedTablePose, TacticalEntity,
-    TacticalWorld, TacticalZone, ThreatDome, TrackPredictInput, TrackPredictRequest,
-    TrackPrediction,
+    resolve_tile_with_placeholder_check, AarSummary, GeoOrigin, ImageryProvider, ManifestInput,
+    OperatorPeer, OpordUnitSummary, ProceduralReliefModel, RasterDemProvider, RfBand,
+    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
+    ThreatDome, TrackPredictInput, TrackPredictRequest, TrackPrediction,
 };
 
 mod battery_dto;
@@ -1073,13 +1072,8 @@ async fn handle_http_connection(
             let zoom = t_req.zoom.unwrap_or(15);
             let resp_json = match t_req.rgb_sample.as_deref() {
                 Some(sample) => {
-                    let res = resolve_tile_with_placeholder_check(
-                        provider,
-                        lat,
-                        lon,
-                        zoom,
-                        Some(sample),
-                    );
+                    let res =
+                        resolve_tile_with_placeholder_check(provider, lat, lon, zoom, Some(sample));
                     serde_json::to_string(&res)?
                 }
                 None => {
