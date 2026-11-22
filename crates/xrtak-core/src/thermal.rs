@@ -132,12 +132,11 @@ impl ThermalShaderConfig {
         format!(
             "precision mediump float;\n\
              uniform sampler2D u_ir_texture;\n\
-             uniform float u_gain;\n\
              varying vec2 v_uv;\n\
              void main() {{\n\
                  float raw = texture2D(u_ir_texture, v_uv).r;\n\
                  float norm = (raw - ({:.4})) / ({:.4});\n\
-                 float t = clamp(norm * ({:.4}) * u_gain, 0.0, 1.0);\n\
+                 float t = clamp(norm * ({:.4}), 0.0, 1.0);\n\
              {}\
                  gl_FragColor = vec4(col, 1.0);\n\
              }}\n",
