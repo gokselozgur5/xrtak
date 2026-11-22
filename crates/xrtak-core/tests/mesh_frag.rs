@@ -135,3 +135,25 @@ fn test_interleaved_messages() {
     );
     assert!(reassembler.buffers.is_empty());
 }
+
+#[test]
+fn test_header_mismatch_rejected() {
+    let mut reassembler = MeshReassembler::new(5000);
+    let payload = b"Header mismatch test: 3 chunks".to_vec();
+    let fragments = fragment_payload(200, &payload, 10).unwrap();
+    assert_eq!(fragments.len(), 3);
+
+    assert_eq!(reassembler.accept(fragments[0].clone(), 100), None);
+
+    let mut corrupt_frag = fragments[1].clone();
+    corrupt_frag.header.total_fragments += 1;
+    assert_eq!(reassembler.accept(corrupt_frag, 110), None);
+
+    assert_eq!(reassembler.accept(fragments[1].clone(), 110), None);
+
+    let mut corrupt_frag2 = fragments[2].clone();
+    corrupt_frag2.header.total_length += 10;
+    assert_eq!(reassembler.accept(corrupt_frag2, 120), None);
+
+    assert_eq!(reassembler.accept(fragments[2].clone(), 120), Some(payload));
+}
