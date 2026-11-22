@@ -3,7 +3,10 @@ use super::types::ConnectionQuality;
 
 impl ConnectionTelemetry {
     pub fn new(server_connected: bool, ping_latency_ms: f32, packet_loss_pct: f32) -> Self {
-        let quality = if !server_connected {
+        let quality = if !server_connected
+            || !ping_latency_ms.is_finite()
+            || !packet_loss_pct.is_finite()
+        {
             ConnectionQuality::Disconnected
         } else if ping_latency_ms > 250.0 || packet_loss_pct > 15.0 {
             ConnectionQuality::Poor
