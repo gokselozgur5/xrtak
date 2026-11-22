@@ -268,3 +268,32 @@ fn test_advanced_domain_analysis_routes() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_pin_management_and_export_routes() {
+    let (gw, port) = start_gateway();
+
+    // 27. POST /api/spawn
+    let res = send_req(port, "POST", "/api/spawn", "{\"uid\":\"PIN-MOVE-1\",\"callsign\":\"TEST-PIN\",\"cot_type\":\"a-f-G\",\"east_m\":10.0,\"north_m\":20.0}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/spawn: {res}");
+
+    // 28. POST /api/pin/move
+    let res = send_req(port, "POST", "/api/pin/move", "{\"uid\":\"PIN-MOVE-1\",\"east_m\":15.0,\"north_m\":25.0}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/pin/move: {res}");
+
+    // 29. POST /api/pin/delete
+    let res = send_req(port, "POST", "/api/pin/delete", "{\"uid\":\"PIN-MOVE-1\"}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/pin/delete: {res}");
+
+    // 30. GET /api/export/geojson
+    let res = send_req(port, "GET", "/api/export/geojson", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/export/geojson: {res}");
+    assert!(res.contains("\"FeatureCollection\""), "shape /api/export/geojson");
+
+    // 31. GET /api/export/cot
+    let res = send_req(port, "GET", "/api/export/cot", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/export/cot: {res}");
+    assert!(res.contains("<events"), "shape /api/export/cot");
+
+    stop_gateway(gw);
+}
