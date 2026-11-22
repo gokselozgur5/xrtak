@@ -67,3 +67,22 @@ fn test_duplicate_fragments_handled_gracefully() {
     let res = reassembler.accept(fragments.last().unwrap().clone(), 1040);
     assert_eq!(res, Some(payload));
 }
+
+#[test]
+fn test_ttl_pruning_and_expiry() {
+    let mut reassembler = MeshReassembler::new(1000);
+    let payload = b"Expiring fragment stream".to_vec();
+    let fragments = fragment_payload(12, &payload, 5).unwrap();
+
+    assert_eq!(reassembler.accept(fragments[0].clone(), 100), None);
+    assert_eq!(reassembler.buffers.len(), 1);
+
+    reassembler.prune_stale(1200);
+    assert!(reassembler.buffers.is_empty());
+
+    assert_eq!(reassembler.accept(fragments[0].clone(), 1500), None);
+    assert_eq!(reassembler.buffers.len(), 1);
+
+    assert_eq!(reassembler.accept(fragments[1].clone(), 2600), None);
+    assert_eq!(reassembler.buffers.len(), 1);
+}
