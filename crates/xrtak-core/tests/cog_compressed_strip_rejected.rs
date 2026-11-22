@@ -24,5 +24,8 @@ fn deflate_compressed_strip_is_not_decoded_as_raw_samples() {
         0xcd,
     ]);
     let res = ingest_geotiff_dsm("dsm", 100.0, 2, &tiff);
-    assert!(res.is_err(), "compressed data unexpectedly decoded as raw samples");
+    assert!(
+        res.is_err(),
+        "compressed data unexpectedly decoded as raw samples"
+    );
 }
