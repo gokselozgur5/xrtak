@@ -112,3 +112,35 @@ fn cas_parser_rejects_unparsable_target_latitude() {
     let res = xrtak_core::cas_nine_line::CasNineLine::from_cot_xml(xml);
     assert!(res.is_err(), "lat=abc accepted as {:?}", res.map(|b| b.lat));
 }
+
+fn attr<'a>(xml: &'a str, name: &str) -> &'a str {
+    let key = format!(" {name}=\"");
+    let start = xml.find(&key).expect("attribute present") + key.len();
+    &xml[start..start + xml[start..].find('"').unwrap()]
+}
+
+#[test]
+fn medevac_event_is_not_stale_at_start() {
+    let xml = CotMedevacBuilder::new("MED-1", "DUSTOFF-1")
+        .time_iso("2026-11-16T09:00:00Z")
+        .build()
+        .unwrap()
+        .to_cot_xml();
+    assert!(
+        attr(&xml, "stale") > attr(&xml, "start"),
+        "stale={}",
+        attr(&xml, "stale")
+    );
+}
+
+#[test]
+fn cas_event_is_not_stale_at_start() {
+    let xml = xrtak_core::cas_nine_line::CasNineLine::new("CAS-1", "WARRIOR 21")
+        .with_time("2026-11-16T09:00:00Z")
+        .to_cot_xml();
+    assert!(
+        attr(&xml, "stale") > attr(&xml, "start"),
+        "stale={}",
+        attr(&xml, "stale")
+    );
+}
