@@ -29,6 +29,15 @@ fn stale_sequence_does_not_panic() {
 }
 
 #[test]
+fn corrupted_leg_indices_do_not_panic() {
+    let p = sample_plan(2);
+    let mut seq = sequence_route_plan(&p);
+    seq.legs[0].to_index = 99;
+    assert!(evaluate_route_progress(&p, &seq, 0, 0.0, 0.0, 10.0, 0.0, 50.0).is_none());
+    assert!(generate_cot_route_xml(&p, &seq).contains("b-m-r"));
+}
+
+#[test]
 fn route_event_carries_the_mandatory_cot_time_attributes() {
     let plan = RoutePlan {
         route_uid: "RT-1".into(),
