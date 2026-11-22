@@ -71,7 +71,7 @@ pub fn evaluate_mission_corridor(
         } else {
             wp.alt_m
         };
-        let flight_up_m = (flight_asl_m - origin.alt_m).max(0.0);
+        let flight_up_m = flight_asl_m - origin.alt_m;
         let agl_m = flight_asl_m - terrain_asl_m;
 
         if let Some((pe, pn)) = prev_en {
