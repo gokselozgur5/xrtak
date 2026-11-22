@@ -437,6 +437,11 @@ impl CotMedevacBuilder {
         self
     }
 
+    pub fn nbc(mut self, contamination: NbcContamination) -> Self {
+        self.line9_terrain_nbc = contamination.as_str().to_string();
+        self
+    }
+
     pub fn remarks(mut self, remarks: impl Into<String>) -> Self {
         self.remarks = remarks.into();
         self
