@@ -11,7 +11,14 @@ fn parse_cot_xml_unescapes_attribute_values() {
 
 #[test]
 fn geochat_sender_callsign_round_trips() {
-    let pkt = GeoChatPacket::new("U-1", "ALPHA & BRAVO", "HQ", "M-1", "hi", "2026-11-16T12:00:00Z");
+    let pkt = GeoChatPacket::new(
+        "U-1",
+        "ALPHA & BRAVO",
+        "HQ",
+        "M-1",
+        "hi",
+        "2026-11-16T12:00:00Z",
+    );
     let parsed = GeoChatPacket::from_cot_xml(&pkt.to_cot_xml()).expect("round trip");
     assert_eq!(parsed.sender_callsign, "ALPHA & BRAVO");
 }
