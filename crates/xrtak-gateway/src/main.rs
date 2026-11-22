@@ -10,7 +10,8 @@ use xrtak_core::{
     compute_viewshed_with_provider, escape_cot_attr, evaluate_mission_corridor, evaluate_rf_link,
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
-    predict_entity_trajectory_struct, resolve_tile_with_fallback, AarSummary, GeoOrigin,
+    predict_entity_trajectory_struct, resolve_tile_with_fallback,
+    resolve_tile_with_placeholder_check, AarSummary, GeoOrigin,
     ImageryProvider, ManifestInput, OperatorPeer, OpordUnitSummary, ProceduralReliefModel,
     RasterDemProvider, RfBand, SapientDetectionReport, SharedTablePose, TacticalEntity,
     TacticalWorld, TacticalZone, ThreatDome, TrackPredictInput, TrackPredictRequest,
@@ -250,6 +251,7 @@ struct TileResolveRequest {
     lat: Option<f64>,
     lon: Option<f64>,
     zoom: Option<u8>,
+    rgb_sample: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1069,8 +1071,22 @@ async fn handle_http_connection(
             };
             let provider = ImageryProvider::from_id(t_req.provider.as_deref().unwrap_or("esri"));
             let zoom = t_req.zoom.unwrap_or(15);
-            let spec = resolve_tile_with_fallback(provider, lat, lon, zoom);
-            let resp_json = serde_json::to_string(&spec)?;
+            let resp_json = match t_req.rgb_sample.as_deref() {
+                Some(sample) => {
+                    let res = resolve_tile_with_placeholder_check(
+                        provider,
+                        lat,
+                        lon,
+                        zoom,
+                        Some(sample),
+                    );
+                    serde_json::to_string(&res)?
+                }
+                None => {
+                    let spec = resolve_tile_with_fallback(provider, lat, lon, zoom);
+                    serde_json::to_string(&spec)?
+                }
+            };
             let header = json_ok_header(resp_json.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp_json.as_bytes()).await?;
