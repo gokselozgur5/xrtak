@@ -2,6 +2,7 @@
 //!
 //! Complies with ATAK radio channel definitions and tactical net plans.
 
+use crate::{escape_xml, unescape_xml};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
@@ -429,29 +430,6 @@ fn parse_u32(bytes: &[u8]) -> Option<u32> {
 
 fn parse_u64(bytes: &[u8]) -> Option<u64> {
     std::str::from_utf8(bytes).ok()?.parse().ok()
-}
-
-fn escape_xml(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for c in s.chars() {
-        match c {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            '\'' => out.push_str("&apos;"),
-            _ => out.push(c),
-        }
-    }
-    out
-}
-
-fn unescape_xml(s: &str) -> String {
-    s.replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&amp;", "&")
 }
 
 #[cfg(test)]
