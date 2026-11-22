@@ -19,12 +19,19 @@ fn test_kml_scene_parses_with_quick_xml() {
     let kml = generate_kml_tactical_scene("Citadel", &units, (37.77, -122.41, 100.0));
     let mut reader = Reader::from_str(&kml);
     let mut count = 0;
-    while let Ok(event) = reader.read_event() {
-        if matches!(event, Event::Eof) {
-            break;
+    let mut root_closed = false;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Eof) => break,
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"kml" => {
+                root_closed = true;
+                count += 1;
+            }
+            Ok(_) => count += 1,
+            Err(e) => panic!("XML parse error: {e:?}"),
         }
-        count += 1;
     }
+    assert!(root_closed);
     assert!(count > 0);
 }
 
