@@ -199,7 +199,8 @@ pub fn parse_geotiff_model_transform_4x4(matrix: &[f64; 16]) -> Result<WorldFile
     let e = matrix[5];
     let f = matrix[7];
 
-    if a.abs() < 1e-14 && e.abs() < 1e-14 {
+    let det = a * e - b * d;
+    if det.abs() < 1e-14 {
         return Err("Degenerate GeoTIFF model transformation matrix".to_string());
     }
 
