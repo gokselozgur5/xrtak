@@ -11,6 +11,7 @@ pub enum GeoPackageError {
     InvalidCoordinates { lon: f64, lat: f64 },
     InvalidElevation(f64),
     InvalidTableName(String),
+    UnsupportedSrs(i32),
     EmptyDataset,
 }
 
@@ -30,6 +31,9 @@ impl std::fmt::Display for GeoPackageError {
             }
             Self::InvalidTableName(tbl) => {
                 write!(f, "table name is not a valid SQL identifier: {tbl}")
+            }
+            Self::UnsupportedSrs(srs) => {
+                write!(f, "unsupported spatial reference system id: {srs}")
             }
             Self::EmptyDataset => write!(f, "dataset contains no waypoint records"),
         }
@@ -434,6 +438,9 @@ impl GeoPackageFeatureDataset {
     }
 
     pub fn export_sql_script(&self) -> Result<String, GeoPackageError> {
+        if self.srs_id != WGS84_SRS_ID {
+            return Err(GeoPackageError::UnsupportedSrs(self.srs_id));
+        }
         if !is_valid_sql_identifier(&self.table_name) {
             return Err(GeoPackageError::InvalidTableName(self.table_name.clone()));
         }
@@ -445,16 +452,9 @@ impl GeoPackageFeatureDataset {
         script.push_str(&self.generate_schema_ddl());
         script.push('\n');
 
-        if self.srs_id == WGS84_SRS_ID {
-            script.push_str(
-                "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('WGS 84', 4326, 'EPSG', 4326,              'GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]]',              'WGS 84 geodetic coordinate reference system');\n",
-            );
-        } else {
-            script.push_str(&format!(
-                "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('CUSTOM', {srs}, 'NONE', {srs}, 'undefined', 'Custom coordinate reference system');\n",
-                srs = self.srs_id
-            ));
-        }
+        script.push_str(
+            "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('WGS 84', 4326, 'EPSG', 4326,              'GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]]',              'WGS 84 geodetic coordinate reference system');\n",
+        );
 
         let bounds = self.bounds().unwrap_or(GeoPackageBounds {
             min_lon: -180.0,
