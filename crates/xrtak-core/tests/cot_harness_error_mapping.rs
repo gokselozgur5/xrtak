@@ -3,7 +3,10 @@ use xrtak_core::cot_harness::{CotHarnessError, CotParseHarness, RawCotMessage};
 #[test]
 fn missing_uid_maps_to_missing_uid() {
     let mut harness = CotParseHarness::default();
-    let raw = RawCotMessage::new(r#"<event type="a-f-G"><point lat="39.92" lon="32.85"/></event>"#, 0);
+    let raw = RawCotMessage::new(
+        r#"<event type="a-f-G"><point lat="39.92" lon="32.85"/></event>"#,
+        0,
+    );
     let res = harness.parse_raw(&raw);
     assert!(matches!(res, Err(CotHarnessError::MissingUid)), "{res:?}");
 }
@@ -11,9 +14,15 @@ fn missing_uid_maps_to_missing_uid() {
 #[test]
 fn malformed_xml_with_point_present_maps_to_invalid_xml() {
     let mut harness = CotParseHarness::default();
-    let raw = RawCotMessage::new(r#"<event uid="A" type="a-f-G"><point lat="1" lon="2"></event>"#, 0);
+    let raw = RawCotMessage::new(
+        r#"<event uid="A" type="a-f-G"><point lat="1" lon="2"></event>"#,
+        0,
+    );
     let res = harness.parse_raw(&raw);
-    assert!(matches!(res, Err(CotHarnessError::InvalidXml(_))), "{res:?}");
+    assert!(
+        matches!(res, Err(CotHarnessError::InvalidXml(_))),
+        "{res:?}"
+    );
 }
 
 #[test]
