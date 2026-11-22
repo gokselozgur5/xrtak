@@ -157,3 +157,20 @@ fn test_header_mismatch_rejected() {
 
     assert_eq!(reassembler.accept(fragments[2].clone(), 120), Some(payload));
 }
+
+#[test]
+fn test_oversized_payload_rejected() {
+    use xrtak_core::mesh_frag::{FragmentHeader, MeshFragment, MAX_FRAGMENT_PAYLOAD};
+
+    let mut reassembler = MeshReassembler::new(5000);
+    let frag = MeshFragment {
+        header: FragmentHeader {
+            message_id: 300,
+            fragment_index: 0,
+            total_fragments: 1,
+            total_length: (MAX_FRAGMENT_PAYLOAD + 10) as u32,
+        },
+        payload: vec![0u8; MAX_FRAGMENT_PAYLOAD + 10],
+    };
+    assert_eq!(reassembler.accept(frag, 100), None);
+}
