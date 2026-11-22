@@ -477,6 +477,21 @@ impl ConversationThread {
     pub fn last_message(&self) -> Option<&GeoChatPacket> {
         self.messages.last()
     }
+
+    fn rebuild_participants(&mut self) {
+        self.participants.clear();
+        for msg in &self.messages {
+            if !self.participants.contains(&msg.sender_uid) {
+                self.participants.push(msg.sender_uid.clone());
+            }
+            for r in &msg.recipients {
+                if !self.participants.contains(r) {
+                    self.participants.push(r.clone());
+                }
+            }
+        }
+        self.root_message_id = self.messages.first().map(|m| m.message_id.clone());
+    }
 }
 
 /// Default maximum number of conversation threads retained by [`GeoChatThreader`].
@@ -535,7 +550,12 @@ impl GeoChatThreader {
     pub fn max_total_messages(&self) -> usize {
         self.max_total_messages
     }
+
+    /// Ingests a packet, ignoring duplicate retained `message_id`s and enforcing retention caps.
     pub fn ingest(&mut self, pkt: GeoChatPacket) -> String {
+        if let Some(existing) = self.message_to_thread.get(&pkt.message_id) {
+            return existing.clone();
+        }
         let thread_id = if let Some(ref cid) = pkt.conversation_id {
             cid.clone()
         } else if let Some(ref pmid) = pkt.parent_message_id {
@@ -554,6 +574,11 @@ impl GeoChatThreader {
             .entry(thread_id.clone())
             .or_insert_with(|| ConversationThread::new(&thread_id));
         thread.add_message(pkt);
+        while thread.messages.len() > self.max_thread_messages {
+            let removed = thread.messages.remove(0);
+            self.message_to_thread.remove(&removed.message_id);
+            thread.rebuild_participants();
+        }
         thread_id
     }
     pub fn thread(&self, thread_id: &str) -> Option<&ConversationThread> {
