@@ -182,6 +182,18 @@ pub struct ActiveTrackProgress {
     pub has_reached_waypoint: bool,
 }
 
+fn is_sequence_aligned(plan: &RoutePlan, sequenced: &SequencedRouteResult) -> bool {
+    if plan.waypoints.is_empty() {
+        return sequenced.legs.is_empty();
+    }
+    sequenced.legs.len() == plan.waypoints.len() - 1
+        && sequenced
+            .legs
+            .iter()
+            .enumerate()
+            .all(|(idx, leg)| leg.from_index == idx && leg.to_index == idx + 1)
+}
+
 /// Evaluates progress of an entity along the active route leg.
 #[allow(clippy::too_many_arguments)]
 pub fn evaluate_route_progress(
@@ -194,13 +206,13 @@ pub fn evaluate_route_progress(
     cur_time_sec: f64,
     capture_radius_m: f64,
 ) -> Option<ActiveTrackProgress> {
-    if active_leg_idx >= sequenced.legs.len() {
+    if !is_sequence_aligned(plan, sequenced) {
         return None;
     }
 
-    let leg = &sequenced.legs[active_leg_idx];
-    let to_wp = &plan.waypoints[leg.to_index];
-    let from_wp = &plan.waypoints[leg.from_index];
+    let leg = sequenced.legs.get(active_leg_idx)?;
+    let to_wp = plan.waypoints.get(leg.to_index)?;
+    let from_wp = plan.waypoints.get(leg.from_index)?;
 
     let dist_to_next = haversine_distance_m(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
     let brg_to_next = initial_bearing_deg(cur_lat, cur_lon, to_wp.lat, to_wp.lon);
@@ -224,7 +236,7 @@ pub fn evaluate_route_progress(
 
     let mut remaining_dist = dist_to_next;
     let mut remaining_time = ttg + leg.loiter_time_sec;
-    for future_leg in &sequenced.legs[active_leg_idx + 1..] {
+    for future_leg in sequenced.legs.get(active_leg_idx + 1..)? {
         remaining_dist += future_leg.slant_distance_m;
         remaining_time += future_leg.total_leg_time_sec;
     }
