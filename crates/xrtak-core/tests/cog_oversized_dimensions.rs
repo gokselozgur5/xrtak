@@ -18,8 +18,7 @@ fn oversized_dimensions_are_rejected_without_panicking() {
     tiff.extend(entry(273, 4, 1, 8)); // StripOffsets
     tiff.extend_from_slice(&0u32.to_le_bytes());
 
-    let outcome = std::panic::catch_unwind(|| {
-        ingest_geotiff_dsm("dsm", 1500.0, 65, &tiff).is_err()
-    });
+    let outcome =
+        std::panic::catch_unwind(|| ingest_geotiff_dsm("dsm", 1500.0, 65, &tiff).is_err());
     assert_eq!(outcome.ok(), Some(true), "expected Err, got a panic or Ok");
 }
