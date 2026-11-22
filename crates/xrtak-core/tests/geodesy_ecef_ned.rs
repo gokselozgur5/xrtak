@@ -50,6 +50,22 @@ fn test_ned_ecef_roundtrip_and_cardinal_offsets() {
     assert!((recovered_ned.north_m - original_ned.north_m).abs() < 1e-4);
     assert!((recovered_ned.east_m - original_ned.east_m).abs() < 1e-4);
     assert!((recovered_ned.down_m - original_ned.down_m).abs() < 1e-4);
+
+    let equator_prime_origin = NedOrigin::new(0.0, 0.0, 0.0);
+    let north_offset = ned_to_ecef(&NedCoord::new(100.0, 0.0, 0.0), &equator_prime_origin);
+    assert!((north_offset.x_m - equator_prime_origin.ecef.x_m).abs() < 1e-6);
+    assert!(north_offset.y_m.abs() < 1e-6);
+    assert!((north_offset.z_m - 100.0).abs() < 1e-6);
+
+    let east_offset = ned_to_ecef(&NedCoord::new(0.0, 100.0, 0.0), &equator_prime_origin);
+    assert!((east_offset.x_m - equator_prime_origin.ecef.x_m).abs() < 1e-6);
+    assert!((east_offset.y_m - 100.0).abs() < 1e-6);
+    assert!(east_offset.z_m.abs() < 1e-6);
+
+    let down_offset = ned_to_ecef(&NedCoord::new(0.0, 0.0, 100.0), &equator_prime_origin);
+    assert!((down_offset.x_m - (equator_prime_origin.ecef.x_m - 100.0)).abs() < 1e-6);
+    assert!(down_offset.y_m.abs() < 1e-6);
+    assert!(down_offset.z_m.abs() < 1e-6);
 }
 
 #[test]
