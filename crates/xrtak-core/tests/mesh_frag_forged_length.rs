@@ -24,5 +24,8 @@ fn forged_header_does_not_reserve_the_declared_length() {
     assert!(buffer.insert_fragment(fragment, 0));
     assert_eq!(buffer.try_reassemble(), None);
     let largest = LARGEST.load(Ordering::Relaxed);
-    assert!(largest < 1 << 20, "a 12-byte datagram reserved {largest} bytes");
+    assert!(
+        largest < 1 << 20,
+        "a 12-byte datagram reserved {largest} bytes"
+    );
 }
