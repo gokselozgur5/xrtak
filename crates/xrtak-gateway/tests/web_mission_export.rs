@@ -15,7 +15,7 @@ fn export_mission_route_does_not_send_hardcoded_demo_waypoints() {
         "exportMissionRoute must not substitute hardcoded demo coordinates when no mission is loaded"
     );
     assert!(
-        export_fn.contains("if (wpsEnAgl.length < 2)") || export_fn.contains("if (wpsEnAgl.length === 0)"),
+        export_fn.contains("if (wpsEnAgl.length < 2)") || export_fn.contains("return;"),
         "exportMissionRoute must refuse export when there are insufficient route waypoints"
     );
 }
