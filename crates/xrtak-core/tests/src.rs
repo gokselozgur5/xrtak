@@ -1,4 +1,24 @@
-use xrtak_core::{GeoOrigin, TacticalWorld};
+use xrtak_core::{
+    classify_cot_type, Affiliation, AffiliationMapper, GeoOrigin, StandardIdentity, TacticalWorld,
+};
+
+fn as_identity(a: Affiliation) -> StandardIdentity {
+    match a {
+        Affiliation::Friendly => StandardIdentity::Friendly,
+        Affiliation::Hostile => StandardIdentity::Hostile,
+        Affiliation::Neutral => StandardIdentity::Neutral,
+        Affiliation::Unknown => StandardIdentity::Unknown,
+    }
+}
+
+#[test]
+fn both_affiliation_classifiers_agree() {
+    for cot_type in ["a-f-G", "a-h-A", "a-s-G", "b-a-o-tbl", "b-f-t-r", "t-h-x"] {
+        let world = as_identity(classify_cot_type(cot_type).0);
+        let mapper = AffiliationMapper::parse_affiliation(cot_type).to_standard_identity();
+        assert_eq!(world, mapper, "classifiers disagree for {cot_type}");
+    }
+}
 
 #[test]
 fn test_sim_disabled_removes_demo_tactical_zones() {
