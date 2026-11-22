@@ -276,7 +276,7 @@ dependencies = [
 
 [[package]]
 name = "xrtak-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "quick-xml",
  "serde",
@@ -285,7 +285,7 @@ dependencies = [
 
 [[package]]
 name = "xrtak-gateway"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",
