@@ -276,6 +276,21 @@ mod tests {
         assert!(roll.abs() < 1e-4);
         let v = (1.0, 2.0, 3.0);
         assert_eq!(q.rotate_vector(v), v);
+
+        // Non-identity quaternion: 90 deg rotation around Y axis
+        let q_yaw90 = PoseOrientation::new(0.0, 2.0_f64.sqrt() / 2.0, 0.0, 2.0_f64.sqrt() / 2.0);
+        assert!((q_yaw90.norm() - 1.0).abs() < 1e-6);
+        let (y90, p90, r90) = q_yaw90.to_euler_deg();
+        assert!((y90 - 90.0).abs() < 1e-4);
+        assert!(p90.abs() < 1e-4);
+        assert!(r90.abs() < 1e-4);
+
+        // Non-identity quaternion: 90 deg roll around Z axis
+        let q_roll90 = PoseOrientation::new(0.0, 0.0, 2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0);
+        let (y_r, p_r, r_r) = q_roll90.to_euler_deg();
+        assert!(y_r.abs() < 1e-4);
+        assert!(p_r.abs() < 1e-4);
+        assert!((r_r - 90.0).abs() < 1e-4);
     }
 
     #[test]
