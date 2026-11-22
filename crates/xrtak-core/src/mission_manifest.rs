@@ -101,21 +101,8 @@ impl MissionPackageManifest {
     }
 }
 
-pub(crate) fn escape_xml_attr(val: &str) -> String {
-    val.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
-pub(crate) fn unescape_xml_attr(val: &str) -> String {
-    val.replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
-}
+pub(crate) use crate::escape_xml as escape_xml_attr;
+pub(crate) use crate::unescape_xml as unescape_xml_attr;
 
 impl MissionPackageManifest {
     /// Generate a compliant TAK `manifest.xml` file.
