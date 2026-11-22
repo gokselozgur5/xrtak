@@ -2911,7 +2911,7 @@
         laser_target_enu: lastLaserTargetEnu,
         ptt_active: pttActive,
         color_hex: pttActive ? '#fbbf24' : '#00ff88',
-        shared_scale: shareTablePose ? tableScaleFactor : undefined,
+        shared_scale: shareTablePose ? tableGroup.scale.x : undefined,
         shared_yaw_deg: shareTablePose ? (THREE.MathUtils.radToDeg(tableGroup.rotation.y) % 360) : undefined
       };
       if (collabChannel) collabChannel.postMessage(reqBody);
