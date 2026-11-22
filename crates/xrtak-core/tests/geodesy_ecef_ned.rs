@@ -18,7 +18,7 @@ fn test_geodetic_to_ecef_reference_north_pole() {
     let ecef = geodetic_to_ecef(&geo);
     assert!(ecef.x_m.abs() < 1e-4);
     assert!(ecef.y_m.abs() < 1e-4);
-    assert!((ecef.z_m - 6_356_752.3142).abs() < 1e-3);
+    assert!((ecef.z_m - 6_356_752.314_2).abs() < 1e-3);
 }
 
 #[test]

@@ -40,5 +40,6 @@ fn terrain_upload_with_overflowing_dimensions_leaves_api_usable() {
     );
     let after = send("GET", "/api/state", "");
     let _ = gw.kill();
+    let _ = gw.wait();
     assert!(after.starts_with("HTTP/1.1 200"), "API dead: {after:?}");
 }
