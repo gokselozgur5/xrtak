@@ -143,9 +143,9 @@ pub use opord::{
     OpordExportBundle, OpordUnitSummary,
 };
 pub use rf::{
-    compute_diffraction_v, compute_fresnel_radius_m, compute_fspl_db,
-    compute_knife_edge_diffraction_db, evaluate_rf_link, evaluate_rf_propagation, RfBand,
-    RfLinkResult,
+    compute_diffraction_v, compute_fresnel_radius_m, compute_fspl_db, compute_fspl_db_hz,
+    compute_fspl_db_mhz, compute_knife_edge_diffraction_db, compute_wavelength_m, evaluate_rf_link,
+    evaluate_rf_propagation, RfBand, RfLinkResult,
 };
 pub use route_sequencer::{
     along_track_distance_m, cross_track_error_m, evaluate_route_progress, generate_cot_route_xml,
