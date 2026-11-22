@@ -2956,7 +2956,8 @@
       } else if (profileWaypointsEn.length >= 2) {
         wpsEnAgl = profileWaypointsEn.map(([e, n]) => [e, n, 95.0]);
       } else {
-        wpsEnAgl = [[-360.0, -240.0, 90.0], [40.0, 60.0, 110.0], [380.0, 290.0, 95.0]];
+        console.warn('Mission export skipped: no active corridor or profile waypoints');
+        return;
       }
 
       if (!standaloneSimActive) {
