@@ -57,3 +57,29 @@ fn theater_conflicts_ordering_by_risk_and_separation() {
     assert_eq!(v[1].entity_a, "CRIT-B");
     assert_eq!(v[2].entity_a, "ADV");
 }
+
+#[test]
+fn theater_deconfliction_sorts_conflicts_by_risk_then_separation() {
+    let entities: [TrackTuple; 6] = [
+        ("ADV", (10000.0, 0.0, 100.0), 20.0, 0.0),
+        ("T-ADV", (10500.0, 400.0, 100.0), 20.0, 180.0),
+        ("CRIT-B", (0.0, 0.0, 100.0), 20.0, 0.0),
+        ("T-B", (150.0, 400.0, 100.0), 20.0, 180.0),
+        ("CRIT-A", (20000.0, 0.0, 100.0), 20.0, 0.0),
+        ("T-A", (20050.0, 400.0, 100.0), 20.0, 180.0),
+    ];
+    let res = evaluate_theater_deconfliction(&entities);
+    let order: Vec<(&str, CpaRiskLevel, f64)> = res
+        .conflicts
+        .iter()
+        .map(|c| (c.entity_a.as_str(), c.risk_level, c.horiz_separation_m))
+        .collect();
+    assert_eq!(
+        order,
+        vec![
+            ("CRIT-A", CpaRiskLevel::Critical, 50.0),
+            ("CRIT-B", CpaRiskLevel::Critical, 150.0),
+            ("ADV", CpaRiskLevel::Advisory, 500.0),
+        ]
+    );
+}
