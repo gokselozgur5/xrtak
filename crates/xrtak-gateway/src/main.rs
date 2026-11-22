@@ -6,7 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
-    build_laser_pointer_cot_xml, build_mapset_manifest, build_opord_bundle, compute_link_los,
+    build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
     compute_viewshed_with_provider, escape_cot_attr, evaluate_mission_corridor, evaluate_rf_link,
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
@@ -1256,14 +1256,12 @@ async fn handle_http_connection(
                 })
                 .collect();
             let origin_lla = (guard.origin.lat, guard.origin.lon, guard.origin.alt_m);
-            let zone_count = guard.tactical_zones.len();
-            let dome_count = guard.threat_domes.len();
-            build_opord_bundle(
+            xrtak_core::opord::build_opord_bundle_with_features(
                 &format!("XRTAK-{}", guard.terrain_name.to_uppercase()),
                 origin_lla,
                 &units,
-                zone_count,
-                dome_count,
+                &guard.tactical_zones,
+                &guard.threat_domes,
             )
         };
         let resp_json = serde_json::to_string(&bundle)?;
