@@ -52,4 +52,9 @@ fn test_viewshed_sample_count_and_geometry() {
     assert_eq!(res.samples.len(), beams * points);
     assert_eq!(res.radius_m, 500.0);
     assert!(res.visible_ratio >= 0.0 && res.visible_ratio <= 1.0);
+    let visible_samples = res.samples.iter().filter(|s| s.visible).count();
+    let occluded_samples = res.samples.iter().filter(|s| !s.visible).count();
+    assert_eq!(visible_samples, 224);
+    assert_eq!(occluded_samples, 176);
+    assert!((res.visible_ratio - 0.56).abs() < 1e-6);
 }
