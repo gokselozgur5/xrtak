@@ -50,10 +50,16 @@ fn send_req(port: u16, method: &str, path: &str, body: &str) -> String {
 fn test_request_parser_complete_and_malformed() {
     let (gw, port) = start_gateway();
     let resp = send_req(port, "GET", "/api/state", "");
-    assert!(resp.starts_with("HTTP/1.1 200 OK"), "expected 200, got: {resp}");
+    assert!(
+        resp.starts_with("HTTP/1.1 200 OK"),
+        "expected 200, got: {resp}"
+    );
 
     let malformed = send_raw(port, "GARBAGE\r\n\r\n");
-    assert!(malformed.is_empty() || malformed.starts_with("HTTP/1.1 404"), "expected empty or 404, got: {malformed}");
+    assert!(
+        malformed.is_empty() || malformed.starts_with("HTTP/1.1 404"),
+        "expected empty or 404, got: {malformed}"
+    );
 
     stop_gateway(gw);
 }
@@ -107,12 +113,23 @@ fn test_core_api_routes_status_and_shape() {
 
     // 6. GET /api/terrain
     let res = send_req(port, "GET", "/api/terrain", "");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/terrain: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "GET /api/terrain: {res}"
+    );
     assert!(res.contains("\"heights_m\""), "shape /api/terrain");
 
     // 7. POST /api/terrain
-    let res = send_req(port, "POST", "/api/terrain", "{\"preset\":\"flat\",\"extent_m\":1000.0}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/terrain: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/terrain",
+        "{\"preset\":\"flat\",\"extent_m\":1000.0}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/terrain: {res}"
+    );
 
     // 8. POST /api/terrain/geotiff
     let res = send_req(port, "POST", "/api/terrain/geotiff", "{\"name\":\"test\",\"bytes\":[]}");
