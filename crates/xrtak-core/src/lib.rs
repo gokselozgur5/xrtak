@@ -305,13 +305,14 @@ pub fn classify_cot_type(cot_type: &str) -> (Affiliation, Dimension) {
     if cot_type.starts_with("b-m-p-s-p-i") {
         return (Affiliation::Neutral, Dimension::Ground);
     }
-    let parts: Vec<&str> = cot_type.split('-').collect();
-    let affiliation = match parts.get(1).copied() {
-        Some("f") | Some("a") => Affiliation::Friendly,
-        Some("h") | Some("j") | Some("k") => Affiliation::Hostile,
-        Some("n") => Affiliation::Neutral,
-        _ => Affiliation::Unknown,
+    let cot_affil = AffiliationMapper::parse_affiliation(cot_type);
+    let affiliation = match cot_affil.to_standard_identity() {
+        StandardIdentity::Friendly => Affiliation::Friendly,
+        StandardIdentity::Hostile => Affiliation::Hostile,
+        StandardIdentity::Neutral => Affiliation::Neutral,
+        StandardIdentity::Unknown => Affiliation::Unknown,
     };
+    let parts: Vec<&str> = cot_type.split('-').collect();
     let dimension = match parts.get(2).copied() {
         Some("A") => Dimension::Air,
         Some("G") => Dimension::Ground,
