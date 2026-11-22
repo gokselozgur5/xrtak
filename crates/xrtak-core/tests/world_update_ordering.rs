@@ -15,5 +15,8 @@ fn older_event_does_not_overwrite_newer_position() {
         .expect("newer");
     let _ = world.ingest_cot_xml(&event("2026-11-18T10:00:00Z", "39.9100"), 1_050);
     let lat = world.entities["U-1"].lat;
-    assert!((lat - 39.93).abs() < 1e-9, "position rolled back to lat={lat}");
+    assert!(
+        (lat - 39.93).abs() < 1e-9,
+        "position rolled back to lat={lat}"
+    );
 }
