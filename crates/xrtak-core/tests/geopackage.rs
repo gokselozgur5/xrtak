@@ -40,3 +40,13 @@ fn geometry_columns_z_flag_matches_waypoint_elevations() {
         "expected z=1 for 3d dataset"
     );
 }
+
+#[test]
+fn export_sql_script_rejects_non_wgs84_srs_id() {
+    let mut ds = GeoPackageFeatureDataset::new("waypoints").with_srs_id(3857);
+    ds.add_waypoint(GeoPackageWaypoint::new("WP", 34.5, 31.2));
+    assert!(
+        ds.export_sql_script().is_err(),
+        "expected export_sql_script to reject non-WGS84 srs_id"
+    );
+}
