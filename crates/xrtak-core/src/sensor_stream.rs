@@ -624,8 +624,19 @@ mod tests {
         assert_eq!(parsed.uid, "DESC-COT-1");
         assert_eq!(parsed.callsign, "DRONE-ALPHA");
         assert_eq!(parsed.lat, 41.01);
+        assert_eq!(parsed.lon, 28.97);
+        assert_eq!(parsed.hae, 850.0);
+        assert_eq!(parsed.video.url, "rtsp://192.168.2.50:554/ch0");
+        assert_eq!(parsed.video.alias, "Cam-EO");
         assert_eq!(parsed.sensor.sensor_type, SensorType::DualEoIr);
         assert_eq!(parsed.sensor.model, "TRILLIUM-HD80");
+        assert_eq!(parsed.sensor.fov_horizontal_deg, 35.5);
+        assert_eq!(parsed.sensor.fov_vertical_deg, 22.0);
+        assert_eq!(parsed.sensor.slant_range_m, 2500.0);
+        assert_eq!(parsed.sensor.azimuth_deg, 185.0);
+        assert_eq!(parsed.sensor.elevation_deg, -30.0);
+        assert_eq!(parsed.sensor.roll_deg, 2.5);
+        assert_eq!(parsed.sensor.zoom_ratio, 4.0);
         assert_eq!(parsed.parent_uid.as_deref(), Some("UAV-DRONE-ALPHA"));
     }
 
