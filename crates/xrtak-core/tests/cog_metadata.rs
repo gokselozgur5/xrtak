@@ -65,5 +65,9 @@ fn dsm_ingestion_flips_rows_and_normalizes_relief() {
 fn dsm_ingestion_rejects_truncated_pixels() {
     let mut b = int16_tiff([1, 2, 3, 4]);
     b.truncate(b.len() - 2);
-    assert!(ingest_geotiff_dsm("t", 100.0, 2, &b).is_err());
+    let err = ingest_geotiff_dsm("t", 100.0, 2, &b).unwrap_err();
+    assert_eq!(
+        err,
+        "GeoTIFF pixel buffer truncated relative to ImageWidth * ImageLength"
+    );
 }
