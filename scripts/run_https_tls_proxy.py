@@ -1,13 +1,16 @@
-#!/Library/Frameworks/Python.framework/Versions/3.11/bin/python3
+#!/usr/bin/env python3
 """
 XR-TAK HTTPS / TLS 1.3 Reverse Proxy (:8443 -> http://127.0.0.1:8090 / :8091)
-Enables Meta Quest 3 WebXR `immersive-ar` Passthrough over local LAN (`https://192.168.1.6:8443`).
+Enables Meta Quest 3 WebXR `immersive-ar` Passthrough over local LAN.
 Automatically generates a Subject Alternative Name (SAN) X.509 certificate for LAN & localhost.
 """
 
 import http.client
 import http.server
+import ipaddress
 import os
+import re
+import shutil
 import socket
 import socketserver
 import ssl
@@ -17,7 +20,7 @@ import sys
 CERT_PATH = "/tmp/xrtak_tls_cert.pem"
 KEY_PATH = "/tmp/xrtak_tls_key.pem"
 CNF_PATH = "/tmp/xrtak_openssl.cnf"
-OPENSSL_BIN = "/usr/bin/openssl"
+OPENSSL_BIN = shutil.which("openssl") or "/usr/bin/openssl"
 UPSTREAM_HOST = "127.0.0.1"
 HTTPS_PORT = int(os.environ.get("XRTAK_HTTPS_PORT", "8443"))
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -45,29 +48,38 @@ UPSTREAM_PORT = detect_upstream_port()
 
 
 def detect_lan_ip() -> str:
-    return "192.168.1.6"
+    if supplied := os.environ.get("XRTAK_LAN_IP", "").strip():
+        return supplied
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("10.255.255.255", 1))
+            ip = s.getsockname()[0]
+            if ip and not ip.startswith("127."):
+                return ip
+    except OSError:
+        pass
+    return "127.0.0.1"
 
 
 def ensure_tls_cert() -> str:
     lan_ip = detect_lan_ip()
-    cnf = """[req]
-distinguished_name = req_distinguished_name
-x509_extensions = v3_req
-prompt = no
-
-[req_distinguished_name]
-CN = 192.168.1.6
-O = XR-TAK Spatial C2
-
-[v3_req]
-subjectAltName = @alt_names
-
-[alt_names]
-DNS.1 = localhost
-IP.1 = 127.0.0.1
-IP.2 = 192.168.1.6
-IP.3 = 192.168.1.2
-"""
+    alt_lines = ["DNS.1 = localhost", "IP.1 = 127.0.0.1"]
+    if lan_ip not in ("localhost", "127.0.0.1"):
+        try:
+            ipaddress.ip_address(lan_ip)
+            alt_lines.append(f"IP.2 = {lan_ip}")
+        except ValueError:
+            if not re.fullmatch(r"[A-Za-z0-9.-]+", lan_ip):
+                raise ValueError(f"invalid XRTAK_LAN_IP: {lan_ip!r}")
+            alt_lines.append(f"DNS.2 = {lan_ip}")
+    cnf = (
+        "[req]\ndistinguished_name = req_distinguished_name\n"
+        "x509_extensions = v3_req\nprompt = no\n\n"
+        f"[req_distinguished_name]\nCN = {lan_ip}\nO = XR-TAK Spatial C2\n\n"
+        "[v3_req]\nsubjectAltName = @alt_names\n\n[alt_names]\n"
+        + "\n".join(alt_lines)
+        + "\n"
+    )
     with open(CNF_PATH, "w", encoding="utf-8") as f:
         f.write(cnf)
     cmd = [
