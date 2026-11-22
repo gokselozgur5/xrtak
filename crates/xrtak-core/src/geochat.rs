@@ -479,16 +479,61 @@ impl ConversationThread {
     }
 }
 
-/// Manages and groups incoming GeoChat packets into conversation threads.
-#[derive(Debug, Clone, Default)]
+/// Default maximum number of conversation threads retained by [`GeoChatThreader`].
+pub const DEFAULT_MAX_THREADS: usize = 256;
+/// Default maximum number of messages retained per [`ConversationThread`].
+pub const DEFAULT_MAX_THREAD_MESSAGES: usize = 256;
+/// Default maximum total number of messages retained across [`GeoChatThreader`].
+pub const DEFAULT_MAX_TOTAL_MESSAGES: usize = 1024;
+
+/// Groups incoming GeoChat packets into bounded conversation threads in FIFO order,
+/// ignoring duplicate `message_id` deliveries among currently retained messages.
+#[derive(Debug, Clone)]
 pub struct GeoChatThreader {
     threads: BTreeMap<String, ConversationThread>,
     message_to_thread: HashMap<String, String>,
+    max_threads: usize,
+    max_thread_messages: usize,
+    max_total_messages: usize,
+}
+
+impl Default for GeoChatThreader {
+    fn default() -> Self {
+        let m = DEFAULT_MAX_THREAD_MESSAGES;
+        Self::with_retention_limits(DEFAULT_MAX_THREADS, m, DEFAULT_MAX_TOTAL_MESSAGES)
+    }
 }
 
 impl GeoChatThreader {
+    /// Creates a threader configured with default retention limits.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Creates a threader with explicit thread, per-thread, and total message limits (`>= 1`).
+    pub fn with_retention_limits(max_threads: usize, per_thread: usize, total: usize) -> Self {
+        Self {
+            threads: BTreeMap::new(),
+            message_to_thread: HashMap::new(),
+            max_threads: max_threads.max(1),
+            max_thread_messages: per_thread.max(1),
+            max_total_messages: total.max(1),
+        }
+    }
+
+    /// Maximum number of active conversation threads retained.
+    pub fn max_threads(&self) -> usize {
+        self.max_threads
+    }
+
+    /// Maximum number of messages retained in any single thread.
+    pub fn max_thread_messages(&self) -> usize {
+        self.max_thread_messages
+    }
+
+    /// Maximum total number of messages retained across all threads.
+    pub fn max_total_messages(&self) -> usize {
+        self.max_total_messages
     }
     pub fn ingest(&mut self, pkt: GeoChatPacket) -> String {
         let thread_id = if let Some(ref cid) = pkt.conversation_id {
