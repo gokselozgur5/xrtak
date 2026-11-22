@@ -114,7 +114,14 @@ mod tests {
             None,
         );
 
-        assert_eq!(room.sorted_peers().len(), 2);
+        let initial = room.sorted_peers();
+        assert_eq!(initial.len(), 2);
+        assert_eq!(initial[0].operator_id, "OP-DESK-02");
+        assert_eq!(initial[0].laser_target_enu, None);
+        assert!(!initial[0].ptt_active);
+        assert_eq!(initial[1].operator_id, "OP-QUEST-01");
+        assert_eq!(initial[1].laser_target_enu, Some((125.0, 45.0, 210.0)));
+        assert!(initial[1].ptt_active);
         assert!((room.table_pose.scale - 1.45).abs() < 1e-6);
         assert!((room.table_pose.yaw_deg - 35.0).abs() < 1e-6);
 
@@ -123,5 +130,7 @@ mod tests {
         let remaining = room.sorted_peers();
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].operator_id, "OP-DESK-02");
+        assert_eq!(remaining[0].laser_target_enu, None);
+        assert!(!remaining[0].ptt_active);
     }
 }
