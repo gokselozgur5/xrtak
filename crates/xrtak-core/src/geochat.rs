@@ -3,7 +3,7 @@
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::fmt;
 
 /// Errors arising during GeoChat XML parsing.
@@ -507,6 +507,7 @@ pub const DEFAULT_MAX_TOTAL_MESSAGES: usize = 1024;
 pub struct GeoChatThreader {
     threads: BTreeMap<String, ConversationThread>,
     message_to_thread: HashMap<String, String>,
+    thread_order: VecDeque<String>,
     max_threads: usize,
     max_thread_messages: usize,
     max_total_messages: usize,
@@ -530,6 +531,7 @@ impl GeoChatThreader {
         Self {
             threads: BTreeMap::new(),
             message_to_thread: HashMap::new(),
+            thread_order: VecDeque::new(),
             max_threads: max_threads.max(1),
             max_thread_messages: per_thread.max(1),
             max_total_messages: total.max(1),
@@ -567,12 +569,17 @@ impl GeoChatThreader {
             pkt.chatroom.clone()
         };
 
+        if !self.threads.contains_key(&thread_id) {
+            while self.threads.len() >= self.max_threads {
+                self.evict_oldest_thread();
+            }
+            self.thread_order.push_back(thread_id.clone());
+            self.threads
+                .insert(thread_id.clone(), ConversationThread::new(&thread_id));
+        }
         self.message_to_thread
             .insert(pkt.message_id.clone(), thread_id.clone());
-        let thread = self
-            .threads
-            .entry(thread_id.clone())
-            .or_insert_with(|| ConversationThread::new(&thread_id));
+        let thread = self.threads.get_mut(&thread_id).expect("thread inserted");
         thread.add_message(pkt);
         while thread.messages.len() > self.max_thread_messages {
             let removed = thread.messages.remove(0);
@@ -580,6 +587,16 @@ impl GeoChatThreader {
             thread.rebuild_participants();
         }
         thread_id
+    }
+
+    fn evict_oldest_thread(&mut self) {
+        if let Some(old_tid) = self.thread_order.pop_front() {
+            if let Some(old_thread) = self.threads.remove(&old_tid) {
+                for msg in &old_thread.messages {
+                    self.message_to_thread.remove(&msg.message_id);
+                }
+            }
+        }
     }
     pub fn thread(&self, thread_id: &str) -> Option<&ConversationThread> {
         self.threads.get(thread_id)
