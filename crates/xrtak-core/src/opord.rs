@@ -2,8 +2,16 @@
 //!
 //! Complies with REQ-OPO-01..02 and ICD-22 for operational order synthesis.
 
+use crate::kml_export::format_iso8601_utc;
 use crate::mission_manifest::escape_xml_attr;
 use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+fn format_lat_lon(lat: f64, lon: f64) -> String {
+    let lat_hemi = if lat < 0.0 { 'S' } else { 'N' };
+    let lon_hemi = if lon < 0.0 { 'W' } else { 'E' };
+    format!("{:.5}{}, {:.5}{}", lat.abs(), lat_hemi, lon.abs(), lon_hemi)
+}
 
 /// Lightweight tactical entity snapshot for operational order summaries.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,8 +50,9 @@ pub fn generate_kml_tactical_scene(
         escape_xml_attr(scene_name)
     ));
     kml.push_str(&format!(
-        "    <description>Exported from XR-TAK Sand Table at origin {:.5}N, {:.5}E, {:.1}m</description>\n",
-        origin_lla.0, origin_lla.1, origin_lla.2
+        "    <description>Exported from XR-TAK Sand Table at origin {}, {:.1}m</description>\n",
+        format_lat_lon(origin_lla.0, origin_lla.1),
+        origin_lla.2
     ));
 
     for u in units {
@@ -86,8 +95,9 @@ pub fn generate_nato_opord_markdown(
         operation_name.to_uppercase()
     ));
     doc.push_str(&format!(
-        "**Area of Operations (AO Center):** {:.5}N, {:.5}E (Elevation: {:.0}m ASL)\n\n",
-        origin_lla.0, origin_lla.1, origin_lla.2
+        "**Area of Operations (AO Center):** {} (Elevation: {:.0}m ASL)\n\n",
+        format_lat_lon(origin_lla.0, origin_lla.1),
+        origin_lla.2
     ));
 
     doc.push_str("## 1. SITUATION\n");
@@ -137,13 +147,19 @@ pub fn build_opord_bundle(
     let opord_markdown =
         generate_nato_opord_markdown(operation_name, origin_lla, units, zone_count, dome_count);
 
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let generated_utc = format_iso8601_utc(now_ms).replace(".000Z", "Z");
+
     OpordExportBundle {
         opord_markdown,
         kml_scene,
         unit_count: units.len(),
         zone_count,
         dome_count,
-        generated_utc: "2026-11-07T11:00:00Z".to_string(),
+        generated_utc,
     }
 }
 
