@@ -390,16 +390,20 @@ mod tests {
     #[test]
     fn test_auto_grid_selection() {
         let utm_sol = calculate_grid_convergence(38.8951, -77.0364).unwrap();
-        assert!(matches!(
+        assert_eq!(
             utm_sol.system,
             GridSystem::Utm {
                 zone: 18,
                 north: true
             }
-        ));
+        );
+        assert!((utm_sol.convergence_deg - (-1.27898)).abs() < 1e-4);
+        assert_eq!(utm_sol.central_meridian_deg, -75.0);
 
         let ups_sol = calculate_grid_convergence(85.0, 10.0).unwrap();
         assert_eq!(ups_sol.system, GridSystem::UpsNorth);
+        assert!((ups_sol.convergence_deg - 10.0).abs() < 1e-6);
+        assert_eq!(ups_sol.central_meridian_deg, 0.0);
     }
 
     #[test]
