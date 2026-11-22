@@ -63,3 +63,20 @@ fn cas_time_is_escaped_in_event_attributes() {
         &xml[..160]
     );
 }
+
+#[test]
+fn cas_text_split_by_comment_and_cdata_accumulates() {
+    let raw_xml = r#"<event version="2.0" uid="COT-SPLIT-1" type="b-m-p-s-p-loc" time="2026-11-16T12:00:00Z">
+<point lat="36.5" lon="-115.5" hae="800.0"/>
+<detail>
+  <contact callsign="ANVIL 22"/>
+  <cas9line>
+    <line5>Bunker<!-- comment -->Ridge</line5>
+    <remarks><![CDATA[Alpha & Bravo]]></remarks>
+  </cas9line>
+</detail>
+</event>"#;
+    let cas = CasNineLine::from_cot_xml(raw_xml).expect("parse failed");
+    assert_eq!(cas.line5_description, "BunkerRidge");
+    assert_eq!(cas.remarks, "Alpha & Bravo");
+}
