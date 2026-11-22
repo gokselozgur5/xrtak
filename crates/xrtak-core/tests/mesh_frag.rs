@@ -49,3 +49,21 @@ fn test_round_trip_multi_fragment_out_of_order() {
         }
     }
 }
+
+#[test]
+fn test_duplicate_fragments_handled_gracefully() {
+    let mut reassembler = MeshReassembler::new(5000);
+    let payload = b"Duplicate test payload".to_vec();
+    let fragments = fragment_payload(77, &payload, 10).unwrap();
+
+    assert_eq!(reassembler.accept(fragments[0].clone(), 1000), None);
+    assert_eq!(reassembler.accept(fragments[0].clone(), 1010), None);
+
+    for frag in &fragments[1..fragments.len() - 1] {
+        assert_eq!(reassembler.accept(frag.clone(), 1020), None);
+    }
+    assert_eq!(reassembler.accept(fragments[1].clone(), 1030), None);
+
+    let res = reassembler.accept(fragments.last().unwrap().clone(), 1040);
+    assert_eq!(res, Some(payload));
+}
