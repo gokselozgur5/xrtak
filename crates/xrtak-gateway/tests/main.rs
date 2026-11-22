@@ -283,12 +283,21 @@ fn test_spatial_and_tactical_planning_routes() {
 
     // 21. POST /api/airspace/deconflict
     let res = send_req(port, "POST", "/api/airspace/deconflict", "{\"tracks\":[]}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/airspace/deconflict: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/airspace/deconflict: {res}"
+    );
 
     // 22. GET /api/export/opord
     let res = send_req(port, "GET", "/api/export/opord", "");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/export/opord: {res}");
-    assert!(res.contains("\"opord_markdown\""), "shape /api/export/opord");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "GET /api/export/opord: {res}"
+    );
+    assert!(
+        res.contains("\"opord_markdown\""),
+        "shape /api/export/opord"
+    );
 
     stop_gateway(gw);
 }
@@ -322,9 +331,13 @@ fn test_advanced_domain_analysis_routes() {
             "rx_north_m": 0.0,
             "rx_up_m": 10.0
         }
-    }).to_string();
+    })
+    .to_string();
     let res = send_req(port, "POST", "/api/ew/jamming", &ew_body);
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/ew/jamming: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/ew/jamming: {res}"
+    );
     assert!(res.contains("\"assessment\""), "shape /api/ew/jamming");
 
     // 24. POST /api/medevac/nine-line
@@ -332,7 +345,8 @@ fn test_advanced_domain_analysis_routes() {
         "location": "GRID 123 456",
         "freq_callsign": "30.00 DUSTOFF",
         "enu_center": [0.0, 0.0, 0.0]
-    }).to_string();
+    })
+    .to_string();
     let res = send_req(port, "POST", "/api/medevac/nine-line", &med_body);
     assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/medevac/nine-line: {res}");
     assert!(res.contains("\"formatted_nine_line\""), "shape /api/medevac/nine-line");
