@@ -322,12 +322,22 @@ pub fn classify_cot_type(cot_type: &str) -> (Affiliation, Dimension) {
     (affiliation, dimension)
 }
 
-pub fn escape_cot_attr(s: &str) -> String {
+pub(crate) fn escape_xml(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
+        .replace("\"", "&quot;")
+        .replace("\'", "&apos;")
+}
+
+pub(crate) fn unescape_xml(s: &str) -> String {
+    quick_xml::escape::unescape(s)
+        .map(|v| v.into_owned())
+        .unwrap_or_else(|_| s.to_string())
+}
+
+pub fn escape_cot_attr(s: &str) -> String {
+    escape_xml(s)
 }
 
 pub fn default_cot_timestamps() -> (String, String) {
