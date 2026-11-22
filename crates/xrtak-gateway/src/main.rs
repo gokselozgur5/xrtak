@@ -22,7 +22,7 @@ mod ew_dto;
 mod fires_dto;
 mod medevac_dto;
 
-const INDEX_HTML: &str = include_str!("../static/index.html");
+const INDEX_HTML: &str = include_str!("../../../index.html");
 const CORS_HEADERS: &str = "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n";
 
 fn json_ok_header(len: usize) -> String {
@@ -1778,4 +1778,16 @@ async fn handle_http_connection(
         "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found";
     stream.write_all(not_found.as_bytes()).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn index_html_matches_root_source() {
+        let root_index = include_str!("../../../index.html");
+        assert!(!INDEX_HTML.trim().is_empty());
+        assert_eq!(INDEX_HTML, root_index);
+    }
 }
