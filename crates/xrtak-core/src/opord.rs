@@ -2,8 +2,10 @@
 //!
 //! Complies with REQ-OPO-01..02 and ICD-22 for operational order synthesis.
 
+use crate::domain::{TacticalZone, ThreatDome};
 use crate::kml_export::format_iso8601_utc;
 use crate::mission_manifest::escape_xml_attr;
+use crate::GeoOrigin;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -35,11 +37,13 @@ pub struct OpordExportBundle {
     pub generated_utc: String,
 }
 
-/// Generates a valid 3D KML document bundling tactical units and ground markers.
-pub fn generate_kml_tactical_scene(
+/// Generates a valid 3D KML document bundling tactical units, zones and domes.
+pub fn generate_kml_tactical_scene_with_features(
     scene_name: &str,
     units: &[OpordUnitSummary],
     origin_lla: (f64, f64, f64),
+    zones: &[TacticalZone],
+    domes: &[ThreatDome],
 ) -> String {
     let mut kml = String::with_capacity(2048);
     kml.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -76,9 +80,97 @@ pub fn generate_kml_tactical_scene(
         kml.push_str("    </Placemark>\n");
     }
 
+    generate_kml_zones_and_domes(&mut kml, origin_lla, zones, domes);
+
     kml.push_str("  </Document>\n");
     kml.push_str("</kml>\n");
     kml
+}
+
+/// Generates a valid 3D KML document bundling tactical units and ground markers.
+pub fn generate_kml_tactical_scene(
+    scene_name: &str,
+    units: &[OpordUnitSummary],
+    origin_lla: (f64, f64, f64),
+) -> String {
+    generate_kml_tactical_scene_with_features(scene_name, units, origin_lla, &[], &[])
+}
+
+fn generate_kml_zones_and_domes(
+    kml: &mut String,
+    origin_lla: (f64, f64, f64),
+    zones: &[TacticalZone],
+    domes: &[ThreatDome],
+) {
+    let geo = GeoOrigin {
+        lat: origin_lla.0,
+        lon: origin_lla.1,
+        alt_m: origin_lla.2,
+        extent_m: 1500.0,
+    };
+
+    for z in zones {
+        kml.push_str("    <Placemark>\n");
+        kml.push_str(&format!(
+            "      <name>{}</name>\n",
+            escape_xml_attr(&z.name)
+        ));
+        kml.push_str(&format!(
+            "      <description>Zone: {} | Affiliation: {:?} | Alt: {:.0}m-{:.0}m</description>\n",
+            escape_xml_attr(&z.uid),
+            z.affiliation,
+            z.floor_m,
+            z.ceiling_m
+        ));
+        kml.push_str("      <Polygon>\n");
+        kml.push_str("        <outerBoundaryIs>\n");
+        kml.push_str("          <LinearRing>\n");
+        kml.push_str("            <coordinates>");
+        let mut first = true;
+        for &(e, n) in &z.vertices_en {
+            let (lat, lon, alt) = geo.enu_to_lla(e, z.floor_m, n);
+            if !first {
+                kml.push(' ');
+            }
+            kml.push_str(&format!("{:.6},{:.6},{:.1}", lon, lat, alt));
+            first = false;
+        }
+        if let Some(&(first_e, first_n)) = z.vertices_en.first() {
+            let (lat, lon, alt) = geo.enu_to_lla(first_e, z.floor_m, first_n);
+            if !first {
+                kml.push(' ');
+            }
+            kml.push_str(&format!("{:.6},{:.6},{:.1}", lon, lat, alt));
+        }
+        kml.push_str("</coordinates>\n");
+        kml.push_str("          </LinearRing>\n");
+        kml.push_str("        </outerBoundaryIs>\n");
+        kml.push_str("      </Polygon>\n");
+        kml.push_str("    </Placemark>\n");
+    }
+
+    for d in domes {
+        let (lat, lon, alt) = geo.enu_to_lla(d.east_m, d.up_m, d.north_m);
+        kml.push_str("    <Placemark>\n");
+        kml.push_str(&format!(
+            "      <name>{} [Threat Dome]</name>\n",
+            escape_xml_attr(&d.callsign)
+        ));
+        kml.push_str(&format!(
+            "      <description>Dome: {} | Radius: {:.0}m | Ceiling: {:.0}m</description>\n",
+            escape_xml_attr(&d.uid),
+            d.radius_m,
+            d.ceiling_m
+        ));
+        kml.push_str("      <Point>\n");
+        kml.push_str("        <altitudeMode>absolute</altitudeMode>\n");
+        kml.push_str(&format!(
+            "        <coordinates>{:.6},{:.6},{:.1}</coordinates>\n",
+            lon, lat, alt
+        ));
+        kml.push_str("      </Point>\n");
+        kml.push_str("    </Placemark>\n");
+    }
 }
 
 /// Generates standard 5-Paragraph NATO Field Operation Order (OPORD / SMEAC) Markdown.
@@ -133,6 +225,35 @@ pub fn generate_nato_opord_markdown(
     );
     doc.push_str("- **Emergency Signal:** Code RED via ATAK emergency beacon broadcast.\n");
     doc
+}
+
+/// Synthesizes complete export bundle containing 3D KML Scene with features and NATO OPORD.
+pub fn build_opord_bundle_with_features(
+    operation_name: &str,
+    origin_lla: (f64, f64, f64),
+    units: &[OpordUnitSummary],
+    zones: &[TacticalZone],
+    domes: &[ThreatDome],
+) -> OpordExportBundle {
+    let kml_scene =
+        generate_kml_tactical_scene_with_features(operation_name, units, origin_lla, zones, domes);
+    let opord_markdown =
+        generate_nato_opord_markdown(operation_name, origin_lla, units, zones.len(), domes.len());
+
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let generated_utc = format_iso8601_utc(now_ms).replace(".000Z", "Z");
+
+    OpordExportBundle {
+        opord_markdown,
+        kml_scene,
+        unit_count: units.len(),
+        zone_count: zones.len(),
+        dome_count: domes.len(),
+        generated_utc,
+    }
 }
 
 /// Synthesizes complete export bundle containing 3D KML Scene and NATO OPORD.
