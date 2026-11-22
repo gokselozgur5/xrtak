@@ -817,20 +817,14 @@ mod tests {
             is_ca: false,
         };
 
-        assert!(MutualCertAuthenticator::validate_peer(
-            &cert,
-            "tak.example.com:8089",
-            1000,
-            &config
-        )
-        .is_ok());
-        assert!(MutualCertAuthenticator::validate_peer(
-            &cert,
-            "node1.internal.tak:8089",
-            1000,
-            &config
-        )
-        .is_ok());
+        assert_eq!(
+            MutualCertAuthenticator::validate_peer(&cert, "tak.example.com:8089", 1000, &config),
+            Ok(())
+        );
+        assert_eq!(
+            MutualCertAuthenticator::validate_peer(&cert, "node1.internal.tak:8089", 1000, &config),
+            Ok(())
+        );
     }
 
     #[test]
