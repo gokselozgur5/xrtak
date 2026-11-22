@@ -182,6 +182,17 @@ pub fn evaluate_theater_deconfliction(entities: &[TheaterEntity]) -> Deconflicti
         }
     }
 
+    conflicts.sort_by(|a, b| {
+        let rank = |r| match r {
+            CpaRiskLevel::Critical => 0,
+            CpaRiskLevel::Advisory => 1,
+            CpaRiskLevel::Clear => 2,
+        };
+        rank(a.risk_level)
+            .cmp(&rank(b.risk_level))
+            .then(a.horiz_separation_m.total_cmp(&b.horiz_separation_m))
+    });
+
     DeconflictionResult {
         conflicts,
         max_risk,
