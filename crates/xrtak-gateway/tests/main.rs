@@ -567,3 +567,50 @@ fn test_collab_sync_peer_map_capacity_cap() {
 
     stop_gateway(gw);
 }
+
+#[tokio::test]
+async fn test_sse_stream_survives_broadcast_lag() {
+    let (gw, port) = start_gateway();
+    let pad = "X".repeat(65_536);
+    for i in 0..8 {
+        let cot = format!(
+            "<event version=\"2.0\" uid=\"PAD-{i}\" type=\"a-f-G\"><point lat=\"10.0\" lon=\"20.0\" hae=\"0.0\" ce=\"1.0\" le=\"1.0\"/><detail><remarks>{pad}</remarks></detail></event>"
+        );
+        let _ = send_req(port, "POST", "/api/cot", &cot);
+    }
+    let sock = tokio::net::TcpSocket::new_v4().unwrap();
+    sock.set_recv_buffer_size(4096).unwrap();
+    let mut sse = sock.connect(([127, 0, 0, 1], port).into()).await.unwrap();
+    tokio::io::AsyncWriteExt::write_all(
+        &mut sse,
+        b"GET /api/stream HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+    )
+    .await
+    .unwrap();
+    tokio::time::sleep(Duration::from_millis(4000)).await;
+    let marker = "<event version=\"2.0\" uid=\"AFTER-LAG-OK\" type=\"a-f-G\"><point lat=\"11.0\" lon=\"21.0\" hae=\"0.0\" ce=\"1.0\" le=\"1.0\"/></event>";
+    let _ = send_req(port, "POST", "/api/cot", marker);
+    let mut tail = Vec::new();
+    let mut buf = vec![0u8; 65_536];
+    let outcome = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            match tokio::io::AsyncReadExt::read(&mut sse, &mut buf).await {
+                Ok(0) => return Err("SSE stream closed by server on broadcast lag"),
+                Ok(n) => {
+                    tail.extend_from_slice(&buf[..n]);
+                    if tail.windows(12).any(|w| w == b"AFTER-LAG-OK") {
+                        return Ok(());
+                    }
+                    if tail.len() > 65_536 {
+                        tail.drain(..tail.len() - 64);
+                    }
+                }
+                Err(_) => return Err("SSE stream read error"),
+            }
+        }
+    })
+    .await;
+    drop(sse);
+    stop_gateway(gw);
+    assert_eq!(outcome, Ok(Ok(())), "SSE stream did not recover from lag");
+}
