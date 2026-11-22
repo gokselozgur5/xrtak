@@ -193,13 +193,25 @@ class ReverseProxyHandler(http.server.BaseHTTPRequestHandler):
 
             self.send_response(resp.status, resp.reason)
             is_sse = self.path.startswith("/api/stream")
+            seen_acao = False
+            seen_acapn = False
             for k, v in resp.getheaders():
                 kl = k.lower()
                 if kl in ("transfer-encoding", "connection"):
                     continue
+                if kl == "access-control-allow-origin":
+                    if seen_acao:
+                        continue
+                    seen_acao = True
+                elif kl == "access-control-allow-private-network":
+                    if seen_acapn:
+                        continue
+                    seen_acapn = True
                 self.send_header(k, v)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Private-Network", "true")
+            if not seen_acao:
+                self.send_header("Access-Control-Allow-Origin", "*")
+            if not seen_acapn:
+                self.send_header("Access-Control-Allow-Private-Network", "true")
             if is_sse:
                 self.send_header("Connection", "close")
             self.end_headers()
