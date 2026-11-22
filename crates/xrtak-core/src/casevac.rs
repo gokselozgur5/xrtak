@@ -98,6 +98,7 @@ pub fn evaluate_hlz_suitability(
 
     let mut max_slope: f64 = 0.0;
     let mut sum_slope: f64 = 0.0;
+    let mut has_non_finite = !center_elev.is_finite();
     let radial_samples = 12;
 
     for i in 0..radial_samples {
@@ -105,6 +106,9 @@ pub fn evaluate_hlz_suitability(
         let sample_e = center_east_m + radius * angle.cos();
         let sample_n = center_north_m + radius * angle.sin();
         let sample_elev = elevation.sample_relief_m(sample_e, sample_n);
+        if !sample_elev.is_finite() {
+            has_non_finite = true;
+        }
         let delta_h = (sample_elev - center_elev).abs();
         let slope_deg = (delta_h / radius).atan().to_degrees();
 
@@ -115,7 +119,7 @@ pub fn evaluate_hlz_suitability(
     }
 
     let avg_slope = sum_slope / (radial_samples as f64);
-    let is_slope_acceptable = max_slope <= 8.0;
+    let is_slope_acceptable = !has_non_finite && max_slope <= 8.0;
 
     let mut min_threat_dist = f64::MAX;
     let mut nearest_threat: Option<String> = None;
@@ -131,7 +135,9 @@ pub fn evaluate_hlz_suitability(
     }
 
     let is_threat_clear = min_threat_dist > 500.0;
-    let overall_suitability = if is_slope_acceptable && is_threat_clear {
+    let overall_suitability = if has_non_finite || max_slope > 15.0 {
+        "RED - UNSUITABLE".to_string()
+    } else if is_slope_acceptable && is_threat_clear {
         "GREEN - SUITABLE".to_string()
     } else if is_slope_acceptable && !is_threat_clear {
         "AMBER - THREAT PROXIMITY".to_string()
