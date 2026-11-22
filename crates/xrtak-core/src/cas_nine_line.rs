@@ -291,19 +291,51 @@ fn parse_cas_attributes(e: &quick_xml::events::BytesStart, b: &mut CasNineLine) 
     }
 }
 
-fn apply_text_to_field(tag: CasTag, text: &str, b: &mut CasNineLine) {
+fn clear_cas_field(tag: CasTag, b: &mut CasNineLine) {
+    match tag {
+        CasTag::Line1 => b.line1_ip_bp.clear(),
+        CasTag::Line2 => b.line2_heading.clear(),
+        CasTag::Line3 => b.line3_distance.clear(),
+        CasTag::Line4 => b.line4_elevation.clear(),
+        CasTag::Line5 => b.line5_description.clear(),
+        CasTag::Line6 => b.line6_location.clear(),
+        CasTag::Line7 => b.line7_mark_type.clear(),
+        CasTag::Line8 => b.line8_friendlies.clear(),
+        CasTag::Line9 => b.line9_egress.clear(),
+        CasTag::Remarks => b.remarks.clear(),
+        CasTag::None => {}
+    }
+}
+
+fn append_text_to_field(tag: CasTag, text: &str, b: &mut CasNineLine) {
     let unescaped = unescape_xml(text);
     match tag {
-        CasTag::Line1 => b.line1_ip_bp = unescaped,
-        CasTag::Line2 => b.line2_heading = unescaped,
-        CasTag::Line3 => b.line3_distance = unescaped,
-        CasTag::Line4 => b.line4_elevation = unescaped,
-        CasTag::Line5 => b.line5_description = unescaped,
-        CasTag::Line6 => b.line6_location = unescaped,
-        CasTag::Line7 => b.line7_mark_type = unescaped,
-        CasTag::Line8 => b.line8_friendlies = unescaped,
-        CasTag::Line9 => b.line9_egress = unescaped,
-        CasTag::Remarks => b.remarks = unescaped,
+        CasTag::Line1 => b.line1_ip_bp.push_str(&unescaped),
+        CasTag::Line2 => b.line2_heading.push_str(&unescaped),
+        CasTag::Line3 => b.line3_distance.push_str(&unescaped),
+        CasTag::Line4 => b.line4_elevation.push_str(&unescaped),
+        CasTag::Line5 => b.line5_description.push_str(&unescaped),
+        CasTag::Line6 => b.line6_location.push_str(&unescaped),
+        CasTag::Line7 => b.line7_mark_type.push_str(&unescaped),
+        CasTag::Line8 => b.line8_friendlies.push_str(&unescaped),
+        CasTag::Line9 => b.line9_egress.push_str(&unescaped),
+        CasTag::Remarks => b.remarks.push_str(&unescaped),
+        CasTag::None => {}
+    }
+}
+
+fn append_cdata_to_field(tag: CasTag, cdata: &str, b: &mut CasNineLine) {
+    match tag {
+        CasTag::Line1 => b.line1_ip_bp.push_str(cdata),
+        CasTag::Line2 => b.line2_heading.push_str(cdata),
+        CasTag::Line3 => b.line3_distance.push_str(cdata),
+        CasTag::Line4 => b.line4_elevation.push_str(cdata),
+        CasTag::Line5 => b.line5_description.push_str(cdata),
+        CasTag::Line6 => b.line6_location.push_str(cdata),
+        CasTag::Line7 => b.line7_mark_type.push_str(cdata),
+        CasTag::Line8 => b.line8_friendlies.push_str(cdata),
+        CasTag::Line9 => b.line9_egress.push_str(cdata),
+        CasTag::Remarks => b.remarks.push_str(cdata),
         CasTag::None => {}
     }
 }
@@ -369,11 +401,24 @@ fn run_parser_loop(
     let mut tag = CasTag::None;
     loop {
         match reader.read_event() {
-            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
-                tag = handle_start_empty(e, res, &mut flags)?
+            Ok(Event::Start(ref e)) => {
+                tag = handle_start_empty(e, res, &mut flags)?;
+                if tag != CasTag::None {
+                    clear_cas_field(tag, res);
+                }
+            }
+            Ok(Event::Empty(ref e)) => {
+                let empty_tag = handle_start_empty(e, res, &mut flags)?;
+                if empty_tag != CasTag::None {
+                    clear_cas_field(empty_tag, res);
+                }
+                tag = CasTag::None;
             }
             Ok(Event::Text(ref e)) => {
-                apply_text_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res)
+                append_text_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res)
+            }
+            Ok(Event::CData(ref e)) => {
+                append_cdata_to_field(tag, &String::from_utf8_lossy(e.as_ref()), res)
             }
             Ok(Event::End(_)) => tag = CasTag::None,
             Ok(Event::Eof) => break,
