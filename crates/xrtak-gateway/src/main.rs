@@ -1650,6 +1650,19 @@ async fn handle_http_connection(
                     color_hex: c_req.color_hex.unwrap_or_else(|| "#00ff88".to_string()),
                     updated_unix_ms: now_ms,
                 };
+                if !guard.collab.peers.contains_key(&peer.operator_id)
+                    && guard.collab.peers.len() >= 64
+                {
+                    if let Some(oldest) = guard
+                        .collab
+                        .peers
+                        .values()
+                        .min_by_key(|p| p.updated_unix_ms)
+                        .map(|p| p.operator_id.clone())
+                    {
+                        guard.collab.peers.remove(&oldest);
+                    }
+                }
                 guard
                     .collab
                     .upsert_peer(peer, c_req.shared_scale, c_req.shared_yaw_deg);
