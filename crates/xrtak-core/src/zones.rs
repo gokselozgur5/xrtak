@@ -66,12 +66,10 @@ pub fn parse_cot_polygon_zone(xml: &str, origin: &GeoOrigin) -> Option<TacticalZ
         callsign
     };
     let upper = name.to_ascii_uppercase();
-    let affiliation = if cot_type.starts_with("a-h")
-        || upper.contains("KILL")
-        || upper.contains("ROZ")
-        || upper.contains("HOSTILE")
-        || upper.contains("RED")
-    {
+    let has_hostile_word = upper
+        .split(|c: char| !c.is_alphanumeric())
+        .any(|w| matches!(w, "KILL" | "ROZ" | "HOSTILE" | "RED"));
+    let affiliation = if cot_type.starts_with("a-h") || has_hostile_word {
         Affiliation::Hostile
     } else {
         Affiliation::Friendly
