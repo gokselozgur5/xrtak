@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+probe_gateway() {
+  local target_url="$1"
+  local resp
+  resp=$(curl -fsS "${target_url}/api/state" 2>/dev/null || true)
+  [ -n "${resp}" ] && printf '%s' "${resp}" | grep -q '"terrain_name"'
+}
+
 BASE_URL="${XRTAK_URL:-}"
 if [ -z "${BASE_URL}" ]; then
-  if curl -fsS "http://127.0.0.1:8090/api/state" 2>/dev/null | grep -q '"terrain_name"'; then
+  if probe_gateway "http://127.0.0.1:8090"; then
     BASE_URL="http://127.0.0.1:8090"
-  elif curl -fsS "http://127.0.0.1:8091/api/state" 2>/dev/null | grep -q '"terrain_name"'; then
+  elif probe_gateway "http://127.0.0.1:8091"; then
     BASE_URL="http://127.0.0.1:8091"
   else
     echo "[ERROR] xrtak-gateway is not reachable on :8090 or :8091. Start it with: cargo run -p xrtak-gateway" >&2
