@@ -38,9 +38,18 @@ fn elements_with_explicit_end_tags_are_accepted() {
 #[test]
 fn default_descriptor_does_not_carry_a_fixed_calendar_date() {
     let conn = xrtak_core::sensor_stream::VideoStreamConnection::new("rtsp://10.0.0.1/live", "Cam");
-    let desc = xrtak_core::sensor_stream::SensorStreamDescriptor::new("D1", "C1", 1.0, 2.0, 3.0, conn);
+    let desc =
+        xrtak_core::sensor_stream::SensorStreamDescriptor::new("D1", "C1", 1.0, 2.0, 3.0, conn);
     let xml = desc.to_cot_xml();
-    assert!(!desc.time_iso.starts_with("2026-11-16"), "time {}", desc.time_iso);
-    assert!(!desc.stale_iso.starts_with("2026-11-16"), "stale {}", desc.stale_iso);
+    assert!(
+        !desc.time_iso.starts_with("2026-11-16"),
+        "time {}",
+        desc.time_iso
+    );
+    assert!(
+        !desc.stale_iso.starts_with("2026-11-16"),
+        "stale {}",
+        desc.stale_iso
+    );
     assert!(!xml.contains("2026-11-16"), "fixed date in {xml}");
 }
