@@ -5,6 +5,7 @@ Enables Meta Quest 3 WebXR `immersive-ar` Passthrough over local LAN.
 Automatically generates a Subject Alternative Name (SAN) X.509 certificate for LAN & localhost.
 """
 
+import fcntl
 import http.client
 import http.server
 import ipaddress
@@ -17,9 +18,18 @@ import ssl
 import subprocess
 import sys
 
-CERT_PATH = "/tmp/xrtak_tls_cert.pem"
-KEY_PATH = "/tmp/xrtak_tls_key.pem"
-CNF_PATH = "/tmp/xrtak_openssl.cnf"
+TLS_DIR = os.path.abspath(
+    os.environ.get("XRTAK_TLS_DIR", "").strip()
+    or os.path.join(
+        os.environ.get("XDG_STATE_HOME", "").strip()
+        or os.path.join(os.path.expanduser("~"), ".local", "state"),
+        "xrtak",
+        "tls",
+    )
+)
+CERT_PATH = os.path.join(TLS_DIR, "xrtak_tls_cert.pem")
+KEY_PATH = os.path.join(TLS_DIR, "xrtak_tls_key.pem")
+CNF_PATH = os.path.join(TLS_DIR, "xrtak_openssl.cnf")
 OPENSSL_BIN = shutil.which("openssl") or "/usr/bin/openssl"
 UPSTREAM_HOST = "127.0.0.1"
 HTTPS_PORT = int(os.environ.get("XRTAK_HTTPS_PORT", "8443"))
@@ -80,27 +90,45 @@ def ensure_tls_cert() -> str:
         + "\n".join(alt_lines)
         + "\n"
     )
-    with open(CNF_PATH, "w", encoding="utf-8") as f:
+    os.makedirs(TLS_DIR, mode=0o700, exist_ok=True)
+    os.chmod(TLS_DIR, 0o700)
+    pid = os.getpid()
+    tmp_key = os.path.join(TLS_DIR, f".key.{pid}.pem")
+    tmp_cert = os.path.join(TLS_DIR, f".cert.{pid}.pem")
+    tmp_cnf = os.path.join(TLS_DIR, f".openssl.{pid}.cnf")
+    os.close(os.open(tmp_key, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600))
+    os.chmod(tmp_key, 0o600)
+    with os.fdopen(os.open(tmp_cnf, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
         f.write(cnf)
-    cmd = [
-        OPENSSL_BIN,
-        "req",
-        "-x509",
-        "-newkey",
-        "rsa:2048",
-        "-nodes",
-        "-keyout",
-        KEY_PATH,
-        "-out",
-        CERT_PATH,
-        "-days",
-        "365",
-        "-config",
-        CNF_PATH,
-        "-extensions",
-        "v3_req",
-    ]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        cmd = [
+            OPENSSL_BIN,
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-keyout",
+            tmp_key,
+            "-out",
+            tmp_cert,
+            "-days",
+            "365",
+            "-config",
+            tmp_cnf,
+            "-extensions",
+            "v3_req",
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.chmod(tmp_key, 0o600)
+        with open(os.path.join(TLS_DIR, ".lock"), "w", encoding="utf-8") as lock_f:
+            fcntl.flock(lock_f, fcntl.LOCK_EX)
+            os.replace(tmp_key, KEY_PATH)
+            os.replace(tmp_cert, CERT_PATH)
+    finally:
+        for p in (tmp_key, tmp_cert, tmp_cnf):
+            if os.path.exists(p):
+                os.unlink(p)
     return lan_ip
 
 
