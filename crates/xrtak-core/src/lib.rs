@@ -882,7 +882,7 @@ impl TacticalWorld {
     pub fn step_simulation(&mut self, dt_sec: f64, now_ms: u64) {
         self.sim_time_sec += dt_sec;
         self.entities
-            .retain(|u, _| self.stale_ms.get(u).map_or(true, |&s| now_ms < s));
+            .retain(|u, _| self.stale_ms.get(u).is_none_or(|&s| now_ms < s));
         self.stale_ms.retain(|_, &mut s| now_ms < s);
         if !self.sim_enabled {
             self.refresh_threat_domes_and_zones();
