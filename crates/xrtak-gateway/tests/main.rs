@@ -598,3 +598,28 @@ fn test_gateway_fallback_retains_configured_host() {
         "gateway did not fall back to port 8091 on configured host [::1]"
     );
 }
+
+#[test]
+fn test_opord_kml_scene_export_includes_zones_and_domes() {
+    let (gw, port) = start_gateway();
+
+    let res = send_req(port, "GET", "/api/export/opord", "");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "GET /api/export/opord: {res}"
+    );
+    let body = res.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("");
+    let json: serde_json::Value = serde_json::from_str(body).expect("valid opord bundle json");
+    let kml = json["kml_scene"].as_str().expect("kml_scene string");
+
+    assert!(
+        kml.contains("<Polygon>"),
+        "KML tactical scene must contain tactical zones as Polygon"
+    );
+    assert!(
+        kml.contains("KILLBOX RED-ALPHA [ROZ]"),
+        "KML tactical scene must include default tactical zone name"
+    );
+
+    stop_gateway(gw);
+}
