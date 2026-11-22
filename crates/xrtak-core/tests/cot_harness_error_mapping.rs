@@ -29,7 +29,16 @@ fn malformed_xml_with_point_present_maps_to_invalid_xml() {
 fn reach_missing_point_and_coordinate_range() {
     let mut harness = CotParseHarness::default();
     let raw_no_pt = RawCotMessage::new(r#"<event uid="A" type="a-f-G"></event>"#, 0);
-    assert!(matches!(harness.parse_raw(&raw_no_pt), Err(CotHarnessError::MissingPoint)));
-    let raw_rng = RawCotMessage::new(r#"<event uid="A" type="a-f-G"><point lat="95.0" lon="32.85"/></event>"#, 0);
-    assert!(matches!(harness.parse_raw(&raw_rng), Err(CotHarnessError::CoordinateRange(_))));
+    assert!(matches!(
+        harness.parse_raw(&raw_no_pt),
+        Err(CotHarnessError::MissingPoint)
+    ));
+    let raw_rng = RawCotMessage::new(
+        r#"<event uid="A" type="a-f-G"><point lat="95.0" lon="32.85"/></event>"#,
+        0,
+    );
+    assert!(matches!(
+        harness.parse_raw(&raw_rng),
+        Err(CotHarnessError::CoordinateRange(_))
+    ));
 }
