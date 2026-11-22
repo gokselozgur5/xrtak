@@ -9,6 +9,8 @@ pub enum GeoPackageError {
     UnsupportedVersion(u8),
     InvalidGeometryBlob(String),
     InvalidCoordinates { lon: f64, lat: f64 },
+    InvalidElevation(f64),
+    InvalidTableName(String),
     EmptyDataset,
 }
 
@@ -22,6 +24,12 @@ impl std::fmt::Display for GeoPackageError {
             Self::InvalidGeometryBlob(msg) => write!(f, "invalid geometry blob: {msg}"),
             Self::InvalidCoordinates { lon, lat } => {
                 write!(f, "coordinates out of bounds: lon={lon}, lat={lat}")
+            }
+            Self::InvalidElevation(elev) => {
+                write!(f, "elevation value is not finite: {elev}")
+            }
+            Self::InvalidTableName(tbl) => {
+                write!(f, "table name is not a valid SQL identifier: {tbl}")
             }
             Self::EmptyDataset => write!(f, "dataset contains no waypoint records"),
         }
@@ -90,13 +98,18 @@ impl GeoPackageWaypoint {
         self
     }
 
-    /// Validate coordinate ranges (-180..=180 longitude, -90..=90 latitude).
+    /// Validate coordinate ranges (-180..=180 longitude, -90..=90 latitude) and elevation.
     pub fn validate(&self) -> Result<(), GeoPackageError> {
         if !(-180.0..=180.0).contains(&self.lon) || !(-90.0..=90.0).contains(&self.lat) {
             return Err(GeoPackageError::InvalidCoordinates {
                 lon: self.lon,
                 lat: self.lat,
             });
+        }
+        if let Some(elev) = self.elevation {
+            if !elev.is_finite() {
+                return Err(GeoPackageError::InvalidElevation(elev));
+            }
         }
         Ok(())
     }
@@ -160,6 +173,11 @@ pub fn encode_point_geom(
 ) -> Result<Vec<u8>, GeoPackageError> {
     if !(-180.0..=180.0).contains(&lon) || !(-90.0..=90.0).contains(&lat) {
         return Err(GeoPackageError::InvalidCoordinates { lon, lat });
+    }
+    if let Some(z) = elev {
+        if !z.is_finite() {
+            return Err(GeoPackageError::InvalidElevation(z));
+        }
     }
 
     let is_3d = elev.is_some();
@@ -280,6 +298,15 @@ pub fn decode_point_geom(blob: &[u8]) -> Result<(f64, f64, Option<f64>), GeoPack
 
 fn escape_sql_string(val: &str) -> String {
     val.replace('\'', "''")
+}
+
+pub fn is_valid_sql_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(first) if first.is_ascii_alphabetic() || first == '_' => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 pub fn bytes_to_hex_literal(bytes: &[u8]) -> String {
@@ -407,6 +434,10 @@ impl GeoPackageFeatureDataset {
     }
 
     pub fn export_sql_script(&self) -> Result<String, GeoPackageError> {
+        if !is_valid_sql_identifier(&self.table_name) {
+            return Err(GeoPackageError::InvalidTableName(self.table_name.clone()));
+        }
+
         let mut script = String::new();
         script.push_str("PRAGMA application_id = 1196444487;\n");
         script.push_str("PRAGMA user_version = 10200;\n");
@@ -414,9 +445,16 @@ impl GeoPackageFeatureDataset {
         script.push_str(&self.generate_schema_ddl());
         script.push('\n');
 
-        script.push_str(
-            "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('WGS 84', 4326, 'EPSG', 4326,              'GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]]',              'WGS 84 geodetic coordinate reference system');\n"
-        );
+        if self.srs_id == WGS84_SRS_ID {
+            script.push_str(
+                "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('WGS 84', 4326, 'EPSG', 4326,              'GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]]',              'WGS 84 geodetic coordinate reference system');\n",
+            );
+        } else {
+            script.push_str(&format!(
+                "INSERT OR IGNORE INTO gpkg_spatial_ref_sys              (srs_name, srs_id, organization, organization_coordsys_id, definition, description)              VALUES ('CUSTOM', {srs}, 'NONE', {srs}, 'undefined', 'Custom coordinate reference system');\n",
+                srs = self.srs_id
+            ));
+        }
 
         let bounds = self.bounds().unwrap_or(GeoPackageBounds {
             min_lon: -180.0,
@@ -438,8 +476,11 @@ impl GeoPackageFeatureDataset {
         );
         script.push_str(&contents_sql);
 
+        let has_z = self.waypoints.iter().any(|wp| wp.elevation.is_some());
+        let z_flag: u8 = if has_z { 1 } else { 0 };
+
         let geom_cols_sql = format!(
-            "INSERT OR REPLACE INTO gpkg_geometry_columns              (table_name, column_name, geometry_type_name, srs_id, z, m)              VALUES ('{table}', 'geom', 'POINT', {srs}, 1, 0);\n",
+            "INSERT OR REPLACE INTO gpkg_geometry_columns              (table_name, column_name, geometry_type_name, srs_id, z, m)              VALUES ('{table}', 'geom', 'POINT', {srs}, {z_flag}, 0);\n",
             table = self.table_name,
             srs = self.srs_id
         );
