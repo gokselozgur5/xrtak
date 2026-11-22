@@ -118,7 +118,8 @@ pub use manifest::{
 };
 pub use medevac::{
     format_nine_line_voice_brief, CotMedevacBuilder, CotMedevacReport, HlzMarking,
-    MedevacEquipment, MedevacError, MedevacPrecedence, PatientNationality, SiteSecurity,
+    MedevacEquipment, MedevacError, MedevacPrecedence, NbcContamination, PatientNationality,
+    SiteSecurity,
 };
 pub use mgrs::{
     GeodeticCoord, GridZoneDesignator, HundredKmSquare, MgrsBoundingBox, MgrsCoord, MgrsError,
