@@ -506,9 +506,15 @@ mod tests {
         let (lat1, lon1, alt1) = (0.0, 0.0, 0.0);
         let (lat2, lon2, alt2) = (0.0, 0.01, 100.0);
         let d = slant_distance_3d_m(lat1, lon1, alt1, lat2, lon2, alt2);
-        assert!(d > 1000.0);
-        let xtd = cross_track_error_m(0.001, 0.005, lat1, lon1, lat2, lon2);
-        assert!(xtd.abs() > 0.0);
+        assert!((d - 1116.44).abs() < 0.1);
+
+        // Point north of track (left of eastbound segment): negative cross-track error
+        let xtd_left = cross_track_error_m(0.001, 0.005, lat1, lon1, lat2, lon2);
+        assert!((xtd_left - (-111.19)).abs() < 0.1);
+
+        // Point south of track (right of eastbound segment): positive cross-track error
+        let xtd_right = cross_track_error_m(-0.001, 0.005, lat1, lon1, lat2, lon2);
+        assert!((xtd_right - 111.19).abs() < 0.1);
     }
 
     fn sample_route() -> TacticalRoutePlan {
