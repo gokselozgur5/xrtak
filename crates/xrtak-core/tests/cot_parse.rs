@@ -31,17 +31,26 @@ fn parse_cot_xml_missing_point_rejected() {
     let no_point = r#"<event uid="TGT-01" type="a-h-G">
         <detail><contact callsign="HOSTILE"/></detail>
     </event>"#;
-    assert!(parse_cot_xml(no_point, &origin, 1000).is_err());
+    assert_eq!(
+        parse_cot_xml(no_point, &origin, 1000).unwrap_err(),
+        "Missing point lat"
+    );
 
     let no_lat = r#"<event uid="TGT-02" type="a-h-G">
         <point lon="32.8500" hae="850.0"/>
     </event>"#;
-    assert!(parse_cot_xml(no_lat, &origin, 1000).is_err());
+    assert_eq!(
+        parse_cot_xml(no_lat, &origin, 1000).unwrap_err(),
+        "Missing point lat"
+    );
 
     let no_uid = r#"<event type="a-h-G">
         <point lat="39.9200" lon="32.8500"/>
     </event>"#;
-    assert!(parse_cot_xml(no_uid, &origin, 1000).is_err());
+    assert_eq!(
+        parse_cot_xml(no_uid, &origin, 1000).unwrap_err(),
+        "Missing CoT event uid"
+    );
 }
 
 #[test]
