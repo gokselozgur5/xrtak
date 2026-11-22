@@ -348,12 +348,26 @@ fn test_advanced_domain_analysis_routes() {
     })
     .to_string();
     let res = send_req(port, "POST", "/api/medevac/nine-line", &med_body);
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/medevac/nine-line: {res}");
-    assert!(res.contains("\"formatted_nine_line\""), "shape /api/medevac/nine-line");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/medevac/nine-line: {res}"
+    );
+    assert!(
+        res.contains("\"formatted_nine_line\""),
+        "shape /api/medevac/nine-line"
+    );
 
     // 25. POST /api/fires/ballistics
-    let res = send_req(port, "POST", "/api/fires/ballistics", "{\"origin_enu\":[0.0,0.0,0.0],\"target_enu\":[1000.0,0.0,1000.0]}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/fires/ballistics: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/fires/ballistics",
+        "{\"origin_enu\":[0.0,0.0,0.0],\"target_enu\":[1000.0,0.0,1000.0]}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/fires/ballistics: {res}"
+    );
     assert!(res.contains("\"solution\""), "shape /api/fires/ballistics");
 
     // 26. POST /api/uav/endurance
@@ -372,7 +386,8 @@ fn test_advanced_domain_analysis_routes() {
             "home_north_m": 0.0,
             "home_up_m": 0.0
         }
-    }).to_string();
+    })
+    .to_string();
     let res = send_req(port, "POST", "/api/uav/endurance", &uav_body);
     assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/uav/endurance: {res}");
     assert!(res.contains("\"solution\""), "shape /api/uav/endurance");
