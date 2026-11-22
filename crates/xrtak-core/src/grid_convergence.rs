@@ -126,8 +126,14 @@ fn normalize_azimuth(deg: f64) -> f64 {
     }
 }
 
-/// Determine the UTM zone number (1..=60) with Norway and Svalbard exceptions.
+/// Determine the UTM zone number (`1..=60`) with Norway and Svalbard exceptions.
+///
+/// Longitudes outside `[-180.0, 180.0)` are wrapped modulo `360.0` before zone lookup.
+/// Returns `0` if either `lat_deg` or `lon_deg` is non-finite (`NaN` or `+/-infinity`).
 pub fn utm_zone_for_lat_lon(lat_deg: f64, lon_deg: f64) -> u8 {
+    if !lat_deg.is_finite() || !lon_deg.is_finite() {
+        return 0;
+    }
     let z = utm_zone_from_lon(lon_deg);
     let norm = normalize_lon_half_open(lon_deg);
     if (56.0..64.0).contains(&lat_deg) && (3.0..12.0).contains(&norm) {
@@ -147,8 +153,14 @@ pub fn utm_zone_for_lat_lon(lat_deg: f64, lon_deg: f64) -> u8 {
     z
 }
 
-/// Determine the standard UTM zone number (1..=60) for a given longitude in degrees.
+/// Determine the standard UTM zone number (`1..=60`) for a given longitude in degrees.
+///
+/// Longitudes outside `[-180.0, 180.0)` are wrapped modulo `360.0` into `[-180.0, 180.0)`.
+/// Returns `0` if `lon_deg` is non-finite (`NaN` or `+/-infinity`).
 pub fn utm_zone_from_lon(lon_deg: f64) -> u8 {
+    if !lon_deg.is_finite() {
+        return 0;
+    }
     let normalized_lon = normalize_lon_half_open(lon_deg);
     let zone = ((normalized_lon + 180.0) / 6.0).floor() as i32 + 1;
     zone.clamp(1, 60) as u8
@@ -293,18 +305,26 @@ pub fn calculate_grid_convergence(lat_deg: f64, lon_deg: f64) -> Result<GridSolu
     }
 }
 
-/// Convert true azimuth (degrees from True North) to grid azimuth (degrees from Grid North).
+/// Convert true azimuth (degrees from True North) to grid azimuth (degrees from Grid North) in `[0.0, 360.0)`.
 ///
-/// Formula: Grid Azimuth = True Azimuth - Convergence Angle.
+/// Formula: Grid Azimuth = True Azimuth - Convergence Angle (modulo `360.0`).
+/// Returns `f64::NAN` if either `true_azimuth_deg` or `convergence_deg` is non-finite.
 pub fn true_to_grid_azimuth(true_azimuth_deg: f64, convergence_deg: f64) -> f64 {
-    normalize_azimuth(true_azimuth_deg - convergence_deg)
+    if !true_azimuth_deg.is_finite() || !convergence_deg.is_finite() {
+        return f64::NAN;
+    }
+    normalize_azimuth((true_azimuth_deg % 360.0) - (convergence_deg % 360.0))
 }
 
-/// Convert grid azimuth (degrees from Grid North) to true azimuth (degrees from True North).
+/// Convert grid azimuth (degrees from Grid North) to true azimuth (degrees from True North) in `[0.0, 360.0)`.
 ///
-/// Formula: True Azimuth = Grid Azimuth + Convergence Angle.
+/// Formula: True Azimuth = Grid Azimuth + Convergence Angle (modulo `360.0`).
+/// Returns `f64::NAN` if either `grid_azimuth_deg` or `convergence_deg` is non-finite.
 pub fn grid_to_true_azimuth(grid_azimuth_deg: f64, convergence_deg: f64) -> f64 {
-    normalize_azimuth(grid_azimuth_deg + convergence_deg)
+    if !grid_azimuth_deg.is_finite() || !convergence_deg.is_finite() {
+        return f64::NAN;
+    }
+    normalize_azimuth((grid_azimuth_deg % 360.0) + (convergence_deg % 360.0))
 }
 
 /// Apply scale factor to ground distance to get projected grid distance in meters.
