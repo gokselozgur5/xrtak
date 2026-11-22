@@ -68,9 +68,7 @@ pub fn watts_to_dbm(watts: f64) -> f64 {
 
 /// Free-space path loss in dB: FSPL = 20*log10(d_km) + 20*log10(f_mhz) + 32.44
 pub fn compute_fspl_db(distance_m: f64, frequency_mhz: f64) -> f64 {
-    let d_km = (distance_m / 1000.0).max(0.001);
-    let f_mhz = frequency_mhz.clamp(1.0, 100_000.0);
-    20.0 * d_km.log10() + 20.0 * f_mhz.log10() + 32.44
+    crate::rf::compute_fspl_db_mhz(distance_m, frequency_mhz)
 }
 
 /// Evaluation result of Jammer-to-Signal ratio and link denial status.
@@ -117,10 +115,8 @@ pub fn evaluate_link_jamming(
     let p_rx_sig = p_tx_dbm + link.tx_antenna_gain_dbi + link.rx_antenna_gain_dbi - fspl_sig;
 
     let p_jam_dbm = watts_to_dbm(jammer.transmitter_power_w);
-    let bw_correction_db = 10.0
-        * (link.signal_bandwidth_mhz / jammer.bandwidth_mhz.max(0.1))
-            .min(1.0)
-            .log10();
+    let bw_ratio = (link.signal_bandwidth_mhz.max(0.001) / jammer.bandwidth_mhz.max(0.1)).min(1.0);
+    let bw_correction_db = 10.0 * bw_ratio.log10();
     let p_rx_jam = p_jam_dbm + jammer.antenna_gain_dbi + link.rx_antenna_gain_dbi - fspl_jam
         + bw_correction_db;
 
