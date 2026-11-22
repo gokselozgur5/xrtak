@@ -176,65 +176,88 @@ impl MissionPackageManifest {
     }
 }
 
-pub(crate) fn extract_attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
-    let key = format!("{name}=\"");
-    let start = tag.find(&key)? + key.len();
-    let end = tag[start..].find('"')? + start;
-    Some(&tag[start..end])
+fn attr_val(e: &quick_xml::events::BytesStart<'_>, key: &[u8]) -> Option<String> {
+    e.attributes()
+        .flatten()
+        .find(|a| a.key.as_ref() == key)
+        .and_then(|a| a.unescape_value().ok().map(|v| v.into_owned()))
 }
 
 impl MissionPackageManifest {
     /// Parse a TAK Mission Package `manifest.xml` document.
     pub fn parse_xml(xml: &str) -> Result<Self, String> {
-        let version = extract_attr(xml, "version")
-            .and_then(|v| v.parse::<u32>().ok())
-            .unwrap_or(2);
-        let mut manifest = Self {
-            version,
-            uid: String::new(),
-            name: String::new(),
-            on_receive_delete: false,
-            parameters: Vec::new(),
-            contents: Vec::new(),
-        };
-        manifest.parse_config_block(xml);
-        manifest.parse_contents_block(xml);
+        use quick_xml::events::Event;
+        use quick_xml::Reader;
+
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+        let mut found_root = false;
+        let mut manifest = Self::new("", "");
+        let (mut in_cfg, mut cur_content) = (false, None);
+
+        loop {
+            match reader.read_event() {
+                Ok(Event::Start(e)) => match e.name().as_ref() {
+                    b"MissionPackageManifest" => {
+                        found_root = true;
+                        if let Some(v) = attr_val(&e, b"version").and_then(|s| s.parse().ok()) {
+                            manifest.version = v;
+                        }
+                    }
+                    b"Configuration" => in_cfg = true,
+                    b"Content" => {
+                        let ze = attr_val(&e, b"zipEntry").unwrap_or_default();
+                        let ign = attr_val(&e, b"ignore").as_deref() == Some("true");
+                        cur_content = Some(ManifestContentEntry::new(ze, ign));
+                    }
+                    _ => {}
+                },
+                Ok(Event::Empty(e)) => match e.name().as_ref() {
+                    b"MissionPackageManifest" => {
+                        found_root = true;
+                        if let Some(v) = attr_val(&e, b"version").and_then(|s| s.parse().ok()) {
+                            manifest.version = v;
+                        }
+                    }
+                    b"Parameter" => {
+                        let k = attr_val(&e, b"name").unwrap_or_default();
+                        let v = attr_val(&e, b"value").unwrap_or_default();
+                        if let Some(c) = cur_content.as_mut() {
+                            c.add_param(k, v);
+                        } else if in_cfg {
+                            match k.as_str() {
+                                "uid" => manifest.uid = v,
+                                "name" => manifest.name = v,
+                                "onReceiveDelete" => manifest.on_receive_delete = v == "true",
+                                _ => manifest.add_parameter(k, v),
+                            }
+                        }
+                    }
+                    b"Content" => {
+                        let ze = attr_val(&e, b"zipEntry").unwrap_or_default();
+                        let ign = attr_val(&e, b"ignore").as_deref() == Some("true");
+                        manifest.contents.push(ManifestContentEntry::new(ze, ign));
+                    }
+                    _ => {}
+                },
+                Ok(Event::End(e)) => match e.name().as_ref() {
+                    b"Configuration" => in_cfg = false,
+                    b"Content" => {
+                        if let Some(c) = cur_content.take() {
+                            manifest.contents.push(c);
+                        }
+                    }
+                    _ => {}
+                },
+                Ok(Event::Eof) => break,
+                Err(e) => return Err(e.to_string()),
+                _ => {}
+            }
+        }
+        if !found_root {
+            return Err("missing MissionPackageManifest root element".into());
+        }
         Ok(manifest)
-    }
-}
-
-impl MissionPackageManifest {
-    fn parse_config_block(&mut self, xml: &str) {
-        let (start, end) = match (xml.find("<Configuration>"), xml.find("</Configuration>")) {
-            (Some(s), Some(e)) => (s + 15, e),
-            _ => return,
-        };
-        for line in xml[start..end].lines() {
-            if let (Some(k), Some(v)) = (extract_attr(line, "name"), extract_attr(line, "value")) {
-                let v = unescape_xml_attr(v);
-                match k {
-                    "uid" => self.uid = v,
-                    "name" => self.name = v,
-                    "onReceiveDelete" => self.on_receive_delete = v == "true",
-                    _ => self.add_parameter(unescape_xml_attr(k), v),
-                }
-            }
-        }
-    }
-}
-
-impl MissionPackageManifest {
-    fn parse_contents_block(&mut self, xml: &str) {
-        let (start, end) = match (xml.find("<Contents>"), xml.find("</Contents>")) {
-            (Some(s), Some(e)) => (s + 10, e),
-            _ => return,
-        };
-        for line in xml[start..end].lines() {
-            if let Some(ze) = extract_attr(line, "zipEntry") {
-                let ignore = extract_attr(line, "ignore") == Some("true");
-                self.add_content(unescape_xml_attr(ze), ignore);
-            }
-        }
     }
 }
 
