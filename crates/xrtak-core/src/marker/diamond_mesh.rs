@@ -9,6 +9,6 @@ pub fn generate_diamond_marker_mesh(size: f32) -> MarkerMesh {
         Vertex3D::new([0.0, -half, 0.0], n, [0.5, 0.0]),
         Vertex3D::new([-half, 0.0, 0.0], n, [0.0, 0.5]),
     ];
-    let indices = vec![0, 1, 2, 0, 2, 3];
+    let indices = vec![0, 2, 1, 0, 3, 2];
     MarkerMesh { vertices, indices }
 }
