@@ -192,18 +192,64 @@ impl FragmentReassemblyBuffer {
     }
 }
 
+/// Maximum concurrent reassembly buffers allowed by default.
+pub const DEFAULT_MAX_BUFFERS: usize = 128;
+
 /// Mesh reassembly engine managing concurrent fragmented messages.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct MeshReassembler {
     pub buffers: HashMap<u32, FragmentReassemblyBuffer>,
     pub ttl_ms: u64,
+    pub max_buffers: usize,
+}
+
+impl Default for MeshReassembler {
+    fn default() -> Self {
+        Self {
+            buffers: HashMap::new(),
+            ttl_ms: 30_000,
+            max_buffers: DEFAULT_MAX_BUFFERS,
+        }
+    }
 }
 
 impl MeshReassembler {
     pub fn new(ttl_ms: u64) -> Self {
+        Self::with_capacity_and_ttl(DEFAULT_MAX_BUFFERS, ttl_ms)
+    }
+
+    pub fn with_capacity_and_ttl(max_buffers: usize, ttl_ms: u64) -> Self {
         Self {
             buffers: HashMap::new(),
             ttl_ms,
+            max_buffers,
+        }
+    }
+
+    /// Ingests a mesh fragment. Returns complete payload if reassembled.
+    pub fn accept(&mut self, frag: MeshFragment, now_ms: u64) -> Option<Vec<u8>> {
+        self.prune_stale(now_ms);
+        let msg_id = frag.header.message_id;
+
+        if !self.buffers.contains_key(&msg_id) {
+            if self.buffers.len() >= self.max_buffers {
+                return None;
+            }
+            self.buffers
+                .insert(msg_id, FragmentReassemblyBuffer::new(&frag.header, now_ms));
+        }
+
+        let buffer = self.buffers.get_mut(&msg_id)?;
+        if !buffer.insert_fragment(frag, now_ms) {
+            return None;
+        }
+
+        if buffer.is_complete() {
+            let assembled = buffer.try_reassemble();
+            self.buffers.remove(&msg_id);
+            assembled
+        } else {
+            None
         }
     }
 
