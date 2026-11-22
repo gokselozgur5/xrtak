@@ -1,6 +1,6 @@
 use xrtak_core::geo::ProceduralReliefModel;
 use xrtak_core::mission::{
-    evaluate_mission_corridor, export_atak_route_cot_xml, RawMissionWaypoint,
+    evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, RawMissionWaypoint,
 };
 use xrtak_core::GeoOrigin;
 
@@ -44,4 +44,17 @@ fn evaluate_mission_corridor_preserves_negative_flight_up_below_origin() {
     );
     assert_eq!(result.waypoints.len(), 1);
     assert_eq!(result.waypoints[0].flight_up_m, -450.0);
+}
+
+#[test]
+fn qgc_plan_export_identifies_as_offline_plan_file() {
+    let origin = GeoOrigin::default();
+    let terrain = ProceduralReliefModel;
+    let waypoints = vec![(0.0, 0.0, 50.0), (100.0, 200.0, 75.0)];
+
+    let plan_json = export_qgc_plan_json(&origin, &terrain, &waypoints);
+    let v: serde_json::Value = serde_json::from_str(&plan_json).expect("valid json");
+
+    assert_eq!(v["fileType"], "Plan");
+    assert_eq!(v["groundStation"], "XR-TAK Offline Plan Export");
 }
