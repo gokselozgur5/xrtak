@@ -45,6 +45,7 @@ pub struct SpotReport {
     pub lon: f64,
     pub hae: f64,
     pub time_iso: String,
+    pub stale_iso: Option<String>,
 }
 
 impl SpotReport {
@@ -65,6 +66,7 @@ impl SpotReport {
             lon: 0.0,
             hae: 0.0,
             time_iso: "1970-01-01T00:00:00Z".to_string(),
+            stale_iso: None,
         }
     }
 }
@@ -79,6 +81,11 @@ impl SpotReport {
 
     pub fn with_time(mut self, time_iso: impl Into<String>) -> Self {
         self.time_iso = time_iso.into();
+        self
+    }
+
+    pub fn with_stale_time(mut self, stale_iso: impl Into<String>) -> Self {
+        self.stale_iso = Some(stale_iso.into());
         self
     }
 
@@ -149,6 +156,65 @@ fn escape_xml(s: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+fn derive_stale_iso(time_iso: &str) -> String {
+    let b = time_iso.as_bytes();
+    if b.len() == 20
+        && b[4] == b'-'
+        && b[7] == b'-'
+        && b[10] == b'T'
+        && b[13] == b':'
+        && b[16] == b':'
+        && b[19] == b'Z'
+    {
+        let (mut y, mut mo, mut d) = (
+            time_iso[0..4].parse::<i64>().unwrap_or(0),
+            time_iso[5..7].parse::<i64>().unwrap_or(0),
+            time_iso[8..10].parse::<i64>().unwrap_or(0),
+        );
+        let (mut h, mut mi, s) = (
+            time_iso[11..13].parse::<i64>().unwrap_or(0),
+            time_iso[14..16].parse::<i64>().unwrap_or(0),
+            time_iso[17..19].parse::<i64>().unwrap_or(0),
+        );
+        if (1..=12).contains(&mo) && (1..=31).contains(&d) && h < 24 && mi < 60 && s < 60 {
+            mi += 5;
+            if mi >= 60 {
+                mi -= 60;
+                h += 1;
+                if h >= 24 {
+                    h -= 24;
+                    d += 1;
+                    let leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
+                    let dim = [
+                        31,
+                        if leap { 29 } else { 28 },
+                        31,
+                        30,
+                        31,
+                        30,
+                        31,
+                        31,
+                        30,
+                        31,
+                        30,
+                        31,
+                    ];
+                    if d > dim[(mo - 1) as usize] {
+                        d = 1;
+                        mo += 1;
+                        if mo > 12 {
+                            mo = 1;
+                            y += 1;
+                        }
+                    }
+                }
+            }
+            return format!("{y:04}-{mo:02}-{d:02}T{h:02}:{mi:02}:{s:02}Z");
+        }
+    }
+    time_iso.to_string()
+}
+
 fn unescape_xml(s: &str) -> String {
     s.replace("&quot;", "\"")
         .replace("&apos;", "'")
@@ -190,10 +256,15 @@ impl SpotReport {
             escape_xml(&self.cot_type),
             escape_xml(&self.time_iso),
         );
+        let stale_raw = self
+            .stale_iso
+            .clone()
+            .unwrap_or_else(|| derive_stale_iso(&self.time_iso));
+        let stale = escape_xml(&stale_raw);
         let detail = format_spotrep_detail_xml(self);
         format!(
             "<event version=\"2.0\" uid=\"{uid}\" type=\"{typ}\" \
-time=\"{time}\" start=\"{time}\" stale=\"{time}\" how=\"m-g\">\
+time=\"{time}\" start=\"{time}\" stale=\"{stale}\" how=\"m-g\">\
 <point lat=\"{:.6}\" lon=\"{:.6}\" \
 hae=\"{:.1}\" ce=\"9999999\" le=\"9999999\"/>\
 {detail}</event>",
