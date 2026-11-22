@@ -1,5 +1,6 @@
 //! CoT emergency casualty evacuation (CASEVAC / 9-Line MEDEVAC) builder and parser.
 
+use crate::{escape_xml, unescape_xml};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
@@ -535,22 +536,6 @@ pub fn format_nine_line_voice_brief(r: &CotMedevacReport) -> String {
         r.line9_terrain_nbc,
         r.remarks
     )
-}
-
-fn escape_xml(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
-fn unescape_xml(s: &str) -> String {
-    s.replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
 }
 
 fn build_medevac_inner_tags(r: &CotMedevacReport) -> String {
