@@ -251,16 +251,35 @@ fn test_spatial_and_tactical_planning_routes() {
     );
 
     // 18. POST /api/mapset/plan
-    let res = send_req(port, "POST", "/api/mapset/plan", "{\"south\":36.0,\"west\":-122.0,\"north\":37.0,\"east\":-121.0}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/mapset/plan: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/mapset/plan",
+        "{\"south\":36.0,\"west\":-122.0,\"north\":37.0,\"east\":-121.0}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/mapset/plan: {res}"
+    );
 
     // 19. POST /api/rf/link-budget
-    let res = send_req(port, "POST", "/api/rf/link-budget", "{\"tx_enu\":[0.0,10.0,0.0],\"rx_enu\":[500.0,10.0,500.0]}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/rf/link-budget: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/rf/link-budget",
+        "{\"tx_enu\":[0.0,10.0,0.0],\"rx_enu\":[500.0,10.0,500.0]}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/rf/link-budget: {res}"
+    );
 
     // 20. POST /api/tracks/predict
     let res = send_req(port, "POST", "/api/tracks/predict", "{\"uid\":\"P1\",\"pos_enu\":[0.0,0.0,0.0],\"vel_enu\":[1.0,0.0,0.0],\"dt_sec\":1.0,\"steps\":5}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/tracks/predict: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/tracks/predict: {res}"
+    );
 
     // 21. POST /api/airspace/deconflict
     let res = send_req(port, "POST", "/api/airspace/deconflict", "{\"tracks\":[]}");
