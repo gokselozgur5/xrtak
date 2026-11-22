@@ -122,15 +122,16 @@ mod tests {
     #[test]
     fn test_compute_link_los_occluded_and_clear() {
         let blocked = compute_link_los(&RidgeTerrain, (-200.0, 50.0, 0.0), (200.0, 50.0, 0.0), 32);
-        assert!(
-            !blocked.clear && blocked.min_clearance_m < -60.0 && blocked.obstruction_enu.is_some()
-        );
+        assert!(!blocked.clear);
+        assert!((blocked.min_clearance_m - (-70.0)).abs() < 1e-6);
+        let obs = blocked.obstruction_enu.expect("must record obstruction");
+        assert!((obs.0 - (-37.5)).abs() < 1e-6);
+        assert!((obs.1 - 120.0).abs() < 1e-6);
+        assert!((obs.2 - 0.0).abs() < 1e-6);
 
         let clear = compute_link_los(&RidgeTerrain, (-200.0, 180.0, 0.0), (200.0, 180.0, 0.0), 32);
-        assert!(
-            clear.clear
-                && (clear.min_clearance_m - 60.0).abs() < 1e-6
-                && clear.obstruction_enu.is_none()
-        );
+        assert!(clear.clear);
+        assert!((clear.min_clearance_m - 60.0).abs() < 1e-6);
+        assert_eq!(clear.obstruction_enu, None);
     }
 }
