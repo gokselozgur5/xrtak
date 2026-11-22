@@ -35,6 +35,7 @@ fn test_nine_line_order_and_content() {
     let text = format_nato_nine_line_text(&rep);
     let lines: Vec<&str> = text.lines().collect();
 
+    assert_eq!(lines.len(), 10);
     assert_eq!(lines[0], "--- NATO 9-LINE MEDEVAC REQUEST ---");
     for (idx, line) in lines.iter().enumerate().take(10).skip(1) {
         let prefix = format!("LINE {idx}");
