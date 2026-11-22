@@ -500,3 +500,37 @@ fn test_collab_sapient_and_tak_config_routes() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_medevac_nine_line_enu_coordinates_order() {
+    let (gw, port) = start_gateway();
+
+    let med_body = serde_json::json!({
+        "location": "LZ HAWK",
+        "freq_callsign": "30.00 DUSTOFF",
+        "enu_center": [250.0, 45.0, 350.0]
+    })
+    .to_string();
+    let res = send_req(port, "POST", "/api/medevac/nine-line", &med_body);
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/medevac/nine-line: {res}"
+    );
+
+    let body = res.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("");
+    let json: serde_json::Value = serde_json::from_str(body).expect("valid json response");
+
+    let lat = json["report"]["lat"].as_f64().expect("lat field");
+    let lon = json["report"]["lon"].as_f64().expect("lon field");
+
+    assert!(
+        (lat - 39.923152).abs() < 1e-4,
+        "lat should match north offset 350m: got {lat}"
+    );
+    assert!(
+        (lon - 32.852926).abs() < 1e-4,
+        "lon should match east offset 250m: got {lon}"
+    );
+
+    stop_gateway(gw);
+}
