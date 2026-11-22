@@ -54,8 +54,9 @@ fn test_ned_ecef_roundtrip_and_cardinal_offsets() {
 
 #[test]
 fn test_ecef_coord_direct_usage() {
-    let p = EcefCoord::new(100.0, 200.0, 300.0);
-    assert_eq!(p.x_m, 100.0);
-    assert_eq!(p.y_m, 200.0);
-    assert_eq!(p.z_m, 300.0);
+    let p = EcefCoord::new(4_115_434.39, 2_657_719.62, 4_071_790.63);
+    let geo = ecef_to_geodetic(&p);
+    assert!((geo.lat_deg - 39.9208).abs() < 1e-4);
+    assert!((geo.lon_deg - 32.8541).abs() < 1e-4);
+    assert!((geo.alt_m - 850.0).abs() < 1e-1);
 }
