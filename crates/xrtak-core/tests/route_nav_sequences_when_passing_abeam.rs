@@ -12,7 +12,9 @@ fn route_is_sequenced_when_waypoints_are_passed_abeam() {
     let mut flagged_off_track = false;
     for i in 0..=84 {
         let lon = i as f64 * 0.0005;
-        let s = tracker.evaluate_position(0.00036, lon, 0.0, 15.0, None).unwrap();
+        let s = tracker
+            .evaluate_position(0.00036, lon, 0.0, 15.0, None)
+            .unwrap();
         flagged_off_track |= s.is_off_track;
     }
     assert!(!flagged_off_track);
