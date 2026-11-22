@@ -16,8 +16,13 @@ fn sapient_detection_does_not_slew_absent_demo_uav() {
         course_deg: None,
         auto_slew_sensor_uid: None,
     };
-    world.ingest_sapient_detection(&report, 1_000).expect("ingest");
+    world
+        .ingest_sapient_detection(&report, 1_000)
+        .expect("ingest");
     let uids: Vec<&String> = world.entities.keys().collect();
-    assert!(!world.entities.contains_key("UAV-FALCON-01.SPI1"), "entities: {uids:?}");
+    assert!(
+        !world.entities.contains_key("UAV-FALCON-01.SPI1"),
+        "entities: {uids:?}"
+    );
     assert!(world.spi_locks.is_empty(), "locks: {:?}", world.spi_locks);
 }
