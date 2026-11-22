@@ -35,8 +35,15 @@ fn test_integration_tracker_progression() {
     let w3 = NavWaypoint::new("WP-C", "CHARLIE", 0.0, 0.04, 0.0, WaypointType::End);
     let plan = TacticalRoutePlan::build("RTE-INT", "Test", vec![w1, w2, w3], &p);
     let mut tracker = xrtak_core::route_nav::RouteNavTracker::new(plan);
+
+    // Initial midpoint evaluation targeting WP-B
     let st1 = tracker.evaluate_position(0.0, 0.01, 0.0, 15.0, Some(90.0));
     assert_eq!(st1.unwrap().target_waypoint_id, "WP-B");
-    tracker.advance_if_reached(10.0);
+    assert_eq!(tracker.current_target_waypoint_id(), Some("WP-B"));
+
+    // Drive vehicle inside WP-B acceptance radius (dist ~11.1m <= 25.0m)
+    // evaluate_position must trigger waypoint advance to WP-C without manual call
+    let st2 = tracker.evaluate_position(0.0, 0.0199, 0.0, 15.0, Some(90.0));
+    assert_eq!(st2.unwrap().target_waypoint_id, "WP-C");
     assert_eq!(tracker.current_target_waypoint_id(), Some("WP-C"));
 }
