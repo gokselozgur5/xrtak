@@ -508,6 +508,7 @@ pub struct GeoChatThreader {
     threads: BTreeMap<String, ConversationThread>,
     message_to_thread: HashMap<String, String>,
     thread_order: VecDeque<String>,
+    message_order: VecDeque<(String, String)>,
     max_threads: usize,
     max_thread_messages: usize,
     max_total_messages: usize,
@@ -532,6 +533,7 @@ impl GeoChatThreader {
             threads: BTreeMap::new(),
             message_to_thread: HashMap::new(),
             thread_order: VecDeque::new(),
+            message_order: VecDeque::new(),
             max_threads: max_threads.max(1),
             max_thread_messages: per_thread.max(1),
             max_total_messages: total.max(1),
@@ -551,6 +553,11 @@ impl GeoChatThreader {
     /// Maximum total number of messages retained across all threads.
     pub fn max_total_messages(&self) -> usize {
         self.max_total_messages
+    }
+
+    /// Number of currently retained messages across all threads.
+    pub fn retained_message_count(&self) -> usize {
+        self.message_to_thread.len()
     }
 
     /// Ingests a packet, ignoring duplicate retained `message_id`s and enforcing retention caps.
@@ -577,14 +584,20 @@ impl GeoChatThreader {
             self.threads
                 .insert(thread_id.clone(), ConversationThread::new(&thread_id));
         }
+        let mid = pkt.message_id.clone();
         self.message_to_thread
-            .insert(pkt.message_id.clone(), thread_id.clone());
+            .insert(mid.clone(), thread_id.clone());
+        self.message_order.push_back((mid, thread_id.clone()));
         let thread = self.threads.get_mut(&thread_id).expect("thread inserted");
         thread.add_message(pkt);
         while thread.messages.len() > self.max_thread_messages {
             let removed = thread.messages.remove(0);
             self.message_to_thread.remove(&removed.message_id);
+            self.message_order.retain(|(m, _)| m != &removed.message_id);
             thread.rebuild_participants();
+        }
+        while self.message_order.len() > self.max_total_messages {
+            self.evict_oldest_message();
         }
         thread_id
     }
@@ -596,6 +609,25 @@ impl GeoChatThreader {
                     self.message_to_thread.remove(&msg.message_id);
                 }
             }
+            self.message_order.retain(|(_, tid)| tid != &old_tid);
+        }
+    }
+
+    fn evict_oldest_message(&mut self) {
+        let Some((old_mid, old_tid)) = self.message_order.pop_front() else {
+            return;
+        };
+        self.message_to_thread.remove(&old_mid);
+        let empty = if let Some(t) = self.threads.get_mut(&old_tid) {
+            t.messages.retain(|m| m.message_id != old_mid);
+            t.rebuild_participants();
+            t.messages.is_empty()
+        } else {
+            false
+        };
+        if empty {
+            self.threads.remove(&old_tid);
+            self.thread_order.retain(|tid| tid != &old_tid);
         }
     }
     pub fn thread(&self, thread_id: &str) -> Option<&ConversationThread> {
