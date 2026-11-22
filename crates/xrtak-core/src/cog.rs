@@ -317,7 +317,16 @@ pub fn ingest_geotiff_dsm(
         _ => None,
     };
 
-    let dem = RasterDemProvider::new(name, res, res, extent_m, resampled_relief)?;
+    let dem_extent_m = match meta.pixel_scale_xy {
+        Some((sx, sy)) if sx > 0.0 && sy > 0.0 => {
+            let span_x_m = meta.width as f64 * sx;
+            let span_y_m = meta.height as f64 * sy;
+            (span_x_m.max(span_y_m) * 0.5).max(1.0)
+        }
+        _ => extent_m,
+    };
+
+    let dem = RasterDemProvider::new(name, res, res, dem_extent_m, resampled_relief)?;
     Ok(GeoTiffDsmResult {
         metadata: meta,
         center_lat_lon,

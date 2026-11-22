@@ -740,17 +740,21 @@ async fn handle_http_connection(
                 Ok(parsed) => {
                     let resp_json = {
                         let mut guard = lock_world(&world);
+                        let dem_extent = parsed.dem.extent_m;
                         if gt_req.auto_recenter.unwrap_or(true) {
                             if let Some((clat, clon)) = parsed.center_lat_lon {
                                 guard.recenter_origin(GeoOrigin {
                                     lat: clat,
                                     lon: clon,
                                     alt_m: parsed.min_asl_m.round(),
-                                    extent_m: extent,
+                                    extent_m: dem_extent,
                                 });
                             } else {
                                 guard.origin.alt_m = parsed.min_asl_m.round();
+                                guard.origin.extent_m = dem_extent;
                             }
+                        } else {
+                            guard.origin.extent_m = dem_extent;
                         }
                         guard.set_terrain_provider(&name, Box::new(parsed.dem));
                         let grid = guard.terrain.export_grid(guard.origin.extent_m, 65);
