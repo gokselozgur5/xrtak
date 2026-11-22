@@ -86,3 +86,24 @@ fn test_ttl_pruning_and_expiry() {
     assert_eq!(reassembler.accept(fragments[1].clone(), 2600), None);
     assert_eq!(reassembler.buffers.len(), 1);
 }
+
+#[test]
+fn test_max_buffers_limit() {
+    let mut reassembler = MeshReassembler::with_capacity_and_ttl(2, 10_000);
+
+    let p1 = b"msg1_payload".to_vec();
+    let p2 = b"msg2_payload".to_vec();
+    let p3 = b"msg3_payload".to_vec();
+
+    let f1 = fragment_payload(1, &p1, 5).unwrap();
+    let f2 = fragment_payload(2, &p2, 5).unwrap();
+    let f3 = fragment_payload(3, &p3, 5).unwrap();
+
+    assert_eq!(reassembler.accept(f1[0].clone(), 1000), None);
+    assert_eq!(reassembler.accept(f2[0].clone(), 1000), None);
+    assert_eq!(reassembler.buffers.len(), 2);
+
+    assert_eq!(reassembler.accept(f3[0].clone(), 1000), None);
+    assert_eq!(reassembler.buffers.len(), 2);
+    assert!(!reassembler.buffers.contains_key(&3));
+}
