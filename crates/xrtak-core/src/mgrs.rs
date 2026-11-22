@@ -926,13 +926,45 @@ mod tests {
 
     #[test]
     fn test_mgrs_parser_error_cases() {
-        assert!(MgrsCoord::parse("").is_err());
-        assert!(MgrsCoord::parse("31").is_err());
-        assert!(MgrsCoord::parse("31U").is_err());
-        assert!(MgrsCoord::parse("31UD").is_err());
-        assert!(MgrsCoord::parse("31UDQ1").is_err()); // odd digits
-        assert!(MgrsCoord::parse("31UDQ123456789012").is_err()); // >10 digits
-        assert!(MgrsCoord::parse("31UDQ12AB").is_err()); // non-digits
-        assert!(MgrsCoord::parse("99UDQ1234").is_err()); // invalid zone
+        assert_eq!(
+            MgrsCoord::parse(""),
+            Err(MgrsError::InvalidFormat("input '' is too short".into()))
+        );
+        assert_eq!(
+            MgrsCoord::parse("31"),
+            Err(MgrsError::InvalidFormat("input '31' is too short".into()))
+        );
+        assert_eq!(
+            MgrsCoord::parse("31U"),
+            Err(MgrsError::InvalidFormat(
+                "missing 100k square identifier".into()
+            ))
+        );
+        assert_eq!(
+            MgrsCoord::parse("31UD"),
+            Err(MgrsError::InvalidFormat(
+                "missing 100k square identifier".into()
+            ))
+        );
+        assert_eq!(
+            MgrsCoord::parse("31UDQ1"),
+            Err(MgrsError::InvalidFormat(
+                "odd number of coordinate digits (1)".into()
+            ))
+        );
+        assert_eq!(
+            MgrsCoord::parse("31UDQ123456789012"),
+            Err(MgrsError::InvalidPrecision(6))
+        );
+        assert_eq!(
+            MgrsCoord::parse("31UDQ12AB"),
+            Err(MgrsError::InvalidFormat(
+                "non-numeric coordinate digits".into()
+            ))
+        );
+        assert_eq!(
+            MgrsCoord::parse("99UDQ1234"),
+            Err(MgrsError::InvalidUtmZone(99))
+        );
     }
 }
