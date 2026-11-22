@@ -427,12 +427,21 @@ fn test_pin_management_and_export_routes() {
 
     // 30. GET /api/export/geojson
     let res = send_req(port, "GET", "/api/export/geojson", "");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/export/geojson: {res}");
-    assert!(res.contains("\"FeatureCollection\""), "shape /api/export/geojson");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "GET /api/export/geojson: {res}"
+    );
+    assert!(
+        res.contains("\"FeatureCollection\""),
+        "shape /api/export/geojson"
+    );
 
     // 31. GET /api/export/cot
     let res = send_req(port, "GET", "/api/export/cot", "");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/export/cot: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "GET /api/export/cot: {res}"
+    );
     assert!(res.contains("<events"), "shape /api/export/cot");
 
     stop_gateway(gw);
@@ -443,8 +452,16 @@ fn test_collab_sapient_and_tak_config_routes() {
     let (gw, port) = start_gateway();
 
     // 32. POST /api/pointer
-    let res = send_req(port, "POST", "/api/pointer", "{\"east_m\":0.0,\"north_m\":0.0}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/pointer: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/pointer",
+        "{\"east_m\":0.0,\"north_m\":0.0}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/pointer: {res}"
+    );
 
     // 33. POST /api/collab/sync
     let res = send_req(port, "POST", "/api/collab/sync", "{\"operator_id\":\"OP-1\",\"callsign\":\"ALFA\"}");
