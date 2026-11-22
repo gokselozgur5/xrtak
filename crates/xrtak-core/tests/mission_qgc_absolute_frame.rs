@@ -8,5 +8,8 @@ fn mav_frame_global_altitude_is_absolute() {
     ]}}"#;
     let (_, waypoints) = parse_qgc_plan_mission(plan).expect("valid plan");
     assert_eq!(waypoints[0].alt_m, 900.0);
-    assert!(!waypoints[0].alt_is_relative, "900 m AMSL was imported as 900 m above ground");
+    assert!(
+        !waypoints[0].alt_is_relative,
+        "900 m AMSL was imported as 900 m above ground"
+    );
 }
