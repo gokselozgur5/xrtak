@@ -44,3 +44,21 @@ fn test_integration_spotrep_atak_xml_variants() {
     assert_eq!(spot.remarks, "Possible forward observation post");
     assert_eq!(spot.lat, 36.12);
 }
+
+fn attr<'a>(xml: &'a str, name: &str) -> &'a str {
+    let key = format!(" {name}=\"");
+    let start = xml.find(&key).expect("attribute present") + key.len();
+    &xml[start..start + xml[start..].find('"').expect("closing quote")]
+}
+
+#[test]
+fn report_and_chat_events_are_not_stale_on_creation() {
+    use xrtak_core::geochat::GeoChatPacket;
+
+    let t = "2026-11-18T10:00:00Z";
+    let spot = SpotReport::new("S-1", "OBS").with_time(t).to_cot_xml();
+    let chat = GeoChatPacket::new("U-1", "LEAD", "HQ", "M-1", "hi", t).to_cot_xml();
+    for xml in [spot, chat] {
+        assert!(attr(&xml, "stale") > attr(&xml, "start"), "{xml}");
+    }
+}
