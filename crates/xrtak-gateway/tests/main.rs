@@ -132,8 +132,16 @@ fn test_core_api_routes_status_and_shape() {
     );
 
     // 8. POST /api/terrain/geotiff
-    let res = send_req(port, "POST", "/api/terrain/geotiff", "{\"name\":\"test\",\"bytes\":[]}");
-    assert!(res.starts_with("HTTP/1.1 400 Bad Request") || res.starts_with("HTTP/1.1 200 OK"), "POST /api/terrain/geotiff: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/terrain/geotiff",
+        "{\"name\":\"test\",\"bytes\":[]}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 400 Bad Request") || res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/terrain/geotiff: {res}"
+    );
 
     // 9. POST /api/cot
     let cot_body = "<event version=\"2.0\" uid=\"T1\" type=\"a-f-G\" time=\"2026-01-01T00:00:00Z\" start=\"2026-01-01T00:00:00Z\" stale=\"2026-01-01T01:00:00Z\" how=\"m-g\"><point lat=\"10.0\" lon=\"20.0\" hae=\"0.0\" ce=\"1.0\" le=\"1.0\"/></event>";
@@ -148,7 +156,12 @@ fn test_mission_and_analysis_routes() {
     let (gw, port) = start_gateway();
 
     // 10. POST /api/spi
-    let res = send_req(port, "POST", "/api/spi", "{\"sensor_uid\":\"U1\",\"clear\":true}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/spi",
+        "{\"sensor_uid\":\"U1\",\"clear\":true}",
+    );
     assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/spi: {res}");
 
     // 11. POST /api/viewshed
