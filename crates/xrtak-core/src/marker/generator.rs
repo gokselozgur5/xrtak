@@ -12,7 +12,8 @@ pub fn generate_marker_geometry(affiliation: Affiliation, size: f32) -> MarkerGe
     let color = color_for_affiliation(affiliation);
     let mesh = match shape {
         MarkerShape::Diamond => generate_diamond_marker_mesh(size),
-        MarkerShape::Rectangle | MarkerShape::Square => generate_billboard_quad_mesh(size, size),
+        MarkerShape::Rectangle => generate_billboard_quad_mesh(size * 1.5, size),
+        MarkerShape::Square => generate_billboard_quad_mesh(size, size),
         MarkerShape::Circle => generate_circle_marker_mesh(size * 0.5, 16),
     };
     MarkerGeometry {
