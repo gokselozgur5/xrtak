@@ -123,6 +123,7 @@ pub fn predict_entity_trajectory_struct(input: &TrackPredictInput) -> TrackPredi
 }
 
 /// Generates kinematic track prediction points across specified time horizons.
+#[allow(clippy::too_many_arguments)]
 pub fn predict_entity_trajectory(
     uid: &str,
     callsign: &str,
