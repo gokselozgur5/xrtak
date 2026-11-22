@@ -3945,24 +3945,38 @@
       });
     }
 
-    async function switchTerrainPreset(presetName) {
+    async function syncServerTerrain(nameHint) {
       activeSatelliteTexture = null;
+      const res = await fetch(apiUrl('/api/terrain'));
+      if (!res.ok) return;
+      activeDemGrid = await res.json();
+      buildTerrainMesh();
+      const demName = activeDemGrid.name || nameHint || 'valley';
+      document.getElementById('terrain-label').textContent = demName.toUpperCase();
+      document.getElementById('btn-dem-valley').classList.toggle('active', demName === 'valley');
+      document.getElementById('btn-dem-alpine').classList.toggle('active', demName === 'alpine');
+      document.getElementById('btn-dem-canyon').classList.toggle('active', demName === 'canyon');
+      document.getElementById('btn-dem-urban').classList.toggle('active', demName === 'urban_bowl');
+    }
+
+    async function switchTerrainPreset(presetName) {
       if (standaloneSimActive) {
+        activeSatelliteTexture = null;
         activeDemGrid = computeClientPresetTerrain(presetName);
+        buildTerrainMesh();
+        document.getElementById('terrain-label').textContent = (activeDemGrid.name || presetName).toUpperCase();
+        document.getElementById('btn-dem-valley').classList.toggle('active', presetName === 'valley');
+        document.getElementById('btn-dem-alpine').classList.toggle('active', presetName === 'alpine');
+        document.getElementById('btn-dem-canyon').classList.toggle('active', presetName === 'canyon');
+        document.getElementById('btn-dem-urban').classList.toggle('active', presetName === 'urban_bowl');
       } else {
-        const res = await fetch(apiUrl('/api/terrain'), {
+        await fetch(apiUrl('/api/terrain'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ preset: presetName })
         });
-        activeDemGrid = await res.json();
+        await syncServerTerrain(presetName);
       }
-      buildTerrainMesh();
-      document.getElementById('terrain-label').textContent = (activeDemGrid.name || presetName).toUpperCase();
-      document.getElementById('btn-dem-valley').classList.toggle('active', presetName === 'valley');
-      document.getElementById('btn-dem-alpine').classList.toggle('active', presetName === 'alpine');
-      document.getElementById('btn-dem-canyon').classList.toggle('active', presetName === 'canyon');
-      document.getElementById('btn-dem-urban').classList.toggle('active', presetName === 'urban_bowl');
     }
     document.getElementById('btn-dem-valley').onclick = () => switchTerrainPreset('valley');
     document.getElementById('btn-dem-alpine').onclick = () => switchTerrainPreset('alpine');
@@ -4882,6 +4896,9 @@
             }
             if (!aarReplayActive) {
               updateHudAndRoster(snap);
+            }
+            if (!standaloneSimActive && snap.terrain_name && (!activeDemGrid || activeDemGrid.name !== snap.terrain_name)) {
+              syncServerTerrain(snap.terrain_name).catch(console.error);
             }
           } catch (err) {
             console.error('Telemetry parse error:', err);
