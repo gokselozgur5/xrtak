@@ -1,5 +1,6 @@
 //! CoT emergency beacon and 911 distress alert generator.
 
+use crate::{escape_xml, unescape_xml};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
@@ -294,14 +295,6 @@ impl DistressBeacon {
     }
 }
 
-fn escape_xml(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
 impl DistressBeacon {
     pub fn format_distress_voice_readback(&self) -> String {
         let status_str = match self.status {
@@ -377,9 +370,7 @@ fn parse_f64(val: &[u8]) -> Option<f64> {
 
 fn parse_str_attr(val: &[u8]) -> String {
     let s = std::str::from_utf8(val).unwrap_or_default();
-    quick_xml::escape::unescape(s)
-        .map(|v| v.into_owned())
-        .unwrap_or_else(|_| s.to_string())
+    unescape_xml(s)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
