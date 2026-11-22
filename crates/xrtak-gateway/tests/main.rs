@@ -165,12 +165,25 @@ fn test_mission_and_analysis_routes() {
     assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/spi: {res}");
 
     // 11. POST /api/viewshed
-    let res = send_req(port, "POST", "/api/viewshed", "{\"east_m\":0.0,\"north_m\":0.0}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/viewshed: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/viewshed",
+        "{\"east_m\":0.0,\"north_m\":0.0}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/viewshed: {res}"
+    );
     assert!(res.contains("\"visible_ratio\""), "shape /api/viewshed");
 
     // 12. POST /api/los
-    let res = send_req(port, "POST", "/api/los", "{\"from_enu\":[0.0,10.0,0.0],\"to_enu\":[100.0,10.0,100.0]}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/los",
+        "{\"from_enu\":[0.0,10.0,0.0],\"to_enu\":[100.0,10.0,100.0]}",
+    );
     assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/los: {res}");
     assert!(res.contains("\"clear\""), "shape /api/los");
 
