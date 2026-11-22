@@ -30,3 +30,22 @@ fn test_round_trip_multi_fragment_in_order() {
         }
     }
 }
+
+#[test]
+fn test_round_trip_multi_fragment_out_of_order() {
+    let mut reassembler = MeshReassembler::new(5000);
+    let payload = b"The quick brown fox jumps over the lazy dog. 0123456789".to_vec();
+    let fragments = fragment_payload(99, &payload, 10).unwrap();
+    assert_eq!(fragments.len(), 6);
+
+    let order = [3, 1, 4, 0, 5, 2];
+    for (step, &idx) in order.iter().enumerate() {
+        let res = reassembler.accept(fragments[idx].clone(), 1000 + (step as u64) * 10);
+        if step < 5 {
+            assert_eq!(res, None);
+        } else {
+            assert_eq!(res, Some(payload.clone()));
+            assert!(reassembler.buffers.is_empty());
+        }
+    }
+}
