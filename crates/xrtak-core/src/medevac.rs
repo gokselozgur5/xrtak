@@ -945,6 +945,10 @@ mod tests {
 
         let nat = PatientNationality::parse_nationality("US MILITARY");
         assert_eq!(nat, PatientNationality::UsMilitary);
+
+        let nbc = NbcContamination::parse_nbc("B - Biological");
+        assert_eq!(nbc, NbcContamination::Biological);
+        assert_eq!(nbc.as_str(), "Biological");
     }
 
     #[test]
