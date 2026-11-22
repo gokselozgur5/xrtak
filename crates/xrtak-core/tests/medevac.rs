@@ -144,3 +144,15 @@ fn cas_event_is_not_stale_at_start() {
         attr(&xml, "stale")
     );
 }
+
+#[test]
+fn medevac_nbc_contamination_round_trip() {
+    let report = CotMedevacBuilder::new("MED-NBC", "DUSTOFF-9")
+        .nbc(NbcContamination::Chemical)
+        .build()
+        .unwrap();
+    assert_eq!(report.nbc_contamination(), NbcContamination::Chemical);
+    let xml = report.to_cot_xml();
+    let decoded = CotMedevacReport::from_cot_xml(&xml).expect("parse medevac xml");
+    assert_eq!(decoded.nbc_contamination(), NbcContamination::Chemical);
+}
