@@ -57,3 +57,23 @@ fn test_request_parser_complete_and_malformed() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_request_parser_split_body() {
+    let (gw, port) = start_gateway();
+    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    let head = "POST /api/viewshed HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 24\r\nConnection: close\r\n\r\n";
+    s.write_all(head.as_bytes()).unwrap();
+    std::thread::sleep(Duration::from_millis(200));
+    let part1 = b"{\"east_m\":0,";
+    s.write_all(part1).unwrap();
+    std::thread::sleep(Duration::from_millis(200));
+    let part2 = b" \"north_m\":0}";
+    s.write_all(part2).unwrap();
+
+    let mut out = String::new();
+    let _ = s.read_to_string(&mut out);
+    stop_gateway(gw);
+    assert!(out.starts_with("HTTP/1.1 200 OK"), "got: {out}");
+}
