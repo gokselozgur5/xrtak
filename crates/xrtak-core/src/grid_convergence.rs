@@ -84,16 +84,27 @@ pub struct GridSolution {
     pub central_meridian_deg: f64,
 }
 
-/// Normalize a longitude or angle to `[-180.0, 180.0)`.
+/// Normalize a finite longitude or angle in degrees to `[-180.0, 180.0)`.
 #[inline]
 fn normalize_lon_half_open(deg: f64) -> f64 {
-    (deg + 180.0).rem_euclid(360.0) - 180.0
+    if !deg.is_finite() {
+        return f64::NAN;
+    }
+    if (-180.0..180.0).contains(&deg) {
+        return if deg == 0.0 { 0.0 } else { deg };
+    }
+    let rem = deg.rem_euclid(360.0);
+    if rem >= 180.0 {
+        rem - 360.0
+    } else {
+        rem
+    }
 }
 
-/// Normalize an angular difference to `[-180.0, 180.0]`.
+/// Normalize a finite angular difference in degrees to `[-180.0, 180.0]`.
 #[inline]
 fn normalize_angle_sym(deg: f64) -> f64 {
-    let norm = (deg + 180.0).rem_euclid(360.0) - 180.0;
+    let norm = normalize_lon_half_open(deg);
     if norm == -180.0 && deg > 0.0 {
         180.0
     } else {
@@ -101,10 +112,18 @@ fn normalize_angle_sym(deg: f64) -> f64 {
     }
 }
 
-/// Normalize an azimuth in degrees to `[0.0, 360.0)`.
+/// Normalize a finite azimuth in degrees to `[0.0, 360.0)`.
 #[inline]
 fn normalize_azimuth(deg: f64) -> f64 {
-    deg.rem_euclid(360.0)
+    if !deg.is_finite() {
+        return f64::NAN;
+    }
+    let rem = deg.rem_euclid(360.0);
+    if rem >= 360.0 || rem == 0.0 {
+        0.0
+    } else {
+        rem
+    }
 }
 
 /// Determine the UTM zone number (1..=60) with Norway and Svalbard exceptions.
