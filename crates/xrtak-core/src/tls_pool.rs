@@ -627,7 +627,7 @@ impl TlsConnectionPool {
 
         let mut idle_per_endpoint = std::collections::HashMap::<String, usize>::new();
         for conn in self.connections.iter() {
-            if conn.state == ConnectionState::Idle {
+            if conn.state == ConnectionState::Idle && !conn.is_expired(current_time_ms, lifetime) {
                 *idle_per_endpoint.entry(conn.endpoint.clone()).or_insert(0) += 1;
             }
         }
