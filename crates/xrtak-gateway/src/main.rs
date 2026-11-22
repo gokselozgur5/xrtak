@@ -794,10 +794,16 @@ async fn handle_http_connection(
         let header = format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n{CORS_HEADERS}\r\n");
         stream.write_all(header.as_bytes()).await?;
         let mut rx = tx.subscribe();
-        while let Ok(json) = rx.recv().await {
-            let frame = format!("data: {json}\n\n");
-            if stream.write_all(frame.as_bytes()).await.is_err() {
-                break;
+        loop {
+            match rx.recv().await {
+                Ok(json) => {
+                    let frame = format!("data: {json}\n\n");
+                    if stream.write_all(frame.as_bytes()).await.is_err() {
+                        break;
+                    }
+                }
+                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(broadcast::error::RecvError::Closed) => break,
             }
         }
         return Ok(());
