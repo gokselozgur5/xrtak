@@ -24,8 +24,10 @@ fn gx_track_uses_configured_altitude_mode() {
     let mut track = CotTrack::new("UID-1", "HAWK", "a-f-A");
     track.add_point(KmlTrackPoint::new(39.92, 32.85, 100.0).with_time(10_000));
 
-    let mut cfg = KmlExportConfig::default();
-    cfg.altitude_mode = "relativeToGround".to_string();
+    let cfg = KmlExportConfig {
+        altitude_mode: "relativeToGround".to_string(),
+        ..Default::default()
+    };
 
     let kml = export_cot_tracks_kml(&[track], &cfg);
     assert!(kml.contains("<altitudeMode>relativeToGround</altitudeMode>"));
