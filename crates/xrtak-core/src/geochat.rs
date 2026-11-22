@@ -479,18 +479,45 @@ impl ConversationThread {
     }
 }
 
+/// Default maximum number of messages retained per conversation thread.
+pub const DEFAULT_MAX_THREAD_MESSAGES: usize = 1000;
+
 /// Manages and groups incoming GeoChat packets into conversation threads.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct GeoChatThreader {
     threads: BTreeMap<String, ConversationThread>,
     message_to_thread: HashMap<String, String>,
+    max_thread_messages: usize,
+}
+
+impl Default for GeoChatThreader {
+    fn default() -> Self {
+        Self::with_retention_limit(DEFAULT_MAX_THREAD_MESSAGES)
+    }
 }
 
 impl GeoChatThreader {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn with_retention_limit(max_thread_messages: usize) -> Self {
+        Self {
+            threads: BTreeMap::new(),
+            message_to_thread: HashMap::new(),
+            max_thread_messages: max_thread_messages.max(1),
+        }
+    }
+
+    pub fn retention_limit(&self) -> usize {
+        self.max_thread_messages
+    }
+
     pub fn ingest(&mut self, pkt: GeoChatPacket) -> String {
+        if let Some(existing_thread_id) = self.message_to_thread.get(&pkt.message_id) {
+            return existing_thread_id.clone();
+        }
+
         let thread_id = if let Some(ref cid) = pkt.conversation_id {
             cid.clone()
         } else if let Some(ref pmid) = pkt.parent_message_id {
@@ -509,6 +536,10 @@ impl GeoChatThreader {
             .entry(thread_id.clone())
             .or_insert_with(|| ConversationThread::new(&thread_id));
         thread.add_message(pkt);
+        if thread.messages.len() > self.max_thread_messages {
+            let removed = thread.messages.remove(0);
+            self.message_to_thread.remove(&removed.message_id);
+        }
         thread_id
     }
     pub fn thread(&self, thread_id: &str) -> Option<&ConversationThread> {
