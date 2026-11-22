@@ -107,3 +107,31 @@ fn test_max_buffers_limit() {
     assert_eq!(reassembler.buffers.len(), 2);
     assert!(!reassembler.buffers.contains_key(&3));
 }
+
+#[test]
+fn test_interleaved_messages() {
+    let mut reassembler = MeshReassembler::new(5000);
+
+    let p1 = b"Interleaved message 1".to_vec();
+    let p2 = b"Interleaved message 2, slightly longer".to_vec();
+
+    let f1 = fragment_payload(101, &p1, 7).unwrap();
+    let f2 = fragment_payload(102, &p2, 8).unwrap();
+
+    assert_eq!(reassembler.accept(f1[0].clone(), 100), None);
+    assert_eq!(reassembler.accept(f2[0].clone(), 105), None);
+    assert_eq!(reassembler.accept(f1[1].clone(), 110), None);
+    assert_eq!(reassembler.accept(f2[1].clone(), 115), None);
+    assert_eq!(reassembler.accept(f1[2].clone(), 120), Some(p1));
+    assert_eq!(reassembler.buffers.len(), 1);
+    assert!(reassembler.buffers.contains_key(&102));
+
+    for frag in &f2[2..f2.len() - 1] {
+        assert_eq!(reassembler.accept(frag.clone(), 125), None);
+    }
+    assert_eq!(
+        reassembler.accept(f2.last().unwrap().clone(), 130),
+        Some(p2)
+    );
+    assert!(reassembler.buffers.is_empty());
+}
