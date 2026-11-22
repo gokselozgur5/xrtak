@@ -1,5 +1,6 @@
 //! CoT 9-Line Close Air Support (CAS) briefing XML generator and parser.
 
+use crate::{escape_xml, unescape_xml};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
@@ -117,22 +118,6 @@ pub fn format_cas_nine_line_text(b: &CasNineLine) -> String {
         b.line9_egress,
         b.remarks
     )
-}
-
-fn escape_xml(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
-fn unescape_xml(s: &str) -> String {
-    s.replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
 }
 
 fn format_cas_detail_xml(b: &CasNineLine) -> String {
