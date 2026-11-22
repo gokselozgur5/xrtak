@@ -188,17 +188,36 @@ fn test_mission_and_analysis_routes() {
     assert!(res.contains("\"clear\""), "shape /api/los");
 
     // 13. POST /api/elevation-profile
-    let res = send_req(port, "POST", "/api/elevation-profile", "{\"waypoints_en\":[[0.0,0.0],[100.0,100.0]]}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/elevation-profile: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/elevation-profile",
+        "{\"waypoints_en\":[[0.0,0.0],[100.0,100.0]]}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/elevation-profile: {res}"
+    );
     assert!(res.contains("\"samples\""), "shape /api/elevation-profile");
 
     // 14. POST /api/mission/import
     let res = send_req(port, "POST", "/api/mission/import", "{\"content\":\"\"}");
-    assert!(res.starts_with("HTTP/1.1 400 Bad Request") || res.starts_with("HTTP/1.1 200 OK"), "POST /api/mission/import: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 400 Bad Request") || res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/mission/import: {res}"
+    );
 
     // 15. POST /api/mission/export
-    let res = send_req(port, "POST", "/api/mission/export", "{\"waypoints_en_agl\":[[0.0,0.0,50.0]]}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/mission/export: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/mission/export",
+        "{\"waypoints_en_agl\":[[0.0,0.0,50.0]]}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/mission/export: {res}"
+    );
 
     stop_gateway(gw);
 }
