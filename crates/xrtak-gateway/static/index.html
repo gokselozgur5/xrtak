@@ -1614,16 +1614,27 @@
       for (const ent of snap.entities) {
         const item = document.createElement('div');
         item.className = `unit-item ${ent.affiliation} ${ent.uid === selectedUid ? 'active' : ''}`;
-        item.innerHTML = `
-          <div class="unit-row-top">
-            <span>${ent.callsign}</span>
-            <span>${Math.round(ent.hae_m)}m MSL</span>
-          </div>
-          <div class="unit-row-sub">
-            <span>${ent.cot_type}</span>
-            <span>${ent.speed_mps.toFixed(1)} m/s · ${Math.round(ent.course_deg)}°</span>
-          </div>
-        `;
+
+        const rowTop = document.createElement('div');
+        rowTop.className = 'unit-row-top';
+        const callsignSpan = document.createElement('span');
+        callsignSpan.textContent = ent.callsign;
+        const haeSpan = document.createElement('span');
+        haeSpan.textContent = `${Math.round(ent.hae_m)}m MSL`;
+        rowTop.appendChild(callsignSpan);
+        rowTop.appendChild(haeSpan);
+
+        const rowSub = document.createElement('div');
+        rowSub.className = 'unit-row-sub';
+        const typeSpan = document.createElement('span');
+        typeSpan.textContent = ent.cot_type;
+        const courseSpan = document.createElement('span');
+        courseSpan.textContent = `${ent.speed_mps.toFixed(1)} m/s · ${Math.round(ent.course_deg)}°`;
+        rowSub.appendChild(typeSpan);
+        rowSub.appendChild(courseSpan);
+
+        item.appendChild(rowTop);
+        item.appendChild(rowSub);
         item.onclick = () => {
           selectedUid = ent.uid;
         };
