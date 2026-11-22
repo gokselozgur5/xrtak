@@ -464,8 +464,16 @@ fn test_collab_sapient_and_tak_config_routes() {
     );
 
     // 33. POST /api/collab/sync
-    let res = send_req(port, "POST", "/api/collab/sync", "{\"operator_id\":\"OP-1\",\"callsign\":\"ALFA\"}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/collab/sync: {res}");
+    let res = send_req(
+        port,
+        "POST",
+        "/api/collab/sync",
+        "{\"operator_id\":\"OP-1\",\"callsign\":\"ALFA\"}",
+    );
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/collab/sync: {res}"
+    );
 
     // 34. POST /api/sapient
     let sap_body = serde_json::json!({
@@ -475,13 +483,20 @@ fn test_collab_sapient_and_tak_config_routes() {
         "confidence": 0.95,
         "east_m": 100.0,
         "north_m": 200.0
-    }).to_string();
+    })
+    .to_string();
     let res = send_req(port, "POST", "/api/sapient", &sap_body);
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/sapient: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/sapient: {res}"
+    );
 
     // 35. POST /api/tak-config
     let res = send_req(port, "POST", "/api/tak-config", "{\"sim_enabled\":true}");
-    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/tak-config: {res}");
+    assert!(
+        res.starts_with("HTTP/1.1 200 OK"),
+        "POST /api/tak-config: {res}"
+    );
 
     stop_gateway(gw);
 }
