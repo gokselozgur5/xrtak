@@ -125,3 +125,37 @@ fn test_core_api_routes_status_and_shape() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_mission_and_analysis_routes() {
+    let (gw, port) = start_gateway();
+
+    // 10. POST /api/spi
+    let res = send_req(port, "POST", "/api/spi", "{\"sensor_uid\":\"U1\",\"clear\":true}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/spi: {res}");
+
+    // 11. POST /api/viewshed
+    let res = send_req(port, "POST", "/api/viewshed", "{\"east_m\":0.0,\"north_m\":0.0}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/viewshed: {res}");
+    assert!(res.contains("\"visible_ratio\""), "shape /api/viewshed");
+
+    // 12. POST /api/los
+    let res = send_req(port, "POST", "/api/los", "{\"from_enu\":[0.0,10.0,0.0],\"to_enu\":[100.0,10.0,100.0]}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/los: {res}");
+    assert!(res.contains("\"clear\""), "shape /api/los");
+
+    // 13. POST /api/elevation-profile
+    let res = send_req(port, "POST", "/api/elevation-profile", "{\"waypoints_en\":[[0.0,0.0],[100.0,100.0]]}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/elevation-profile: {res}");
+    assert!(res.contains("\"samples\""), "shape /api/elevation-profile");
+
+    // 14. POST /api/mission/import
+    let res = send_req(port, "POST", "/api/mission/import", "{\"content\":\"\"}");
+    assert!(res.starts_with("HTTP/1.1 400 Bad Request") || res.starts_with("HTTP/1.1 200 OK"), "POST /api/mission/import: {res}");
+
+    // 15. POST /api/mission/export
+    let res = send_req(port, "POST", "/api/mission/export", "{\"waypoints_en_agl\":[[0.0,0.0,50.0]]}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/mission/export: {res}");
+
+    stop_gateway(gw);
+}
