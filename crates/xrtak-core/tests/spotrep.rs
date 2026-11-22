@@ -74,3 +74,28 @@ fn spotrep_with_stale_time_overrides_derived_stale() {
     assert_eq!(attr(&spot, "stale"), stale);
     assert_eq!(attr(&spot, "start"), t);
 }
+
+#[test]
+fn geochat_with_stale_time_overrides_derived_stale() {
+    use xrtak_core::geochat::{GeoChatBuilder, GeoChatPacket};
+
+    let t = "2026-11-18T10:00:00Z";
+    let stale = "2026-11-18T10:15:00Z";
+    let chat = GeoChatPacket::new("U-1", "LEAD", "HQ", "M-1", "hi", t)
+        .with_stale_time(stale)
+        .to_cot_xml();
+    assert_eq!(attr(&chat, "stale"), stale);
+    assert_eq!(attr(&chat, "start"), t);
+
+    let chat_b = GeoChatBuilder::new()
+        .sender("U-2", "BRAVO")
+        .chatroom("HQ")
+        .message("M-2", "ack")
+        .timestamp(t)
+        .stale_time(stale)
+        .build()
+        .unwrap()
+        .to_cot_xml();
+    assert_eq!(attr(&chat_b, "stale"), stale);
+    assert_eq!(attr(&chat_b, "start"), t);
+}
