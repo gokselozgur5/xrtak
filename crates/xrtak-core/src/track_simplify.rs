@@ -170,12 +170,11 @@ fn rdp_mask(pts: &[TrackPoint], eps: f64, elev: bool, max_err: &mut f64) -> Vec<
                 idx = i;
             }
         }
-        if max_d > *max_err {
-            *max_err = max_d;
-        }
         if max_d > eps {
             keep[idx] = true;
             stk.extend([(s, idx), (idx, e)]);
+        } else if max_d > *max_err {
+            *max_err = max_d;
         }
     }
     keep
@@ -199,10 +198,6 @@ fn rdp_recursive(
         }
     }
 
-    if max_dist > *max_err {
-        *max_err = max_dist;
-    }
-
     if max_dist > epsilon_m {
         let mask = rdp_mask(points, epsilon_m, include_elevation, max_err);
         points
@@ -212,6 +207,9 @@ fn rdp_recursive(
             .filter_map(|(i, p)| mask[i].then_some(p))
             .collect()
     } else {
+        if max_dist > *max_err {
+            *max_err = max_dist;
+        }
         vec![first.clone(), last.clone()]
     }
 }
