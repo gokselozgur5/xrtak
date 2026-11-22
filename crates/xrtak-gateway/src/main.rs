@@ -452,7 +452,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 3. HTTP + SSE + CoT/SPI/Viewshed Server on :8090 (with automatic fallback to :8091)
     let listener = match TcpListener::bind(http_addr).await {
         Ok(l) => l,
-        Err(_) => TcpListener::bind("127.0.0.1:8091").await?,
+        Err(e) => {
+            eprintln!("[XR-TAK] Could not bind HTTP {http_addr}: {e}");
+            let fallback_addr = SocketAddr::new(http_addr.ip(), 8091);
+            TcpListener::bind(fallback_addr).await?
+        }
     };
     let bound_port = listener.local_addr()?.port();
     println!("==============================================================");
