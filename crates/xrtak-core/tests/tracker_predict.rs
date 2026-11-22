@@ -53,6 +53,18 @@ fn test_predict_trajectory_points_and_cep_rounding() {
     );
 
     assert_eq!(pred.points.len(), 2);
+    assert_eq!(pred.points[0].dt_sec, 1.234);
+    assert_eq!(pred.points[0].east_m, 23.7);
+    assert_eq!(pred.points[0].north_m, 34.03);
+    assert_eq!(pred.points[0].up_m, 30.79);
+    assert_eq!(pred.points[0].cep_radius_m, 3.41);
+
+    assert_eq!(pred.points[1].dt_sec, 5.678);
+    assert_eq!(pred.points[1].east_m, 72.58);
+    assert_eq!(pred.points[1].north_m, 82.91);
+    assert_eq!(pred.points[1].up_m, 30.79);
+    assert_eq!(pred.points[1].cep_radius_m, 8.7);
+
     for pt in &pred.points {
         assert_eq!(pt.east_m, (pt.east_m * 100.0).round() / 100.0);
         assert_eq!(pt.north_m, (pt.north_m * 100.0).round() / 100.0);
