@@ -4,6 +4,9 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Speed of light in vacuum (meters per second).
+pub const SPEED_OF_LIGHT_MPS: f64 = 299_792_458.0;
+
 /// Standard tactical RF frequency bands and radio link profiles.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum RfBand {
@@ -59,22 +62,36 @@ pub struct RfLinkResult {
     pub status: String,
 }
 
+/// Computes signal wavelength in meters from frequency in Hertz.
+pub fn compute_wavelength_m(frequency_hz: f64) -> f64 {
+    let f = frequency_hz.clamp(1_000_000.0, 100_000_000_000.0);
+    SPEED_OF_LIGHT_MPS / f
+}
+
+/// Computes Free-Space Path Loss (FSPL) in decibels from frequency in Hertz.
+pub fn compute_fspl_db_hz(distance_m: f64, frequency_hz: f64) -> f64 {
+    let d = distance_m.max(1.0);
+    let lambda = compute_wavelength_m(frequency_hz);
+    20.0 * (4.0 * std::f64::consts::PI * d / lambda).log10()
+}
+
+/// Computes Free-Space Path Loss (FSPL) in decibels from frequency in MHz.
+pub fn compute_fspl_db_mhz(distance_m: f64, frequency_mhz: f64) -> f64 {
+    compute_fspl_db_hz(distance_m, frequency_mhz * 1_000_000.0)
+}
+
 /// Computes Free-Space Path Loss (FSPL) in decibels.
 pub fn compute_fspl_db(distance_m: f64, frequency_hz: f64) -> f64 {
-    let d = distance_m.max(1.0);
-    let c = 299_792_458.0;
-    let lambda = c / frequency_hz;
-    20.0 * (4.0 * std::f64::consts::PI * d / lambda).log10()
+    compute_fspl_db_hz(distance_m, frequency_hz)
 }
 
 /// Computes 1st Fresnel zone radius F_1 (meters) at distances d1, d2.
 pub fn compute_fresnel_radius_m(d1_m: f64, d2_m: f64, frequency_hz: f64) -> f64 {
     let total_d = d1_m + d2_m;
-    if total_d <= 1e-3 {
+    if total_d <= 1e-4 || d1_m <= 0.0 || d2_m <= 0.0 {
         return 0.0;
     }
-    let c = 299_792_458.0;
-    let lambda = c / frequency_hz;
+    let lambda = compute_wavelength_m(frequency_hz);
     ((lambda * d1_m * d2_m) / total_d).sqrt()
 }
 
@@ -86,11 +103,13 @@ pub fn compute_knife_edge_diffraction_db(v: f64) -> f64 {
     if v <= -0.7 {
         0.0
     } else {
-        let term = ((v - 0.1).powi(2) + 1.0).sqrt() + (v - 0.1);
+        let diff = v - 0.1;
+        let term = (diff.powi(2) + 1.0).sqrt() + diff;
         if term <= 0.0 {
             0.0
         } else {
-            6.9 + 20.0 * term.log10()
+            let loss = 6.9 + 20.0 * term.log10();
+            loss.max(0.0)
         }
     }
 }
@@ -105,11 +124,10 @@ pub fn compute_diffraction_v(
     frequency_hz: f64,
 ) -> f64 {
     let total_d = d1_m + d2_m;
-    if total_d <= 1e-3 || d1_m <= 1e-3 || d2_m <= 1e-3 {
+    if total_d <= 1e-4 || d1_m <= 0.0 || d2_m <= 0.0 {
         return -1.0;
     }
-    let c = 299_792_458.0;
-    let lambda = c / frequency_hz;
+    let lambda = compute_wavelength_m(frequency_hz);
     let scale = (2.0 * total_d / (lambda * d1_m * d2_m)).sqrt();
     obstacle_penetration_m * scale
 }
@@ -156,7 +174,7 @@ pub fn evaluate_rf_link(
     provider: &dyn crate::geo::ElevationProvider,
 ) -> RfLinkResult {
     let freq = band.frequency_hz();
-    let lambda = 299_792_458.0 / freq;
+    let lambda = compute_wavelength_m(freq);
     let (dist, min_clear, worst_v, fspl) = evaluate_rf_propagation(tx, rx, freq, steps, provider);
     let diffraction = compute_knife_edge_diffraction_db(worst_v);
     let f1_max = compute_fresnel_radius_m(dist / 2.0, dist / 2.0, freq);
