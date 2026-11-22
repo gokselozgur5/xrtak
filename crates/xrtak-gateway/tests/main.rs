@@ -159,3 +159,39 @@ fn test_mission_and_analysis_routes() {
 
     stop_gateway(gw);
 }
+
+#[test]
+fn test_spatial_and_tactical_planning_routes() {
+    let (gw, port) = start_gateway();
+
+    // 16. POST /api/tiles/resolve
+    let res = send_req(port, "POST", "/api/tiles/resolve", "{\"lat\":37.0,\"lon\":-122.0,\"zoom\":10}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/tiles/resolve: {res}");
+
+    // 17. POST /api/mission/corridor-polygon
+    let res = send_req(port, "POST", "/api/mission/corridor-polygon", "{\"waypoints_en\":[[0.0,0.0],[100.0,100.0]]}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/mission/corridor-polygon: {res}");
+
+    // 18. POST /api/mapset/plan
+    let res = send_req(port, "POST", "/api/mapset/plan", "{\"south\":36.0,\"west\":-122.0,\"north\":37.0,\"east\":-121.0}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/mapset/plan: {res}");
+
+    // 19. POST /api/rf/link-budget
+    let res = send_req(port, "POST", "/api/rf/link-budget", "{\"tx_enu\":[0.0,10.0,0.0],\"rx_enu\":[500.0,10.0,500.0]}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/rf/link-budget: {res}");
+
+    // 20. POST /api/tracks/predict
+    let res = send_req(port, "POST", "/api/tracks/predict", "{\"uid\":\"P1\",\"pos_enu\":[0.0,0.0,0.0],\"vel_enu\":[1.0,0.0,0.0],\"dt_sec\":1.0,\"steps\":5}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/tracks/predict: {res}");
+
+    // 21. POST /api/airspace/deconflict
+    let res = send_req(port, "POST", "/api/airspace/deconflict", "{\"tracks\":[]}");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "POST /api/airspace/deconflict: {res}");
+
+    // 22. GET /api/export/opord
+    let res = send_req(port, "GET", "/api/export/opord", "");
+    assert!(res.starts_with("HTTP/1.1 200 OK"), "GET /api/export/opord: {res}");
+    assert!(res.contains("\"opord_markdown\""), "shape /api/export/opord");
+
+    stop_gateway(gw);
+}
