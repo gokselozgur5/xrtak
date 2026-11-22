@@ -84,17 +84,24 @@ fn remarks_with_literal_entity_text_survive_round_trip() {
 
 #[test]
 fn medevac_parser_rejects_bad_latitude() {
-    const TAIL: &str = "lon=\"43.1\" hae=\"0\"/><detail><medevac line1=\"38SMB12345678\"/></detail></event>";
+    const TAIL: &str =
+        "lon=\"43.1\" hae=\"0\"/><detail><medevac line1=\"38SMB12345678\"/></detail></event>";
     for lat in ["abc", "95.0", "NaN"] {
         let xml = format!("<event version=\"2.0\" uid=\"M\"><point lat=\"{lat}\" {TAIL}");
         let res = CotMedevacReport::from_cot_xml(&xml);
-        assert!(res.is_err(), "lat={lat} accepted as {:?}", res.map(|r| r.lat));
+        assert!(
+            res.is_err(),
+            "lat={lat} accepted as {:?}",
+            res.map(|r| r.lat)
+        );
     }
 }
 
 #[test]
 fn medevac_builder_rejects_nan_latitude() {
-    let res = CotMedevacBuilder::new("1", "A").coordinates(f64::NAN, 10.0, 0.0).build();
+    let res = CotMedevacBuilder::new("1", "A")
+        .coordinates(f64::NAN, 10.0, 0.0)
+        .build();
     assert!(res.is_err());
 }
 
