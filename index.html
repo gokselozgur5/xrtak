@@ -602,6 +602,7 @@
     const ALT_EXAGGERATION = 1.65;
 
     let activeDemGrid = null; // { name, resolution, extent_m, heights_m }
+    let sectorLoadSeq = 0;
 
     function sampleTerrainReliefM(eastM, northM) {
       if (activeDemGrid && activeDemGrid.heights_m && activeDemGrid.resolution >= 2) {
@@ -4058,8 +4059,7 @@
 
     async function loadRealWorldSector(lat, lon, labelHint = 'REAL-SRTM') {
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-      currentOriginLat = lat;
-      currentOriginLon = lon;
+      const thisSeq = ++sectorLoadSeq;
       document.getElementById('inp-real-coords').value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
       document.getElementById('terrain-label').textContent = 'LOADING REAL SRTM...';
       document.getElementById('hud-origin').textContent =
@@ -4109,6 +4109,9 @@
         }
       }
       await Promise.all(tileJobs);
+      if (thisSeq !== sectorLoadSeq) return;
+      currentOriginLat = lat;
+      currentOriginLon = lon;
 
       // 2. Sample 65x65 meter grid across [-1500m, +1500m] around (lat, lon)
       const resGrid = 65;
