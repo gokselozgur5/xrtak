@@ -704,3 +704,73 @@ fn malformed_json_body_returns_400_not_404() {
     let unknown = send_req(port, "POST", "/api/unknown-route", "{not json");
     assert!(unknown.starts_with("HTTP/1.1 404 Not Found"), "{unknown}");
 }
+
+#[test]
+fn test_configurable_feedback_addr_uses_single_shared_socket() {
+    struct Guard(Child);
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            let _ = (self.0.kill(), self.0.wait());
+        }
+    }
+    let fb_rx = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+    fb_rx
+        .set_read_timeout(Some(Duration::from_secs(3)))
+        .unwrap();
+    let fb_addr = fb_rx.local_addr().unwrap().to_string();
+
+    let port = std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+    let http_addr = format!("127.0.0.1:{port}");
+    let child = Command::new(env!("CARGO_BIN_EXE_xrtak-gateway"))
+        .env("XRTAK_HTTP_ADDR", &http_addr)
+        .env("XRTAK_UDP_ADDR", "127.0.0.1:0")
+        .env("XRTAK_FEEDBACK_ADDR", &fb_addr)
+        .spawn()
+        .unwrap();
+    let _gw = Guard(child);
+    for _ in 0..50 {
+        if TcpStream::connect(&http_addr).is_ok() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    let requests = [
+        (
+            "/api/spawn",
+            r#"{"uid":"FB-PIN-412","callsign":"FB1","cot_type":"a-f-G","east_m":10.0,"north_m":20.0}"#,
+        ),
+        (
+            "/api/pin/move",
+            r#"{"uid":"FB-PIN-412","east_m":25.0,"north_m":35.0}"#,
+        ),
+        ("/api/pointer", r#"{"east_m":5.0,"north_m":5.0}"#),
+        (
+            "/api/sapient",
+            r#"{"node_id":"R1","object_id":"O1","classification":"TANK","confidence":0.9,"east_m":50.0,"north_m":60.0}"#,
+        ),
+        (
+            "/api/mission/export",
+            r#"{"waypoints_en_agl":[[0.0,0.0,50.0]]}"#,
+        ),
+    ];
+
+    let mut first_sender = None;
+    let mut buf = [0u8; 8192];
+    for (path, payload) in requests {
+        let res = send_req(port, "POST", path, payload);
+        assert!(res.starts_with("HTTP/1.1 200 OK"), "{path}: {res}");
+        let (len, sender) = fb_rx
+            .recv_from(&mut buf)
+            .unwrap_or_else(|e| panic!("missing UDP feedback for {path}: {e}"));
+        let xml = std::str::from_utf8(&buf[..len]).unwrap();
+        assert!(xml.contains("<event"), "{path} feedback payload: {xml}");
+        let expected = *first_sender.get_or_insert(sender);
+        assert_eq!(sender, expected, "{path} used a different outbound socket");
+    }
+    let _ = send_req(port, "POST", "/api/pin/delete", r#"{"uid":"FB-PIN-412"}"#);
+}
