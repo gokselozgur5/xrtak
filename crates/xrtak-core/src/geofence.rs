@@ -104,19 +104,8 @@ impl GeofencePolygon {
                 return false;
             }
         }
-        let mut inside = false;
-        let mut j = self.vertices.len() - 1;
-        for i in 0..self.vertices.len() {
-            let pi = &self.vertices[i];
-            let pj = &self.vertices[j];
-            let hit = ((pi.y > y) != (pj.y > y))
-                && (x < (pj.x - pi.x) * (y - pi.y) / (pj.y - pi.y) + pi.x);
-            if hit {
-                inside = !inside;
-            }
-            j = i;
-        }
-        inside
+        let en: Vec<(f64, f64)> = self.vertices.iter().map(|p| (p.x, p.y)).collect();
+        crate::zones::point_in_polygon_en(x, y, &en)
     }
     /// Checks if a 3D point is contained within polygon and altitude bounds.
     pub fn contains_point(&self, point: &GeofencePoint) -> bool {
