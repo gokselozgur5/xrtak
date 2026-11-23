@@ -1,14 +1,15 @@
 use crate::http::{DynError, HttpRequest, HttpResponse};
 use crate::{
     flush_persistent_pins, lock_world, now_unix_ms, snapshot_persistent_pins_json,
-    ElevationProfileRequest, GatewayState, GeoTiffUploadRequest, LinkLosRequest,
-    MissionImportRequest, SpiSlewRequest, TerrainSwitchRequest, ViewshedRequest, WorldSnapshot,
-    INDEX_HTML,
+    CorridorPolygonRequest, ElevationProfileRequest, GatewayState, GeoTiffUploadRequest,
+    LinkLosRequest, MissionExportRequest, MissionImportRequest, SpiSlewRequest,
+    TerrainSwitchRequest, ViewshedRequest, WorldSnapshot, INDEX_HTML,
 };
 use xrtak_core::{
     compute_link_los, compute_viewshed_with_provider, evaluate_mission_corridor,
-    ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission, GeoOrigin,
-    ProceduralReliefModel, RasterDemProvider, TacticalWorld,
+    evaluate_swath_corridor, export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm,
+    parse_kml_mission, parse_qgc_plan_mission, GeoOrigin, ProceduralReliefModel, RasterDemProvider,
+    TacticalWorld,
 };
 
 pub async fn try_dispatch(
@@ -34,6 +35,10 @@ pub async fn try_dispatch(
         ("POST", "/api/los") => handle_los_post(&req.body, state)?,
         ("POST", "/api/elevation-profile") => handle_elevation_profile_post(&req.body, state)?,
         ("POST", "/api/mission/import") => handle_mission_import_post(&req.body, state),
+        ("POST", "/api/mission/export") => handle_mission_export_post(&req.body, state).await,
+        ("POST", "/api/mission/corridor-polygon") => {
+            handle_corridor_polygon_post(&req.body, state)?
+        }
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -313,4 +318,67 @@ fn handle_mission_import_post(body: &str, state: &GatewayState) -> HttpResponse 
         serde_json::json!({ "origin": guard.origin, "corridor": corridor, "profile": profile })
             .to_string(),
     )
+}
+
+async fn handle_mission_export_post(body: &str, state: &GatewayState) -> HttpResponse {
+    let Ok(ex_req) = serde_json::from_str::<MissionExportRequest>(body) else {
+        return HttpResponse::bad_request("invalid_mission_export_payload");
+    };
+    let uid = ex_req.route_uid.as_deref().unwrap_or("RTE-XR-TAK-01");
+    let cs = ex_req.route_callsign.as_deref().unwrap_or("XR-CORRIDOR-01");
+    let (qgc_plan_json, atak_bmr_xml) = {
+        let guard = lock_world(&state.world);
+        let qgc = export_qgc_plan_json(
+            &guard.origin,
+            guard.terrain.as_ref(),
+            &ex_req.waypoints_en_agl,
+        );
+        let bmr = export_atak_route_cot_xml(
+            uid,
+            cs,
+            &guard.origin,
+            guard.terrain.as_ref(),
+            &ex_req.waypoints_en_agl,
+        );
+        (qgc, bmr)
+    };
+    state.send_feedback(atak_bmr_xml.as_bytes()).await;
+    let qgc_val: serde_json::Value = serde_json::from_str(&qgc_plan_json).unwrap_or_default();
+    HttpResponse::json_str(
+        serde_json::json!({
+            "route_uid": uid,
+            "route_callsign": cs,
+            "waypoint_count": ex_req.waypoints_en_agl.len(),
+            "qgc_plan": qgc_val,
+            "qgc_plan_json": qgc_plan_json,
+            "atak_bmr_cot_xml": atak_bmr_xml,
+        })
+        .to_string(),
+    )
+}
+
+fn handle_corridor_polygon_post(
+    body: &str,
+    state: &GatewayState,
+) -> Result<HttpResponse, DynError> {
+    let Ok(c_req) = serde_json::from_str::<CorridorPolygonRequest>(body) else {
+        return Ok(HttpResponse::bad_request(
+            "invalid_corridor_polygon_payload",
+        ));
+    };
+    let origin = lock_world(&state.world).origin;
+    let name = c_req
+        .name
+        .unwrap_or_else(|| "XR-SWATH-CORRIDOR".to_string());
+    let res = evaluate_swath_corridor(
+        name,
+        &origin,
+        &c_req.waypoints_en,
+        c_req.rdp_epsilon_m.unwrap_or(8.0),
+        c_req.agl_m.unwrap_or(140.0),
+        c_req.hfov_deg,
+        c_req.focal_px,
+        c_req.sensor_width_px,
+    );
+    HttpResponse::json(&res)
 }
