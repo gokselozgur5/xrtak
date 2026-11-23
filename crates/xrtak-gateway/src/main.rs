@@ -6,10 +6,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
-    build_laser_pointer_cot_xml, build_mapset_manifest, escape_cot_attr, evaluate_mission_corridor,
-    evaluate_rf_link, evaluate_swath_corridor, evaluate_theater_deconfliction,
-    export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission, parse_qgc_plan_mission,
-    predict_entity_trajectory_struct, resolve_tile_with_fallback,
+    build_laser_pointer_cot_xml, build_mapset_manifest, escape_cot_attr, evaluate_rf_link,
+    evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
+    export_qgc_plan_json, predict_entity_trajectory_struct, resolve_tile_with_fallback,
     resolve_tile_with_placeholder_check, AarSummary, GeoOrigin, ImageryProvider, ManifestInput,
     OperatorPeer, OpordUnitSummary, RfBand, SapientDetectionReport, SharedTablePose,
     TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPredictInput,
@@ -585,78 +584,6 @@ async fn handle_http_connection(
             }
         }
         return Ok(());
-    }
-
-    if method == "POST" && path == "/api/mission/import" {
-        if let Ok(m_req) = serde_json::from_str::<MissionImportRequest>(body) {
-            let trimmed = m_req.content.trim();
-            let is_qgc = m_req
-                .format
-                .as_deref()
-                .map(|f| f.eq_ignore_ascii_case("qgc") || f.eq_ignore_ascii_case("plan"))
-                .unwrap_or_else(|| trimmed.starts_with('{'));
-            let parsed = if is_qgc {
-                parse_qgc_plan_mission(trimmed)
-            } else {
-                parse_kml_mission(trimmed)
-            };
-            match parsed {
-                Ok((name, raw_wps)) => {
-                    let resp_json = {
-                        let mut guard = lock_world(&world);
-                        if m_req.auto_recenter.unwrap_or(true) && !raw_wps.is_empty() {
-                            let avg_lat =
-                                raw_wps.iter().map(|w| w.lat).sum::<f64>() / raw_wps.len() as f64;
-                            let avg_lon =
-                                raw_wps.iter().map(|w| w.lon).sum::<f64>() / raw_wps.len() as f64;
-                            let ext = guard.origin.extent_m;
-                            let alt = guard.origin.alt_m;
-                            guard.recenter_origin(GeoOrigin {
-                                lat: avg_lat,
-                                lon: avg_lon,
-                                alt_m: alt,
-                                extent_m: ext,
-                            });
-                        }
-                        let corridor = evaluate_mission_corridor(
-                            &name,
-                            &raw_wps,
-                            &guard.origin,
-                            guard.terrain.as_ref(),
-                            m_req.corridor_width_m.unwrap_or(120.0),
-                            m_req.min_safe_agl_m.unwrap_or(35.0),
-                        );
-                        let wps_en: Vec<(f64, f64)> = corridor
-                            .waypoints
-                            .iter()
-                            .map(|w| (w.east_m, w.north_m))
-                            .collect();
-                        let profile = guard.compute_elevation_profile(&wps_en);
-                        serde_json::json!({
-                            "origin": guard.origin,
-                            "corridor": corridor,
-                            "profile": profile,
-                        })
-                        .to_string()
-                    };
-                    let header = json_ok_header(resp_json.len());
-                    stream.write_all(header.as_bytes()).await?;
-                    stream.write_all(resp_json.as_bytes()).await?;
-                    return Ok(());
-                }
-                Err(err) => {
-                    let msg = serde_json::json!({ "error": err }).to_string();
-                    let header = format!(
-                        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
-                        msg.len()
-                    );
-                    stream.write_all(header.as_bytes()).await?;
-                    stream.write_all(msg.as_bytes()).await?;
-                    return Ok(());
-                }
-            }
-        }
-        return send_err_400(&mut stream, "invalid_mission_import_payload").await;
     }
 
     if method == "POST" && path == "/api/mission/export" {
