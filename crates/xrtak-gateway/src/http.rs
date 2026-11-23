@@ -49,6 +49,43 @@ impl HttpResponse {
             msg.into_bytes(),
         )
     }
+
+    pub fn html(body: &'static str) -> Self {
+        let mut r = Self::new(
+            "200 OK",
+            Some("text/html; charset=utf-8"),
+            true,
+            body.as_bytes().to_vec(),
+        );
+        r.cache_no_cache = true;
+        r
+    }
+
+    pub fn xml(body: String) -> Self {
+        Self::new(
+            "200 OK",
+            Some("application/xml; charset=utf-8"),
+            true,
+            body.into_bytes(),
+        )
+    }
+
+    pub fn no_content() -> Self {
+        Self::new("204 No Content", None, true, Vec::new())
+    }
+
+    pub fn auth_error(code: u16, err: &'static str) -> Self {
+        let st = if code == 401 {
+            "401 Unauthorized"
+        } else {
+            "403 Forbidden"
+        };
+        Self::new(st, Some("application/json"), false, err.as_bytes().to_vec())
+    }
+
+    pub fn not_found() -> Self {
+        Self::new("404 Not Found", None, false, b"Not Found".to_vec())
+    }
 }
 
 pub async fn write_response(stream: &mut TcpStream, resp: &HttpResponse) -> Result<(), DynError> {

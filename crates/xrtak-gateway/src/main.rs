@@ -526,37 +526,16 @@ async fn handle_http_connection(
 
     if is_state_changing(method, path) {
         if let Some((code, err)) = check_request_auth(&req) {
-            let status = if code == 401 {
-                "401 Unauthorized"
-            } else {
-                "403 Forbidden"
-            };
-            let resp = format!(
-                "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                err.len(),
-                err
-            );
-            stream.write_all(resp.as_bytes()).await?;
-            return Ok(());
+            return http::write_response(&mut stream, &HttpResponse::auth_error(code, err)).await;
         }
     }
 
     if method == "OPTIONS" {
-        let header = format!(
-            "HTTP/1.1 204 No Content\r\n{CORS_HEADERS}Content-Length: 0\r\nConnection: close\r\n\r\n"
-        );
-        stream.write_all(header.as_bytes()).await?;
-        return Ok(());
+        return http::write_response(&mut stream, &HttpResponse::no_content()).await;
     }
 
     if method == "GET" && (path == "/" || path == "/index.html") {
-        let header = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n{CORS_HEADERS}Content-Length: {}\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n",
-            INDEX_HTML.len()
-        );
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(INDEX_HTML.as_bytes()).await?;
-        return Ok(());
+        return http::write_response(&mut stream, &HttpResponse::html(INDEX_HTML)).await;
     }
 
     if method == "GET" && path == "/api/state" {
@@ -1580,13 +1559,7 @@ async fn handle_http_connection(
                 events.join("\n  ")
             )
         };
-        let header = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/xml; charset=utf-8\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
-            body.len()
-        );
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(body.as_bytes()).await?;
-        return Ok(());
+        return http::write_response(&mut stream, &HttpResponse::xml(body)).await;
     }
 
     if method == "POST" && path == "/api/pointer" {
@@ -1753,10 +1726,7 @@ async fn handle_http_connection(
         return send_err_400(&mut stream, "invalid_tak_config_payload").await;
     }
 
-    let not_found =
-        "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found";
-    stream.write_all(not_found.as_bytes()).await?;
-    Ok(())
+    http::write_response(&mut stream, &HttpResponse::not_found()).await
 }
 
 #[cfg(test)]
