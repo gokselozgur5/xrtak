@@ -131,25 +131,33 @@ pub use distress_beacon::{
 #[cfg(feature = "experimental")]
 pub use domain::{Affiliation, LinkLosResult, SensorCone, ViewshedResult, ViewshedSample};
 pub use domain::{Dimension, TacticalZone, ThreatDome};
+pub use ew::{compute_burn_through_range, evaluate_link_jamming, EwTargetBand};
+#[cfg(feature = "experimental")]
 pub use ew::{
-    compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
-    BurnThroughScenario, EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
+    watts_to_dbm, BurnThroughAssessment, BurnThroughScenario, JammerProfile, JammingAssessment,
+    TargetLinkProfile,
 };
-pub use fires::{compute_ballistic_trajectory, BallisticSolution, MunitionType, TrajectoryPoint3d};
+pub use fires::{compute_ballistic_trajectory, MunitionType};
+#[cfg(feature = "experimental")]
+pub use fires::{BallisticSolution, TrajectoryPoint3d};
+#[cfg(feature = "experimental")]
 pub use geo::{
     compute_elevation_profile, sample_terrain_relief_m, ElevationProfileResult,
-    ElevationProfileSample, ElevationProvider, ProceduralReliefModel, RasterDemProvider,
+    ElevationProfileSample,
 };
+pub use geo::{ElevationProvider, ProceduralReliefModel, RasterDemProvider};
 #[cfg(feature = "experimental")]
 pub use geopackage::{
     bytes_to_hex_literal, decode_point_geom, encode_point_geom, GeoPackageBounds, GeoPackageError,
     GeoPackageFeatureDataset, GeoPackageWaypoint,
 };
+#[cfg(feature = "experimental")]
 pub use grid_convergence::{
     calculate_grid_convergence, calculate_ups, calculate_utm, grid_to_ground_distance,
     grid_to_true_azimuth, ground_to_grid_distance, true_to_grid_azimuth, utm_central_meridian_deg,
     utm_zone_from_lon, GridError, GridSolution, GridSystem,
 };
+#[cfg(feature = "experimental")]
 pub use hud::{compute_hud_cue, HudCue};
 #[cfg(feature = "experimental")]
 pub use hud_telemetry::battery::BatteryTelemetry;
@@ -159,10 +167,11 @@ pub use hud_telemetry::connection::ConnectionTelemetry;
 pub use hud_telemetry::element::HudTelemetryElement;
 #[cfg(feature = "experimental")]
 pub use hud_telemetry::types::{BatteryState, ConnectionQuality};
+pub use manifest::{build_mapset_manifest, ManifestInput};
+#[cfg(feature = "experimental")]
 pub use manifest::{
-    build_mapset_manifest, copernicus_glo30_cells_for_bounds, estimate_tiles_for_bounds,
-    format_copernicus_glo30_cell_id, CopernicusDemCell, ManifestInput, MapsetManifest,
-    ZoomTileEstimate,
+    copernicus_glo30_cells_for_bounds, estimate_tiles_for_bounds, format_copernicus_glo30_cell_id,
+    CopernicusDemCell, MapsetManifest, ZoomTileEstimate,
 };
 #[cfg(feature = "experimental")]
 pub use medevac::{
@@ -170,14 +179,18 @@ pub use medevac::{
     MedevacEquipment, MedevacError, MedevacPrecedence, NbcContamination, PatientNationality,
     SiteSecurity,
 };
+#[cfg(feature = "experimental")]
 pub use mgrs::{
     GeodeticCoord, GridZoneDesignator, HundredKmSquare, MgrsBoundingBox, MgrsCoord, MgrsError,
     MgrsPrecision, UtmCoord,
 };
 pub use mission::{
     evaluate_mission_corridor, export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission,
-    parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
+    parse_qgc_plan_mission,
 };
+#[cfg(feature = "experimental")]
+pub use mission::{MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint};
+#[cfg(feature = "experimental")]
 pub use mission_manifest::{ManifestContentEntry, ManifestParameter, MissionPackageManifest};
 #[cfg(feature = "experimental")]
 pub use mission_package::{
@@ -189,22 +202,28 @@ pub use openxr_pose::{
     OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition, PoseTrackingFlags,
     TacticalHeadPose,
 };
+pub use opord::OpordUnitSummary;
+#[cfg(feature = "experimental")]
 pub use opord::{
     build_opord_bundle, generate_kml_tactical_scene, generate_nato_opord_markdown,
-    OpordExportBundle, OpordUnitSummary,
+    OpordExportBundle,
 };
+#[cfg(feature = "experimental")]
 pub use rf::{
     compute_diffraction_v, compute_fresnel_radius_m, compute_fspl_db, compute_fspl_db_hz,
-    compute_fspl_db_mhz, compute_knife_edge_diffraction_db, compute_wavelength_m, evaluate_rf_link,
-    evaluate_rf_propagation, RfBand, RfLinkResult,
+    compute_fspl_db_mhz, compute_knife_edge_diffraction_db, compute_wavelength_m,
+    evaluate_rf_propagation, RfLinkResult,
 };
+pub use rf::{evaluate_rf_link, RfBand};
 #[cfg(feature = "experimental")]
 pub use route_sequencer::{
     along_track_distance_m, cross_track_error_m, evaluate_route_progress, generate_cot_route_xml,
     initial_bearing_deg, sequence_route_plan, slant_distance_3d_m, ActiveTrackProgress, RoutePlan,
     RouteWaypoint, SequencedLeg, SequencedRouteResult,
 };
-pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
+pub use sapient::SapientDetectionReport;
+#[cfg(feature = "experimental")]
+pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type};
 #[cfg(feature = "experimental")]
 pub use spotrep::{format_salute_report_text, SpotReport, SpotReportError};
 #[cfg(feature = "experimental")]
@@ -212,13 +231,13 @@ pub use tak_tls::{
     CertificateFormat, ClientAuthMode, TakTlsConfig, TakTlsConfigBuilder, TakTlsError,
     TlsCertificate, TlsVersion,
 };
+#[cfg(feature = "experimental")]
 pub use tiles::{
-    bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy,
-    resolve_tile_with_fallback, resolve_tile_with_placeholder_check, tile_xy_to_quadkey,
+    bing_subdomain, is_placeholder_rgb_tile, latlon_to_tile_xy, parent_tile_xy, tile_xy_to_quadkey,
     GeoPackageCachedLayer, GeoPackageMemoryReader, GeoPackageTileEntry,
-    GeoPackageTileMatrixMetadata, ImageryProvider, LruTileCache, ResolvedTileSpec, TileCoord,
-    TileResolutionResult,
+    GeoPackageTileMatrixMetadata, LruTileCache, ResolvedTileSpec, TileCoord, TileResolutionResult,
 };
+pub use tiles::{resolve_tile_with_fallback, resolve_tile_with_placeholder_check, ImageryProvider};
 #[cfg(feature = "experimental")]
 pub use tls_pool::{
     AuthError, ConnectionState, HealthCheckSummary, MutualCertAuthenticator, PeerCertificateInfo,
@@ -237,12 +256,16 @@ pub use track_smoother::{
     heading_delta_deg, smooth_heading_deg, smooth_scalar, smooth_trajectory, wrap_heading_deg,
     SmoothedTrackState, TrackObservation, TrackSmoother, TrackSmootherConfig,
 };
+#[cfg(feature = "experimental")]
 pub use tracker::{
     compute_cep_radius_m, compute_kinematic_extrapolation, predict_entity_trajectory,
-    predict_entity_trajectory_struct, TrackPredictInput, TrackPredictRequest, TrackPrediction,
     TrackPredictionPoint,
 };
+pub use tracker::{
+    predict_entity_trajectory_struct, TrackPredictInput, TrackPredictRequest, TrackPrediction,
+};
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
+#[cfg(feature = "experimental")]
 pub use zones::{
     is_engaged_by_threat_dome, is_inside_tactical_zone, parse_cot_polygon_zone, point_in_polygon_en,
 };
@@ -252,6 +275,10 @@ use {
     affiliation::{AffiliationMapper, StandardIdentity},
     collab::CollabRoomState,
     domain::{Affiliation, SensorCone, ViewshedResult},
+    geo::{compute_elevation_profile, ElevationProfileResult},
+    hud::{compute_hud_cue, HudCue},
+    sapient::build_sapient_cot_xml,
+    zones::{is_engaged_by_threat_dome, is_inside_tactical_zone, parse_cot_polygon_zone},
 };
 
 use quick_xml::events::Event;
