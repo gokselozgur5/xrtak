@@ -583,53 +583,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "POST" && path == "/api/collab/sync" {
-        if let Ok(c_req) = serde_json::from_str::<CollabSyncRequest>(body) {
-            let resp_json = {
-                let mut guard = lock_world(&world);
-                let now_ms = now_unix_ms();
-                let peer = OperatorPeer {
-                    operator_id: c_req.operator_id,
-                    callsign: c_req.callsign,
-                    device_mode: c_req
-                        .device_mode
-                        .unwrap_or_else(|| "DESKTOP-C2".to_string()),
-                    head_enu: c_req.head_enu.unwrap_or((0.0, 480.0, -420.0)),
-                    laser_target_enu: c_req.laser_target_enu,
-                    ptt_active: c_req.ptt_active.unwrap_or(false),
-                    color_hex: c_req.color_hex.unwrap_or_else(|| "#00ff88".to_string()),
-                    updated_unix_ms: now_ms,
-                };
-                if !guard.collab.peers.contains_key(&peer.operator_id)
-                    && guard.collab.peers.len() >= 64
-                {
-                    if let Some(oldest) = guard
-                        .collab
-                        .peers
-                        .values()
-                        .min_by_key(|p| p.updated_unix_ms)
-                        .map(|p| p.operator_id.clone())
-                    {
-                        guard.collab.peers.remove(&oldest);
-                    }
-                }
-                guard
-                    .collab
-                    .upsert_peer(peer, c_req.shared_scale, c_req.shared_yaw_deg);
-                serde_json::json!({
-                    "operators": guard.collab.sorted_peers(),
-                    "table_pose": guard.collab.table_pose,
-                })
-                .to_string()
-            };
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_collab_sync_payload").await;
-    }
-
     if method == "POST" && path == "/api/tak-config" {
         if let Ok(cfg) = serde_json::from_str::<TakConfigRequest>(body) {
             if let Some(addr) = cfg.tak_tcp_addr.clone() {
