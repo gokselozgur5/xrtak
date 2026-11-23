@@ -52,6 +52,7 @@ pub async fn try_dispatch(
         ("GET", "/api/export/cot") => handle_export_cot_get(state),
         ("POST", "/api/pointer") => handle_pointer_post(&req.body, state).await?,
         ("POST", "/api/sapient") => handle_sapient_post(&req.body, state).await?,
+        ("POST", "/api/collab/sync") => handle_collab_sync_post(&req.body, state),
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -860,4 +861,44 @@ async fn handle_sapient_post(body: &str, state: &GatewayState) -> Result<HttpRes
         }
         Err(_) => Ok(HttpResponse::bad_request("invalid_sapient_payload")),
     }
+}
+
+fn handle_collab_sync_post(body: &str, state: &GatewayState) -> HttpResponse {
+    let Ok(c_req) = serde_json::from_str::<CollabSyncRequest>(body) else {
+        return HttpResponse::bad_request("invalid_collab_sync_payload");
+    };
+    let mut guard = lock_world(&state.world);
+    let peer = OperatorPeer {
+        operator_id: c_req.operator_id,
+        callsign: c_req.callsign,
+        device_mode: c_req
+            .device_mode
+            .unwrap_or_else(|| "DESKTOP-C2".to_string()),
+        head_enu: c_req.head_enu.unwrap_or((0.0, 480.0, -420.0)),
+        laser_target_enu: c_req.laser_target_enu,
+        ptt_active: c_req.ptt_active.unwrap_or(false),
+        color_hex: c_req.color_hex.unwrap_or_else(|| "#00ff88".to_string()),
+        updated_unix_ms: now_unix_ms(),
+    };
+    if !guard.collab.peers.contains_key(&peer.operator_id) && guard.collab.peers.len() >= 64 {
+        if let Some(oldest) = guard
+            .collab
+            .peers
+            .values()
+            .min_by_key(|p| p.updated_unix_ms)
+            .map(|p| p.operator_id.clone())
+        {
+            guard.collab.peers.remove(&oldest);
+        }
+    }
+    guard
+        .collab
+        .upsert_peer(peer, c_req.shared_scale, c_req.shared_yaw_deg);
+    HttpResponse::json_str(
+        serde_json::json!({
+            "operators": guard.collab.sorted_peers(),
+            "table_pose": guard.collab.table_pose,
+        })
+        .to_string(),
+    )
 }
