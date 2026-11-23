@@ -57,6 +57,9 @@ pub struct ElevationProfileResult {
     pub samples: Vec<ElevationProfileSample>,
 }
 
+pub const MAX_ELEVATION_PROFILE_WAYPOINTS: usize = 64;
+pub const MAX_ELEVATION_PROFILE_SAMPLES: usize = 2_048;
+
 /// Compute a terrain elevation cross-section profile along a sequence of `(east_m, north_m)` waypoints.
 pub fn compute_elevation_profile(
     provider: &dyn ElevationProvider,
@@ -64,7 +67,7 @@ pub fn compute_elevation_profile(
     base_alt_m: f64,
     samples_per_segment: usize,
 ) -> ElevationProfileResult {
-    let steps = samples_per_segment.max(4);
+    let waypoints_en = &waypoints_en[..waypoints_en.len().min(MAX_ELEVATION_PROFILE_WAYPOINTS)];
     let mut samples = Vec::new();
     let mut cum_dist_m = 0.0;
     let mut total_ascent_m = 0.0;
@@ -109,8 +112,12 @@ pub fn compute_elevation_profile(
         };
     }
 
+    let seg_count = waypoints_en.len() - 1;
+    let max_steps = ((MAX_ELEVATION_PROFILE_SAMPLES - 1) / seg_count).max(1);
+    let steps = samples_per_segment.max(4).min(max_steps);
+    samples.reserve(1 + seg_count * steps);
     let mut prev_asl: Option<f64> = None;
-    for seg_idx in 0..(waypoints_en.len() - 1) {
+    for seg_idx in 0..seg_count {
         let (e0, n0) = waypoints_en[seg_idx];
         let (e1, n1) = waypoints_en[seg_idx + 1];
         let seg_len = ((e1 - e0).powi(2) + (n1 - n0).powi(2)).sqrt();
