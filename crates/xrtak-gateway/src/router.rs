@@ -1,11 +1,13 @@
 use crate::http::{DynError, HttpRequest, HttpResponse};
 use crate::{
     flush_persistent_pins, lock_world, now_unix_ms, snapshot_persistent_pins_json,
-    ElevationProfileRequest, GatewayState, GeoTiffUploadRequest, LinkLosRequest, SpiSlewRequest,
-    TerrainSwitchRequest, ViewshedRequest, WorldSnapshot, INDEX_HTML,
+    ElevationProfileRequest, GatewayState, GeoTiffUploadRequest, LinkLosRequest,
+    MissionImportRequest, SpiSlewRequest, TerrainSwitchRequest, ViewshedRequest, WorldSnapshot,
+    INDEX_HTML,
 };
 use xrtak_core::{
-    compute_link_los, compute_viewshed_with_provider, ingest_geotiff_dsm, GeoOrigin,
+    compute_link_los, compute_viewshed_with_provider, evaluate_mission_corridor,
+    ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission, GeoOrigin,
     ProceduralReliefModel, RasterDemProvider, TacticalWorld,
 };
 
@@ -31,6 +33,7 @@ pub async fn try_dispatch(
         ("POST", "/api/viewshed") => handle_viewshed_post(&req.body, state)?,
         ("POST", "/api/los") => handle_los_post(&req.body, state)?,
         ("POST", "/api/elevation-profile") => handle_elevation_profile_post(&req.body, state)?,
+        ("POST", "/api/mission/import") => handle_mission_import_post(&req.body, state),
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -258,4 +261,56 @@ fn handle_elevation_profile_post(
         }
         Err(err) => Ok(HttpResponse::bad_request(&err.to_string())),
     }
+}
+
+fn handle_mission_import_post(body: &str, state: &GatewayState) -> HttpResponse {
+    let Ok(m_req) = serde_json::from_str::<MissionImportRequest>(body) else {
+        return HttpResponse::bad_request("invalid_mission_import_payload");
+    };
+    let trimmed = m_req.content.trim();
+    let is_qgc = m_req
+        .format
+        .as_deref()
+        .map(|f| f.eq_ignore_ascii_case("qgc") || f.eq_ignore_ascii_case("plan"))
+        .unwrap_or_else(|| trimmed.starts_with('{'));
+    let parsed = if is_qgc {
+        parse_qgc_plan_mission(trimmed)
+    } else {
+        parse_kml_mission(trimmed)
+    };
+    let (name, raw_wps) = match parsed {
+        Ok(v) => v,
+        Err(err) => return HttpResponse::bad_request(&err),
+    };
+    let mut guard = lock_world(&state.world);
+    if m_req.auto_recenter.unwrap_or(true) && !raw_wps.is_empty() {
+        let n = raw_wps.len() as f64;
+        let avg_lat = raw_wps.iter().map(|w| w.lat).sum::<f64>() / n;
+        let avg_lon = raw_wps.iter().map(|w| w.lon).sum::<f64>() / n;
+        let (alt_m, extent_m) = (guard.origin.alt_m, guard.origin.extent_m);
+        guard.recenter_origin(GeoOrigin {
+            lat: avg_lat,
+            lon: avg_lon,
+            alt_m,
+            extent_m,
+        });
+    }
+    let corridor = evaluate_mission_corridor(
+        &name,
+        &raw_wps,
+        &guard.origin,
+        guard.terrain.as_ref(),
+        m_req.corridor_width_m.unwrap_or(120.0),
+        m_req.min_safe_agl_m.unwrap_or(35.0),
+    );
+    let wps_en: Vec<_> = corridor
+        .waypoints
+        .iter()
+        .map(|w| (w.east_m, w.north_m))
+        .collect();
+    let profile = guard.compute_elevation_profile(&wps_en);
+    HttpResponse::json_str(
+        serde_json::json!({ "origin": guard.origin, "corridor": corridor, "profile": profile })
+            .to_string(),
+    )
 }
