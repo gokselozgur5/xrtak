@@ -37,6 +37,8 @@ pub async fn try_dispatch(
             handle_corridor_polygon_post(&req.body, state)?
         }
         ("POST", "/api/mapset/plan") => handle_mapset_plan_post(&req.body, state)?,
+        ("POST", "/api/rf/link-budget") => handle_rf_link_budget_post(&req.body, state)?,
+        ("POST", "/api/tracks/predict") => handle_tracks_predict_post(&req.body, state)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -423,4 +425,51 @@ fn handle_mapset_plan_post(body: &str, state: &GatewayState) -> Result<HttpRespo
         max_zoom: mp_req.max_zoom.unwrap_or(16),
     });
     HttpResponse::json(&manifest)
+}
+
+fn handle_rf_link_budget_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(rf_req) = serde_json::from_str::<RfLinkBudgetRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_rf_link_budget_payload"));
+    };
+    let tx = rf_req.tx_enu.unwrap_or((-600.0, -400.0, 150.0));
+    let rx = rf_req.rx_enu.unwrap_or((800.0, 600.0, 180.0));
+    let band = match rf_req.band.as_deref().unwrap_or("ism2400") {
+        "uhf900" | "900" => RfBand::UHF900,
+        "shf5800" | "5800" | "5.8" => RfBand::SHF5800,
+        _ => RfBand::ISM2400,
+    };
+    let steps = rf_req.steps.unwrap_or(32);
+    let result = {
+        let guard = lock_world(&state.world);
+        evaluate_rf_link(tx, rx, band, steps, guard.terrain.as_ref())
+    };
+    HttpResponse::json(&result)
+}
+
+fn handle_tracks_predict_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let json_body = if body.is_empty() { "{}" } else { body };
+    let Ok(p_req) = serde_json::from_str::<TrackPredictRequest>(json_body) else {
+        return Ok(HttpResponse::bad_request("invalid_tracks_predict_payload"));
+    };
+    let horizons = p_req.horizons_sec.unwrap_or_else(|| vec![15.0, 30.0, 60.0]);
+    let stale_thresh_ms = (p_req.stale_threshold_sec.unwrap_or(5.0) * 1000.0) as u64;
+    let now_ms = now_unix_ms();
+    let predictions: Vec<TrackPrediction> = lock_world(&state.world)
+        .entities
+        .values()
+        .map(|e| {
+            let is_stale = now_ms.saturating_sub(e.updated_unix_ms) >= stale_thresh_ms;
+            predict_entity_trajectory_struct(&TrackPredictInput {
+                uid: &e.uid,
+                callsign: &e.callsign,
+                current_enu: (e.east_m, e.north_m, e.up_m),
+                speed_mps: e.speed_mps,
+                course_deg: e.course_deg,
+                is_stale,
+                initial_ce_m: 5.0,
+                horizons: &horizons,
+            })
+        })
+        .collect();
+    HttpResponse::json(&predictions)
 }

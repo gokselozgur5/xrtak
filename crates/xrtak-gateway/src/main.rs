@@ -583,64 +583,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "POST" && path == "/api/rf/link-budget" {
-        if let Ok(rf_req) = serde_json::from_str::<RfLinkBudgetRequest>(body) {
-            let tx = rf_req.tx_enu.unwrap_or((-600.0, -400.0, 150.0));
-            let rx = rf_req.rx_enu.unwrap_or((800.0, 600.0, 180.0));
-            let band = match rf_req.band.as_deref().unwrap_or("ism2400") {
-                "uhf900" | "900" => RfBand::UHF900,
-                "shf5800" | "5800" | "5.8" => RfBand::SHF5800,
-                _ => RfBand::ISM2400,
-            };
-            let steps = rf_req.steps.unwrap_or(32);
-            let result = {
-                let guard = lock_world(&world);
-                evaluate_rf_link(tx, rx, band, steps, guard.terrain.as_ref())
-            };
-            let resp_json = serde_json::to_string(&result)?;
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_rf_link_budget_payload").await;
-    }
-
-    if method == "POST" && path == "/api/tracks/predict" {
-        let json_body = if body.is_empty() { "{}" } else { body };
-        let Ok(p_req) = serde_json::from_str::<TrackPredictRequest>(json_body) else {
-            return send_err_400(&mut stream, "invalid_tracks_predict_payload").await;
-        };
-        let horizons = p_req.horizons_sec.unwrap_or_else(|| vec![15.0, 30.0, 60.0]);
-        let stale_thresh_ms = (p_req.stale_threshold_sec.unwrap_or(5.0) * 1000.0) as u64;
-        let now_ms = now_unix_ms();
-        let predictions: Vec<TrackPrediction> = {
-            let guard = lock_world(&world);
-            guard
-                .entities
-                .values()
-                .map(|e| {
-                    let is_stale = now_ms.saturating_sub(e.updated_unix_ms) >= stale_thresh_ms;
-                    predict_entity_trajectory_struct(&TrackPredictInput {
-                        uid: &e.uid,
-                        callsign: &e.callsign,
-                        current_enu: (e.east_m, e.north_m, e.up_m),
-                        speed_mps: e.speed_mps,
-                        course_deg: e.course_deg,
-                        is_stale,
-                        initial_ce_m: 5.0,
-                        horizons: &horizons,
-                    })
-                })
-                .collect()
-        };
-        let resp_json = serde_json::to_string(&predictions)?;
-        let header = json_ok_header(resp_json.len());
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(resp_json.as_bytes()).await?;
-        return Ok(());
-    }
-
     if method == "POST" && path == "/api/airspace/deconflict" {
         if !body.is_empty() && serde_json::from_str::<serde_json::Value>(body).is_err() {
             return send_err_400(&mut stream, "invalid_deconflict_payload").await;
