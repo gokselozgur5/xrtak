@@ -361,17 +361,24 @@ fn is_simulated_uid(uid: &str) -> bool {
 static OPERATOR_PINS: std::sync::LazyLock<Mutex<std::collections::HashSet<String>>> =
     std::sync::LazyLock::new(|| Mutex::new(std::collections::HashSet::new()));
 
-fn save_persistent_pins(world: &TacticalWorld) {
-    let _ = std::fs::create_dir_all("data");
-    let op_pins = OPERATOR_PINS.lock().unwrap();
+fn snapshot_persistent_pins_json(world: &TacticalWorld) -> Option<String> {
+    let op_pins = OPERATOR_PINS.lock().unwrap_or_else(PoisonError::into_inner);
     let mut pins: Vec<&TacticalEntity> = world
         .entities
         .values()
         .filter(|e| op_pins.contains(&e.uid))
         .collect();
     pins.sort_by(|a, b| a.uid.cmp(&b.uid));
-    if let Ok(json) = serde_json::to_string_pretty(&pins) {
-        let _ = std::fs::write(PINS_STORE_PATH, json);
+    serde_json::to_string_pretty(&pins).ok()
+}
+
+async fn flush_persistent_pins(pins_json: Option<String>) {
+    if let Some(json) = pins_json {
+        let _ = tokio::task::spawn_blocking(move || {
+            let _ = std::fs::create_dir_all("data");
+            let _ = std::fs::write(PINS_STORE_PATH, json);
+        })
+        .await;
     }
 }
 
@@ -777,14 +784,16 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/cot" {
-        let res = {
+        let (res, pins_json) = {
             let mut guard = lock_world(&world);
             let r = guard.ingest_cot_xml(body, now_unix_ms());
-            if r.is_ok() {
-                save_persistent_pins(&guard);
-            }
-            r
+            let pj = r
+                .is_ok()
+                .then(|| snapshot_persistent_pins_json(&guard))
+                .flatten();
+            (r, pj)
         };
+        flush_persistent_pins(pins_json).await;
         match res {
             Ok(ent) => {
                 let json = serde_json::to_string(&ent)?;
@@ -1407,7 +1416,7 @@ async fn handle_http_connection(
 
     if method == "POST" && path == "/api/spawn" {
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
-            let (xml, ent) = {
+            let (xml, ent, pins_json) = {
                 let mut guard = lock_world(&world);
                 let ground_h = guard.sample_relief_m(spawn.east_m, spawn.north_m);
                 let up_m = ground_h + spawn.alt_offset_m.unwrap_or(0.0);
@@ -1433,12 +1442,18 @@ async fn handle_http_connection(
                     remarks = escape_cot_attr(&remarks)
                 );
                 let r = guard.ingest_cot_xml(&xml, now_unix_ms());
-                if r.is_ok() {
-                    OPERATOR_PINS.lock().unwrap().insert(uid.clone());
-                    save_persistent_pins(&guard);
-                }
-                (xml, r)
+                let pj = if r.is_ok() {
+                    OPERATOR_PINS
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .insert(uid.clone());
+                    snapshot_persistent_pins_json(&guard)
+                } else {
+                    None
+                };
+                (xml, r, pj)
             };
+            flush_persistent_pins(pins_json).await;
             state.send_feedback(xml.as_bytes()).await;
             if let Ok(entity) = ent {
                 let json = serde_json::to_string(&entity)?;
@@ -1453,7 +1468,7 @@ async fn handle_http_connection(
 
     if method == "POST" && path == "/api/pin/move" {
         if let Ok(mv) = serde_json::from_str::<PinMoveRequest>(body) {
-            let updated = {
+            let (updated, pins_json) = {
                 let mut guard = lock_world(&world);
                 let ground_h = guard.sample_relief_m(mv.east_m, mv.north_m);
                 let up_m = ground_h + mv.alt_offset_m.unwrap_or(0.0);
@@ -1479,12 +1494,15 @@ async fn handle_http_connection(
                     let xml = entity_to_cot_xml(&cloned);
                     out_ent = Some((xml, cloned));
                 }
-                if out_ent.is_some() {
+                let pj = if out_ent.is_some() {
                     guard.refresh_threat_domes_and_zones();
-                    save_persistent_pins(&guard);
-                }
-                out_ent
+                    snapshot_persistent_pins_json(&guard)
+                } else {
+                    None
+                };
+                (out_ent, pj)
             };
+            flush_persistent_pins(pins_json).await;
             if let Some((xml, entity)) = updated {
                 state.send_feedback(xml.as_bytes()).await;
                 let json = serde_json::to_string(&entity)?;
@@ -1499,14 +1517,17 @@ async fn handle_http_connection(
 
     if method == "POST" && path == "/api/pin/delete" {
         if let Ok(del) = serde_json::from_str::<PinDeleteRequest>(body) {
-            let removed = {
+            let (removed, pins_json) = {
                 let mut guard = lock_world(&world);
                 let r = guard.entities.remove(&del.uid);
-                OPERATOR_PINS.lock().unwrap().remove(&del.uid);
+                OPERATOR_PINS
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .remove(&del.uid);
                 guard.refresh_threat_domes_and_zones();
-                save_persistent_pins(&guard);
-                r.is_some()
+                (r.is_some(), snapshot_persistent_pins_json(&guard))
             };
+            flush_persistent_pins(pins_json).await;
             let json = serde_json::json!({ "deleted": removed, "uid": del.uid }).to_string();
             let header = json_ok_header(json.len());
             stream.write_all(header.as_bytes()).await?;
@@ -1700,7 +1721,7 @@ async fn handle_http_connection(
                     *lock = Some(handle);
                 }
             }
-            let resp = {
+            let (resp, pins_json) = {
                 let mut guard = lock_world(&world);
                 if let Some(sim) = cfg.sim_enabled {
                     guard.set_sim_enabled(sim);
@@ -1718,14 +1739,16 @@ async fn handle_http_connection(
                         extent_m: ext,
                     });
                 }
-                save_persistent_pins(&guard);
-                serde_json::json!({
+                let pj = snapshot_persistent_pins_json(&guard);
+                let out = serde_json::json!({
                     "origin": guard.origin,
                     "sim_enabled": guard.sim_enabled,
                     "auto_recenter": guard.auto_recenter_on_next_live_cot
                 })
-                .to_string()
+                .to_string();
+                (out, pj)
             };
+            flush_persistent_pins(pins_json).await;
             let header = json_ok_header(resp.len());
             stream.write_all(header.as_bytes()).await?;
             stream.write_all(resp.as_bytes()).await?;
