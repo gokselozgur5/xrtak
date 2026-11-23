@@ -126,5 +126,5 @@ cargo test
 
 ## Verification & MBSE Traceability Matrix (Phases 1–32 Sealed)
 
-All 32 phases (`ICD-01`..`ICD-22` and `REQ-DEM` / `REQ-TAC` / `REQ-AAR` / `REQ-COL` / `REQ-ELV` / `REQ-MIS` / `REQ-COG` / `REQ-RTC` / `REQ-MAV` / `REQ-MAP` / `REQ-COR` / `REQ-MAN` / `REQ-RF` / `REQ-TRK` / `REQ-DEC` / `REQ-OPO`) are verified by the automated Rust test suite (`cargo test`, 36 unit tests).
+All 32 phases (`ICD-01`..`ICD-22` and `REQ-DEM` / `REQ-TAC` / `REQ-AAR` / `REQ-COL` / `REQ-ELV` / `REQ-MIS` / `REQ-COG` / `REQ-RTC` / `REQ-MAV` / `REQ-MAP` / `REQ-COR` / `REQ-MAN` / `REQ-RF` / `REQ-TRK` / `REQ-DEC` / `REQ-OPO`) are verified by the automated Rust test suite (`cargo test`, covering `xrtak-core` and `xrtak-gateway` integration tests).
 
