@@ -4875,8 +4875,13 @@
       const speedBtn = document.getElementById('btn-aar-speed');
 
       let aarFetchInFlight = false;
+      let aarPendingSeek = null;
       async function loadAarFrameAt(t) {
-        if (standaloneSimActive || aarFetchInFlight) return;
+        if (standaloneSimActive) return;
+        if (aarFetchInFlight) {
+          aarPendingSeek = t;
+          return;
+        }
         aarFetchInFlight = true;
         try {
           const res = await fetch(apiUrl(`/api/aar?t=${t.toFixed(2)}`));
@@ -4893,6 +4898,11 @@
         } catch (_) {
         } finally {
           aarFetchInFlight = false;
+          if (aarPendingSeek !== null) {
+            const nextSeek = aarPendingSeek;
+            aarPendingSeek = null;
+            loadAarFrameAt(nextSeek);
+          }
         }
       }
 
