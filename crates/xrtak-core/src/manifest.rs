@@ -204,8 +204,6 @@ impl<'a> ManifestInput<'a> {
 }
 
 /// Build an offline mapset manifest (`MapsetManifest`) for the given WGS84 bounding box and zoom range (`ICD-18`).
-// TODO(XR-073): replace the argument list with an input struct.
-#[allow(clippy::too_many_arguments)]
 pub fn build_mapset_manifest(input: &ManifestInput) -> MapsetManifest {
     let s = input.south_deg.min(input.north_deg);
     let n = input.south_deg.max(input.north_deg);
