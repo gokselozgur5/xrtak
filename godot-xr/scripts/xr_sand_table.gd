@@ -19,6 +19,8 @@ var grab_offset: Vector3 = Vector3.ZERO
 var initial_pinch_dist: float = 0.0
 var initial_table_scale: Vector3 = Vector3.ONE
 
+var state_poll_timer: Timer
+
 func _ready() -> void:
 	xr_interface = XRServer.find_interface("OpenXR")
 	if xr_interface and xr_interface.is_initialized():
@@ -27,8 +29,8 @@ func _ready() -> void:
 			xr_interface.environment_blend_mode = XRInterface.XR_ENV_BLEND_MODE_ALPHA_BLEND
 			get_viewport().transparent_bg = true
 
-	left_ctrl = get_node_or_null("XROrigin3D/LeftHandController")
-	right_ctrl = get_node_or_null("XROrigin3D/RightHandController")
+	left_ctrl = get_node_or_null("XROrigin3D/LeftHand")
+	right_ctrl = get_node_or_null("XROrigin3D/RightHand")
 	if right_ctrl:
 		right_ctrl.button_pressed.connect(_on_right_button_pressed)
 		right_ctrl.button_released.connect(_on_right_button_released)
@@ -42,6 +44,17 @@ func _ready() -> void:
 
 	http_cmd_req = HTTPRequest.new()
 	add_child(http_cmd_req)
+
+	state_poll_timer = Timer.new()
+	state_poll_timer.wait_time = 1.0
+	state_poll_timer.autostart = true
+	state_poll_timer.timeout.connect(_on_poll_state_timeout)
+	add_child(state_poll_timer)
+	_on_poll_state_timeout()
+
+func _on_poll_state_timeout() -> void:
+	if http_state_req and http_state_req.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+		http_state_req.request(gateway_base_url + "/api/state")
 
 func _process(_delta: float) -> void:
 	var table_anchor: Node3D = get_node_or_null("SandTableAnchor")
