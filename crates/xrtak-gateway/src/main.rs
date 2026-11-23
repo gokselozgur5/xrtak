@@ -9,7 +9,7 @@ use xrtak_core::{
     build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
     compute_viewshed_with_provider, escape_cot_attr, evaluate_mission_corridor, evaluate_rf_link,
     evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
-    export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
+    export_qgc_plan_json, parse_kml_mission, parse_qgc_plan_mission,
     predict_entity_trajectory_struct, resolve_tile_with_fallback,
     resolve_tile_with_placeholder_check, AarSummary, GeoOrigin, ImageryProvider, ManifestInput,
     OperatorPeer, OpordUnitSummary, RfBand, SapientDetectionReport, SharedTablePose,
@@ -576,67 +576,6 @@ async fn handle_http_connection(
 
     if let Some(resp) = router::try_dispatch(&req, &state).await? {
         return http::write_response(&mut stream, &resp).await;
-    }
-
-    if method == "POST" && path == "/api/terrain/geotiff" {
-        if let Ok(gt_req) = serde_json::from_str::<GeoTiffUploadRequest>(body) {
-            let name = gt_req.name.unwrap_or_else(|| "GEOTIFF-DSM".to_string());
-            let extent = {
-                let guard = lock_world(&world);
-                guard.origin.extent_m
-            };
-            match ingest_geotiff_dsm(&name, extent, 65, &gt_req.bytes) {
-                Ok(parsed) => {
-                    let resp_json = {
-                        let mut guard = lock_world(&world);
-                        let dem_extent = parsed.dem.extent_m;
-                        if gt_req.auto_recenter.unwrap_or(true) {
-                            if let Some((clat, clon)) = parsed.center_lat_lon {
-                                guard.recenter_origin(GeoOrigin {
-                                    lat: clat,
-                                    lon: clon,
-                                    alt_m: parsed.min_asl_m.round(),
-                                    extent_m: dem_extent,
-                                });
-                            } else {
-                                guard.origin.alt_m = parsed.min_asl_m.round();
-                                guard.origin.extent_m = dem_extent;
-                            }
-                        } else {
-                            guard.origin.extent_m = dem_extent;
-                        }
-                        guard.set_terrain_provider(&name, Box::new(parsed.dem));
-                        let grid = guard.terrain.export_grid(guard.origin.extent_m, 65);
-                        serde_json::json!({
-                            "name": guard.terrain_name,
-                            "origin": guard.origin,
-                            "metadata": parsed.metadata,
-                            "min_asl_m": parsed.min_asl_m,
-                            "max_asl_m": parsed.max_asl_m,
-                            "resolution": 65,
-                            "extent_m": guard.origin.extent_m,
-                            "heights_m": grid
-                        })
-                        .to_string()
-                    };
-                    let header = json_ok_header(resp_json.len());
-                    stream.write_all(header.as_bytes()).await?;
-                    stream.write_all(resp_json.as_bytes()).await?;
-                    return Ok(());
-                }
-                Err(err) => {
-                    let msg = serde_json::json!({ "error": err }).to_string();
-                    let header = format!(
-                        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
-                        msg.len()
-                    );
-                    stream.write_all(header.as_bytes()).await?;
-                    stream.write_all(msg.as_bytes()).await?;
-                    return Ok(());
-                }
-            }
-        }
-        return send_err_400(&mut stream, "invalid_geotiff_payload").await;
     }
 
     if method == "GET" && path == "/api/stream" {
