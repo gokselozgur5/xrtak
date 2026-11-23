@@ -32,10 +32,20 @@ fn github_pages_demo_sim_configuration_and_sri_integrity() {
         "index.html must display DEMO SIM badge for standalone client sim"
     );
 
-    // Three.js script tag must include SHA-384 SRI integrity and crossorigin attributes
+    // Three.js module must be used with verified SHA-384 SRI integrity and crossorigin attributes
     assert!(
-        ROOT_INDEX.contains("integrity=\"sha384-") || ROOT_INDEX.contains("integrity='sha384-"),
-        "index.html must specify integrity hash for unpkg three.js script"
+        !ROOT_INDEX.contains("three.min.js"),
+        "index.html must not reference deprecated or non-existent three.min.js"
+    );
+    assert!(
+        ROOT_INDEX.contains("three.module.js"),
+        "index.html must reference three.module.js"
+    );
+    assert!(
+        ROOT_INDEX.contains(
+            "integrity=\"sha384-wlK04bYFr3nyu6ipQq5N4n7KKGByMS1Yu1T8IrNtEnHiJ5WcGDt9dZBZFpRZjXEE\""
+        ),
+        "index.html must specify verified SHA-384 integrity hash for three.module.js"
     );
     assert!(
         ROOT_INDEX.contains("crossorigin=\"anonymous\"")
