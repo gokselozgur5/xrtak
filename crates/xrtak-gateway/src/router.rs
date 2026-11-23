@@ -42,6 +42,7 @@ pub async fn try_dispatch(
         ("POST", "/api/airspace/deconflict") => handle_deconflict_post(&req.body, state)?,
         ("GET", "/api/export/opord") => handle_export_opord_get(state)?,
         ("POST", "/api/ew/jamming") => handle_ew_jamming_post(&req.body)?,
+        ("POST", "/api/medevac/nine-line") => handle_medevac_post(&req.body, state)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -568,5 +569,60 @@ fn handle_ew_jamming_post(body: &str) -> Result<HttpResponse, DynError> {
     HttpResponse::json(&ew_dto::EwJammingResponse {
         assessment,
         burn_through,
+    })
+}
+
+fn handle_medevac_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(m_req) = serde_json::from_str::<medevac_dto::MedevacNineLineRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_medevac_request_payload"));
+    };
+    let prec = match m_req.precedence.as_deref() {
+        Some("urgent") => xrtak_core::PatientPrecedence::Urgent,
+        Some("urgent_surgical") => xrtak_core::PatientPrecedence::UrgentSurgical,
+        Some("priority") => xrtak_core::PatientPrecedence::Priority,
+        Some("routine") => xrtak_core::PatientPrecedence::Routine,
+        _ => xrtak_core::PatientPrecedence::Urgent,
+    };
+    let (e, u, n) = m_req.enu_center;
+    let radius = m_req.hlz_radius_m.unwrap_or(25.0);
+    let (hlz_suitability, lat, lon) = {
+        let guard = lock_world(&state.world);
+        let elev: &dyn xrtak_core::ElevationProvider = guard.terrain.as_ref();
+        let suit = xrtak_core::evaluate_hlz_suitability(e, n, radius, elev, &guard.threat_domes);
+        let (lat, lon, _) = guard.origin.enu_to_lla(e, u, n);
+        (suit, lat, lon)
+    };
+    let report = xrtak_core::MedevacReport {
+        line1_location: m_req.location,
+        line2_freq_callsign: m_req.freq_callsign,
+        line3_precedence: prec,
+        line4_special_equipment: m_req
+            .special_equipment
+            .unwrap_or_else(|| "None / Standard".to_string()),
+        line5_litter_count: m_req.litter_count.unwrap_or(1),
+        line5_ambulatory_count: m_req.ambulatory_count.unwrap_or(0),
+        line6_security: m_req
+            .security
+            .unwrap_or_else(|| "N - No enemy troops in area".to_string()),
+        line7_hlz_marking: m_req
+            .marking
+            .unwrap_or_else(|| "Panels / Smoke Green".to_string()),
+        line8_patient_nationality: m_req
+            .nationality
+            .unwrap_or_else(|| "Friendly Military".to_string()),
+        line9_nbc_or_terrain: m_req
+            .terrain_remarks
+            .unwrap_or_else(|| "Valley clearing".to_string()),
+        lat,
+        lon,
+        east_m: e,
+        north_m: n,
+        up_m: u,
+    };
+    let formatted_nine_line = xrtak_core::format_nato_nine_line_text(&report);
+    HttpResponse::json(&medevac_dto::MedevacNineLineResponse {
+        formatted_nine_line,
+        report,
+        hlz_suitability,
     })
 }
