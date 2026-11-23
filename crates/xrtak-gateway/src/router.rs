@@ -46,6 +46,8 @@ pub async fn try_dispatch(
         ("POST", "/api/fires/ballistics") => handle_ballistics_post(&req.body, state)?,
         ("POST", "/api/uav/endurance") => handle_uav_endurance_post(&req.body)?,
         ("POST", "/api/spawn") => handle_spawn_post(&req.body, state).await?,
+        ("POST", "/api/pin/move") => handle_pin_move_post(&req.body, state).await?,
+        ("POST", "/api/pin/delete") => handle_pin_delete_post(&req.body, state).await,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -714,4 +716,59 @@ async fn handle_spawn_post(body: &str, state: &GatewayState) -> Result<HttpRespo
         Ok(entity) => HttpResponse::json(&entity),
         Err(_) => Ok(HttpResponse::bad_request("invalid_spawn_payload")),
     }
+}
+
+async fn handle_pin_move_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(mv) = serde_json::from_str::<PinMoveRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_pin_move_payload"));
+    };
+    let (updated, pins_json) = {
+        let mut guard = lock_world(&state.world);
+        let up_m = guard.sample_relief_m(mv.east_m, mv.north_m) + mv.alt_offset_m.unwrap_or(0.0);
+        let (lat, lon, hae) = guard.origin.enu_to_lla(mv.east_m, up_m, mv.north_m);
+        let out_ent = guard.entities.get_mut(&mv.uid).map(|ent| {
+            (ent.east_m, ent.north_m, ent.up_m) = (mv.east_m, mv.north_m, up_m);
+            (ent.lat, ent.lon, ent.hae_m) = (lat, lon, hae);
+            if let Some(cs) = mv.callsign.filter(|s| !s.trim().is_empty()) {
+                ent.callsign = cs;
+            }
+            if let Some(rmk) = mv.remarks {
+                ent.remarks = rmk;
+            }
+            ent.updated_unix_ms = now_unix_ms();
+            let cloned = ent.clone();
+            (entity_to_cot_xml(&cloned), cloned)
+        });
+        let pj = out_ent.is_some().then(|| {
+            guard.refresh_threat_domes_and_zones();
+            snapshot_persistent_pins_json(&guard)
+        });
+        (out_ent, pj.flatten())
+    };
+    flush_persistent_pins(pins_json).await;
+    match updated {
+        Some((xml, entity)) => {
+            state.send_feedback(xml.as_bytes()).await;
+            HttpResponse::json(&entity)
+        }
+        None => Ok(HttpResponse::bad_request("invalid_pin_move_payload")),
+    }
+}
+
+async fn handle_pin_delete_post(body: &str, state: &GatewayState) -> HttpResponse {
+    let Ok(del) = serde_json::from_str::<PinDeleteRequest>(body) else {
+        return HttpResponse::bad_request("invalid_pin_delete_payload");
+    };
+    let (removed, pins_json) = {
+        let mut guard = lock_world(&state.world);
+        let r = guard.entities.remove(&del.uid).is_some();
+        OPERATOR_PINS
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&del.uid);
+        guard.refresh_threat_domes_and_zones();
+        (r, snapshot_persistent_pins_json(&guard))
+    };
+    flush_persistent_pins(pins_json).await;
+    HttpResponse::json_str(serde_json::json!({ "deleted": removed, "uid": del.uid }).to_string())
 }
