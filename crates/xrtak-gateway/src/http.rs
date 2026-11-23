@@ -2,6 +2,7 @@ use serde::Serialize;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::sync::broadcast;
 
 pub type DynError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -13,6 +14,7 @@ pub struct HttpResponse {
     pub content_type: Option<&'static str>,
     pub cors: bool,
     pub cache_no_cache: bool,
+    pub keep_alive: bool,
     pub body: Vec<u8>,
 }
 
@@ -28,6 +30,7 @@ impl HttpResponse {
             content_type,
             cors,
             cache_no_cache: false,
+            keep_alive: false,
             body,
         }
     }
@@ -86,6 +89,13 @@ impl HttpResponse {
     pub fn not_found() -> Self {
         Self::new("404 Not Found", None, false, b"Not Found".to_vec())
     }
+
+    pub fn event_stream() -> Self {
+        let mut r = Self::new("200 OK", Some("text/event-stream"), true, Vec::new());
+        r.cache_no_cache = true;
+        r.keep_alive = true;
+        r
+    }
 }
 
 pub async fn write_response(stream: &mut TcpStream, resp: &HttpResponse) -> Result<(), DynError> {
@@ -99,14 +109,38 @@ pub async fn write_response(stream: &mut TcpStream, resp: &HttpResponse) -> Resu
     } else {
         ""
     };
-    let header = format!(
-        "HTTP/1.1 {}\r\n{ct}{cors}Content-Length: {}\r\n{cache}Connection: close\r\n\r\n",
-        resp.status,
-        resp.body.len()
-    );
+    let framing = if resp.keep_alive {
+        "Connection: keep-alive\r\n".to_string()
+    } else {
+        format!(
+            "Content-Length: {}\r\nConnection: close\r\n",
+            resp.body.len()
+        )
+    };
+    let header = format!("HTTP/1.1 {}\r\n{ct}{cors}{cache}{framing}\r\n", resp.status);
     stream.write_all(header.as_bytes()).await?;
     if !resp.body.is_empty() {
         stream.write_all(&resp.body).await?;
+    }
+    Ok(())
+}
+
+pub async fn stream_sse(
+    stream: &mut TcpStream,
+    mut rx: broadcast::Receiver<String>,
+) -> Result<(), DynError> {
+    write_response(stream, &HttpResponse::event_stream()).await?;
+    loop {
+        match rx.recv().await {
+            Ok(json) => {
+                let frame = format!("data: {json}\n\n");
+                if stream.write_all(frame.as_bytes()).await.is_err() {
+                    break;
+                }
+            }
+            Err(broadcast::error::RecvError::Lagged(_)) => continue,
+            Err(broadcast::error::RecvError::Closed) => break,
+        }
     }
     Ok(())
 }

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
@@ -18,8 +18,6 @@ mod fires_dto;
 mod http;
 mod medevac_dto;
 mod router;
-
-use http::{HttpResponse, CORS_HEADERS};
 
 const INDEX_HTML: &str = include_str!("../../../index.html");
 
@@ -571,38 +569,10 @@ async fn handle_http_connection(
     let Some(req) = http::read_request(&mut stream).await? else {
         return Ok(());
     };
-    let (method, path) = (req.method.as_str(), req.target.as_str());
-
-    if is_state_changing(method, path) {
-        if let Some((code, err)) = check_request_auth(&req) {
-            return http::write_response(&mut stream, &HttpResponse::auth_error(code, err)).await;
-        }
+    match router::dispatch(&req, &state).await? {
+        router::RouteOutput::Response(resp) => http::write_response(&mut stream, &resp).await,
+        router::RouteOutput::SseStream(rx) => http::stream_sse(&mut stream, rx).await,
     }
-
-    if let Some(resp) = router::try_dispatch(&req, &state).await? {
-        return http::write_response(&mut stream, &resp).await;
-    }
-
-    if method == "GET" && path == "/api/stream" {
-        let header = format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n{CORS_HEADERS}\r\n");
-        stream.write_all(header.as_bytes()).await?;
-        let mut rx = state.tx.subscribe();
-        loop {
-            match rx.recv().await {
-                Ok(json) => {
-                    let frame = format!("data: {json}\n\n");
-                    if stream.write_all(frame.as_bytes()).await.is_err() {
-                        break;
-                    }
-                }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                Err(broadcast::error::RecvError::Closed) => break,
-            }
-        }
-        return Ok(());
-    }
-
-    http::write_response(&mut stream, &HttpResponse::not_found()).await
 }
 
 #[cfg(test)]
