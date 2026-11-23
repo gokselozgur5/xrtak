@@ -345,7 +345,12 @@
     .aar-badge.replay {
       background: var(--yellow);
     }
+    .aar-badge.demo {
+      background: var(--cyan);
+      color: #020810;
+    }
   </style>
+  <script src="https://unpkg.com/three@0.164.1/build/three.min.js" integrity="sha384-cWhlEwF7VVKUvu72tIGOSFZx8LXoJQ8qJZU2ivspZaVt3NjFNoIV7pjnwmAPAgcx" crossorigin="anonymous"></script>
   <script type="importmap">
     {
       "imports": {
@@ -593,7 +598,8 @@
     import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
     const urlParams = new URLSearchParams(window.location.search);
-    const API_BASE = (urlParams.get('gateway') || (window.location.hostname.endsWith('github.io') ? 'http://192.168.1.6:8090' : '')).replace(/\/$/, '');
+    const isStaticDemoHost = (window.location.hostname.endsWith('github.io') || window.location.protocol === 'file:') && !urlParams.has('gateway');
+    const API_BASE = (urlParams.get('gateway') || '').replace(/\/$/, '');
     const apiUrl = (path) => `${API_BASE}${path}`;
 
     const WORLD_EXTENT_M = 1500.0;
@@ -4767,6 +4773,11 @@
     function startStandaloneClientSim(aarSlider, aarLabel, isReplayRef) {
       if (standaloneSimActive) return;
       standaloneSimActive = true;
+      const aarBadge = document.getElementById('aar-mode-badge');
+      if (aarBadge) {
+        aarBadge.textContent = 'DEMO SIM';
+        aarBadge.classList.add('demo');
+      }
       activeDemGrid = computeClientPresetTerrain('valley');
       buildTerrainMesh();
 
@@ -4990,6 +5001,11 @@
       }
     }
     connectTelemetryStream();
+    if (isStaticDemoHost) {
+      const aarSlider = document.getElementById('aar-slider');
+      const aarLabel = document.getElementById('aar-time-label');
+      startStandaloneClientSim(aarSlider, aarLabel, () => false);
+    }
     // Auto-load real satellite imagery + real AWS Terrarium SRTM elevation on startup
     setTimeout(() => {
       loadRealWorldSector(currentOriginLat, currentOriginLon, 'ANKARA-SRTM');
