@@ -673,3 +673,34 @@ async fn test_sse_stream_survives_broadcast_lag() {
     .await;
     assert_eq!(ok, Ok(true), "SSE stream closed on broadcast lag");
 }
+
+#[test]
+fn malformed_json_body_returns_400_not_404() {
+    struct Guard(Child);
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            let _ = (self.0.kill(), self.0.wait());
+        }
+    }
+    let (gw, port) = start_gateway();
+    let _gw = Guard(gw);
+    let routes = "terrain terrain/geotiff spi viewshed los elevation-profile mission/import \
+        mission/export tiles/resolve mission/corridor-polygon mapset/plan rf/link-budget \
+        tracks/predict airspace/deconflict ew/jamming medevac/nine-line fires/ballistics \
+        uav/endurance spawn pin/move pin/delete pointer collab/sync sapient tak-config";
+    for sub in routes.split_whitespace() {
+        let path = format!("/api/{sub}");
+        let out = send_req(port, "POST", &path, "{not json");
+        let (hdr, body) = out.split_once("\r\n\r\n").unwrap_or((&out, ""));
+        assert!(hdr.starts_with("HTTP/1.1 400 Bad Request"), "{path}: {hdr}");
+        assert!(
+            hdr.contains("Access-Control-Allow-Methods: GET, POST, OPTIONS")
+                && hdr.contains("Access-Control-Allow-Headers: Content-Type"),
+            "{path} missing CORS headers: {hdr}"
+        );
+        let err_json: serde_json::Value = serde_json::from_str(body).unwrap_or_default();
+        assert!(err_json["error"].is_string(), "{path} body: {body}");
+    }
+    let unknown = send_req(port, "POST", "/api/unknown-route", "{not json");
+    assert!(unknown.starts_with("HTTP/1.1 404 Not Found"), "{unknown}");
+}
