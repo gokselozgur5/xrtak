@@ -1,3 +1,9 @@
+use std::time::Duration;
+use tokio::io::AsyncReadExt;
+use tokio::net::TcpStream;
+
+pub type DynError = Box<dyn std::error::Error + Send + Sync>;
+
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
     pub method: String,
@@ -39,6 +45,47 @@ impl HttpRequest {
             .iter()
             .find(|(k, _)| k.eq_ignore_ascii_case(name))
             .map(|(_, v)| v.as_str())
+    }
+}
+
+async fn read_http_bytes(stream: &mut TcpStream) -> Result<Vec<u8>, DynError> {
+    let mut buf = Vec::with_capacity(4096);
+    let mut chunk = [0u8; 8192];
+    let (hdr_end, content_len) = loop {
+        if let Some(pos) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+            let cl = String::from_utf8_lossy(&buf[..pos])
+                .lines()
+                .find_map(|l| {
+                    let (k, v) = l.split_once(':')?;
+                    k.trim()
+                        .eq_ignore_ascii_case("content-length")
+                        .then(|| v.trim().parse::<usize>().ok())
+                        .flatten()
+                })
+                .unwrap_or(0);
+            break (pos, cl);
+        }
+        let r = stream.read(&mut chunk).await?;
+        if r == 0 {
+            return Ok(buf);
+        }
+        buf.extend_from_slice(&chunk[..r]);
+    };
+    let total_needed = hdr_end + 4 + content_len;
+    while buf.len() < total_needed {
+        let r = stream.read(&mut chunk).await?;
+        if r == 0 {
+            break;
+        }
+        buf.extend_from_slice(&chunk[..r]);
+    }
+    Ok(buf)
+}
+
+pub async fn read_request(stream: &mut TcpStream) -> Result<Option<HttpRequest>, DynError> {
+    match tokio::time::timeout(Duration::from_secs(10), read_http_bytes(stream)).await {
+        Ok(Ok(buf)) => Ok(HttpRequest::parse(&buf)),
+        _ => Ok(None),
     }
 }
 

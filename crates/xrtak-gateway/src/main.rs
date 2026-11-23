@@ -518,56 +518,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn read_http_request(
-    stream: &mut TcpStream,
-) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-    let mut buf = Vec::with_capacity(4096);
-    let mut chunk = [0u8; 8192];
-    let (hdr_end, content_len) = loop {
-        if let Some(pos) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
-            let cl = String::from_utf8_lossy(&buf[..pos])
-                .lines()
-                .find_map(|l| {
-                    let (k, v) = l.split_once(':')?;
-                    if k.trim().eq_ignore_ascii_case("content-length") {
-                        v.trim().parse::<usize>().ok()
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(0);
-            break (pos, cl);
-        }
-        let r = stream.read(&mut chunk).await?;
-        if r == 0 {
-            return Ok(buf);
-        }
-        buf.extend_from_slice(&chunk[..r]);
-    };
-
-    let total_needed = hdr_end + 4 + content_len;
-    while buf.len() < total_needed {
-        let r = stream.read(&mut chunk).await?;
-        if r == 0 {
-            break;
-        }
-        buf.extend_from_slice(&chunk[..r]);
-    }
-    Ok(buf)
-}
-
 async fn handle_http_connection(
     mut stream: TcpStream,
     world: Arc<Mutex<TacticalWorld>>,
     tx: broadcast::Sender<String>,
     tak_client: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let buf =
-        match tokio::time::timeout(Duration::from_secs(10), read_http_request(&mut stream)).await {
-            Ok(Ok(b)) => b,
-            _ => return Ok(()),
-        };
-    let Some(req) = http::HttpRequest::parse(&buf) else {
+) -> Result<(), http::DynError> {
+    let Some(req) = http::read_request(&mut stream).await? else {
         return Ok(());
     };
     let (method, path, body) = (req.method.as_str(), req.target.as_str(), req.body.as_str());
