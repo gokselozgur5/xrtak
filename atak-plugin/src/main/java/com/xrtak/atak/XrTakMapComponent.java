@@ -17,11 +17,19 @@ public class XrTakMapComponent extends AbstractMapComponent
     private final CotBridgeTransport transport;
 
     public XrTakMapComponent() {
-        this(new CotBridgeTransport.Udp("127.0.0.1", 4242));
+        this(new CotBridgeTransport.Udp("127.0.0.1", 4242, 4243));
+    }
+
+    public XrTakMapComponent(String targetHost, int targetPort, int listenPort) {
+        this(new CotBridgeTransport.Udp(targetHost, targetPort, listenPort));
     }
 
     public XrTakMapComponent(CotBridgeTransport transport) {
         this.transport = transport;
+    }
+
+    public CotBridgeTransport getTransport() {
+        return transport;
     }
 
     @Override
@@ -30,11 +38,13 @@ public class XrTakMapComponent extends AbstractMapComponent
         d.addMapEventListener(MapEvent.ITEM_ADDED, this);
         d.addMapEventListener(MapEvent.ITEM_REFRESH, this);
         d.addMapEventListener(MapEvent.ITEM_SHARED, this);
+        transport.startInboundListener(xml -> dispatchInboundCotXml(xml, false));
     }
 
     @Override
     protected void onDestroyImpl(Context context, MapView view) {
         view.getMapEventDispatcher().removeMapEventListener(this);
+        transport.stopInboundListener();
     }
 
     @Override
