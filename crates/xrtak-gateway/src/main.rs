@@ -137,6 +137,25 @@ struct WorldSnapshot {
     table_pose: SharedTablePose,
 }
 
+impl WorldSnapshot {
+    fn from_world(world: &TacticalWorld) -> Self {
+        let mut entities: Vec<TacticalEntity> = world.entities.values().cloned().collect();
+        entities.sort_by(|a, b| a.uid.cmp(&b.uid));
+        Self {
+            origin: world.origin,
+            terrain_name: world.terrain_name.clone(),
+            sim_enabled: world.sim_enabled,
+            sim_time_sec: world.sim_time_sec,
+            aar: world.aar.summary(),
+            entities,
+            threat_domes: world.threat_domes.clone(),
+            tactical_zones: world.tactical_zones.clone(),
+            operators: world.collab.sorted_peers(),
+            table_pose: world.collab.table_pose,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct CollabSyncRequest {
     operator_id: String,
@@ -450,21 +469,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let now_ms = now_unix_ms();
                     guard.step_simulation(0.05, now_ms);
                     guard.collab.prune_stale(now_ms, 15_000);
-                    let mut entities: Vec<TacticalEntity> =
-                        guard.entities.values().cloned().collect();
-                    entities.sort_by(|a, b| a.uid.cmp(&b.uid));
-                    let snap = WorldSnapshot {
-                        origin: guard.origin,
-                        terrain_name: guard.terrain_name.clone(),
-                        sim_enabled: guard.sim_enabled,
-                        sim_time_sec: guard.sim_time_sec,
-                        aar: guard.aar.summary(),
-                        entities,
-                        threat_domes: guard.threat_domes.clone(),
-                        tactical_zones: guard.tactical_zones.clone(),
-                        operators: guard.collab.sorted_peers(),
-                        table_pose: guard.collab.table_pose,
-                    };
+                    let snap = WorldSnapshot::from_world(&guard);
                     serde_json::to_string(&snap).unwrap_or_default()
                 };
                 let _ = tx_sim.send(payload);
@@ -539,23 +544,7 @@ async fn handle_http_connection(
     }
 
     if method == "GET" && path == "/api/state" {
-        let snap = {
-            let guard = lock_world(&world);
-            let mut entities: Vec<TacticalEntity> = guard.entities.values().cloned().collect();
-            entities.sort_by(|a, b| a.uid.cmp(&b.uid));
-            WorldSnapshot {
-                origin: guard.origin,
-                terrain_name: guard.terrain_name.clone(),
-                sim_enabled: guard.sim_enabled,
-                sim_time_sec: guard.sim_time_sec,
-                aar: guard.aar.summary(),
-                entities,
-                threat_domes: guard.threat_domes.clone(),
-                tactical_zones: guard.tactical_zones.clone(),
-                operators: guard.collab.sorted_peers(),
-                table_pose: guard.collab.table_pose,
-            }
-        };
+        let snap = WorldSnapshot::from_world(&lock_world(&world));
         return http::write_response(&mut stream, &HttpResponse::json(&snap)?).await;
     }
 
