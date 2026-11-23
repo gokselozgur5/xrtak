@@ -225,7 +225,35 @@ struct PinDeleteRequest {
 
 #[derive(Debug, Deserialize)]
 struct ElevationProfileRequest {
+    #[serde(deserialize_with = "deserialize_bounded_waypoints")]
     waypoints_en: Vec<(f64, f64)>,
+}
+
+fn deserialize_bounded_waypoints<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Vec<(f64, f64)>, D::Error> {
+    struct Visitor;
+    impl<'de> serde::de::Visitor<'de> for Visitor {
+        type Value = Vec<(f64, f64)>;
+        fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("bounded waypoint array")
+        }
+        fn visit_seq<A: serde::de::SeqAccess<'de>>(
+            self,
+            mut seq: A,
+        ) -> Result<Self::Value, A::Error> {
+            let cap = xrtak_core::geo::MAX_ELEVATION_PROFILE_WAYPOINTS;
+            let mut out = Vec::with_capacity(seq.size_hint().unwrap_or(0).min(cap));
+            while let Some(pt) = seq.next_element()? {
+                if out.len() >= cap {
+                    return Err(serde::de::Error::custom("too many waypoints"));
+                }
+                out.push(pt);
+            }
+            Ok(out)
+        }
+    }
+    deserializer.deserialize_seq(Visitor)
 }
 
 #[derive(Debug, Deserialize)]
@@ -933,17 +961,17 @@ async fn handle_http_connection(
 
     if method == "POST" && path == "/api/elevation-profile" {
         let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
-        if let Ok(prof_req) = serde_json::from_str::<ElevationProfileRequest>(body) {
-            let prof = {
-                let guard = lock_world(&world);
-                guard.compute_elevation_profile(&prof_req.waypoints_en)
-            };
-            let json = serde_json::to_string(&prof)?;
-            let header = json_ok_header(json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(json.as_bytes()).await?;
-            return Ok(());
-        }
+        let (header, resp) = match serde_json::from_str::<ElevationProfileRequest>(body) {
+            Ok(prof_req) => {
+                let prof = lock_world(&world).compute_elevation_profile(&prof_req.waypoints_en);
+                let json = serde_json::to_string(&prof)?;
+                (json_ok_header(json.len()), json)
+            }
+            Err(err) => err_400_response(&err.to_string()),
+        };
+        stream.write_all(header.as_bytes()).await?;
+        stream.write_all(resp.as_bytes()).await?;
+        return Ok(());
     }
 
     if method == "POST" && path == "/api/mission/import" {
