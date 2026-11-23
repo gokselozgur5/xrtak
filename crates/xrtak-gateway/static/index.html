@@ -3393,8 +3393,15 @@
           const arcLine = new THREE.Line(arcGeom, new THREE.LineBasicMaterial({ color: arcColor, linewidth: 3 }));
           ballisticsMeshGroup.add(arcLine);
 
-          const apogeeIdx = Math.floor(pts.length / 2);
-          if (pts[apogeeIdx]) {
+          let apogeeIdx = -1;
+          let maxUp = -Infinity;
+          sol.trajectory.forEach((tp, i) => {
+            if (tp.up_m > maxUp) {
+              maxUp = tp.up_m;
+              apogeeIdx = i;
+            }
+          });
+          if (apogeeIdx >= 0 && pts[apogeeIdx]) {
             const apoMesh = new THREE.Mesh(
               new THREE.SphereGeometry(0.008, 12, 12),
               new THREE.MeshBasicMaterial({ color: 0xffffff })
