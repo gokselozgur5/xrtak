@@ -1,6 +1,10 @@
 use crate::http::{DynError, HttpRequest, HttpResponse};
-use crate::{lock_world, GatewayState, TerrainSwitchRequest, WorldSnapshot, INDEX_HTML};
-use xrtak_core::{ProceduralReliefModel, RasterDemProvider, TacticalWorld};
+use crate::{
+    lock_world, GatewayState, GeoTiffUploadRequest, TerrainSwitchRequest, WorldSnapshot, INDEX_HTML,
+};
+use xrtak_core::{
+    ingest_geotiff_dsm, GeoOrigin, ProceduralReliefModel, RasterDemProvider, TacticalWorld,
+};
 
 pub async fn try_dispatch(
     req: &HttpRequest,
@@ -18,6 +22,7 @@ pub async fn try_dispatch(
         ("GET", p) if p.starts_with("/api/hud") => handle_hud(p, state),
         ("GET", "/api/terrain") => terrain_grid_response(&lock_world(&state.world)),
         ("POST", "/api/terrain") => handle_terrain_post(&req.body, state),
+        ("POST", "/api/terrain/geotiff") => handle_geotiff_post(&req.body, state),
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -108,4 +113,48 @@ fn handle_terrain_post(body: &str, state: &GatewayState) -> HttpResponse {
         }
     }
     terrain_grid_response(&guard)
+}
+
+fn handle_geotiff_post(body: &str, state: &GatewayState) -> HttpResponse {
+    let Ok(gt_req) = serde_json::from_str::<GeoTiffUploadRequest>(body) else {
+        return HttpResponse::bad_request("invalid_geotiff_payload");
+    };
+    let name = gt_req.name.unwrap_or_else(|| "GEOTIFF-DSM".to_string());
+    let extent = lock_world(&state.world).origin.extent_m;
+    let parsed = match ingest_geotiff_dsm(&name, extent, 65, &gt_req.bytes) {
+        Ok(p) => p,
+        Err(err) => return HttpResponse::bad_request(&err),
+    };
+    let mut guard = lock_world(&state.world);
+    let dem_extent = parsed.dem.extent_m;
+    if gt_req.auto_recenter.unwrap_or(true) {
+        if let Some((clat, clon)) = parsed.center_lat_lon {
+            guard.recenter_origin(GeoOrigin {
+                lat: clat,
+                lon: clon,
+                alt_m: parsed.min_asl_m.round(),
+                extent_m: dem_extent,
+            });
+        } else {
+            guard.origin.alt_m = parsed.min_asl_m.round();
+            guard.origin.extent_m = dem_extent;
+        }
+    } else {
+        guard.origin.extent_m = dem_extent;
+    }
+    guard.set_terrain_provider(&name, Box::new(parsed.dem));
+    let grid = guard.terrain.export_grid(guard.origin.extent_m, 65);
+    HttpResponse::json_str(
+        serde_json::json!({
+            "name": guard.terrain_name,
+            "origin": guard.origin,
+            "metadata": parsed.metadata,
+            "min_asl_m": parsed.min_asl_m,
+            "max_asl_m": parsed.max_asl_m,
+            "resolution": 65,
+            "extent_m": guard.origin.extent_m,
+            "heights_m": grid
+        })
+        .to_string(),
+    )
 }
