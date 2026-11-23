@@ -4892,6 +4892,11 @@
 
       try {
         const es = new EventSource(apiUrl('/api/stream'));
+        es.onopen = () => {
+          if (!aarReplayActive) {
+            aarBadge.textContent = 'LIVE 20Hz';
+          }
+        };
         es.onmessage = (ev) => {
           try {
             const snap = JSON.parse(ev.data);
@@ -4904,6 +4909,7 @@
               }
             }
             if (!aarReplayActive) {
+              aarBadge.textContent = 'LIVE 20Hz';
               updateHudAndRoster(snap);
             }
             if (!standaloneSimActive && snap.terrain_name && (!activeDemGrid || activeDemGrid.name !== snap.terrain_name)) {
@@ -4914,11 +4920,12 @@
           }
         };
         es.onerror = () => {
-          es.close();
-          startStandaloneClientSim(aarSlider, aarLabel, () => aarReplayActive);
+          if (!aarReplayActive) {
+            aarBadge.textContent = 'LINK-LOST';
+          }
         };
-      } catch (_) {
-        startStandaloneClientSim(aarSlider, aarLabel, () => aarReplayActive);
+      } catch (err) {
+        console.error('Telemetry stream init error:', err);
       }
     }
     connectTelemetryStream();
