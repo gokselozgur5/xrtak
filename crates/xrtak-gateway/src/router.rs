@@ -1,10 +1,12 @@
 use crate::http::{DynError, HttpRequest, HttpResponse};
 use crate::{
-    flush_persistent_pins, lock_world, now_unix_ms, snapshot_persistent_pins_json, GatewayState,
-    GeoTiffUploadRequest, SpiSlewRequest, TerrainSwitchRequest, WorldSnapshot, INDEX_HTML,
+    flush_persistent_pins, lock_world, now_unix_ms, snapshot_persistent_pins_json,
+    ElevationProfileRequest, GatewayState, GeoTiffUploadRequest, LinkLosRequest, SpiSlewRequest,
+    TerrainSwitchRequest, ViewshedRequest, WorldSnapshot, INDEX_HTML,
 };
 use xrtak_core::{
-    ingest_geotiff_dsm, GeoOrigin, ProceduralReliefModel, RasterDemProvider, TacticalWorld,
+    compute_link_los, compute_viewshed_with_provider, ingest_geotiff_dsm, GeoOrigin,
+    ProceduralReliefModel, RasterDemProvider, TacticalWorld,
 };
 
 pub async fn try_dispatch(
@@ -26,6 +28,9 @@ pub async fn try_dispatch(
         ("POST", "/api/terrain/geotiff") => handle_geotiff_post(&req.body, state),
         ("POST", "/api/cot") => handle_cot_post(&req.body, state).await?,
         ("POST", "/api/spi") => handle_spi_post(&req.body, state)?,
+        ("POST", "/api/viewshed") => handle_viewshed_post(&req.body, state)?,
+        ("POST", "/api/los") => handle_los_post(&req.body, state)?,
+        ("POST", "/api/elevation-profile") => handle_elevation_profile_post(&req.body, state)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -200,5 +205,57 @@ fn handle_spi_post(body: &str, state: &GatewayState) -> Result<HttpResponse, Dyn
     match res {
         Ok(entity) => HttpResponse::json(&entity),
         Err(_) => Ok(HttpResponse::bad_request("invalid_spi_payload")),
+    }
+}
+
+fn handle_viewshed_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(vs_req) = serde_json::from_str::<ViewshedRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_viewshed_payload"));
+    };
+    let guard = lock_world(&state.world);
+    let vs = compute_viewshed_with_provider(
+        guard.terrain.as_ref(),
+        vs_req.east_m,
+        vs_req.north_m,
+        vs_req.height_offset_m.unwrap_or(18.0),
+        vs_req.radius_m.unwrap_or(680.0),
+        72,
+        28,
+    );
+    HttpResponse::json(&vs)
+}
+
+fn handle_los_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(los_req) = serde_json::from_str::<LinkLosRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_los_payload"));
+    };
+    let guard = lock_world(&state.world);
+    let endpoint = |enu: Option<(f64, f64, f64)>, uid: Option<&String>| {
+        enu.or_else(|| {
+            uid.and_then(|u| guard.entities.get(u))
+                .map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
+        })
+    };
+    match (
+        endpoint(los_req.from_enu, los_req.from_uid.as_ref()),
+        endpoint(los_req.to_enu, los_req.to_uid.as_ref()),
+    ) {
+        (Some(a), Some(b)) => {
+            HttpResponse::json(&compute_link_los(guard.terrain.as_ref(), a, b, 48))
+        }
+        _ => Ok(HttpResponse::bad_request("invalid_los_payload")),
+    }
+}
+
+fn handle_elevation_profile_post(
+    body: &str,
+    state: &GatewayState,
+) -> Result<HttpResponse, DynError> {
+    match serde_json::from_str::<ElevationProfileRequest>(body) {
+        Ok(prof_req) => {
+            let prof = lock_world(&state.world).compute_elevation_profile(&prof_req.waypoints_en);
+            HttpResponse::json(&prof)
+        }
+        Err(err) => Ok(HttpResponse::bad_request(&err.to_string())),
     }
 }

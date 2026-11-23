@@ -6,10 +6,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
-    build_laser_pointer_cot_xml, build_mapset_manifest, compute_link_los,
-    compute_viewshed_with_provider, escape_cot_attr, evaluate_mission_corridor, evaluate_rf_link,
-    evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
-    export_qgc_plan_json, parse_kml_mission, parse_qgc_plan_mission,
+    build_laser_pointer_cot_xml, build_mapset_manifest, escape_cot_attr, evaluate_mission_corridor,
+    evaluate_rf_link, evaluate_swath_corridor, evaluate_theater_deconfliction,
+    export_atak_route_cot_xml, export_qgc_plan_json, parse_kml_mission, parse_qgc_plan_mission,
     predict_entity_trajectory_struct, resolve_tile_with_fallback,
     resolve_tile_with_placeholder_check, AarSummary, GeoOrigin, ImageryProvider, ManifestInput,
     OperatorPeer, OpordUnitSummary, RfBand, SapientDetectionReport, SharedTablePose,
@@ -36,15 +35,6 @@ fn json_ok_header(len: usize) -> String {
 
 fn lock_world(world: &Mutex<TacticalWorld>) -> MutexGuard<'_, TacticalWorld> {
     world.lock().unwrap_or_else(PoisonError::into_inner)
-}
-
-fn err_400_response(err: &str) -> (String, String) {
-    let msg = serde_json::json!({ "error": err }).to_string();
-    let hdr = format!(
-        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n",
-        msg.len()
-    );
-    (hdr, msg)
 }
 
 async fn send_err_400(stream: &mut TcpStream, err: &str) -> Result<(), http::DynError> {
@@ -594,77 +584,6 @@ async fn handle_http_connection(
                 Err(broadcast::error::RecvError::Closed) => break,
             }
         }
-        return Ok(());
-    }
-
-    if method == "POST" && path == "/api/viewshed" {
-        if let Ok(vs_req) = serde_json::from_str::<ViewshedRequest>(body) {
-            let vs = {
-                let guard = lock_world(&world);
-                compute_viewshed_with_provider(
-                    guard.terrain.as_ref(),
-                    vs_req.east_m,
-                    vs_req.north_m,
-                    vs_req.height_offset_m.unwrap_or(18.0),
-                    vs_req.radius_m.unwrap_or(680.0),
-                    72,
-                    28,
-                )
-            };
-            let json = serde_json::to_string(&vs)?;
-            let header = json_ok_header(json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(json.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_viewshed_payload").await;
-    }
-
-    if method == "POST" && path == "/api/los" {
-        if let Ok(los_req) = serde_json::from_str::<LinkLosRequest>(body) {
-            let res = {
-                let guard = lock_world(&world);
-                let from_enu = los_req.from_enu.or_else(|| {
-                    los_req
-                        .from_uid
-                        .as_ref()
-                        .and_then(|u| guard.entities.get(u))
-                        .map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
-                });
-                let to_enu = los_req.to_enu.or_else(|| {
-                    los_req
-                        .to_uid
-                        .as_ref()
-                        .and_then(|u| guard.entities.get(u))
-                        .map(|e| (e.east_m, e.up_m + 3.0, e.north_m))
-                });
-                match (from_enu, to_enu) {
-                    (Some(a), Some(b)) => Some(compute_link_los(guard.terrain.as_ref(), a, b, 48)),
-                    _ => None,
-                }
-            };
-            if let Some(los_result) = res {
-                let json = serde_json::to_string(&los_result)?;
-                let header = json_ok_header(json.len());
-                stream.write_all(header.as_bytes()).await?;
-                stream.write_all(json.as_bytes()).await?;
-                return Ok(());
-            }
-        }
-        return send_err_400(&mut stream, "invalid_los_payload").await;
-    }
-
-    if method == "POST" && path == "/api/elevation-profile" {
-        let (header, resp) = match serde_json::from_str::<ElevationProfileRequest>(body) {
-            Ok(prof_req) => {
-                let prof = lock_world(&world).compute_elevation_profile(&prof_req.waypoints_en);
-                let json = serde_json::to_string(&prof)?;
-                (json_ok_header(json.len()), json)
-            }
-            Err(err) => err_400_response(&err.to_string()),
-        };
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(resp.as_bytes()).await?;
         return Ok(());
     }
 
