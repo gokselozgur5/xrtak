@@ -44,6 +44,16 @@ fn err_400_response(err: &str) -> (String, String) {
     (hdr, msg)
 }
 
+async fn send_err_400(
+    stream: &mut TcpStream,
+    err: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let (hdr, msg) = err_400_response(err);
+    stream.write_all(hdr.as_bytes()).await?;
+    stream.write_all(msg.as_bytes()).await?;
+    Ok(())
+}
+
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
@@ -759,6 +769,7 @@ async fn handle_http_connection(
             stream.write_all(body.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_terrain_payload").await;
     }
 
     if method == "POST" && path == "/api/terrain/geotiff" {
@@ -820,6 +831,7 @@ async fn handle_http_connection(
                 }
             }
         }
+        return send_err_400(&mut stream, "invalid_geotiff_payload").await;
     }
 
     if method == "GET" && path == "/api/stream" {
@@ -904,6 +916,7 @@ async fn handle_http_connection(
                 return Ok(());
             }
         }
+        return send_err_400(&mut stream, "invalid_spi_payload").await;
     }
 
     if method == "POST" && path == "/api/viewshed" {
@@ -927,6 +940,7 @@ async fn handle_http_connection(
             stream.write_all(json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_viewshed_payload").await;
     }
 
     if method == "POST" && path == "/api/los" {
@@ -961,6 +975,7 @@ async fn handle_http_connection(
                 return Ok(());
             }
         }
+        return send_err_400(&mut stream, "invalid_los_payload").await;
     }
 
     if method == "POST" && path == "/api/elevation-profile" {
@@ -1048,6 +1063,7 @@ async fn handle_http_connection(
                 }
             }
         }
+        return send_err_400(&mut stream, "invalid_mission_import_payload").await;
     }
 
     if method == "POST" && path == "/api/mission/export" {
@@ -1094,6 +1110,7 @@ async fn handle_http_connection(
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_mission_export_payload").await;
     }
 
     if method == "POST" && path == "/api/tiles/resolve" {
@@ -1124,6 +1141,7 @@ async fn handle_http_connection(
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_tile_resolve_payload").await;
     }
 
     if method == "POST" && path == "/api/mission/corridor-polygon" {
@@ -1151,6 +1169,7 @@ async fn handle_http_connection(
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_corridor_polygon_payload").await;
     }
 
     if method == "POST" && path == "/api/mapset/plan" {
@@ -1187,6 +1206,7 @@ async fn handle_http_connection(
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_mapset_plan_payload").await;
     }
 
     if method == "POST" && path == "/api/rf/link-budget" {
@@ -1210,15 +1230,15 @@ async fn handle_http_connection(
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_rf_link_budget_payload").await;
     }
 
     if method == "POST" && path == "/api/tracks/predict" {
         let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
-        let p_req: TrackPredictRequest =
-            serde_json::from_str(body).unwrap_or_else(|_| TrackPredictRequest {
-                horizons_sec: Some(vec![15.0, 30.0, 60.0]),
-                stale_threshold_sec: Some(5.0),
-            });
+        let json_body = if body.is_empty() { "{}" } else { body };
+        let Ok(p_req) = serde_json::from_str::<TrackPredictRequest>(json_body) else {
+            return send_err_400(&mut stream, "invalid_tracks_predict_payload").await;
+        };
         let horizons = p_req.horizons_sec.unwrap_or_else(|| vec![15.0, 30.0, 60.0]);
         let stale_thresh_ms = (p_req.stale_threshold_sec.unwrap_or(5.0) * 1000.0) as u64;
         let now_ms = now_unix_ms();
@@ -1250,6 +1270,10 @@ async fn handle_http_connection(
     }
 
     if method == "POST" && path == "/api/airspace/deconflict" {
+        let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
+        if !body.is_empty() && serde_json::from_str::<serde_json::Value>(body).is_err() {
+            return send_err_400(&mut stream, "invalid_deconflict_payload").await;
+        }
         let deconflict_res = {
             let guard = lock_world(&world);
             let mut list: Vec<DeconflictEntity<'_>> = guard
@@ -1525,6 +1549,7 @@ async fn handle_http_connection(
                 return Ok(());
             }
         }
+        return send_err_400(&mut stream, "invalid_spawn_payload").await;
     }
 
     if method == "POST" && path == "/api/pin/move" {
@@ -1573,6 +1598,7 @@ async fn handle_http_connection(
                 return Ok(());
             }
         }
+        return send_err_400(&mut stream, "invalid_pin_move_payload").await;
     }
 
     if method == "POST" && path == "/api/pin/delete" {
@@ -1592,6 +1618,7 @@ async fn handle_http_connection(
             stream.write_all(json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_pin_delete_payload").await;
     }
 
     if method == "GET" && path == "/api/export/geojson" {
@@ -1684,6 +1711,7 @@ async fn handle_http_connection(
                 return Ok(());
             }
         }
+        return send_err_400(&mut stream, "invalid_pointer_payload").await;
     }
 
     if method == "POST" && path == "/api/collab/sync" {
@@ -1731,6 +1759,7 @@ async fn handle_http_connection(
             stream.write_all(resp_json.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_collab_sync_payload").await;
     }
 
     if method == "POST" && path == "/api/sapient" {
@@ -1751,6 +1780,7 @@ async fn handle_http_connection(
                 return Ok(());
             }
         }
+        return send_err_400(&mut stream, "invalid_sapient_payload").await;
     }
 
     if method == "POST" && path == "/api/tak-config" {
@@ -1820,6 +1850,7 @@ async fn handle_http_connection(
             stream.write_all(resp.as_bytes()).await?;
             return Ok(());
         }
+        return send_err_400(&mut stream, "invalid_tak_config_payload").await;
     }
 
     let not_found =
