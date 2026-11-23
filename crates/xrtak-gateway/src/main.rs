@@ -7,8 +7,7 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
     build_laser_pointer_cot_xml, build_mapset_manifest, escape_cot_attr, evaluate_rf_link,
-    evaluate_swath_corridor, evaluate_theater_deconfliction, export_atak_route_cot_xml,
-    export_qgc_plan_json, predict_entity_trajectory_struct, resolve_tile_with_fallback,
+    evaluate_theater_deconfliction, predict_entity_trajectory_struct, resolve_tile_with_fallback,
     resolve_tile_with_placeholder_check, AarSummary, GeoOrigin, ImageryProvider, ManifestInput,
     OperatorPeer, OpordUnitSummary, RfBand, SapientDetectionReport, SharedTablePose,
     TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPredictInput,
@@ -586,48 +585,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "POST" && path == "/api/mission/export" {
-        if let Ok(ex_req) = serde_json::from_str::<MissionExportRequest>(body) {
-            let route_uid = ex_req
-                .route_uid
-                .unwrap_or_else(|| "RTE-XR-TAK-01".to_string());
-            let route_cs = ex_req
-                .route_callsign
-                .unwrap_or_else(|| "XR-CORRIDOR-01".to_string());
-            let (qgc_plan_json, atak_bmr_xml) = {
-                let guard = lock_world(&world);
-                let qgc = export_qgc_plan_json(
-                    &guard.origin,
-                    guard.terrain.as_ref(),
-                    &ex_req.waypoints_en_agl,
-                );
-                let bmr = export_atak_route_cot_xml(
-                    &route_uid,
-                    &route_cs,
-                    &guard.origin,
-                    guard.terrain.as_ref(),
-                    &ex_req.waypoints_en_agl,
-                );
-                (qgc, bmr)
-            };
-            state.send_feedback(atak_bmr_xml.as_bytes()).await;
-            let resp_json = serde_json::json!({
-                "route_uid": route_uid,
-                "route_callsign": route_cs,
-                "waypoint_count": ex_req.waypoints_en_agl.len(),
-                "qgc_plan": serde_json::from_str::<serde_json::Value>(&qgc_plan_json).unwrap_or(serde_json::Value::Null),
-                "qgc_plan_json": qgc_plan_json,
-                "atak_bmr_cot_xml": atak_bmr_xml,
-            })
-            .to_string();
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_mission_export_payload").await;
-    }
-
     if method == "POST" && path == "/api/tiles/resolve" {
         if let Ok(t_req) = serde_json::from_str::<TileResolveRequest>(body) {
             let (lat, lon) = {
@@ -656,33 +613,6 @@ async fn handle_http_connection(
             return Ok(());
         }
         return send_err_400(&mut stream, "invalid_tile_resolve_payload").await;
-    }
-
-    if method == "POST" && path == "/api/mission/corridor-polygon" {
-        if let Ok(c_req) = serde_json::from_str::<CorridorPolygonRequest>(body) {
-            let origin = {
-                let guard = lock_world(&world);
-                guard.origin
-            };
-            let res = evaluate_swath_corridor(
-                c_req
-                    .name
-                    .unwrap_or_else(|| "XR-SWATH-CORRIDOR".to_string()),
-                &origin,
-                &c_req.waypoints_en,
-                c_req.rdp_epsilon_m.unwrap_or(8.0),
-                c_req.agl_m.unwrap_or(140.0),
-                c_req.hfov_deg,
-                c_req.focal_px,
-                c_req.sensor_width_px,
-            );
-            let resp_json = serde_json::to_string(&res)?;
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_corridor_polygon_payload").await;
     }
 
     if method == "POST" && path == "/api/mapset/plan" {
