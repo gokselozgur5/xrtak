@@ -126,6 +126,10 @@ fn check_request_auth(req: &str) -> Option<(u16, &'static str)> {
     None
 }
 
+fn feedback_addr() -> String {
+    std::env::var("XRTAK_FEEDBACK_ADDR").unwrap_or_else(|_| "127.0.0.1:4243".to_string())
+}
+
 /// Entity id, (east, north, up) position, speed in m/s and course in degrees.
 type DeconflictEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
 
@@ -1073,7 +1077,7 @@ async fn handle_http_connection(
             };
             if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
                 let _ = sock
-                    .send_to(atak_bmr_xml.as_bytes(), "127.0.0.1:4243")
+                    .send_to(atak_bmr_xml.as_bytes(), &feedback_addr())
                     .await;
             }
             let resp_json = serde_json::json!({
@@ -1511,7 +1515,7 @@ async fn handle_http_connection(
                 (xml, r)
             };
             if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+                let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
             }
             if let Ok(entity) = ent {
                 let json = serde_json::to_string(&entity)?;
@@ -1560,7 +1564,7 @@ async fn handle_http_connection(
             };
             if let Some((xml, entity)) = updated {
                 if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                    let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+                    let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
                 }
                 let json = serde_json::to_string(&entity)?;
                 let header = json_ok_header(json.len());
@@ -1670,7 +1674,7 @@ async fn handle_http_connection(
                 (xml, res)
             };
             if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+                let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
             }
             if let Ok(entity) = res {
                 let json = serde_json::to_string(&entity)?;
@@ -1738,7 +1742,7 @@ async fn handle_http_connection(
             };
             if let Ok((xml, entity)) = res {
                 if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                    let _ = sock.send_to(xml.as_bytes(), "127.0.0.1:4243").await;
+                    let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
                 }
                 let json = serde_json::to_string(&entity)?;
                 let header = json_ok_header(json.len());
