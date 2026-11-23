@@ -1839,6 +1839,7 @@
     tableGroup.add(osmBuildingsGroup);
     let showOsmBuildings = true;
     let osmBuildingsOrigin = null;
+    let osmBuildingsSeq = 0;
 
     const VR_DOCK_DEFS = [
       { id: 'dock-spi', label: 'SPI SLEW', row: 0, col: 0 },
@@ -4248,6 +4249,7 @@
     }
 
     function clearOsm3dBuildings() {
+      osmBuildingsSeq++;
       while (osmBuildingsGroup.children.length > 0) {
         const ch = osmBuildingsGroup.children.pop();
         if (ch.geometry) ch.geometry.dispose();
@@ -4260,6 +4262,7 @@
 
     async function loadRealOsm3dBuildings(lat, lon) {
       clearOsm3dBuildings();
+      const thisSeq = osmBuildingsSeq;
       osmBuildingsOrigin = { lat, lon };
       if (!showOsmBuildings) return;
       const cntEl = document.getElementById('osm-bldg-count');
@@ -4298,8 +4301,8 @@
         } catch (_) {}
       }
 
-      if (!data || !Array.isArray(data.elements)) {
-        if (cntEl) cntEl.textContent = '0';
+      if (!data || !Array.isArray(data.elements) || !showOsmBuildings || thisSeq !== osmBuildingsSeq) {
+        if (cntEl && (!showOsmBuildings || thisSeq === osmBuildingsSeq)) cntEl.textContent = '0';
         return;
       }
 
