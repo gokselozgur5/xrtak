@@ -20,6 +20,7 @@ use xrtak_core::{
 mod battery_dto;
 mod ew_dto;
 mod fires_dto;
+mod http;
 mod medevac_dto;
 
 const INDEX_HTML: &str = include_str!("../../../index.html");
@@ -94,26 +95,10 @@ fn is_state_changing(method: &str, path: &str) -> bool {
         )
 }
 
-fn check_request_auth(req: &str) -> Option<(u16, &'static str)> {
-    let mut origin_hdr: Option<&str> = None;
-    let mut host_hdr: Option<&str> = None;
-    let mut token_hdr: Option<&str> = None;
-    for line in req.lines().skip(1) {
-        if line.is_empty() {
-            break;
-        }
-        if let Some((name, val)) = line.split_once(':') {
-            let name = name.trim();
-            let val = val.trim();
-            if name.eq_ignore_ascii_case("origin") {
-                origin_hdr = Some(val);
-            } else if name.eq_ignore_ascii_case("host") {
-                host_hdr = Some(val);
-            } else if name.eq_ignore_ascii_case("x-xrtak-token") {
-                token_hdr = Some(val);
-            }
-        }
-    }
+fn check_request_auth(req: &http::HttpRequest) -> Option<(u16, &'static str)> {
+    let origin_hdr = req.header("origin");
+    let host_hdr = req.header("host");
+    let token_hdr = req.header("x-xrtak-token");
     if let Some(origin) = origin_hdr {
         let orig = normalize_host(origin);
         let host = normalize_host(host_hdr.unwrap_or(""));
@@ -582,18 +567,10 @@ async fn handle_http_connection(
             Ok(Ok(b)) => b,
             _ => return Ok(()),
         };
-    if buf.is_empty() {
+    let Some(req) = http::HttpRequest::parse(&buf) else {
         return Ok(());
-    }
-    let req = String::from_utf8_lossy(&buf);
-    let first_line = req.lines().next().unwrap_or("");
-    let parts: Vec<&str> = first_line.split_whitespace().collect();
-    if parts.len() < 2 {
-        return Ok(());
-    }
-    let method = parts[0];
-    let path = parts[1];
-    let body = req.split_once("\r\n\r\n").map(|x| x.1).unwrap_or("").trim();
+    };
+    let (method, path, body) = (req.method.as_str(), req.target.as_str(), req.body.as_str());
 
     if is_state_changing(method, path) {
         if let Some((code, err)) = check_request_auth(&req) {
