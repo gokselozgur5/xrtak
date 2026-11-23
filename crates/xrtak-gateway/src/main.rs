@@ -23,8 +23,9 @@ mod fires_dto;
 mod http;
 mod medevac_dto;
 
+use http::{HttpResponse, CORS_HEADERS};
+
 const INDEX_HTML: &str = include_str!("../../../index.html");
-const CORS_HEADERS: &str = "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n";
 
 fn json_ok_header(len: usize) -> String {
     format!(
@@ -45,14 +46,8 @@ fn err_400_response(err: &str) -> (String, String) {
     (hdr, msg)
 }
 
-async fn send_err_400(
-    stream: &mut TcpStream,
-    err: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (hdr, msg) = err_400_response(err);
-    stream.write_all(hdr.as_bytes()).await?;
-    stream.write_all(msg.as_bytes()).await?;
-    Ok(())
+async fn send_err_400(stream: &mut TcpStream, err: &str) -> Result<(), http::DynError> {
+    http::write_response(stream, &HttpResponse::bad_request(err)).await
 }
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
@@ -565,11 +560,11 @@ async fn handle_http_connection(
     }
 
     if method == "GET" && path == "/api/state" {
-        let body = {
+        let snap = {
             let guard = lock_world(&world);
             let mut entities: Vec<TacticalEntity> = guard.entities.values().cloned().collect();
             entities.sort_by(|a, b| a.uid.cmp(&b.uid));
-            let snap = WorldSnapshot {
+            WorldSnapshot {
                 origin: guard.origin,
                 terrain_name: guard.terrain_name.clone(),
                 sim_enabled: guard.sim_enabled,
@@ -580,13 +575,9 @@ async fn handle_http_connection(
                 tactical_zones: guard.tactical_zones.clone(),
                 operators: guard.collab.sorted_peers(),
                 table_pose: guard.collab.table_pose,
-            };
-            serde_json::to_string(&snap)?
+            }
         };
-        let header = json_ok_header(body.len());
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(body.as_bytes()).await?;
-        return Ok(());
+        return http::write_response(&mut stream, &HttpResponse::json(&snap)?).await;
     }
 
     if method == "GET" && path.starts_with("/api/aar") {
