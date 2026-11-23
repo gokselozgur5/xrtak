@@ -540,15 +540,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+fn spawn_tak_tcp_client(addr: String, state: &GatewayState) {
+    let world_tcp = Arc::clone(&state.world);
+    let handle = tokio::spawn(async move {
+        if let Ok(mut tcp) = TcpStream::connect(addr.trim()).await {
+            println!("[XR-TAK] Connected to Live TAK Server TCP stream at {addr}");
+            let mut buf = vec![0u8; 65535];
+            let mut carry = String::new();
+            while let Ok(n) = tcp.read(&mut buf).await {
+                if n == 0 {
+                    break;
+                }
+                carry.push_str(&String::from_utf8_lossy(&buf[..n]));
+                while let Some(end_idx) = carry.find("</event>") {
+                    let end = end_idx + "</event>".len();
+                    let segment = carry[..end].to_string();
+                    carry = carry[end..].to_string();
+                    if let Some(start) = segment.find("<event") {
+                        let _ =
+                            lock_world(&world_tcp).ingest_cot_xml(&segment[start..], now_unix_ms());
+                    }
+                }
+            }
+        }
+    });
+    let mut lock = state
+        .tak_client
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    if let Some(prev) = lock.take() {
+        prev.abort();
+    }
+    *lock = Some(handle);
+}
+
 async fn handle_http_connection(
     mut stream: TcpStream,
     state: Arc<GatewayState>,
 ) -> Result<(), http::DynError> {
-    let (world, tx, tak_client) = (
-        Arc::clone(&state.world),
-        state.tx.clone(),
-        Arc::clone(&state.tak_client),
-    );
     let Some(req) = http::read_request(&mut stream).await? else {
         return Ok(());
     };
@@ -567,7 +596,7 @@ async fn handle_http_connection(
     if method == "GET" && path == "/api/stream" {
         let header = format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n{CORS_HEADERS}\r\n");
         stream.write_all(header.as_bytes()).await?;
-        let mut rx = tx.subscribe();
+        let mut rx = state.tx.subscribe();
         loop {
             match rx.recv().await {
                 Ok(json) => {
@@ -585,41 +614,11 @@ async fn handle_http_connection(
 
     if method == "POST" && path == "/api/tak-config" {
         if let Ok(cfg) = serde_json::from_str::<TakConfigRequest>(body) {
-            if let Some(addr) = cfg.tak_tcp_addr.clone() {
-                if !addr.trim().is_empty() {
-                    let world_tcp = Arc::clone(&world);
-                    let handle = tokio::spawn(async move {
-                        if let Ok(mut tcp) = TcpStream::connect(addr.trim()).await {
-                            println!("[XR-TAK] Connected to Live TAK Server TCP stream at {addr}");
-                            let mut buf = vec![0u8; 65535];
-                            let mut carry = String::new();
-                            while let Ok(n) = tcp.read(&mut buf).await {
-                                if n == 0 {
-                                    break;
-                                }
-                                carry.push_str(&String::from_utf8_lossy(&buf[..n]));
-                                while let Some(end_idx) = carry.find("</event>") {
-                                    let end = end_idx + "</event>".len();
-                                    let segment = carry[..end].to_string();
-                                    carry = carry[end..].to_string();
-                                    if let Some(start) = segment.find("<event") {
-                                        let xml = &segment[start..];
-                                        let mut g = lock_world(&world_tcp);
-                                        let _ = g.ingest_cot_xml(xml, now_unix_ms());
-                                    }
-                                }
-                            }
-                        }
-                    });
-                    let mut lock = tak_client.lock().unwrap_or_else(PoisonError::into_inner);
-                    if let Some(prev) = lock.take() {
-                        prev.abort();
-                    }
-                    *lock = Some(handle);
-                }
+            if let Some(addr) = cfg.tak_tcp_addr.filter(|a| !a.trim().is_empty()) {
+                spawn_tak_tcp_client(addr, &state);
             }
             let (resp, pins_json) = {
-                let mut guard = lock_world(&world);
+                let mut guard = lock_world(&state.world);
                 if let Some(sim) = cfg.sim_enabled {
                     guard.set_sim_enabled(sim);
                 }
