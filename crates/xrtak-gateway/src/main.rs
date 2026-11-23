@@ -583,32 +583,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "POST" && path == "/api/pointer" {
-        if let Ok(ptr_req) = serde_json::from_str::<LaserPointerRequest>(body) {
-            let (xml, res) = {
-                let mut guard = lock_world(&world);
-                let up_m = guard.sample_relief_m(ptr_req.east_m, ptr_req.north_m);
-                let (lat, lon, hae) =
-                    guard
-                        .origin
-                        .enu_to_lla(ptr_req.east_m, up_m, ptr_req.north_m);
-                let cs = ptr_req.callsign.unwrap_or_else(|| "QUEST3-OP".to_string());
-                let xml = build_laser_pointer_cot_xml(&cs, lat, lon, hae);
-                let res = guard.ingest_cot_xml(&xml, now_unix_ms());
-                (xml, res)
-            };
-            state.send_feedback(xml.as_bytes()).await;
-            if let Ok(entity) = res {
-                let json = serde_json::to_string(&entity)?;
-                let header = json_ok_header(json.len());
-                stream.write_all(header.as_bytes()).await?;
-                stream.write_all(json.as_bytes()).await?;
-                return Ok(());
-            }
-        }
-        return send_err_400(&mut stream, "invalid_pointer_payload").await;
-    }
-
     if method == "POST" && path == "/api/collab/sync" {
         if let Ok(c_req) = serde_json::from_str::<CollabSyncRequest>(body) {
             let resp_json = {
@@ -654,24 +628,6 @@ async fn handle_http_connection(
             return Ok(());
         }
         return send_err_400(&mut stream, "invalid_collab_sync_payload").await;
-    }
-
-    if method == "POST" && path == "/api/sapient" {
-        if let Ok(report) = serde_json::from_str::<SapientDetectionReport>(body) {
-            let res = {
-                let mut guard = lock_world(&world);
-                guard.ingest_sapient_detection(&report, now_unix_ms())
-            };
-            if let Ok((xml, entity)) = res {
-                state.send_feedback(xml.as_bytes()).await;
-                let json = serde_json::to_string(&entity)?;
-                let header = json_ok_header(json.len());
-                stream.write_all(header.as_bytes()).await?;
-                stream.write_all(json.as_bytes()).await?;
-                return Ok(());
-            }
-        }
-        return send_err_400(&mut stream, "invalid_sapient_payload").await;
     }
 
     if method == "POST" && path == "/api/tak-config" {

@@ -50,6 +50,8 @@ pub async fn try_dispatch(
         ("POST", "/api/pin/delete") => handle_pin_delete_post(&req.body, state).await,
         ("GET", "/api/export/geojson") => handle_export_geojson_get(state),
         ("GET", "/api/export/cot") => handle_export_cot_get(state),
+        ("POST", "/api/pointer") => handle_pointer_post(&req.body, state).await?,
+        ("POST", "/api/sapient") => handle_sapient_post(&req.body, state).await?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -822,4 +824,40 @@ fn handle_export_cot_get(state: &GatewayState) -> HttpResponse {
         events.join("\n  ")
     );
     HttpResponse::xml(body)
+}
+
+async fn handle_pointer_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(ptr_req) = serde_json::from_str::<LaserPointerRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_pointer_payload"));
+    };
+    let (xml, res) = {
+        let mut guard = lock_world(&state.world);
+        let up_m = guard.sample_relief_m(ptr_req.east_m, ptr_req.north_m);
+        let (lat, lon, hae) = guard
+            .origin
+            .enu_to_lla(ptr_req.east_m, up_m, ptr_req.north_m);
+        let cs = ptr_req.callsign.unwrap_or_else(|| "QUEST3-OP".to_string());
+        let xml = build_laser_pointer_cot_xml(&cs, lat, lon, hae);
+        let res = guard.ingest_cot_xml(&xml, now_unix_ms());
+        (xml, res)
+    };
+    state.send_feedback(xml.as_bytes()).await;
+    match res {
+        Ok(entity) => HttpResponse::json(&entity),
+        Err(_) => Ok(HttpResponse::bad_request("invalid_pointer_payload")),
+    }
+}
+
+async fn handle_sapient_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(report) = serde_json::from_str::<SapientDetectionReport>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_sapient_payload"));
+    };
+    let res = lock_world(&state.world).ingest_sapient_detection(&report, now_unix_ms());
+    match res {
+        Ok((xml, entity)) => {
+            state.send_feedback(xml.as_bytes()).await;
+            HttpResponse::json(&entity)
+        }
+        Err(_) => Ok(HttpResponse::bad_request("invalid_sapient_payload")),
+    }
 }
