@@ -1838,6 +1838,7 @@
     const osmBuildingsGroup = new THREE.Group();
     tableGroup.add(osmBuildingsGroup);
     let showOsmBuildings = true;
+    let osmBuildingsOrigin = null;
 
     const VR_DOCK_DEFS = [
       { id: 'dock-spi', label: 'SPI SLEW', row: 0, col: 0 },
@@ -4235,6 +4236,7 @@
       }
 
       // 5. Fetch & Extrude Real-World 3D OpenStreetMap Buildings (`Overpass API`) on top of the SRTM DEM!
+      clearOsm3dBuildings();
       if (showOsmBuildings) {
         loadRealOsm3dBuildings(lat, lon);
       }
@@ -4251,12 +4253,14 @@
         if (ch.geometry) ch.geometry.dispose();
         if (ch.material) ch.material.dispose();
       }
+      osmBuildingsOrigin = null;
       const cntEl = document.getElementById('osm-bldg-count');
       if (cntEl) cntEl.textContent = '0';
     }
 
     async function loadRealOsm3dBuildings(lat, lon) {
       clearOsm3dBuildings();
+      osmBuildingsOrigin = { lat, lon };
       if (!showOsmBuildings) return;
       const cntEl = document.getElementById('osm-bldg-count');
       if (cntEl) cntEl.textContent = '...';
@@ -4427,7 +4431,10 @@
         btnTop.textContent = `3D OSM BUILDINGS: ${showOsmBuildings ? 'ON' : 'OFF'}`;
         btnTop.classList.toggle('active', showOsmBuildings);
       }
-      if (showOsmBuildings && osmBuildingsGroup.children.length === 0) {
+      const isOriginCurrent = osmBuildingsOrigin &&
+        Math.abs(osmBuildingsOrigin.lat - currentOriginLat) < 1e-4 &&
+        Math.abs(osmBuildingsOrigin.lon - currentOriginLon) < 1e-4;
+      if (showOsmBuildings && (osmBuildingsGroup.children.length === 0 || !isOriginCurrent)) {
         loadRealOsm3dBuildings(currentOriginLat, currentOriginLon);
       }
       refreshVrDockVisuals();
