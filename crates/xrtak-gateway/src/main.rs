@@ -22,6 +22,7 @@ mod ew_dto;
 mod fires_dto;
 mod http;
 mod medevac_dto;
+mod router;
 
 use http::{HttpResponse, CORS_HEADERS};
 
@@ -573,74 +574,8 @@ async fn handle_http_connection(
         }
     }
 
-    if method == "OPTIONS" {
-        return http::write_response(&mut stream, &HttpResponse::no_content()).await;
-    }
-
-    if method == "GET" && (path == "/" || path == "/index.html") {
-        return http::write_response(&mut stream, &HttpResponse::html(INDEX_HTML)).await;
-    }
-
-    if method == "GET" && path == "/api/state" {
-        let snap = WorldSnapshot::from_world(&lock_world(&world));
-        return http::write_response(&mut stream, &HttpResponse::json(&snap)?).await;
-    }
-
-    if method == "GET" && path.starts_with("/api/aar") {
-        let target_t: Option<f64> = path
-            .split("t=")
-            .nth(1)
-            .and_then(|s| s.split('&').next())
-            .and_then(|s| s.parse::<f64>().ok());
-        let body = {
-            let guard = lock_world(&world);
-            let summary = guard.aar.summary();
-            let t_query = target_t.unwrap_or(summary.max_time_sec);
-            let frame = guard.aar.sample_at(t_query);
-            let (domes, zones) = frame
-                .as_ref()
-                .map(|f| guard.evaluate_overlays_for_entities(&f.entities))
-                .unwrap_or_default();
-            serde_json::json!({
-                "summary": summary,
-                "frame": frame,
-                "threat_domes": domes,
-                "tactical_zones": zones
-            })
-            .to_string()
-        };
-        let header = json_ok_header(body.len());
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(body.as_bytes()).await?;
-        return Ok(());
-    }
-
-    if method == "GET" && path.starts_with("/api/hud") {
-        let obs = path
-            .split("observer=")
-            .nth(1)
-            .and_then(|s| s.split('&').next())
-            .unwrap_or("GND-SPEAR-ALPHA");
-        let body = {
-            let guard = lock_world(&world);
-            let cues = guard.compute_visor_hud_cues(obs);
-            serde_json::json!({
-                "observer_uid": obs,
-                "cues": cues.into_iter().map(|(uid, callsign, affiliation, cue)| serde_json::json!({
-                    "uid": uid,
-                    "callsign": callsign,
-                    "affiliation": affiliation,
-                    "bearing_deg": cue.bearing_deg,
-                    "slant_range_m": cue.slant_range_m,
-                    "elevation_deg": cue.elevation_deg
-                })).collect::<Vec<_>>()
-            })
-            .to_string()
-        };
-        let header = json_ok_header(body.len());
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(body.as_bytes()).await?;
-        return Ok(());
+    if let Some(resp) = router::try_dispatch(&req, &state).await? {
+        return http::write_response(&mut stream, &resp).await;
     }
 
     if method == "GET" && path == "/api/terrain" {
