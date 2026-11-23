@@ -583,64 +583,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "GET" && path == "/api/export/geojson" {
-        let body = {
-            let guard = lock_world(&world);
-            let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
-            ents.sort_by(|a, b| a.uid.cmp(&b.uid));
-            let features: Vec<serde_json::Value> = ents
-                .into_iter()
-                .map(|e| {
-                    serde_json::json!({
-                        "type": "Feature",
-                        "id": e.uid,
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": [e.lon, e.lat, e.hae_m]
-                        },
-                        "properties": {
-                            "uid": e.uid,
-                            "callsign": e.callsign,
-                            "cot_type": e.cot_type,
-                            "affiliation": e.affiliation,
-                            "east_m": e.east_m,
-                            "north_m": e.north_m,
-                            "up_m": e.up_m,
-                            "remarks": e.remarks,
-                            "updated_unix_ms": e.updated_unix_ms
-                        }
-                    })
-                })
-                .collect();
-            serde_json::json!({
-                "type": "FeatureCollection",
-                "origin": guard.origin,
-                "features": features
-            })
-            .to_string()
-        };
-        let header = json_ok_header(body.len());
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(body.as_bytes()).await?;
-        return Ok(());
-    }
-
-    if method == "GET" && path == "/api/export/cot" {
-        let body = {
-            let guard = lock_world(&world);
-            let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
-            ents.sort_by(|a, b| a.uid.cmp(&b.uid));
-            let events: Vec<String> = ents.into_iter().map(entity_to_cot_xml).collect();
-            format!(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<events origin_lat=\"{:.6}\" origin_lon=\"{:.6}\">\n  {}\n</events>\n",
-                guard.origin.lat,
-                guard.origin.lon,
-                events.join("\n  ")
-            )
-        };
-        return http::write_response(&mut stream, &HttpResponse::xml(body)).await;
-    }
-
     if method == "POST" && path == "/api/pointer" {
         if let Ok(ptr_req) = serde_json::from_str::<LaserPointerRequest>(body) {
             let (xml, res) = {

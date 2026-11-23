@@ -48,6 +48,8 @@ pub async fn try_dispatch(
         ("POST", "/api/spawn") => handle_spawn_post(&req.body, state).await?,
         ("POST", "/api/pin/move") => handle_pin_move_post(&req.body, state).await?,
         ("POST", "/api/pin/delete") => handle_pin_delete_post(&req.body, state).await,
+        ("GET", "/api/export/geojson") => handle_export_geojson_get(state),
+        ("GET", "/api/export/cot") => handle_export_cot_get(state),
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -771,4 +773,53 @@ async fn handle_pin_delete_post(body: &str, state: &GatewayState) -> HttpRespons
     };
     flush_persistent_pins(pins_json).await;
     HttpResponse::json_str(serde_json::json!({ "deleted": removed, "uid": del.uid }).to_string())
+}
+
+fn handle_export_geojson_get(state: &GatewayState) -> HttpResponse {
+    let guard = lock_world(&state.world);
+    let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
+    ents.sort_by(|a, b| a.uid.cmp(&b.uid));
+    let features: Vec<serde_json::Value> = ents
+        .into_iter()
+        .map(|e| {
+            serde_json::json!({
+                "type": "Feature",
+                "id": e.uid,
+                "geometry": { "type": "Point", "coordinates": [e.lon, e.lat, e.hae_m] },
+                "properties": {
+                    "uid": e.uid,
+                    "callsign": e.callsign,
+                    "cot_type": e.cot_type,
+                    "affiliation": e.affiliation,
+                    "east_m": e.east_m,
+                    "north_m": e.north_m,
+                    "up_m": e.up_m,
+                    "remarks": e.remarks,
+                    "updated_unix_ms": e.updated_unix_ms
+                }
+            })
+        })
+        .collect();
+    HttpResponse::json_str(
+        serde_json::json!({
+            "type": "FeatureCollection",
+            "origin": guard.origin,
+            "features": features
+        })
+        .to_string(),
+    )
+}
+
+fn handle_export_cot_get(state: &GatewayState) -> HttpResponse {
+    let guard = lock_world(&state.world);
+    let mut ents: Vec<&TacticalEntity> = guard.entities.values().collect();
+    ents.sort_by(|a, b| a.uid.cmp(&b.uid));
+    let events: Vec<String> = ents.into_iter().map(entity_to_cot_xml).collect();
+    let body = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<events origin_lat=\"{:.6}\" origin_lon=\"{:.6}\">\n  {}\n</events>\n",
+        guard.origin.lat,
+        guard.origin.lon,
+        events.join("\n  ")
+    );
+    HttpResponse::xml(body)
 }
