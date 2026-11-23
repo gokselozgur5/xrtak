@@ -118,3 +118,81 @@ required-features = ["experimental"]
 [[test]]
 name = "spotrep"
 required-features = ["experimental"]
+[[test]]
+name = "mission_package_corrupt_name_length"
+required-features = ["experimental"]
+[[test]]
+name = "mission_package_deflated_entry"
+required-features = ["experimental"]
+[[test]]
+name = "mission_package_special_characters_round_trip"
+required-features = ["experimental"]
+[[test]]
+name = "mission_package_unhashed_entry"
+required-features = ["experimental"]
+[[test]]
+name = "openxr_pose"
+required-features = ["experimental"]
+[[test]]
+name = "openxr_pose_roll_axis"
+required-features = ["experimental"]
+[[test]]
+name = "radial_menu"
+required-features = ["experimental"]
+[[test]]
+name = "route_nav_integration"
+required-features = ["experimental"]
+[[test]]
+name = "route_nav_sequences_when_passing_abeam"
+required-features = ["experimental"]
+[[test]]
+name = "route_nav_status_consistency"
+required-features = ["experimental"]
+[[test]]
+name = "route_sequencer"
+required-features = ["experimental"]
+[[test]]
+name = "route_sequencer_along_track_sign"
+required-features = ["experimental"]
+[[test]]
+name = "route_sequencer_loiter_accounting"
+required-features = ["experimental"]
+[[test]]
+name = "sensor_stream_xml_escaping"
+required-features = ["experimental"]
+[[test]]
+name = "thermal"
+required-features = ["experimental"]
+[[test]]
+name = "tls_pool"
+required-features = ["experimental"]
+[[test]]
+name = "tls_pool_peer_name_matching"
+required-features = ["experimental"]
+[[test]]
+name = "tls_pool_prune_keeps_leased_connections"
+required-features = ["experimental"]
+[[test]]
+name = "tls_pool_prune_keeps_min_idle"
+required-features = ["experimental"]
+[[test]]
+name = "tls_pool_removed_endpoint_closes_leases"
+required-features = ["experimental"]
+[[test]]
+name = "tls_pool_unverified_until_validated"
+required-features = ["experimental"]
+[[test]]
+name = "track_simplify"
+required-features = ["experimental"]
+[[test]]
+name = "track_simplify_recursion_depth"
+required-features = ["experimental"]
+[[test]]
+name = "track_simplify_time_gap_keeps_points"
+required-features = ["experimental"]
+[[test]]
+name = "track_smoother"
+required-features = ["experimental"]
+[[test]]
+name = "track_smoother_repeated_timestamp"
+required-features = ["experimental"]
