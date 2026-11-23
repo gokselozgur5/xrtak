@@ -53,6 +53,7 @@ pub async fn try_dispatch(
         ("POST", "/api/pointer") => handle_pointer_post(&req.body, state).await?,
         ("POST", "/api/sapient") => handle_sapient_post(&req.body, state).await?,
         ("POST", "/api/collab/sync") => handle_collab_sync_post(&req.body, state),
+        ("POST", "/api/tak-config") => handle_tak_config_post(&req.body, state).await,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -901,4 +902,42 @@ fn handle_collab_sync_post(body: &str, state: &GatewayState) -> HttpResponse {
         })
         .to_string(),
     )
+}
+
+async fn handle_tak_config_post(body: &str, state: &GatewayState) -> HttpResponse {
+    let Ok(cfg) = serde_json::from_str::<TakConfigRequest>(body) else {
+        return HttpResponse::bad_request("invalid_tak_config_payload");
+    };
+    if let Some(addr) = cfg.tak_tcp_addr.filter(|a| !a.trim().is_empty()) {
+        spawn_tak_tcp_client(addr, state);
+    }
+    let (out, pins_json) = {
+        let mut guard = lock_world(&state.world);
+        if let Some(sim) = cfg.sim_enabled {
+            guard.set_sim_enabled(sim);
+        }
+        if let Some(auto_rc) = cfg.auto_recenter {
+            guard.auto_recenter_on_next_live_cot = auto_rc;
+        }
+        if let (Some(lat), Some(lon)) = (cfg.origin_lat, cfg.origin_lon) {
+            let alt_m = cfg.origin_alt_m.unwrap_or(guard.origin.alt_m);
+            let extent_m = guard.origin.extent_m;
+            guard.recenter_origin(GeoOrigin {
+                lat,
+                lon,
+                alt_m,
+                extent_m,
+            });
+        }
+        let pj = snapshot_persistent_pins_json(&guard);
+        let j = serde_json::json!({
+            "origin": guard.origin,
+            "sim_enabled": guard.sim_enabled,
+            "auto_recenter": guard.auto_recenter_on_next_live_cot
+        })
+        .to_string();
+        (j, pj)
+    };
+    flush_persistent_pins(pins_json).await;
+    HttpResponse::json_str(out)
 }

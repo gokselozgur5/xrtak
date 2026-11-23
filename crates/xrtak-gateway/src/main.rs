@@ -23,18 +23,8 @@ use http::{HttpResponse, CORS_HEADERS};
 
 const INDEX_HTML: &str = include_str!("../../../index.html");
 
-fn json_ok_header(len: usize) -> String {
-    format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {len}\r\nConnection: close\r\n\r\n"
-    )
-}
-
 fn lock_world(world: &Mutex<TacticalWorld>) -> MutexGuard<'_, TacticalWorld> {
     world.lock().unwrap_or_else(PoisonError::into_inner)
-}
-
-async fn send_err_400(stream: &mut TcpStream, err: &str) -> Result<(), http::DynError> {
-    http::write_response(stream, &HttpResponse::bad_request(err)).await
 }
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
@@ -581,7 +571,7 @@ async fn handle_http_connection(
     let Some(req) = http::read_request(&mut stream).await? else {
         return Ok(());
     };
-    let (method, path, body) = (req.method.as_str(), req.target.as_str(), req.body.as_str());
+    let (method, path) = (req.method.as_str(), req.target.as_str());
 
     if is_state_changing(method, path) {
         if let Some((code, err)) = check_request_auth(&req) {
@@ -610,47 +600,6 @@ async fn handle_http_connection(
             }
         }
         return Ok(());
-    }
-
-    if method == "POST" && path == "/api/tak-config" {
-        if let Ok(cfg) = serde_json::from_str::<TakConfigRequest>(body) {
-            if let Some(addr) = cfg.tak_tcp_addr.filter(|a| !a.trim().is_empty()) {
-                spawn_tak_tcp_client(addr, &state);
-            }
-            let (resp, pins_json) = {
-                let mut guard = lock_world(&state.world);
-                if let Some(sim) = cfg.sim_enabled {
-                    guard.set_sim_enabled(sim);
-                }
-                if let Some(auto_rc) = cfg.auto_recenter {
-                    guard.auto_recenter_on_next_live_cot = auto_rc;
-                }
-                if let (Some(lat), Some(lon)) = (cfg.origin_lat, cfg.origin_lon) {
-                    let alt_m = cfg.origin_alt_m.unwrap_or(guard.origin.alt_m);
-                    let ext = guard.origin.extent_m;
-                    guard.recenter_origin(GeoOrigin {
-                        lat,
-                        lon,
-                        alt_m,
-                        extent_m: ext,
-                    });
-                }
-                let pj = snapshot_persistent_pins_json(&guard);
-                let out = serde_json::json!({
-                    "origin": guard.origin,
-                    "sim_enabled": guard.sim_enabled,
-                    "auto_recenter": guard.auto_recenter_on_next_live_cot
-                })
-                .to_string();
-                (out, pj)
-            };
-            flush_persistent_pins(pins_json).await;
-            let header = json_ok_header(resp.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_tak_config_payload").await;
     }
 
     http::write_response(&mut stream, &HttpResponse::not_found()).await
