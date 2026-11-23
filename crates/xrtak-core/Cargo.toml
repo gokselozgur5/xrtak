@@ -196,3 +196,24 @@ required-features = ["experimental"]
 [[test]]
 name = "track_smoother_repeated_timestamp"
 required-features = ["experimental"]
+[[test]]
+name = "corridor_rdp_deep_recursion"
+required-features = ["experimental"]
+[[test]]
+name = "cot_classify"
+required-features = ["experimental"]
+[[test]]
+name = "sapient_cot"
+required-features = ["experimental"]
+[[test]]
+name = "world_overlays"
+required-features = ["experimental"]
+[[test]]
+name = "zones_udf_parse"
+required-features = ["experimental"]
+[[test]]
+name = "cot_builder_time_attributes"
+required-features = ["experimental"]
+[[test]]
+name = "cot_parse"
+required-features = ["experimental"]

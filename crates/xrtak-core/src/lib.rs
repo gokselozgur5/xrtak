@@ -80,46 +80,57 @@ pub mod tracker;
 pub mod viewshed;
 pub mod zones;
 
-pub use aar::{AarFrame, AarSummary, AarTimeline};
+pub use aar::AarSummary;
+#[cfg(feature = "experimental")]
+pub use aar::{AarFrame, AarTimeline};
+#[cfg(feature = "experimental")]
 pub use affiliation::{
     AffiliationError, AffiliationMapper, CoTAffiliation, ContactMarker, ContactStats,
     MarkerShapeGlyph, StandardIdentity, TacticalColor, TacticalThreatLevel,
 };
-pub use battery::{
-    compute_uav_endurance, RthPolygonVertex, UavBatteryState, UavEnduranceSolution, WindVector,
-};
+pub use battery::compute_uav_endurance;
+#[cfg(feature = "experimental")]
+pub use battery::{RthPolygonVertex, UavBatteryState, UavEnduranceSolution, WindVector};
 #[cfg(feature = "experimental")]
 pub use cas_nine_line::{format_cas_nine_line_text, CasNineLine, CasNineLineError};
+#[cfg(feature = "experimental")]
+pub use casevac::HlzSuitability;
 pub use casevac::{
-    evaluate_hlz_suitability, format_nato_nine_line_text, HlzSuitability, MedevacReport,
-    PatientPrecedence,
+    evaluate_hlz_suitability, format_nato_nine_line_text, MedevacReport, PatientPrecedence,
 };
-pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
-pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
+pub use cog::ingest_geotiff_dsm;
+#[cfg(feature = "experimental")]
+pub use cog::{parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
+#[cfg(feature = "experimental")]
+pub use collab::CollabRoomState;
+pub use collab::{OperatorPeer, SharedTablePose};
 #[cfg(feature = "experimental")]
 pub use comms_channel::{CommsChannelError, CommsChannelPacket, RadioChannel, RadioMode};
+pub use corridor::evaluate_swath_corridor;
+#[cfg(feature = "experimental")]
 pub use corridor::{
-    build_buffered_corridor_polygon, compute_camera_swath_width_m, evaluate_swath_corridor,
-    simplify_polyline_rdp, CorridorPolygonResult,
+    build_buffered_corridor_polygon, compute_camera_swath_width_m, simplify_polyline_rdp,
+    CorridorPolygonResult,
 };
 #[cfg(feature = "experimental")]
 pub use cot_heartbeat::{
     build_ping_cot, build_pong_cot, CotHeartbeatConfig, CotHeartbeatManager, HeartbeatAction,
     HeartbeatStatus, PingRecord,
 };
+pub use deconflict::evaluate_theater_deconfliction;
+#[cfg(feature = "experimental")]
 pub use deconflict::{
-    compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction,
-    AirspaceConflictReport, CpaRiskLevel, CpaTrack, DeconflictionResult,
+    compute_pairwise_cpa, compute_raw_t_cpa, AirspaceConflictReport, CpaRiskLevel, CpaTrack,
+    DeconflictionResult,
 };
 #[cfg(feature = "experimental")]
 pub use distress_beacon::{
     DistressBeacon, DistressBeaconError, EmergencySeverity, EmergencyStatus, EmergencyType,
     SosFlags,
 };
-pub use domain::{
-    Affiliation, Dimension, LinkLosResult, SensorCone, TacticalZone, ThreatDome, ViewshedResult,
-    ViewshedSample,
-};
+#[cfg(feature = "experimental")]
+pub use domain::{Affiliation, LinkLosResult, SensorCone, ViewshedResult, ViewshedSample};
+pub use domain::{Dimension, TacticalZone, ThreatDome};
 pub use ew::{
     compute_burn_through_range, evaluate_link_jamming, watts_to_dbm, BurnThroughAssessment,
     BurnThroughScenario, EwTargetBand, JammerProfile, JammingAssessment, TargetLinkProfile,
@@ -234,6 +245,13 @@ pub use tracker::{
 pub use viewshed::{compute_link_los, compute_viewshed_with_provider};
 pub use zones::{
     is_engaged_by_threat_dome, is_inside_tactical_zone, parse_cot_polygon_zone, point_in_polygon_en,
+};
+#[cfg(not(feature = "experimental"))]
+use {
+    aar::AarTimeline,
+    affiliation::{AffiliationMapper, StandardIdentity},
+    collab::CollabRoomState,
+    domain::{Affiliation, SensorCone, ViewshedResult},
 };
 
 use quick_xml::events::Event;
