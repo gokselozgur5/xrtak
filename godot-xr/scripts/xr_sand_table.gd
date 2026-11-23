@@ -78,7 +78,8 @@ func _on_right_button_pressed(btn_name: String) -> void:
 			initial_table_scale = table_anchor.scale
 	elif btn_name == "ax_button" and table_anchor:
 		is_walk_in_scale = not is_walk_in_scale
-		table_anchor.scale = Vector3.ONE * (10.0 if is_walk_in_scale else 1.0)
+		var walk_scale: float = (1.0 / m_to_table_scale) if m_to_table_scale > 0.0 else 2000.0
+		table_anchor.scale = Vector3.ONE * (walk_scale if is_walk_in_scale else 1.0)
 	elif btn_name == "by_button":
 		active_vr_tool = "laser" if active_vr_tool == "spi" else "spi"
 	elif btn_name == "trigger_click" and right_ctrl and table_anchor:
