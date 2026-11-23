@@ -868,3 +868,18 @@ fn test_request_payload_too_large_returns_413() {
         "expected 413, got: {resp}"
     );
 }
+
+#[test]
+fn test_request_content_length_overflow_returns_413() {
+    let (gw, port) = start_gateway();
+    let overflow = format!(
+        "POST /api/terrain HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        usize::MAX
+    );
+    let resp = send_raw(port, &overflow);
+    stop_gateway(gw);
+    assert!(
+        resp.starts_with("HTTP/1.1 413 Payload Too Large"),
+        "expected 413 on overflow content-length, got: {resp}"
+    );
+}

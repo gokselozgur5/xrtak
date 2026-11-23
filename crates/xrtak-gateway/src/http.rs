@@ -226,8 +226,8 @@ async fn read_http_bytes(stream: &mut TcpStream) -> Result<Vec<u8>, DynError> {
             return Err("request header exceeds maximum allowed size".into());
         }
     };
-    let total_needed = hdr_end + 4 + content_len;
-    if total_needed > MAX_HTTP_REQUEST_BYTES || content_len > MAX_HTTP_REQUEST_BYTES {
+    let total_needed = hdr_end.saturating_add(4).saturating_add(content_len);
+    if content_len > MAX_HTTP_REQUEST_BYTES || total_needed > MAX_HTTP_REQUEST_BYTES {
         let _ = write_response(stream, &HttpResponse::payload_too_large()).await;
         return Err("request content-length exceeds maximum allowed size".into());
     }
