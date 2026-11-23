@@ -3040,9 +3040,10 @@
 
     // Phase 28: Copernicus GLO-30 DEM Cell Planner & Offline Mapset Manifest Generator (ICD-18)
     document.getElementById('btn-plan-mapset').onclick = async () => {
-      const provider = activeImageryMode || 'bing';
       if (!standaloneSimActive) {
+        const sumEl = document.getElementById('elev-profile-summary');
         try {
+          const provider = currentImageryStyle === 'sat' ? 'esri' : (currentImageryStyle || 'bing');
           const res = await fetch(apiUrl('/api/mapset/plan'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3055,7 +3056,6 @@
           });
           if (res.ok) {
             const manifest = await res.json();
-            const sumEl = document.getElementById('elev-profile-summary');
             if (sumEl) {
               const mb = (manifest.total_package_bytes / (1024 * 1024)).toFixed(1);
               sumEl.textContent = `${manifest.total_tiles} TILES + ${manifest.copernicus_dem_cells.length} GLO-30 DEM (~${mb} MB)`;
@@ -3065,8 +3065,12 @@
             a.href = URL.createObjectURL(blob);
             a.download = `${manifest.name.toLowerCase()}_manifest.json`;
             a.click();
+          } else if (sumEl) {
+            sumEl.textContent = `MAPSET PLAN HTTP ${res.status}`;
           }
-        } catch (_) {}
+        } catch (_) {
+          if (sumEl) sumEl.textContent = 'MAPSET PLAN FAILED';
+        }
       }
     };
 
