@@ -22,6 +22,17 @@ var initial_table_scale: Vector3 = Vector3.ONE
 var state_poll_timer: Timer
 
 func _ready() -> void:
+	var env_url: String = OS.get_environment("XRTAK_GATEWAY_URL").strip_edges()
+	if env_url != "":
+		gateway_base_url = env_url
+	else:
+		for arg in OS.get_cmdline_args():
+			if arg.begins_with("--gateway="):
+				gateway_base_url = arg.trim_prefix("--gateway=").strip_edges()
+				break
+	if gateway_base_url.ends_with("/"):
+		gateway_base_url = gateway_base_url.trim_suffix("/")
+
 	xr_interface = XRServer.find_interface("OpenXR")
 	if xr_interface and xr_interface.is_initialized():
 		get_viewport().use_xr = true
