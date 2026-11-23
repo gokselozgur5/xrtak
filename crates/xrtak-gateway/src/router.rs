@@ -1,6 +1,7 @@
 use crate::http::{DynError, HttpRequest, HttpResponse};
 use crate::{
-    lock_world, GatewayState, GeoTiffUploadRequest, TerrainSwitchRequest, WorldSnapshot, INDEX_HTML,
+    flush_persistent_pins, lock_world, now_unix_ms, snapshot_persistent_pins_json, GatewayState,
+    GeoTiffUploadRequest, SpiSlewRequest, TerrainSwitchRequest, WorldSnapshot, INDEX_HTML,
 };
 use xrtak_core::{
     ingest_geotiff_dsm, GeoOrigin, ProceduralReliefModel, RasterDemProvider, TacticalWorld,
@@ -23,6 +24,8 @@ pub async fn try_dispatch(
         ("GET", "/api/terrain") => terrain_grid_response(&lock_world(&state.world)),
         ("POST", "/api/terrain") => handle_terrain_post(&req.body, state),
         ("POST", "/api/terrain/geotiff") => handle_geotiff_post(&req.body, state),
+        ("POST", "/api/cot") => handle_cot_post(&req.body, state).await?,
+        ("POST", "/api/spi") => handle_spi_post(&req.body, state)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -157,4 +160,45 @@ fn handle_geotiff_post(body: &str, state: &GatewayState) -> HttpResponse {
         })
         .to_string(),
     )
+}
+
+async fn handle_cot_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let (res, pins_json) = {
+        let mut guard = lock_world(&state.world);
+        let r = guard.ingest_cot_xml(body, now_unix_ms());
+        let pj = r
+            .is_ok()
+            .then(|| snapshot_persistent_pins_json(&guard))
+            .flatten();
+        (r, pj)
+    };
+    flush_persistent_pins(pins_json).await;
+    match res {
+        Ok(ent) => HttpResponse::json(&ent),
+        Err(err) => Ok(HttpResponse::bad_request(&err)),
+    }
+}
+
+fn handle_spi_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(spi_req) = serde_json::from_str::<SpiSlewRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_spi_payload"));
+    };
+    let sensor_uid = spi_req
+        .sensor_uid
+        .unwrap_or_else(|| "UAV-FALCON-01".to_string());
+    if spi_req.clear.unwrap_or(false) {
+        lock_world(&state.world).clear_spi_lock(&sensor_uid);
+        let j = serde_json::json!({ "status": "cleared", "sensor_uid": sensor_uid }).to_string();
+        return Ok(HttpResponse::json_str(j));
+    }
+    let (east_m, north_m) = (
+        spi_req.east_m.unwrap_or(0.0),
+        spi_req.north_m.unwrap_or(0.0),
+    );
+    let res =
+        lock_world(&state.world).slew_sensor_to_spi(&sensor_uid, east_m, north_m, now_unix_ms());
+    match res {
+        Ok(entity) => HttpResponse::json(&entity),
+        Err(_) => Ok(HttpResponse::bad_request("invalid_spi_payload")),
+    }
 }
