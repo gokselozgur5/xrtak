@@ -8,14 +8,22 @@ use xrtak_core::{
     ManifestInput, ProceduralReliefModel, RasterDemProvider, TacticalWorld,
 };
 
-pub async fn try_dispatch(
-    req: &HttpRequest,
-    state: &GatewayState,
-) -> Result<Option<HttpResponse>, DynError> {
+pub enum RouteOutput {
+    Response(HttpResponse),
+    SseStream(broadcast::Receiver<String>),
+}
+
+pub async fn dispatch(req: &HttpRequest, state: &GatewayState) -> Result<RouteOutput, DynError> {
     let (method, path) = (req.method.as_str(), req.target.as_str());
+    if is_state_changing(method, path) {
+        if let Some((code, err)) = check_request_auth(req) {
+            return Ok(RouteOutput::Response(HttpResponse::auth_error(code, err)));
+        }
+    }
     let resp = match (method, path) {
         ("OPTIONS", _) => HttpResponse::no_content(),
         ("GET", "/" | "/index.html") => HttpResponse::html(INDEX_HTML),
+        ("GET", "/api/stream") => return Ok(RouteOutput::SseStream(state.tx.subscribe())),
         ("GET", "/api/state") => {
             let snap = WorldSnapshot::from_world(&lock_world(&state.world));
             HttpResponse::json(&snap)?
@@ -54,9 +62,9 @@ pub async fn try_dispatch(
         ("POST", "/api/sapient") => handle_sapient_post(&req.body, state).await?,
         ("POST", "/api/collab/sync") => handle_collab_sync_post(&req.body, state),
         ("POST", "/api/tak-config") => handle_tak_config_post(&req.body, state).await,
-        _ => return Ok(None),
+        _ => HttpResponse::not_found(),
     };
-    Ok(Some(resp))
+    Ok(RouteOutput::Response(resp))
 }
 
 fn handle_aar(path: &str, state: &GatewayState) -> HttpResponse {
