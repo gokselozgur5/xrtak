@@ -102,6 +102,7 @@ impl MissionPackageManifest {
 }
 
 pub(crate) use crate::escape_xml as escape_xml_attr;
+#[cfg(feature = "experimental")]
 pub(crate) use crate::unescape_xml as unescape_xml_attr;
 
 impl MissionPackageManifest {

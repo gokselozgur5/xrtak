@@ -48,20 +48,33 @@ pub mod mesh_frag;
 pub mod mgrs;
 pub mod mission;
 pub mod mission_manifest;
+#[cfg(feature = "experimental")]
 pub mod mission_package;
+#[cfg(feature = "experimental")]
 pub mod openxr_pose;
 pub mod opord;
+#[cfg(feature = "experimental")]
 pub mod radial;
 pub mod rf;
+#[cfg(feature = "experimental")]
+pub mod route_nav;
+#[cfg(feature = "experimental")]
 pub mod route_sequencer;
 pub mod sapient;
+#[cfg(feature = "experimental")]
 pub mod sensor_stream;
+#[cfg(feature = "experimental")]
 pub mod spotrep;
+#[cfg(feature = "experimental")]
 pub mod tak_tls;
+#[cfg(feature = "experimental")]
 pub mod thermal;
 pub mod tiles;
+#[cfg(feature = "experimental")]
 pub mod tls_pool;
+#[cfg(feature = "experimental")]
 pub mod track_simplify;
+#[cfg(feature = "experimental")]
 pub mod track_smoother;
 pub mod tracker;
 pub mod viewshed;
@@ -155,10 +168,12 @@ pub use mission::{
     parse_qgc_plan_mission, MissionCorridorResult, MissionWaypoint3d, RawMissionWaypoint,
 };
 pub use mission_manifest::{ManifestContentEntry, ManifestParameter, MissionPackageManifest};
+#[cfg(feature = "experimental")]
 pub use mission_package::{
     compute_crc32, compute_sha256, compute_sha256_hex, MissionPackageArchive, MissionPackageEntry,
     MissionPackageError, VerificationReport,
 };
+#[cfg(feature = "experimental")]
 pub use openxr_pose::{
     OpenXrPoseAdapter, OpenXrPoseSample, PoseOrientation, PosePosition, PoseTrackingFlags,
     TacticalHeadPose,
@@ -172,13 +187,16 @@ pub use rf::{
     compute_fspl_db_mhz, compute_knife_edge_diffraction_db, compute_wavelength_m, evaluate_rf_link,
     evaluate_rf_propagation, RfBand, RfLinkResult,
 };
+#[cfg(feature = "experimental")]
 pub use route_sequencer::{
     along_track_distance_m, cross_track_error_m, evaluate_route_progress, generate_cot_route_xml,
     initial_bearing_deg, sequence_route_plan, slant_distance_3d_m, ActiveTrackProgress, RoutePlan,
     RouteWaypoint, SequencedLeg, SequencedRouteResult,
 };
 pub use sapient::{build_sapient_cot_xml, sapient_class_to_cot_type, SapientDetectionReport};
+#[cfg(feature = "experimental")]
 pub use spotrep::{format_salute_report_text, SpotReport, SpotReportError};
+#[cfg(feature = "experimental")]
 pub use tak_tls::{
     CertificateFormat, ClientAuthMode, TakTlsConfig, TakTlsConfigBuilder, TakTlsError,
     TlsCertificate, TlsVersion,
@@ -190,10 +208,12 @@ pub use tiles::{
     GeoPackageTileMatrixMetadata, ImageryProvider, LruTileCache, ResolvedTileSpec, TileCoord,
     TileResolutionResult,
 };
+#[cfg(feature = "experimental")]
 pub use tls_pool::{
     AuthError, ConnectionState, HealthCheckSummary, MutualCertAuthenticator, PeerCertificateInfo,
     PoolError, PoolMetrics, TlsConnection, TlsConnectionPool, TlsPoolConfig,
 };
+#[cfg(feature = "experimental")]
 pub use track_simplify::{
     generate_cot_track_history_xml, haversine_distance_m as track_haversine_distance_m,
     initial_bearing_deg as track_initial_bearing_deg, parse_cot_track_history_xml,
@@ -201,6 +221,7 @@ pub use track_simplify::{
     simplify_track_with_config, TrackPoint, TrackSimplifyConfig, TrackSimplifyResult,
     WGS84_EARTH_RADIUS_M,
 };
+#[cfg(feature = "experimental")]
 pub use track_smoother::{
     heading_delta_deg, smooth_heading_deg, smooth_scalar, smooth_trajectory, wrap_heading_deg,
     SmoothedTrackState, TrackObservation, TrackSmoother, TrackSmootherConfig,
@@ -342,6 +363,7 @@ pub(crate) fn escape_xml(s: &str) -> String {
         .replace("\'", "&apos;")
 }
 
+#[cfg(feature = "experimental")]
 pub(crate) fn unescape_xml(s: &str) -> String {
     quick_xml::escape::unescape(s)
         .map(|v| v.into_owned())
@@ -1392,4 +1414,3 @@ mod tests {
         assert_eq!(profile.samples.len(), 29);
     }
 }
-pub mod route_nav;
