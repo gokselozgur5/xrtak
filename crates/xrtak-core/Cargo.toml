@@ -10,6 +10,10 @@ repository.workspace = true
 [lib]
 crate-type = ["rlib", "cdylib", "staticlib"]
 
+[features]
+default = []
+experimental = []
+
 [dependencies]
 quick-xml = "0.36"
 serde = { version = "1.0", features = ["derive"] }
@@ -17,3 +21,100 @@ serde_json = "1.0"
 
 [lints]
 workspace = true
+
+[[test]]
+name = "battery_impl"
+required-features = ["experimental"]
+[[test]]
+name = "billboard_mesh"
+required-features = ["experimental"]
+[[test]]
+name = "cas_nine_line"
+required-features = ["experimental"]
+[[test]]
+name = "casevac"
+required-features = ["experimental"]
+[[test]]
+name = "comms_channel"
+required-features = ["experimental"]
+[[test]]
+name = "comms_channel_plan_validation"
+required-features = ["experimental"]
+[[test]]
+name = "cot_attribute_unescape"
+required-features = ["experimental"]
+[[test]]
+name = "cot_builder_escaping"
+required-features = ["experimental"]
+[[test]]
+name = "cot_empty_remarks"
+required-features = ["experimental"]
+[[test]]
+name = "cot_harness"
+required-features = ["experimental"]
+[[test]]
+name = "cot_harness_error_mapping"
+required-features = ["experimental"]
+[[test]]
+name = "cot_heartbeat"
+required-features = ["experimental"]
+[[test]]
+name = "distress_beacon"
+required-features = ["experimental"]
+[[test]]
+name = "distress_cot_types"
+required-features = ["experimental"]
+[[test]]
+name = "ffi"
+required-features = ["experimental"]
+[[test]]
+name = "fresnel_zone"
+required-features = ["experimental"]
+[[test]]
+name = "geochat"
+required-features = ["experimental"]
+[[test]]
+name = "geopackage"
+required-features = ["experimental"]
+[[test]]
+name = "geotiff_bounds"
+required-features = ["experimental"]
+[[test]]
+name = "heartbeat_incoming_parse"
+required-features = ["experimental"]
+[[test]]
+name = "hud_battery_telemetry"
+required-features = ["experimental"]
+[[test]]
+name = "hud_connection_telemetry"
+required-features = ["experimental"]
+[[test]]
+name = "hud_element_composite"
+required-features = ["experimental"]
+[[test]]
+name = "marker_geometry"
+required-features = ["experimental"]
+[[test]]
+name = "medevac"
+required-features = ["experimental"]
+[[test]]
+name = "mesh_frag"
+required-features = ["experimental"]
+[[test]]
+name = "mesh_frag_forged_length"
+required-features = ["experimental"]
+[[test]]
+name = "mesh_frag_fragment_count_overflow"
+required-features = ["experimental"]
+[[test]]
+name = "mission_manifest"
+required-features = ["experimental"]
+[[test]]
+name = "rf"
+required-features = ["experimental"]
+[[test]]
+name = "sensor_stream"
+required-features = ["experimental"]
+[[test]]
+name = "spotrep"
+required-features = ["experimental"]

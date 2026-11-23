@@ -1,34 +1,49 @@
 pub mod aar;
 pub mod affiliation;
 pub mod battery;
+#[cfg(feature = "experimental")]
 pub mod cas_nine_line;
 pub mod casevac;
 pub mod cog;
 pub mod collab;
+#[cfg(feature = "experimental")]
 pub mod comms_channel;
 pub mod corridor;
+#[cfg(feature = "experimental")]
 pub mod cot_harness;
+#[cfg(feature = "experimental")]
 pub mod cot_heartbeat;
 pub mod deconflict;
+#[cfg(feature = "experimental")]
 pub mod distress_beacon;
 pub mod domain;
 pub mod ew;
+#[cfg(feature = "experimental")]
 pub mod ffi;
 pub mod fires;
+#[cfg(feature = "experimental")]
 pub mod fresnel_zone;
 pub mod geo;
+#[cfg(feature = "experimental")]
 pub mod geochat;
 pub mod geodesy;
+#[cfg(feature = "experimental")]
 pub mod geofence;
+#[cfg(feature = "experimental")]
 pub mod geopackage;
+#[cfg(feature = "experimental")]
 pub mod geotiff_bounds;
 pub mod grid_convergence;
 pub mod hud;
+#[cfg(feature = "experimental")]
 pub mod hud_telemetry;
 pub mod kml_export;
 pub mod manifest;
+#[cfg(feature = "experimental")]
 pub mod marker;
+#[cfg(feature = "experimental")]
 pub mod medevac;
+#[cfg(feature = "experimental")]
 pub mod mesh_frag;
 pub mod mgrs;
 pub mod mission;
@@ -60,6 +75,7 @@ pub use affiliation::{
 pub use battery::{
     compute_uav_endurance, RthPolygonVertex, UavBatteryState, UavEnduranceSolution, WindVector,
 };
+#[cfg(feature = "experimental")]
 pub use cas_nine_line::{format_cas_nine_line_text, CasNineLine, CasNineLineError};
 pub use casevac::{
     evaluate_hlz_suitability, format_nato_nine_line_text, HlzSuitability, MedevacReport,
@@ -67,11 +83,13 @@ pub use casevac::{
 };
 pub use cog::{ingest_geotiff_dsm, parse_geotiff_metadata, GeoTiffDsmResult, GeoTiffMetadata};
 pub use collab::{CollabRoomState, OperatorPeer, SharedTablePose};
+#[cfg(feature = "experimental")]
 pub use comms_channel::{CommsChannelError, CommsChannelPacket, RadioChannel, RadioMode};
 pub use corridor::{
     build_buffered_corridor_polygon, compute_camera_swath_width_m, evaluate_swath_corridor,
     simplify_polyline_rdp, CorridorPolygonResult,
 };
+#[cfg(feature = "experimental")]
 pub use cot_heartbeat::{
     build_ping_cot, build_pong_cot, CotHeartbeatConfig, CotHeartbeatManager, HeartbeatAction,
     HeartbeatStatus, PingRecord,
@@ -80,6 +98,7 @@ pub use deconflict::{
     compute_pairwise_cpa, compute_raw_t_cpa, evaluate_theater_deconfliction,
     AirspaceConflictReport, CpaRiskLevel, CpaTrack, DeconflictionResult,
 };
+#[cfg(feature = "experimental")]
 pub use distress_beacon::{
     DistressBeacon, DistressBeaconError, EmergencySeverity, EmergencyStatus, EmergencyType,
     SosFlags,
@@ -97,6 +116,7 @@ pub use geo::{
     compute_elevation_profile, sample_terrain_relief_m, ElevationProfileResult,
     ElevationProfileSample, ElevationProvider, ProceduralReliefModel, RasterDemProvider,
 };
+#[cfg(feature = "experimental")]
 pub use geopackage::{
     bytes_to_hex_literal, decode_point_geom, encode_point_geom, GeoPackageBounds, GeoPackageError,
     GeoPackageFeatureDataset, GeoPackageWaypoint,
@@ -107,15 +127,20 @@ pub use grid_convergence::{
     utm_zone_from_lon, GridError, GridSolution, GridSystem,
 };
 pub use hud::{compute_hud_cue, HudCue};
+#[cfg(feature = "experimental")]
 pub use hud_telemetry::battery::BatteryTelemetry;
+#[cfg(feature = "experimental")]
 pub use hud_telemetry::connection::ConnectionTelemetry;
+#[cfg(feature = "experimental")]
 pub use hud_telemetry::element::HudTelemetryElement;
+#[cfg(feature = "experimental")]
 pub use hud_telemetry::types::{BatteryState, ConnectionQuality};
 pub use manifest::{
     build_mapset_manifest, copernicus_glo30_cells_for_bounds, estimate_tiles_for_bounds,
     format_copernicus_glo30_cell_id, CopernicusDemCell, ManifestInput, MapsetManifest,
     ZoomTileEstimate,
 };
+#[cfg(feature = "experimental")]
 pub use medevac::{
     format_nine_line_voice_brief, CotMedevacBuilder, CotMedevacReport, HlzMarking,
     MedevacEquipment, MedevacError, MedevacPrecedence, NbcContamination, PatientNationality,
