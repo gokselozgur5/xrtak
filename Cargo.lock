@@ -134,6 +134,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "remoteid"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "212a4b231e5b2a71fd5c1fb52a103d2ec345d1e55676a4508c866505b71a4807"
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -248,6 +254,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "uas-cot"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b44248cded3d775c9d6907cf2ba1e9a7a72e4ab9c73cef3f3e9c46b48285461"
+dependencies = [
+ "remoteid",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -281,6 +296,7 @@ dependencies = [
  "quick-xml",
  "serde",
  "serde_json",
+ "uas-cot",
 ]
 
 [[package]]

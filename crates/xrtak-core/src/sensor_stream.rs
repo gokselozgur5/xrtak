@@ -157,6 +157,12 @@ pub struct SensorStreamDescriptor {
     pub video: VideoStreamConnection,
     pub sensor: SensorGimbal,
     pub parent_uid: Option<String>,
+    /// CoT type of the parent platform link. `None` falls back to the
+    /// ground-unit type `a-f-G-U-C`; set a drone air-track type with
+    /// [`with_uas_parent`](Self::with_uas_parent) when the feed is slung
+    /// under a UAS.
+    #[serde(default)]
+    pub parent_cot_type: Option<String>,
 }
 
 impl SensorStreamDescriptor {
@@ -186,6 +192,7 @@ impl SensorStreamDescriptor {
             video,
             sensor: SensorGimbal::default(),
             parent_uid: None,
+            parent_cot_type: None,
         }
     }
 }
@@ -198,6 +205,22 @@ impl SensorStreamDescriptor {
 
     pub fn with_parent_uid(mut self, parent_uid: impl Into<String>) -> Self {
         self.parent_uid = Some(parent_uid.into());
+        self
+    }
+
+    /// Links the feed to a UAS platform, setting the parent link to the
+    /// drone Cursor on Target type for its Remote ID aircraft category
+    /// (for example `a-f-A-M-F-Q` for a multirotor) instead of the default
+    /// ground-unit type `a-f-G-U-C`. `affiliation` is the CoT affiliation
+    /// letter (`'f'` friend, `'u'` unknown, `'h'` hostile, ...).
+    pub fn with_uas_parent(
+        mut self,
+        parent_uid: impl Into<String>,
+        ua_type: uas_cot::remoteid::UaType,
+        affiliation: char,
+    ) -> Self {
+        self.parent_uid = Some(parent_uid.into());
+        self.parent_cot_type = Some(uas_cot::rid::aircraft_type(ua_type, affiliation));
         self
     }
 
@@ -291,9 +314,11 @@ impl SensorStreamDescriptor {
         self.parent_uid
             .as_deref()
             .map(|p| {
+                let parent_type = self.parent_cot_type.as_deref().unwrap_or("a-f-G-U-C");
                 format!(
-                    "<link relation=\"p-p\" uid=\"{}\" type=\"a-f-G-U-C\"/>",
-                    escape_xml_attr(p)
+                    "<link relation=\"p-p\" uid=\"{}\" type=\"{}\"/>",
+                    escape_xml_attr(p),
+                    escape_xml_attr(parent_type)
                 )
             })
             .unwrap_or_default()
@@ -555,6 +580,7 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
         video: v,
         sensor: sensor_gimbal,
         parent_uid,
+        parent_cot_type: None,
     })
 }
 
@@ -638,6 +664,28 @@ mod tests {
         assert_eq!(parsed.sensor.roll_deg, 2.5);
         assert_eq!(parsed.sensor.zoom_ratio, 4.0);
         assert_eq!(parsed.parent_uid.as_deref(), Some("UAV-DRONE-ALPHA"));
+    }
+
+    #[test]
+    fn test_uas_parent_sets_drone_cot_type() {
+        let conn = VideoStreamConnection::new("rtsp://10.0.0.5/live", "ISR-Cam");
+        // Default ground parent: generic ground-unit link type.
+        let ground = SensorStreamDescriptor::new("D-G", "RECON", 39.9, 32.8, 1200.0, conn.clone())
+            .with_parent_uid("UAV-LEAD");
+        assert!(ground
+            .to_cot_xml()
+            .contains("<link relation=\"p-p\" uid=\"UAV-LEAD\" type=\"a-f-G-U-C\"/>"));
+        // UAS parent: correct drone air-track link type from uas-cot.
+        let drone = SensorStreamDescriptor::new("D-U", "RECON", 39.9, 32.8, 1200.0, conn)
+            .with_uas_parent(
+                "UAV-LEAD",
+                uas_cot::remoteid::UaType::HelicopterOrMultirotor,
+                'f',
+            );
+        assert_eq!(drone.parent_cot_type.as_deref(), Some("a-f-A-M-F-Q"));
+        assert!(drone
+            .to_cot_xml()
+            .contains("<link relation=\"p-p\" uid=\"UAV-LEAD\" type=\"a-f-A-M-F-Q\"/>"));
     }
 
     #[test]
