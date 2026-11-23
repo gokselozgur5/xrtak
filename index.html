@@ -4052,6 +4052,7 @@
       imgCanvas.height = 768;
       const imgCtx = imgCanvas.getContext('2d');
 
+      let demSuccessCount = 0;
       const tileJobs = [];
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
@@ -4064,7 +4065,10 @@
 
           tileJobs.push(
             loadCrossOriginImage(demUrl)
-              .then((im) => demCtx.drawImage(im, px, py, 256, 256))
+              .then((im) => {
+                demCtx.drawImage(im, px, py, 256, 256);
+                demSuccessCount++;
+              })
               .catch(() => {})
           );
           tileJobs.push(
@@ -4104,21 +4108,21 @@
           const G = demData[idx + 1];
           const B = demData[idx + 2];
           const A = demData[idx + 3];
-          let elevM = 850.0;
+          let elevM = null;
           if (A > 0) {
             elevM = (R * 256.0 + G + B / 256.0) - 32768.0;
           }
-          if (Number.isFinite(elevM) && elevM > -500 && elevM < 9000) {
+          if (elevM !== null && Number.isFinite(elevM) && elevM > -500 && elevM < 9000) {
             if (elevM < minElev) minElev = elevM;
             rawElev[r * resGrid + c] = elevM;
           } else {
-            rawElev[r * resGrid + c] = 0.0;
+            rawElev[r * resGrid + c] = null;
           }
         }
       }
       if (!Number.isFinite(minElev)) minElev = 0.0;
       currentOriginAltM = Math.round(minElev);
-      const heightsM = rawElev.map((e) => Math.round(Math.max(0.0, e - minElev) * 100.0) / 100.0);
+      const heightsM = rawElev.map((e) => (e !== null ? Math.round(Math.max(0.0, e - minElev) * 100.0) / 100.0 : 0.0));
 
       // 3. Crop exact 3.0x3.0 km satellite/topo texture for the 3D terrain mesh
       const minLon = lon - extM / mPerDegLon;
@@ -4150,7 +4154,8 @@
       tex.needsUpdate = true;
       activeSatelliteTexture = tex;
 
-      const gridName = `${labelHint}-${lat.toFixed(2)}N-${lon.toFixed(2)}E`;
+      const effectiveLabelHint = demSuccessCount === 0 ? 'FLAT-NO-DEM' : (demSuccessCount < 9 ? `${labelHint}-PARTIAL` : labelHint);
+      const gridName = `${effectiveLabelHint}-${lat.toFixed(2)}N-${lon.toFixed(2)}E`;
       activeDemGrid = {
         name: gridName,
         resolution: resGrid,
