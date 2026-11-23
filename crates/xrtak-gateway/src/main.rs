@@ -12,9 +12,9 @@ use xrtak_core::{
     export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
     predict_entity_trajectory_struct, resolve_tile_with_fallback,
     resolve_tile_with_placeholder_check, AarSummary, GeoOrigin, ImageryProvider, ManifestInput,
-    OperatorPeer, OpordUnitSummary, ProceduralReliefModel, RasterDemProvider, RfBand,
-    SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
-    ThreatDome, TrackPredictInput, TrackPredictRequest, TrackPrediction,
+    OperatorPeer, OpordUnitSummary, RfBand, SapientDetectionReport, SharedTablePose,
+    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPredictInput,
+    TrackPredictRequest, TrackPrediction,
 };
 
 mod battery_dto;
@@ -576,66 +576,6 @@ async fn handle_http_connection(
 
     if let Some(resp) = router::try_dispatch(&req, &state).await? {
         return http::write_response(&mut stream, &resp).await;
-    }
-
-    if method == "GET" && path == "/api/terrain" {
-        let body = {
-            let guard = lock_world(&world);
-            let res = 65usize;
-            let grid = guard.terrain.export_grid(guard.origin.extent_m, res);
-            serde_json::json!({
-                "name": guard.terrain_name,
-                "resolution": res,
-                "extent_m": guard.origin.extent_m,
-                "heights_m": grid
-            })
-            .to_string()
-        };
-        let header = json_ok_header(body.len());
-        stream.write_all(header.as_bytes()).await?;
-        stream.write_all(body.as_bytes()).await?;
-        return Ok(());
-    }
-
-    if method == "POST" && path == "/api/terrain" {
-        if let Ok(t_req) = serde_json::from_str::<TerrainSwitchRequest>(body) {
-            let res: Result<String, String> = (|| {
-                let mut guard = lock_world(&world);
-                let extent = t_req.extent_m.unwrap_or(guard.origin.extent_m);
-                if let (Some(w), Some(h), Some(heights)) =
-                    (t_req.width, t_req.height, t_req.heights_m)
-                {
-                    let name = t_req.preset.unwrap_or_else(|| "custom_dem".to_string());
-                    let dem = RasterDemProvider::new(&name, w, h, extent, heights)?;
-                    guard.set_terrain_provider(&name, Box::new(dem));
-                } else {
-                    let preset = t_req.preset.unwrap_or_else(|| "valley".to_string());
-                    if preset == "valley" {
-                        guard.set_terrain_provider("valley", Box::new(ProceduralReliefModel));
-                    } else {
-                        let dem = RasterDemProvider::from_preset(&preset, extent, 65);
-                        guard.set_terrain_provider(&preset, Box::new(dem));
-                    }
-                }
-                let res = 65usize;
-                let grid = guard.terrain.export_grid(guard.origin.extent_m, res);
-                Ok(serde_json::json!({
-                    "name": guard.terrain_name,
-                    "resolution": res,
-                    "extent_m": guard.origin.extent_m,
-                    "heights_m": grid
-                })
-                .to_string())
-            })();
-            let (header, body) = match res {
-                Ok(json) => (json_ok_header(json.len()), json),
-                Err(err) => err_400_response(&err),
-            };
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(body.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_terrain_payload").await;
     }
 
     if method == "POST" && path == "/api/terrain/geotiff" {

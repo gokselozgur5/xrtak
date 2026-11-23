@@ -1,5 +1,6 @@
 use crate::http::{DynError, HttpRequest, HttpResponse};
-use crate::{lock_world, GatewayState, WorldSnapshot, INDEX_HTML};
+use crate::{lock_world, GatewayState, TerrainSwitchRequest, WorldSnapshot, INDEX_HTML};
+use xrtak_core::{ProceduralReliefModel, RasterDemProvider, TacticalWorld};
 
 pub async fn try_dispatch(
     req: &HttpRequest,
@@ -15,6 +16,8 @@ pub async fn try_dispatch(
         }
         ("GET", p) if p.starts_with("/api/aar") => handle_aar(p, state),
         ("GET", p) if p.starts_with("/api/hud") => handle_hud(p, state),
+        ("GET", "/api/terrain") => terrain_grid_response(&lock_world(&state.world)),
+        ("POST", "/api/terrain") => handle_terrain_post(&req.body, state),
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -67,4 +70,42 @@ fn handle_hud(path: &str, state: &GatewayState) -> HttpResponse {
         })
         .collect();
     HttpResponse::json_str(serde_json::json!({ "observer_uid": obs, "cues": items }).to_string())
+}
+
+fn terrain_grid_response(world: &TacticalWorld) -> HttpResponse {
+    let res = 65usize;
+    let grid = world.terrain.export_grid(world.origin.extent_m, res);
+    HttpResponse::json_str(
+        serde_json::json!({
+            "name": world.terrain_name,
+            "resolution": res,
+            "extent_m": world.origin.extent_m,
+            "heights_m": grid
+        })
+        .to_string(),
+    )
+}
+
+fn handle_terrain_post(body: &str, state: &GatewayState) -> HttpResponse {
+    let Ok(t_req) = serde_json::from_str::<TerrainSwitchRequest>(body) else {
+        return HttpResponse::bad_request("invalid_terrain_payload");
+    };
+    let mut guard = lock_world(&state.world);
+    let extent = t_req.extent_m.unwrap_or(guard.origin.extent_m);
+    if let (Some(w), Some(h), Some(heights)) = (t_req.width, t_req.height, t_req.heights_m) {
+        let name = t_req.preset.unwrap_or_else(|| "custom_dem".to_string());
+        match RasterDemProvider::new(&name, w, h, extent, heights) {
+            Ok(dem) => guard.set_terrain_provider(&name, Box::new(dem)),
+            Err(err) => return HttpResponse::bad_request(&err),
+        }
+    } else {
+        let preset = t_req.preset.unwrap_or_else(|| "valley".to_string());
+        if preset == "valley" {
+            guard.set_terrain_provider("valley", Box::new(ProceduralReliefModel));
+        } else {
+            let dem = RasterDemProvider::from_preset(&preset, extent, 65);
+            guard.set_terrain_provider(&preset, Box::new(dem));
+        }
+    }
+    terrain_grid_response(&guard)
 }
