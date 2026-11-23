@@ -1267,9 +1267,10 @@
       }
 
       if (showTacticalZones && Array.isArray(zones)) {
-        const zonesSig = `${currentOriginLat.toFixed(4)}:${currentOriginLon.toFixed(4)}:` + zones.map(z =>
-          `${z.uid}:${z.affiliation}:${Math.round(z.floor_m)}:${Math.round(z.ceiling_m)}:${z.inside_uids && z.inside_uids.length > 0 ? 1 : 0}:${z.vertices_en ? z.vertices_en.length : 0}`
-        ).join('|');
+        const zonesSig = `${currentOriginLat.toFixed(4)}:${currentOriginLon.toFixed(4)}:` + zones.map(z => {
+          const vSig = (z.vertices_en || []).map(v => `${Math.round(v[0])},${Math.round(v[1])}`).join(';');
+          return `${z.uid}:${z.affiliation}:${Math.round(z.floor_m)}:${Math.round(z.ceiling_m)}:${z.inside_uids && z.inside_uids.length > 0 ? 1 : 0}:${vSig}`;
+        }).join('|');
 
         if (zonesSig !== lastTacticalZonesSig) {
           lastTacticalZonesSig = zonesSig;
