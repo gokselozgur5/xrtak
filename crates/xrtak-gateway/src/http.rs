@@ -7,7 +7,8 @@ use tokio::sync::broadcast;
 pub type DynError = Box<dyn std::error::Error + Send + Sync>;
 
 pub const CORS_HEADERS: &str =
-    "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n";
+    "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, X-XRTAK-Token\r\n";
+pub const MAX_HTTP_REQUEST_BYTES: usize = 16 * 1024 * 1024;
 
 pub struct HttpResponse {
     pub status: &'static str,
@@ -84,6 +85,15 @@ impl HttpResponse {
             "403 Forbidden"
         };
         Self::new(st, Some("application/json"), false, err.as_bytes().to_vec())
+    }
+
+    pub fn payload_too_large() -> Self {
+        Self::new(
+            "413 Payload Too Large",
+            Some("application/json"),
+            true,
+            b"{\"error\":\"payload_too_large\"}".to_vec(),
+        )
     }
 
     pub fn not_found() -> Self {
@@ -211,14 +221,26 @@ async fn read_http_bytes(stream: &mut TcpStream) -> Result<Vec<u8>, DynError> {
             return Ok(buf);
         }
         buf.extend_from_slice(&chunk[..r]);
+        if buf.len() > MAX_HTTP_REQUEST_BYTES {
+            let _ = write_response(stream, &HttpResponse::payload_too_large()).await;
+            return Err("request header exceeds maximum allowed size".into());
+        }
     };
     let total_needed = hdr_end + 4 + content_len;
+    if total_needed > MAX_HTTP_REQUEST_BYTES || content_len > MAX_HTTP_REQUEST_BYTES {
+        let _ = write_response(stream, &HttpResponse::payload_too_large()).await;
+        return Err("request content-length exceeds maximum allowed size".into());
+    }
     while buf.len() < total_needed {
         let r = stream.read(&mut chunk).await?;
         if r == 0 {
             break;
         }
         buf.extend_from_slice(&chunk[..r]);
+        if buf.len() > MAX_HTTP_REQUEST_BYTES {
+            let _ = write_response(stream, &HttpResponse::payload_too_large()).await;
+            return Err("request payload exceeds maximum allowed size".into());
+        }
     }
     Ok(buf)
 }
@@ -249,5 +271,10 @@ mod tests {
     fn parse_rejects_empty_or_incomplete_request_line() {
         assert!(HttpRequest::parse(b"").is_none());
         assert!(HttpRequest::parse(b"GARBAGE\r\n\r\n").is_none());
+    }
+
+    #[test]
+    fn cors_headers_include_token_header() {
+        assert!(CORS_HEADERS.contains("X-XRTAK-Token"));
     }
 }

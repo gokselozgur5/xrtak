@@ -853,3 +853,18 @@ fn test_gateway_router_auth_and_single_parser_writer() {
         "{wrong_method}"
     );
 }
+
+#[test]
+fn test_request_payload_too_large_returns_413() {
+    let (gw, port) = start_gateway();
+    let oversized = format!(
+        "POST /api/terrain HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        17 * 1024 * 1024
+    );
+    let resp = send_raw(port, &oversized);
+    stop_gateway(gw);
+    assert!(
+        resp.starts_with("HTTP/1.1 413 Payload Too Large"),
+        "expected 413, got: {resp}"
+    );
+}
