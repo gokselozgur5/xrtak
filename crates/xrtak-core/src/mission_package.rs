@@ -1,6 +1,6 @@
 //! TAK Mission Package ZIP manifest generator and SHA256 integrity verifier.
 
-use crate::mission_manifest::{escape_xml_attr, unescape_xml_attr};
+use crate::mission_manifest::unescape_xml_attr;
 
 /// Error conditions encountered during mission package generation or verification.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,41 +122,17 @@ impl MissionPackageArchive {
     }
 
     pub fn generate_manifest_xml(&self) -> String {
-        let mut out =
-            String::from("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
-        out.push_str("<MissionPackageManifest version=\"2\">\n");
-        out.push_str("  <Configuration>\n");
-        let uid = escape_xml_attr(&self.uid);
-        let name = escape_xml_attr(&self.name);
-        out.push_str(&format!("    <Parameter name=\"uid\" value=\"{uid}\"/>\n"));
-        out.push_str(&format!(
-            "    <Parameter name=\"name\" value=\"{name}\"/>\n"
-        ));
-        out.push_str(&format!(
-            "    <Parameter name=\"onReceiveDelete\" value=\"{}\"/>\n",
-            self.on_receive_delete
-        ));
-        out.push_str("  </Configuration>\n");
-        out.push_str("  <Contents>\n");
+        let mut manifest =
+            crate::mission_manifest::MissionPackageManifest::new(&self.uid, &self.name)
+                .with_on_receive_delete(self.on_receive_delete);
         for entry in &self.entries {
-            let path = escape_xml_attr(&entry.zip_entry);
-            out.push_str(&format!(
-                "    <Content zipEntry=\"{path}\" ignore=\"{}\">\n",
-                entry.ignore
-            ));
-            let mime = escape_xml_attr(&entry.content_type);
-            out.push_str(&format!(
-                "      <Parameter name=\"contentType\" value=\"{mime}\"/>\n"
-            ));
-            out.push_str(&format!(
-                "      <Parameter name=\"sha256\" value=\"{}\"/>\n",
-                entry.sha256_hex
-            ));
-            out.push_str("    </Content>\n");
+            let mut c =
+                crate::mission_manifest::ManifestContentEntry::new(&entry.zip_entry, entry.ignore);
+            c.add_param("contentType", &entry.content_type);
+            c.add_param("sha256", &entry.sha256_hex);
+            manifest.contents.push(c);
         }
-        out.push_str("  </Contents>\n");
-        out.push_str("</MissionPackageManifest>\n");
-        out
+        manifest.generate_xml()
     }
 
     pub fn build_zip(&self) -> Result<Vec<u8>, MissionPackageError> {
