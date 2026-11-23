@@ -27,3 +27,7 @@ jobs:
         run: cargo +1.85.0 build --workspace --locked
       - name: Test
         run: cargo +1.85.0 test --workspace --locked
+      - name: Build with all features
+        run: cargo +1.85.0 build --workspace --all-features --locked
+      - name: Test with all features
+        run: cargo +1.85.0 test --workspace --all-features --locked
