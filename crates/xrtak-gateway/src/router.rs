@@ -43,6 +43,8 @@ pub async fn try_dispatch(
         ("GET", "/api/export/opord") => handle_export_opord_get(state)?,
         ("POST", "/api/ew/jamming") => handle_ew_jamming_post(&req.body)?,
         ("POST", "/api/medevac/nine-line") => handle_medevac_post(&req.body, state)?,
+        ("POST", "/api/fires/ballistics") => handle_ballistics_post(&req.body, state)?,
+        ("POST", "/api/uav/endurance") => handle_uav_endurance_post(&req.body)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -625,4 +627,41 @@ fn handle_medevac_post(body: &str, state: &GatewayState) -> Result<HttpResponse,
         report,
         hlz_suitability,
     })
+}
+
+fn handle_ballistics_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(b_req) = serde_json::from_str::<fires_dto::BallisticsRequest>(body) else {
+        return Ok(HttpResponse::bad_request(
+            "invalid_ballistics_request_payload",
+        ));
+    };
+    let munition = match b_req.munition.as_deref() {
+        Some("mortar") | Some("mortar120") => xrtak_core::MunitionType::Mortar120mm,
+        Some("loitering") | Some("drone") => xrtak_core::MunitionType::LoiteringMunition,
+        Some("rocket") | Some("mlrs") => xrtak_core::MunitionType::TacticalRocket,
+        _ => xrtak_core::MunitionType::Artillery155mm,
+    };
+    let samples = b_req.samples.unwrap_or(32);
+    let solution = {
+        let guard = lock_world(&state.world);
+        xrtak_core::compute_ballistic_trajectory(
+            b_req.origin_enu,
+            b_req.target_enu,
+            munition,
+            b_req.elevation_angle_deg,
+            guard.terrain.as_ref(),
+            samples,
+        )
+    };
+    HttpResponse::json(&fires_dto::BallisticsResponse { solution })
+}
+
+fn handle_uav_endurance_post(body: &str) -> Result<HttpResponse, DynError> {
+    let Ok(bat_req) = serde_json::from_str::<battery_dto::UavEnduranceRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_uav_endurance_payload"));
+    };
+    let wind = bat_req.wind.unwrap_or_default();
+    let steps = bat_req.radial_steps.unwrap_or(32);
+    let solution = xrtak_core::compute_uav_endurance(&bat_req.state, &wind, steps);
+    HttpResponse::json(&battery_dto::UavEnduranceResponse { solution })
 }
