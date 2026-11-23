@@ -1,15 +1,11 @@
 use crate::http::{DynError, HttpRequest, HttpResponse};
-use crate::{
-    flush_persistent_pins, lock_world, now_unix_ms, snapshot_persistent_pins_json,
-    CorridorPolygonRequest, ElevationProfileRequest, GatewayState, GeoTiffUploadRequest,
-    LinkLosRequest, MissionExportRequest, MissionImportRequest, SpiSlewRequest,
-    TerrainSwitchRequest, ViewshedRequest, WorldSnapshot, INDEX_HTML,
-};
+use crate::*;
 use xrtak_core::{
-    compute_link_los, compute_viewshed_with_provider, evaluate_mission_corridor,
-    evaluate_swath_corridor, export_atak_route_cot_xml, export_qgc_plan_json, ingest_geotiff_dsm,
-    parse_kml_mission, parse_qgc_plan_mission, GeoOrigin, ProceduralReliefModel, RasterDemProvider,
-    TacticalWorld,
+    build_mapset_manifest, compute_link_los, compute_viewshed_with_provider,
+    evaluate_mission_corridor, evaluate_swath_corridor, export_atak_route_cot_xml,
+    export_qgc_plan_json, ingest_geotiff_dsm, parse_kml_mission, parse_qgc_plan_mission,
+    resolve_tile_with_fallback, resolve_tile_with_placeholder_check, GeoOrigin, ImageryProvider,
+    ManifestInput, ProceduralReliefModel, RasterDemProvider, TacticalWorld,
 };
 
 pub async fn try_dispatch(
@@ -36,9 +32,11 @@ pub async fn try_dispatch(
         ("POST", "/api/elevation-profile") => handle_elevation_profile_post(&req.body, state)?,
         ("POST", "/api/mission/import") => handle_mission_import_post(&req.body, state),
         ("POST", "/api/mission/export") => handle_mission_export_post(&req.body, state).await,
+        ("POST", "/api/tiles/resolve") => handle_tiles_resolve_post(&req.body, state)?,
         ("POST", "/api/mission/corridor-polygon") => {
             handle_corridor_polygon_post(&req.body, state)?
         }
+        ("POST", "/api/mapset/plan") => handle_mapset_plan_post(&req.body, state)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -381,4 +379,48 @@ fn handle_corridor_polygon_post(
         c_req.sensor_width_px,
     );
     HttpResponse::json(&res)
+}
+
+fn handle_tiles_resolve_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(t_req) = serde_json::from_str::<TileResolveRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_tile_resolve_payload"));
+    };
+    let origin = lock_world(&state.world).origin;
+    let (lat, lon) = (
+        t_req.lat.unwrap_or(origin.lat),
+        t_req.lon.unwrap_or(origin.lon),
+    );
+    let provider = ImageryProvider::from_id(t_req.provider.as_deref().unwrap_or("esri"));
+    let zoom = t_req.zoom.unwrap_or(15);
+    match t_req.rgb_sample.as_deref() {
+        Some(s) => HttpResponse::json(&resolve_tile_with_placeholder_check(
+            provider,
+            lat,
+            lon,
+            zoom,
+            Some(s),
+        )),
+        None => HttpResponse::json(&resolve_tile_with_fallback(provider, lat, lon, zoom)),
+    }
+}
+
+fn handle_mapset_plan_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(mp_req) = serde_json::from_str::<MapsetPlanRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_mapset_plan_payload"));
+    };
+    let origin = lock_world(&state.world).origin;
+    let (sw_lat, sw_lon, _) = origin.enu_to_lla(-origin.extent_m, 0.0, -origin.extent_m);
+    let (ne_lat, ne_lon, _) = origin.enu_to_lla(origin.extent_m, 0.0, origin.extent_m);
+    let name = mp_req.name.unwrap_or_default();
+    let manifest = build_mapset_manifest(&ManifestInput {
+        name: &name,
+        provider: ImageryProvider::from_id(mp_req.provider.as_deref().unwrap_or("bing")),
+        south_deg: mp_req.south.unwrap_or(sw_lat),
+        west_deg: mp_req.west.unwrap_or(sw_lon),
+        north_deg: mp_req.north.unwrap_or(ne_lat),
+        east_deg: mp_req.east.unwrap_or(ne_lon),
+        min_zoom: mp_req.min_zoom.unwrap_or(12),
+        max_zoom: mp_req.max_zoom.unwrap_or(16),
+    });
+    HttpResponse::json(&manifest)
 }

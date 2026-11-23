@@ -6,12 +6,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, Semaphore};
 use xrtak_core::{
-    build_laser_pointer_cot_xml, build_mapset_manifest, escape_cot_attr, evaluate_rf_link,
-    evaluate_theater_deconfliction, predict_entity_trajectory_struct, resolve_tile_with_fallback,
-    resolve_tile_with_placeholder_check, AarSummary, GeoOrigin, ImageryProvider, ManifestInput,
-    OperatorPeer, OpordUnitSummary, RfBand, SapientDetectionReport, SharedTablePose,
-    TacticalEntity, TacticalWorld, TacticalZone, ThreatDome, TrackPredictInput,
-    TrackPredictRequest, TrackPrediction,
+    build_laser_pointer_cot_xml, escape_cot_attr, evaluate_rf_link, evaluate_theater_deconfliction,
+    predict_entity_trajectory_struct, AarSummary, GeoOrigin, OperatorPeer, OpordUnitSummary,
+    RfBand, SapientDetectionReport, SharedTablePose, TacticalEntity, TacticalWorld, TacticalZone,
+    ThreatDome, TrackPredictInput, TrackPredictRequest, TrackPrediction,
 };
 
 mod battery_dto;
@@ -583,72 +581,6 @@ async fn handle_http_connection(
             }
         }
         return Ok(());
-    }
-
-    if method == "POST" && path == "/api/tiles/resolve" {
-        if let Ok(t_req) = serde_json::from_str::<TileResolveRequest>(body) {
-            let (lat, lon) = {
-                let guard = lock_world(&world);
-                (
-                    t_req.lat.unwrap_or(guard.origin.lat),
-                    t_req.lon.unwrap_or(guard.origin.lon),
-                )
-            };
-            let provider = ImageryProvider::from_id(t_req.provider.as_deref().unwrap_or("esri"));
-            let zoom = t_req.zoom.unwrap_or(15);
-            let resp_json = match t_req.rgb_sample.as_deref() {
-                Some(sample) => {
-                    let res =
-                        resolve_tile_with_placeholder_check(provider, lat, lon, zoom, Some(sample));
-                    serde_json::to_string(&res)?
-                }
-                None => {
-                    let spec = resolve_tile_with_fallback(provider, lat, lon, zoom);
-                    serde_json::to_string(&spec)?
-                }
-            };
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_tile_resolve_payload").await;
-    }
-
-    if method == "POST" && path == "/api/mapset/plan" {
-        if let Ok(mp_req) = serde_json::from_str::<MapsetPlanRequest>(body) {
-            let origin = {
-                let guard = lock_world(&world);
-                guard.origin
-            };
-            // Default to the current tactical sand table bounding box if explicit bounds are omitted
-            let (sw_lat, sw_lon, _) = origin.enu_to_lla(-origin.extent_m, 0.0, -origin.extent_m);
-            let (ne_lat, ne_lon, _) = origin.enu_to_lla(origin.extent_m, 0.0, origin.extent_m);
-            let south = mp_req.south.unwrap_or(sw_lat);
-            let west = mp_req.west.unwrap_or(sw_lon);
-            let north = mp_req.north.unwrap_or(ne_lat);
-            let east = mp_req.east.unwrap_or(ne_lon);
-            let provider = ImageryProvider::from_id(mp_req.provider.as_deref().unwrap_or("bing"));
-            let min_zoom = mp_req.min_zoom.unwrap_or(12);
-            let max_zoom = mp_req.max_zoom.unwrap_or(16);
-            let name = mp_req.name.unwrap_or_default();
-            let manifest = build_mapset_manifest(&ManifestInput {
-                name: &name,
-                provider,
-                south_deg: south,
-                west_deg: west,
-                north_deg: north,
-                east_deg: east,
-                min_zoom,
-                max_zoom,
-            });
-            let resp_json = serde_json::to_string(&manifest)?;
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        return send_err_400(&mut stream, "invalid_mapset_plan_payload").await;
     }
 
     if method == "POST" && path == "/api/rf/link-budget" {
