@@ -120,6 +120,22 @@ fn feedback_addr() -> String {
     std::env::var("XRTAK_FEEDBACK_ADDR").unwrap_or_else(|_| "127.0.0.1:4243".to_string())
 }
 
+struct GatewayState {
+    world: Arc<Mutex<TacticalWorld>>,
+    tx: broadcast::Sender<String>,
+    tak_client: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    feedback_sock: Option<UdpSocket>,
+    feedback_addr: String,
+}
+
+impl GatewayState {
+    async fn send_feedback(&self, payload: &[u8]) {
+        if let Some(sock) = &self.feedback_sock {
+            let _ = sock.send_to(payload, &self.feedback_addr).await;
+        }
+    }
+}
+
 /// Entity id, (east, north, up) position, speed in m/s and course in degrees.
 type DeconflictEntity<'a> = (&'a str, (f64, f64, f64), f64, f64);
 
@@ -493,7 +509,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Raw CoT UDP Input  : udp://{udp_cot_addr}");
     println!("==============================================================");
 
-    let tak_client = Arc::new(Mutex::new(None::<tokio::task::JoinHandle<()>>));
+    let fb_addr = feedback_addr();
+    let fb_bind = if fb_addr.trim_start().starts_with('[')
+        || fb_addr.parse::<SocketAddr>().is_ok_and(|a| a.is_ipv6())
+    {
+        "[::]:0"
+    } else {
+        "0.0.0.0:0"
+    };
+    let state = Arc::new(GatewayState {
+        world,
+        tx,
+        tak_client: Arc::new(Mutex::new(None::<tokio::task::JoinHandle<()>>)),
+        feedback_sock: UdpSocket::bind(fb_bind).await.ok(),
+        feedback_addr: fb_addr,
+    });
     let conn_limit = Arc::new(Semaphore::new(256));
     loop {
         let (stream, _) = match listener.accept().await {
@@ -508,22 +538,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(p) => p,
             Err(_) => continue,
         };
-        let world_http = Arc::clone(&world);
-        let tx_http = tx.clone();
-        let tak_client_http = Arc::clone(&tak_client);
+        let state_http = Arc::clone(&state);
         tokio::spawn(async move {
             let _permit = permit;
-            let _ = handle_http_connection(stream, world_http, tx_http, tak_client_http).await;
+            let _ = handle_http_connection(stream, state_http).await;
         });
     }
 }
 
 async fn handle_http_connection(
     mut stream: TcpStream,
-    world: Arc<Mutex<TacticalWorld>>,
-    tx: broadcast::Sender<String>,
-    tak_client: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    state: Arc<GatewayState>,
 ) -> Result<(), http::DynError> {
+    let (world, tx, tak_client) = (
+        Arc::clone(&state.world),
+        state.tx.clone(),
+        Arc::clone(&state.tak_client),
+    );
     let Some(req) = http::read_request(&mut stream).await? else {
         return Ok(());
     };
@@ -976,11 +1007,7 @@ async fn handle_http_connection(
                 );
                 (qgc, bmr)
             };
-            if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                let _ = sock
-                    .send_to(atak_bmr_xml.as_bytes(), &feedback_addr())
-                    .await;
-            }
+            state.send_feedback(atak_bmr_xml.as_bytes()).await;
             let resp_json = serde_json::json!({
                 "route_uid": route_uid,
                 "route_callsign": route_cs,
@@ -1412,9 +1439,7 @@ async fn handle_http_connection(
                 }
                 (xml, r)
             };
-            if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
-            }
+            state.send_feedback(xml.as_bytes()).await;
             if let Ok(entity) = ent {
                 let json = serde_json::to_string(&entity)?;
                 let header = json_ok_header(json.len());
@@ -1461,9 +1486,7 @@ async fn handle_http_connection(
                 out_ent
             };
             if let Some((xml, entity)) = updated {
-                if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                    let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
-                }
+                state.send_feedback(xml.as_bytes()).await;
                 let json = serde_json::to_string(&entity)?;
                 let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
@@ -1565,9 +1588,7 @@ async fn handle_http_connection(
                 let res = guard.ingest_cot_xml(&xml, now_unix_ms());
                 (xml, res)
             };
-            if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
-            }
+            state.send_feedback(xml.as_bytes()).await;
             if let Ok(entity) = res {
                 let json = serde_json::to_string(&entity)?;
                 let header = json_ok_header(json.len());
@@ -1633,9 +1654,7 @@ async fn handle_http_connection(
                 guard.ingest_sapient_detection(&report, now_unix_ms())
             };
             if let Ok((xml, entity)) = res {
-                if let Ok(sock) = UdpSocket::bind("0.0.0.0:0").await {
-                    let _ = sock.send_to(xml.as_bytes(), &feedback_addr()).await;
-                }
+                state.send_feedback(xml.as_bytes()).await;
                 let json = serde_json::to_string(&entity)?;
                 let header = json_ok_header(json.len());
                 stream.write_all(header.as_bytes()).await?;
