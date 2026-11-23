@@ -1,8 +1,78 @@
+use serde::Serialize;
 use std::time::Duration;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 pub type DynError = Box<dyn std::error::Error + Send + Sync>;
+
+pub const CORS_HEADERS: &str =
+    "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n";
+
+pub struct HttpResponse {
+    pub status: &'static str,
+    pub content_type: Option<&'static str>,
+    pub cors: bool,
+    pub cache_no_cache: bool,
+    pub body: Vec<u8>,
+}
+
+impl HttpResponse {
+    fn new(
+        status: &'static str,
+        content_type: Option<&'static str>,
+        cors: bool,
+        body: Vec<u8>,
+    ) -> Self {
+        Self {
+            status,
+            content_type,
+            cors,
+            cache_no_cache: false,
+            body,
+        }
+    }
+
+    pub fn json_str(body: String) -> Self {
+        Self::new("200 OK", Some("application/json"), true, body.into_bytes())
+    }
+
+    pub fn json(val: &impl Serialize) -> Result<Self, DynError> {
+        Ok(Self::json_str(serde_json::to_string(val)?))
+    }
+
+    pub fn bad_request(err: &str) -> Self {
+        let msg = serde_json::json!({ "error": err }).to_string();
+        Self::new(
+            "400 Bad Request",
+            Some("application/json"),
+            true,
+            msg.into_bytes(),
+        )
+    }
+}
+
+pub async fn write_response(stream: &mut TcpStream, resp: &HttpResponse) -> Result<(), DynError> {
+    let ct = resp
+        .content_type
+        .map(|c| format!("Content-Type: {c}\r\n"))
+        .unwrap_or_default();
+    let cors = if resp.cors { CORS_HEADERS } else { "" };
+    let cache = if resp.cache_no_cache {
+        "Cache-Control: no-cache\r\n"
+    } else {
+        ""
+    };
+    let header = format!(
+        "HTTP/1.1 {}\r\n{ct}{cors}Content-Length: {}\r\n{cache}Connection: close\r\n\r\n",
+        resp.status,
+        resp.body.len()
+    );
+    stream.write_all(header.as_bytes()).await?;
+    if !resp.body.is_empty() {
+        stream.write_all(&resp.body).await?;
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
