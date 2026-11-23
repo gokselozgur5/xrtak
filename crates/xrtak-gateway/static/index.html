@@ -2926,7 +2926,11 @@
         operator_id: localOperatorId,
         callsign,
         device_mode: renderer.xr.isPresenting ? 'QUEST3-AR' : 'DESKTOP-C2',
-        head_enu: [camera.position.x * 800.0, Math.max(180.0, camera.position.y * 500.0), -camera.position.z * 800.0],
+        head_enu: [
+          camera.position.x / M_TO_TABLE,
+          camera.position.y / (M_TO_TABLE * ALT_EXAGGERATION),
+          -camera.position.z / M_TO_TABLE
+        ],
         laser_target_enu: lastLaserTargetEnu,
         ptt_active: pttActive,
         color_hex: pttActive ? '#fbbf24' : '#00ff88',
