@@ -39,6 +39,8 @@ pub async fn try_dispatch(
         ("POST", "/api/mapset/plan") => handle_mapset_plan_post(&req.body, state)?,
         ("POST", "/api/rf/link-budget") => handle_rf_link_budget_post(&req.body, state)?,
         ("POST", "/api/tracks/predict") => handle_tracks_predict_post(&req.body, state)?,
+        ("POST", "/api/airspace/deconflict") => handle_deconflict_post(&req.body, state)?,
+        ("GET", "/api/export/opord") => handle_export_opord_get(state)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -472,4 +474,64 @@ fn handle_tracks_predict_post(body: &str, state: &GatewayState) -> Result<HttpRe
         })
         .collect();
     HttpResponse::json(&predictions)
+}
+
+fn handle_deconflict_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    if !body.is_empty() && serde_json::from_str::<serde_json::Value>(body).is_err() {
+        return Ok(HttpResponse::bad_request("invalid_deconflict_payload"));
+    }
+    let guard = lock_world(&state.world);
+    let mut list: Vec<DeconflictEntity<'_>> = guard
+        .entities
+        .values()
+        .filter(|e| e.dimension == xrtak_core::Dimension::Air && e.speed_mps > 1.0)
+        .map(|e| {
+            (
+                e.callsign.as_str(),
+                (e.east_m, e.north_m, e.up_m),
+                e.speed_mps,
+                e.course_deg,
+            )
+        })
+        .collect();
+    if list.len() < 2 {
+        list = guard
+            .entities
+            .values()
+            .map(|e| {
+                (
+                    e.callsign.as_str(),
+                    (e.east_m, e.north_m, e.up_m),
+                    e.speed_mps.max(15.0),
+                    e.course_deg,
+                )
+            })
+            .collect();
+    }
+    HttpResponse::json(&evaluate_theater_deconfliction(&list))
+}
+
+fn handle_export_opord_get(state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let guard = lock_world(&state.world);
+    let units: Vec<OpordUnitSummary> = guard
+        .entities
+        .values()
+        .map(|e| OpordUnitSummary {
+            callsign: e.callsign.clone(),
+            cot_type: e.cot_type.clone(),
+            affiliation: format!("{:?}", e.affiliation),
+            lat: e.lat,
+            lon: e.lon,
+            alt_m: e.up_m,
+        })
+        .collect();
+    let origin_lla = (guard.origin.lat, guard.origin.lon, guard.origin.alt_m);
+    let bundle = xrtak_core::opord::build_opord_bundle_with_features(
+        &format!("XRTAK-{}", guard.terrain_name.to_uppercase()),
+        origin_lla,
+        &units,
+        &guard.tactical_zones,
+        &guard.threat_domes,
+    );
+    HttpResponse::json(&bundle)
 }
