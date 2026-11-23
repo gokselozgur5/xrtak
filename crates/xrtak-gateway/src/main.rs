@@ -583,49 +583,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "POST" && path == "/api/ew/jamming" {
-        if let Ok(ew_req) = serde_json::from_str::<ew_dto::EwJammingRequest>(body) {
-            let band = match ew_req.band.as_deref() {
-                Some("gnss") | Some("gnss_l1") => xrtak_core::EwTargetBand::GnssL1,
-                Some("video") | Some("video_downlink") => xrtak_core::EwTargetBand::VideoDownlink,
-                Some("radar") | Some("radar_xband") => xrtak_core::EwTargetBand::RadarXBand,
-                _ => xrtak_core::EwTargetBand::TacticalC2,
-            };
-            let threshold = ew_req.jamming_margin_threshold_db.unwrap_or(6.0);
-            let assessment =
-                xrtak_core::evaluate_link_jamming(&ew_req.jammer, &ew_req.link, band, threshold);
-            let burn_through = ew_req.radar_burn_through.map(|r| {
-                let dx_rj = ew_req.jammer.east_m;
-                let dy_rj = ew_req.jammer.north_m;
-                let dz_rj = ew_req.jammer.up_m;
-                let d_rj = (dx_rj.powi(2) + dy_rj.powi(2) + dz_rj.powi(2)).sqrt();
-                xrtak_core::compute_burn_through_range(
-                    "GROUND-RADAR",
-                    r.radar_power_w,
-                    r.radar_gain_dbi,
-                    r.target_rcs_m2,
-                    &ew_req.jammer.callsign,
-                    ew_req.jammer.transmitter_power_w,
-                    ew_req.jammer.antenna_gain_dbi,
-                    d_rj,
-                    r.current_target_range_m,
-                )
-            });
-            let resp = ew_dto::EwJammingResponse {
-                assessment,
-                burn_through,
-            };
-            let resp_json = serde_json::to_string(&resp)?;
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        let err = r#"{"error":"invalid_ew_jamming_payload"}"#;
-        stream.write_all(format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n{}", err.len(), err).as_bytes()).await?;
-        return Ok(());
-    }
-
     if method == "POST" && path == "/api/medevac/nine-line" {
         if let Ok(m_req) = serde_json::from_str::<medevac_dto::MedevacNineLineRequest>(body) {
             let prec = match m_req.precedence.as_deref() {

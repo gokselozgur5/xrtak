@@ -41,6 +41,7 @@ pub async fn try_dispatch(
         ("POST", "/api/tracks/predict") => handle_tracks_predict_post(&req.body, state)?,
         ("POST", "/api/airspace/deconflict") => handle_deconflict_post(&req.body, state)?,
         ("GET", "/api/export/opord") => handle_export_opord_get(state)?,
+        ("POST", "/api/ew/jamming") => handle_ew_jamming_post(&req.body)?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -534,4 +535,38 @@ fn handle_export_opord_get(state: &GatewayState) -> Result<HttpResponse, DynErro
         &guard.threat_domes,
     );
     HttpResponse::json(&bundle)
+}
+
+fn handle_ew_jamming_post(body: &str) -> Result<HttpResponse, DynError> {
+    let Ok(ew_req) = serde_json::from_str::<ew_dto::EwJammingRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_ew_jamming_payload"));
+    };
+    let band = match ew_req.band.as_deref() {
+        Some("gnss") | Some("gnss_l1") => xrtak_core::EwTargetBand::GnssL1,
+        Some("video") | Some("video_downlink") => xrtak_core::EwTargetBand::VideoDownlink,
+        Some("radar") | Some("radar_xband") => xrtak_core::EwTargetBand::RadarXBand,
+        _ => xrtak_core::EwTargetBand::TacticalC2,
+    };
+    let threshold = ew_req.jamming_margin_threshold_db.unwrap_or(6.0);
+    let assessment =
+        xrtak_core::evaluate_link_jamming(&ew_req.jammer, &ew_req.link, band, threshold);
+    let burn_through = ew_req.radar_burn_through.map(|r| {
+        let j = &ew_req.jammer;
+        let d_rj = (j.east_m.powi(2) + j.north_m.powi(2) + j.up_m.powi(2)).sqrt();
+        xrtak_core::compute_burn_through_range(
+            "GROUND-RADAR",
+            r.radar_power_w,
+            r.radar_gain_dbi,
+            r.target_rcs_m2,
+            &j.callsign,
+            j.transmitter_power_w,
+            j.antenna_gain_dbi,
+            d_rj,
+            r.current_target_range_m,
+        )
+    });
+    HttpResponse::json(&ew_dto::EwJammingResponse {
+        assessment,
+        burn_through,
+    })
 }
