@@ -350,12 +350,15 @@
       color: #020810;
     }
   </style>
-  <script src="https://unpkg.com/three@0.164.1/build/three.min.js" integrity="sha384-cWhlEwF7VVKUvu72tIGOSFZx8LXoJQ8qJZU2ivspZaVt3NjFNoIV7pjnwmAPAgcx" crossorigin="anonymous"></script>
+  <link rel="modulepreload" href="https://unpkg.com/three@0.164.1/build/three.module.js" integrity="sha384-wlK04bYFr3nyu6ipQq5N4n7KKGByMS1Yu1T8IrNtEnHiJ5WcGDt9dZBZFpRZjXEE" crossorigin="anonymous">
   <script type="importmap">
     {
       "imports": {
         "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
         "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+      },
+      "integrity": {
+        "https://unpkg.com/three@0.164.1/build/three.module.js": "sha384-wlK04bYFr3nyu6ipQq5N4n7KKGByMS1Yu1T8IrNtEnHiJ5WcGDt9dZBZFpRZjXEE"
       }
     }
   </script>
@@ -5000,8 +5003,9 @@
         console.error('Telemetry stream init error:', err);
       }
     }
-    connectTelemetryStream();
-    if (isStaticDemoHost) {
+    if (!isStaticDemoHost) {
+      connectTelemetryStream();
+    } else {
       const aarSlider = document.getElementById('aar-slider');
       const aarLabel = document.getElementById('aar-time-label');
       startStandaloneClientSim(aarSlider, aarLabel, () => false);
