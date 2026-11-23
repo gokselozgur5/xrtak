@@ -774,3 +774,82 @@ fn test_configurable_feedback_addr_uses_single_shared_socket() {
     }
     let _ = send_req(port, "POST", "/api/pin/delete", r#"{"uid":"FB-PIN-412"}"#);
 }
+
+#[test]
+fn test_gateway_router_auth_and_single_parser_writer() {
+    let main_prod = include_str!("../src/main.rs")
+        .split("#[cfg(test)]")
+        .next()
+        .unwrap();
+    let router_src = include_str!("../src/router.rs");
+    let http_prod = include_str!("../src/http.rs")
+        .split("#[cfg(test)]")
+        .next()
+        .unwrap();
+
+    for (name, src) in [("main.rs", main_prod), ("router.rs", router_src)] {
+        assert!(!src.contains(r#"split("\r\n\r\n")"#), "{name} splits body");
+        assert!(
+            !src.contains(r#"split_once("\r\n\r\n")"#),
+            "{name} splits body"
+        );
+        assert!(
+            !src.contains("json_ok_header"),
+            "{name} keeps json_ok_header"
+        );
+        assert!(!src.contains("HTTP/1.1 "), "{name} formats raw HTTP status");
+    }
+    assert_eq!(http_prod.matches(r#"split_once("\r\n\r\n")"#).count(), 1);
+    assert_eq!(http_prod.matches("HTTP/1.1 ").count(), 1);
+
+    struct Guard(Child);
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            let _ = (self.0.kill(), self.0.wait());
+        }
+    }
+    let port = std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+    let http_addr = format!("127.0.0.1:{port}");
+    let child = Command::new(env!("CARGO_BIN_EXE_xrtak-gateway"))
+        .env("XRTAK_HTTP_ADDR", &http_addr)
+        .env("XRTAK_UDP_ADDR", "127.0.0.1:0")
+        .env("XRTAK_TOKEN", "sec-412")
+        .spawn()
+        .unwrap();
+    let _gw = Guard(child);
+    for _ in 0..50 {
+        if TcpStream::connect(&http_addr).is_ok() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    let idx = send_req(port, "GET", "/index.html", "");
+    assert!(idx.starts_with("HTTP/1.1 200 OK"), "{idx}");
+    assert!(idx.contains("Cache-Control: no-cache"), "{idx}");
+
+    let unauth = send_req(port, "POST", "/api/pin/delete", r#"{"uid":"NONE"}"#);
+    assert!(unauth.starts_with("HTTP/1.1 401 Unauthorized"), "{unauth}");
+
+    let cross = send_raw(
+        port,
+        "POST /api/pin/delete HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: http://evil.local\r\nX-XRTAK-Token: sec-412\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"uid\":\"NONE\"}",
+    );
+    assert!(cross.starts_with("HTTP/1.1 403 Forbidden"), "{cross}");
+
+    let authed = send_raw(
+        port,
+        "POST /api/pin/delete HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: http://127.0.0.1\r\nX-XRTAK-Token: sec-412\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"uid\":\"NONE\"}",
+    );
+    assert!(authed.starts_with("HTTP/1.1 200 OK"), "{authed}");
+
+    let wrong_method = send_req(port, "GET", "/api/pin/delete", "");
+    assert!(
+        wrong_method.starts_with("HTTP/1.1 404 Not Found"),
+        "{wrong_method}"
+    );
+}
