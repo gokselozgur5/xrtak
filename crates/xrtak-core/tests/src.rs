@@ -1,6 +1,6 @@
-use xrtak_core::{
-    classify_cot_type, Affiliation, AffiliationMapper, GeoOrigin, StandardIdentity, TacticalWorld,
-};
+use xrtak_core::affiliation::{AffiliationMapper, StandardIdentity};
+use xrtak_core::domain::Affiliation;
+use xrtak_core::{classify_cot_type, GeoOrigin, TacticalWorld};
 
 fn as_identity(a: Affiliation) -> StandardIdentity {
     match a {
