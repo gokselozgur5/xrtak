@@ -45,6 +45,7 @@ pub async fn try_dispatch(
         ("POST", "/api/medevac/nine-line") => handle_medevac_post(&req.body, state)?,
         ("POST", "/api/fires/ballistics") => handle_ballistics_post(&req.body, state)?,
         ("POST", "/api/uav/endurance") => handle_uav_endurance_post(&req.body)?,
+        ("POST", "/api/spawn") => handle_spawn_post(&req.body, state).await?,
         _ => return Ok(None),
     };
     Ok(Some(resp))
@@ -664,4 +665,53 @@ fn handle_uav_endurance_post(body: &str) -> Result<HttpResponse, DynError> {
     let steps = bat_req.radial_steps.unwrap_or(32);
     let solution = xrtak_core::compute_uav_endurance(&bat_req.state, &wind, steps);
     HttpResponse::json(&battery_dto::UavEnduranceResponse { solution })
+}
+
+async fn handle_spawn_post(body: &str, state: &GatewayState) -> Result<HttpResponse, DynError> {
+    let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) else {
+        return Ok(HttpResponse::bad_request("invalid_spawn_payload"));
+    };
+    let (xml, ent, pins_json) = {
+        let mut guard = lock_world(&state.world);
+        let ground_h = guard.sample_relief_m(spawn.east_m, spawn.north_m);
+        let up_m = ground_h + spawn.alt_offset_m.unwrap_or(0.0);
+        let (lat, lon, hae) = guard.origin.enu_to_lla(spawn.east_m, up_m, spawn.north_m);
+        let uid = spawn.uid.unwrap_or_else(|| {
+            format!(
+                "PIN-{}-{}",
+                spawn.callsign.replace(' ', "-"),
+                now_unix_ms() % 100000
+            )
+        });
+        let remarks = spawn.remarks.unwrap_or_else(|| {
+            format!(
+                "Pinned via XR-TAK at {:.5}N {:.5}E ({:.0}m ASL)",
+                lat, lon, hae
+            )
+        });
+        let xml = format!(
+            r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="5" le="5"/><detail><contact callsign="{callsign}"/><track course="0.0" speed="0.0"/><remarks>{remarks}</remarks></detail></event>"#,
+            uid = escape_cot_attr(&uid),
+            cot_type = escape_cot_attr(&spawn.cot_type),
+            callsign = escape_cot_attr(&spawn.callsign),
+            remarks = escape_cot_attr(&remarks)
+        );
+        let r = guard.ingest_cot_xml(&xml, now_unix_ms());
+        let pj = if r.is_ok() {
+            OPERATOR_PINS
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .insert(uid);
+            snapshot_persistent_pins_json(&guard)
+        } else {
+            None
+        };
+        (xml, r, pj)
+    };
+    flush_persistent_pins(pins_json).await;
+    state.send_feedback(xml.as_bytes()).await;
+    match ent {
+        Ok(entity) => HttpResponse::json(&entity),
+        Err(_) => Ok(HttpResponse::bad_request("invalid_spawn_payload")),
+    }
 }

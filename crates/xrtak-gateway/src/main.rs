@@ -583,58 +583,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "POST" && path == "/api/spawn" {
-        if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
-            let (xml, ent, pins_json) = {
-                let mut guard = lock_world(&world);
-                let ground_h = guard.sample_relief_m(spawn.east_m, spawn.north_m);
-                let up_m = ground_h + spawn.alt_offset_m.unwrap_or(0.0);
-                let (lat, lon, hae) = guard.origin.enu_to_lla(spawn.east_m, up_m, spawn.north_m);
-                let uid = spawn.uid.unwrap_or_else(|| {
-                    format!(
-                        "PIN-{}-{}",
-                        spawn.callsign.replace(' ', "-"),
-                        now_unix_ms() % 100000
-                    )
-                });
-                let remarks = spawn.remarks.unwrap_or_else(|| {
-                    format!(
-                        "Pinned via XR-TAK at {:.5}N {:.5}E ({:.0}m ASL)",
-                        lat, lon, hae
-                    )
-                });
-                let xml = format!(
-                    r#"<event version="2.0" uid="{uid}" type="{cot_type}" how="h-g-i-g-o"><point lat="{lat:.6}" lon="{lon:.6}" hae="{hae:.1}" ce="5" le="5"/><detail><contact callsign="{callsign}"/><track course="0.0" speed="0.0"/><remarks>{remarks}</remarks></detail></event>"#,
-                    uid = escape_cot_attr(&uid),
-                    cot_type = escape_cot_attr(&spawn.cot_type),
-                    callsign = escape_cot_attr(&spawn.callsign),
-                    remarks = escape_cot_attr(&remarks)
-                );
-                let r = guard.ingest_cot_xml(&xml, now_unix_ms());
-                let pj = if r.is_ok() {
-                    OPERATOR_PINS
-                        .lock()
-                        .unwrap_or_else(PoisonError::into_inner)
-                        .insert(uid.clone());
-                    snapshot_persistent_pins_json(&guard)
-                } else {
-                    None
-                };
-                (xml, r, pj)
-            };
-            flush_persistent_pins(pins_json).await;
-            state.send_feedback(xml.as_bytes()).await;
-            if let Ok(entity) = ent {
-                let json = serde_json::to_string(&entity)?;
-                let header = json_ok_header(json.len());
-                stream.write_all(header.as_bytes()).await?;
-                stream.write_all(json.as_bytes()).await?;
-                return Ok(());
-            }
-        }
-        return send_err_400(&mut stream, "invalid_spawn_payload").await;
-    }
-
     if method == "POST" && path == "/api/pin/move" {
         if let Ok(mv) = serde_json::from_str::<PinMoveRequest>(body) {
             let (updated, pins_json) = {
