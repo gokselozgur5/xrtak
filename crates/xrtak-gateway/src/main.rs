@@ -583,56 +583,6 @@ async fn handle_http_connection(
         return Ok(());
     }
 
-    if method == "POST" && path == "/api/fires/ballistics" {
-        if let Ok(b_req) = serde_json::from_str::<fires_dto::BallisticsRequest>(body) {
-            let munition = match b_req.munition.as_deref() {
-                Some("mortar") | Some("mortar120") => xrtak_core::MunitionType::Mortar120mm,
-                Some("loitering") | Some("drone") => xrtak_core::MunitionType::LoiteringMunition,
-                Some("rocket") | Some("mlrs") => xrtak_core::MunitionType::TacticalRocket,
-                _ => xrtak_core::MunitionType::Artillery155mm,
-            };
-            let samples = b_req.samples.unwrap_or(32);
-            let solution = {
-                let guard = lock_world(&world);
-                let elev: &dyn xrtak_core::ElevationProvider = guard.terrain.as_ref();
-                xrtak_core::compute_ballistic_trajectory(
-                    b_req.origin_enu,
-                    b_req.target_enu,
-                    munition,
-                    b_req.elevation_angle_deg,
-                    elev,
-                    samples,
-                )
-            };
-            let resp = fires_dto::BallisticsResponse { solution };
-            let resp_json = serde_json::to_string(&resp)?;
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        let err = r#"{"error":"invalid_ballistics_request_payload"}"#;
-        stream.write_all(format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n{}", err.len(), err).as_bytes()).await?;
-        return Ok(());
-    }
-
-    if method == "POST" && path == "/api/uav/endurance" {
-        if let Ok(bat_req) = serde_json::from_str::<battery_dto::UavEnduranceRequest>(body) {
-            let wind = bat_req.wind.unwrap_or_default();
-            let steps = bat_req.radial_steps.unwrap_or(32);
-            let solution = xrtak_core::compute_uav_endurance(&bat_req.state, &wind, steps);
-            let resp = battery_dto::UavEnduranceResponse { solution };
-            let resp_json = serde_json::to_string(&resp)?;
-            let header = json_ok_header(resp_json.len());
-            stream.write_all(header.as_bytes()).await?;
-            stream.write_all(resp_json.as_bytes()).await?;
-            return Ok(());
-        }
-        let err = r#"{"error":"invalid_uav_endurance_payload"}"#;
-        stream.write_all(format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n{CORS_HEADERS}Content-Length: {}\r\nConnection: close\r\n\r\n{}", err.len(), err).as_bytes()).await?;
-        return Ok(());
-    }
-
     if method == "POST" && path == "/api/spawn" {
         if let Ok(spawn) = serde_json::from_str::<SpawnRequest>(body) {
             let (xml, ent, pins_json) = {
