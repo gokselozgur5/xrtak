@@ -827,9 +827,9 @@
         const normH = Math.min(Math.max(reliefM / 220.0, 0.0), 1.0);
         const contourMod = Math.abs((reliefM % 25.0) - 12.5) < 1.1 ? 0.28 : 0.0;
         if (activeSatelliteTexture) {
-          colors[i * 3] = 0.88 + contourMod * 0.12;
-          colors[i * 3 + 1] = 0.92 + contourMod * 0.08;
-          colors[i * 3 + 2] = 0.92 + contourMod * 0.08;
+          colors[i * 3] = 0.98 + contourMod * 0.02;
+          colors[i * 3 + 1] = 0.99;
+          colors[i * 3 + 2] = 1.0;
         } else {
           colors[i * 3] = 0.04 + normH * 0.14 + contourMod * 0.2;
           colors[i * 3 + 1] = 0.16 + normH * 0.38 + contourMod * 0.65;
@@ -843,8 +843,8 @@
       const mat = new THREE.MeshStandardMaterial({
         vertexColors: true,
         map: activeSatelliteTexture || null,
-        roughness: activeSatelliteTexture ? 0.85 : 0.72,
-        metalness: activeSatelliteTexture ? 0.08 : 0.18,
+        roughness: activeSatelliteTexture ? 0.92 : 0.72,
+        metalness: activeSatelliteTexture ? 0.02 : 0.18,
         transparent: true,
         opacity: 0.96,
       });
@@ -855,7 +855,7 @@
         color: 0x00e5ff,
         wireframe: true,
         transparent: true,
-        opacity: activeSatelliteTexture ? 0.04 : 0.07,
+        opacity: activeSatelliteTexture ? 0.02 : 0.07,
       });
       terrainWireMesh = new THREE.Mesh(geo, wireMat);
       terrainWireMesh.position.y = 0.001;
@@ -4106,22 +4106,26 @@
       document.getElementById('hud-origin').textContent =
         `REAL SECTOR: ${lat.toFixed(4)}N ${lon.toFixed(4)}E (3.0x3.0 km)`;
 
-      const z = 13;
-      const cxFloat = lonToTileXFloat(lon, z);
-      const cyFloat = latToTileYFloat(lat, z);
+      const extM = WORLD_EXTENT_M;
+      const latRad = lat * Math.PI / 180.0;
+      const mPerDegLat = 111132.92 - 559.82 * Math.cos(2.0 * latRad);
+      const mPerDegLon = 111412.84 * Math.cos(latRad);
+      const minLon = lon - extM / mPerDegLon;
+      const maxLon = lon + extM / mPerDegLon;
+      const minLat = lat - extM / mPerDegLat;
+      const maxLat = lat + extM / mPerDegLat;
+
+      const zDem = 13;
+      const cxFloat = lonToTileXFloat(lon, zDem);
+      const cyFloat = latToTileYFloat(lat, zDem);
       const txCenter = Math.floor(cxFloat);
       const tyCenter = Math.floor(cyFloat);
 
-      // 1. Fetch 3x3 Real-World AWS Terrarium Elevation Tiles (SRTM/ETOPO1) & 3x3 Satellite/Topo Imagery Tiles
+      // 1. Fetch 3x3 Real-World AWS Terrarium Elevation Tiles (SRTM/ETOPO1 at z=13)
       const demCanvas = document.createElement('canvas');
       demCanvas.width = 768;
       demCanvas.height = 768;
       const demCtx = demCanvas.getContext('2d');
-
-      const imgCanvas = document.createElement('canvas');
-      imgCanvas.width = 768;
-      imgCanvas.height = 768;
-      const imgCtx = imgCanvas.getContext('2d');
 
       let demSuccessCount = 0;
       const tileJobs = [];
@@ -4131,8 +4135,7 @@
           const ty = tyCenter + dy;
           const px = (dx + 1) * 256;
           const py = (dy + 1) * 256;
-          const demUrl = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${tx}/${ty}.png`;
-          const satUrl = providerTileUrl(currentImageryStyle, tx, ty, z);
+          const demUrl = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${zDem}/${tx}/${ty}.png`;
 
           tileJobs.push(
             loadCrossOriginImage(demUrl)
@@ -4142,13 +4145,47 @@
               })
               .catch(() => {})
           );
+        }
+      }
+
+      // High-resolution satellite/topo imagery fetch decoupled from DEM zoom
+      let zSat = currentImageryStyle === 'sentinel2' ? 14 : 16;
+      while (zSat > 13) {
+        const c = Math.floor(lonToTileXFloat(maxLon, zSat)) - Math.floor(lonToTileXFloat(minLon, zSat)) + 1;
+        const r = Math.floor(latToTileYFloat(minLat, zSat)) - Math.floor(latToTileYFloat(maxLat, zSat)) + 1;
+        if (c <= 9 && r <= 9) break;
+        zSat--;
+      }
+
+      const satTxMin = Math.floor(lonToTileXFloat(minLon, zSat));
+      const satTxMax = Math.floor(lonToTileXFloat(maxLon, zSat));
+      const satTyMin = Math.floor(latToTileYFloat(maxLat, zSat));
+      const satTyMax = Math.floor(latToTileYFloat(minLat, zSat));
+      const satCols = satTxMax - satTxMin + 1;
+      const satRows = satTyMax - satTyMin + 1;
+
+      const imgCanvas = document.createElement('canvas');
+      imgCanvas.width = satCols * 256;
+      imgCanvas.height = satRows * 256;
+      const imgCtx = imgCanvas.getContext('2d');
+
+      let satSuccessCount = 0;
+      for (let ty = satTyMin; ty <= satTyMax; ty++) {
+        for (let tx = satTxMin; tx <= satTxMax; tx++) {
+          const px = (tx - satTxMin) * 256;
+          const py = (ty - satTyMin) * 256;
+          const satUrl = providerTileUrl(currentImageryStyle, tx, ty, zSat);
           tileJobs.push(
             loadCrossOriginImage(satUrl)
-              .then((im) => imgCtx.drawImage(im, px, py, 256, 256))
+              .then((im) => {
+                imgCtx.drawImage(im, px, py, 256, 256);
+                satSuccessCount++;
+              })
               .catch(() => {})
           );
         }
       }
+
       await Promise.all(tileJobs);
       if (thisSeq !== sectorLoadSeq) return;
       currentOriginLat = lat;
@@ -4156,11 +4193,6 @@
 
       // 2. Sample 65x65 meter grid across [-1500m, +1500m] around (lat, lon)
       const resGrid = 65;
-      const extM = WORLD_EXTENT_M;
-      const latRad = lat * Math.PI / 180.0;
-      const mPerDegLat = 111132.92 - 559.82 * Math.cos(2.0 * latRad);
-      const mPerDegLon = 111412.84 * Math.cos(latRad);
-
       const demData = demCtx.getImageData(0, 0, 768, 768).data;
       const rawElev = new Array(resGrid * resGrid);
       let minElev = Infinity;
@@ -4169,13 +4201,13 @@
         const v = r / (resGrid - 1);
         const northM = -extM + v * (2.0 * extM);
         const sLat = lat + northM / mPerDegLat;
-        const pyFloat = (latToTileYFloat(sLat, z) - (tyCenter - 1)) * 256.0;
+        const pyFloat = (latToTileYFloat(sLat, zDem) - (tyCenter - 1)) * 256.0;
         const py = Math.max(0, Math.min(767, Math.round(pyFloat)));
         for (let c = 0; c < resGrid; c++) {
           const u = c / (resGrid - 1);
           const eastM = -extM + u * (2.0 * extM);
           const sLon = lon + eastM / mPerDegLon;
-          const pxFloat = (lonToTileXFloat(sLon, z) - (txCenter - 1)) * 256.0;
+          const pxFloat = (lonToTileXFloat(sLon, zDem) - (txCenter - 1)) * 256.0;
           const px = Math.max(0, Math.min(767, Math.round(pxFloat)));
           const idx = (py * 768 + px) * 4;
           const R = demData[idx];
@@ -4199,19 +4231,17 @@
       const heightsM = rawElev.map((e) => (e !== null ? Math.round(Math.max(0.0, e - minElev) * 100.0) / 100.0 : 0.0));
 
       // 3. Crop exact 3.0x3.0 km satellite/topo texture for the 3D terrain mesh
-      const minLon = lon - extM / mPerDegLon;
-      const maxLon = lon + extM / mPerDegLon;
-      const minLat = lat - extM / mPerDegLat;
-      const maxLat = lat + extM / mPerDegLat;
-      const sx0 = (lonToTileXFloat(minLon, z) - (txCenter - 1)) * 256.0;
-      const sx1 = (lonToTileXFloat(maxLon, z) - (txCenter - 1)) * 256.0;
-      const sy0 = (latToTileYFloat(maxLat, z) - (tyCenter - 1)) * 256.0;
-      const sy1 = (latToTileYFloat(minLat, z) - (tyCenter - 1)) * 256.0;
+      const sx0 = (lonToTileXFloat(minLon, zSat) - satTxMin) * 256.0;
+      const sx1 = (lonToTileXFloat(maxLon, zSat) - satTxMin) * 256.0;
+      const sy0 = (latToTileYFloat(maxLat, zSat) - satTyMin) * 256.0;
+      const sy1 = (latToTileYFloat(minLat, zSat) - satTyMin) * 256.0;
 
       const cropCanvas = document.createElement('canvas');
-      cropCanvas.width = 1024;
-      cropCanvas.height = 1024;
+      cropCanvas.width = 2048;
+      cropCanvas.height = 2048;
       const cropCtx = cropCanvas.getContext('2d');
+      cropCtx.imageSmoothingEnabled = true;
+      cropCtx.imageSmoothingQuality = 'high';
       cropCtx.drawImage(
         imgCanvas,
         Math.max(0, sx0),
@@ -4220,13 +4250,22 @@
         Math.max(16, sy1 - sy0),
         0,
         0,
-        1024,
-        1024
+        2048,
+        2048
       );
-      const tex = new THREE.CanvasTexture(cropCanvas);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.needsUpdate = true;
-      activeSatelliteTexture = tex;
+      if (satSuccessCount > 0) {
+        if (activeSatelliteTexture) {
+          activeSatelliteTexture.dispose();
+        }
+        const tex = new THREE.CanvasTexture(cropCanvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.generateMipmaps = true;
+        tex.needsUpdate = true;
+        activeSatelliteTexture = tex;
+      }
 
       const effectiveLabelHint = demSuccessCount === 0 ? 'FLAT-NO-DEM' : (demSuccessCount < 9 ? `${labelHint}-PARTIAL` : labelHint);
       const gridName = `${effectiveLabelHint}-${lat.toFixed(2)}N-${lon.toFixed(2)}E`;
