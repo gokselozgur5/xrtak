@@ -13,22 +13,25 @@ use crate::GatewayState;
 
 pub type DynError = Box<dyn std::error::Error + Send + Sync>;
 
-pub fn generate_self_signed_server_config(
-    extra_sans: &[String],
-) -> Result<ServerConfig, DynError> {
+pub fn generate_self_signed_server_config(extra_sans: &[String]) -> Result<ServerConfig, DynError> {
     let key_pair = rcgen::KeyPair::generate()?;
     let mut subject_alt_names = vec!["localhost".to_string(), "127.0.0.1".to_string()];
     for san in extra_sans {
         let trimmed = san.trim();
-        if !trimmed.is_empty() && !subject_alt_names.iter().any(|s| s.eq_ignore_ascii_case(trimmed)) {
+        if !trimmed.is_empty()
+            && !subject_alt_names
+                .iter()
+                .any(|s| s.eq_ignore_ascii_case(trimmed))
+        {
             subject_alt_names.push(trimmed.to_string());
         }
     }
 
     let mut params = rcgen::CertificateParams::new(subject_alt_names)?;
-    params
-        .distinguished_name
-        .push(rcgen::DnType::CommonName, "XR-TAK Self-Signed WebXR Gateway");
+    params.distinguished_name.push(
+        rcgen::DnType::CommonName,
+        "XR-TAK Self-Signed WebXR Gateway",
+    );
     let cert = params.self_signed(&key_pair)?;
 
     let cert_der = CertificateDer::from(cert.der().to_vec());
@@ -48,8 +51,8 @@ pub fn load_server_config_from_files(
 ) -> Result<ServerConfig, DynError> {
     let cert_file = File::open(cert_path.as_ref())?;
     let mut cert_reader = BufReader::new(cert_file);
-    let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut cert_reader)
-        .collect::<Result<Vec<_>, _>>()?;
+    let certs: Vec<CertificateDer<'static>> =
+        rustls_pemfile::certs(&mut cert_reader).collect::<Result<Vec<_>, _>>()?;
     if certs.is_empty() {
         return Err("no certificates found in certificate PEM file".into());
     }
