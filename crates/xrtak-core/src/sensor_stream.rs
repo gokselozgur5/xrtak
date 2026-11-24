@@ -157,6 +157,7 @@ pub struct SensorStreamDescriptor {
     pub video: VideoStreamConnection,
     pub sensor: SensorGimbal,
     pub parent_uid: Option<String>,
+    pub parent_cot_type: Option<String>,
 }
 
 impl SensorStreamDescriptor {
@@ -186,6 +187,7 @@ impl SensorStreamDescriptor {
             video,
             sensor: SensorGimbal::default(),
             parent_uid: None,
+            parent_cot_type: None,
         }
     }
 }
@@ -198,6 +200,11 @@ impl SensorStreamDescriptor {
 
     pub fn with_parent_uid(mut self, parent_uid: impl Into<String>) -> Self {
         self.parent_uid = Some(parent_uid.into());
+        self
+    }
+
+    pub fn with_parent_cot_type(mut self, cot_type: impl Into<String>) -> Self {
+        self.parent_cot_type = Some(cot_type.into());
         self
     }
 
@@ -291,9 +298,11 @@ impl SensorStreamDescriptor {
         self.parent_uid
             .as_deref()
             .map(|p| {
+                let p_type = self.parent_cot_type.as_deref().unwrap_or("a-f-G-U-C");
                 format!(
-                    "<link relation=\"p-p\" uid=\"{}\" type=\"a-f-G-U-C\"/>",
-                    escape_xml_attr(p)
+                    "<link relation=\"p-p\" uid=\"{}\" type=\"{}\"/>",
+                    escape_xml_attr(p),
+                    escape_xml_attr(p_type)
                 )
             })
             .unwrap_or_default()
@@ -421,6 +430,7 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
     let mut hae = 0.0;
     let mut callsign = None;
     let mut parent_uid = None;
+    let mut parent_cot_type = None;
     let mut video_conn: Option<VideoStreamConnection> = None;
     let mut sensor_gimbal = SensorGimbal::default();
     let mut in_detail = false;
@@ -507,8 +517,10 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                 if in_detail && e.name().as_ref() == b"link" =>
             {
                 for a in e.attributes().flatten() {
-                    if a.key.as_ref() == b"uid" {
-                        parent_uid = Some(unescape_attr(&a));
+                    match a.key.as_ref() {
+                        b"uid" => parent_uid = Some(unescape_attr(&a)),
+                        b"type" => parent_cot_type = Some(unescape_attr(&a)),
+                        _ => {}
                     }
                 }
             }
@@ -555,6 +567,7 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
         video: v,
         sensor: sensor_gimbal,
         parent_uid,
+        parent_cot_type,
     })
 }
 
