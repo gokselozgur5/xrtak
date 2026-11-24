@@ -126,7 +126,8 @@ pub fn build_client_config(
         let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut cert_reader)
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("invalid client cert pem: {e}"))?;
-        let key_raw = client_key_pem.ok_or_else(|| "missing client key pem for mtls".to_string())?;
+        let key_raw =
+            client_key_pem.ok_or_else(|| "missing client key pem for mtls".to_string())?;
         let key_pem = load_pem_or_string(key_raw);
         let mut key_reader = Cursor::new(key_pem.as_bytes());
         let key = rustls_pemfile::private_key(&mut key_reader)
@@ -154,7 +155,10 @@ pub fn build_tls_context(
     }
     let host_port: Vec<&str> = options.target_addr.split(':').collect();
     let host = host_port.first().copied().unwrap_or("127.0.0.1");
-    let port: u16 = host_port.get(1).and_then(|p| p.parse().ok()).unwrap_or(8089);
+    let port: u16 = host_port
+        .get(1)
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8089);
     let mut builder = TakTlsConfig::builder(host, port);
     if let Some(ca) = &options.ca_cert_pem {
         let ca_pem = load_pem_or_string(ca);
@@ -175,7 +179,9 @@ pub fn build_tls_context(
     if let Some(to) = options.handshake_timeout_ms {
         builder = builder.handshake_timeout_ms(to);
     }
-    let cfg = builder.build().map_err(|e| format!("invalid tls config: {e}"))?;
+    let cfg = builder
+        .build()
+        .map_err(|e| format!("invalid tls config: {e}"))?;
     let client_cfg = build_client_config(&cfg, options.client_key_pem.as_deref())?;
     Ok(Some((Arc::new(client_cfg), cfg)))
 }
@@ -305,7 +311,10 @@ pub async fn run_tak_client_loop(
     };
 
     let is_tls = tls_config.is_some();
-    let is_mtls = tls_config.as_ref().map(|(_, c)| c.is_mtls()).unwrap_or(false);
+    let is_mtls = tls_config
+        .as_ref()
+        .map(|(_, c)| c.is_mtls())
+        .unwrap_or(false);
 
     loop {
         status_tx.send_modify(|s| {
@@ -442,7 +451,10 @@ mod tests {
         assert_eq!(status.heartbeat_status, HeartbeatStatus::Connected);
 
         let server_ping = r#"<event version="2.0" uid="SERVER-ping-42" type="t-x-c-t" how="m-g" time="2026-11-24T00:00:00Z" start="2026-11-24T00:00:00Z" stale="2026-11-24T00:05:00Z"><point lat="0.0" lon="0.0" hae="0.0" ce="999" le="999"/><detail><ping seq="42" client="SERVER"/></detail></event>"#;
-        server_stream.write_all(server_ping.as_bytes()).await.unwrap();
+        server_stream
+            .write_all(server_ping.as_bytes())
+            .await
+            .unwrap();
 
         let n2 = server_stream.read(&mut buf).await.unwrap();
         let xml2 = String::from_utf8_lossy(&buf[..n2]);
@@ -459,26 +471,35 @@ mod tests {
         let ca_key = rcgen::KeyPair::generate().unwrap();
         let mut ca_params = rcgen::CertificateParams::default();
         ca_params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-        ca_params.distinguished_name.push(rcgen::DnType::CommonName, "Test Root CA");
+        ca_params
+            .distinguished_name
+            .push(rcgen::DnType::CommonName, "Test Root CA");
         let ca_cert = ca_params.self_signed(&ca_key).unwrap();
         let ca_pem = ca_cert.pem();
 
         let server_key = rcgen::KeyPair::generate().unwrap();
         let srv_params = rcgen::CertificateParams::new(vec!["localhost".to_string()]).unwrap();
-        let srv_cert = srv_params.signed_by(&server_key, &ca_cert, &ca_key).unwrap();
+        let srv_cert = srv_params
+            .signed_by(&server_key, &ca_cert, &ca_key)
+            .unwrap();
         let srv_cert_der = CertificateDer::from(srv_cert.der().to_vec());
         let srv_key_der = rustls::pki_types::PrivateKeyDer::Pkcs8(
             rustls::pki_types::PrivatePkcs8KeyDer::from(server_key.serialize_der()),
         );
 
         let client_key = rcgen::KeyPair::generate().unwrap();
-        let client_params = rcgen::CertificateParams::new(vec!["xrtak-client".to_string()]).unwrap();
-        let client_cert = client_params.signed_by(&client_key, &ca_cert, &ca_key).unwrap();
+        let client_params =
+            rcgen::CertificateParams::new(vec!["xrtak-client".to_string()]).unwrap();
+        let client_cert = client_params
+            .signed_by(&client_key, &ca_cert, &ca_key)
+            .unwrap();
         let client_cert_pem = client_cert.pem();
         let client_key_pem = client_key.serialize_pem();
 
         let mut server_roots = RootCertStore::empty();
-        server_roots.add(CertificateDer::from(ca_cert.der().to_vec())).unwrap();
+        server_roots
+            .add(CertificateDer::from(ca_cert.der().to_vec()))
+            .unwrap();
         let client_verifier = rustls::server::WebPkiClientVerifier::builder(Arc::new(server_roots))
             .build()
             .unwrap();
