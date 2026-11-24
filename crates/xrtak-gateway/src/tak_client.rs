@@ -356,3 +356,53 @@ pub async fn run_tak_client_loop(
         backoff = (backoff * 2).min(max_backoff);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::net::TcpListener;
+    use xrtak_core::GeoOrigin;
+
+    #[tokio::test]
+    async fn test_tak_client_auto_reconnect() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+
+        let world = Arc::new(Mutex::new(TacticalWorld::new(GeoOrigin::default())));
+        let (status_tx, mut status_rx) = watch::channel(TakClientStatus::default());
+
+        let options = TakClientOptions::new_tcp(addr);
+        let client_world = Arc::clone(&world);
+        let client_tx = status_tx.clone();
+        let handle = tokio::spawn(async move {
+            run_tak_client_loop(options, client_world, client_tx).await;
+        });
+
+        let (mut s1, _) = listener.accept().await.unwrap();
+        s1.write_all(b"<event version=\"2.0\" uid=\"RECON-1\" type=\"a-f-G\" how=\"m-g\" time=\"2026-11-24T00:00:00Z\" start=\"2026-11-24T00:00:00Z\" stale=\"2026-11-24T00:05:00Z\"><point lat=\"10.0\" lon=\"20.0\" hae=\"0.0\" ce=\"10.0\" le=\"10.0\"/><detail/></event>").await.unwrap();
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        {
+            let guard = world.lock().unwrap();
+            assert!(guard.entities.contains_key("RECON-1"));
+        }
+
+        drop(s1);
+
+        let (mut s2, _) = listener.accept().await.unwrap();
+        s2.write_all(b"<event version=\"2.0\" uid=\"RECON-2\" type=\"a-f-G\" how=\"m-g\" time=\"2026-11-24T00:00:00Z\" start=\"2026-11-24T00:00:00Z\" stale=\"2026-11-24T00:05:00Z\"><point lat=\"10.1\" lon=\"20.1\" hae=\"0.0\" ce=\"10.0\" le=\"10.0\"/><detail/></event>").await.unwrap();
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        {
+            let guard = world.lock().unwrap();
+            assert!(guard.entities.contains_key("RECON-2"));
+        }
+
+        status_rx.changed().await.ok();
+        let status = status_rx.borrow().clone();
+        assert!(status.connected);
+        assert!(status.reconnect_attempts >= 1);
+
+        handle.abort();
+    }
+}
