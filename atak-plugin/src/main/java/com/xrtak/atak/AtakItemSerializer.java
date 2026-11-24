@@ -10,14 +10,49 @@ import java.util.Locale;
 public final class AtakItemSerializer {
     private AtakItemSerializer() {}
 
+    /**
+     * Escapes standard XML attribute characters (&, <, >, ", ').
+     */
+    public static String escapeXmlAttr(String val) {
+        if (val == null || val.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(val.length() + 16);
+        for (int i = 0; i < val.length(); i++) {
+            char c = val.charAt(i);
+            switch (c) {
+                case '&':
+                    sb.append("&amp;");
+                    break;
+                case '<':
+                    sb.append("&lt;");
+                    break;
+                case '>':
+                    sb.append("&gt;");
+                    break;
+                case '"':
+                    sb.append("&quot;");
+                    break;
+                case '\'':
+                    sb.append("&apos;");
+                    break;
+                default:
+                    sb.append(c);
+                    break;
+            }
+        }
+        return sb.toString();
+    }
+
     public static String toCotXml(PointMapItem item) {
         GeoPoint pt = item.getPoint();
-        String uid = item.getUID();
-        String type = item.getType() != null ? item.getType() : "a-u-G";
-        if ("self".equalsIgnoreCase(type)) {
-            type = "a-f-G-U-C";
+        String uid = escapeXmlAttr(item.getUID());
+        String rawType = item.getType() != null ? item.getType() : "a-u-G";
+        if ("self".equalsIgnoreCase(rawType)) {
+            rawType = "a-f-G-U-C";
         }
-        String callsign = item.getMetaString("callsign", uid);
+        String type = escapeXmlAttr(rawType);
+        String callsign = escapeXmlAttr(item.getMetaString("callsign", item.getUID()));
         double course = item.getMetaDouble("Speed.course", 0.0);
         double speed = item.getMetaDouble("Speed.value", 0.0);
         double hae = Double.isNaN(pt.getAltitude()) ? 0.0 : pt.getAltitude();
@@ -32,3 +67,4 @@ public final class AtakItemSerializer {
         );
     }
 }
+
