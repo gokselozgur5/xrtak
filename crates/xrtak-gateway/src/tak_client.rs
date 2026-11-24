@@ -19,12 +19,31 @@ pub fn now_ms() -> u64 {
 pub fn load_pem_or_string(input: &str) -> String {
     let trimmed = input.trim();
     if trimmed.contains("-----BEGIN") {
-        trimmed.to_string()
-    } else if let Ok(content) = std::fs::read_to_string(Path::new(trimmed)) {
-        content
-    } else {
-        trimmed.to_string()
+        return trimmed.to_string();
     }
+
+    let path = Path::new(trimmed);
+    let has_traversal = path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir));
+    let valid_ext = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "pem" | "crt" | "cer" | "key"
+            )
+        })
+        .unwrap_or(false);
+
+    if !has_traversal && valid_ext {
+        if let Ok(content) = std::fs::read_to_string(path) {
+            return content;
+        }
+    }
+
+    trimmed.to_string()
 }
 
 /// Live operational status of the gateway TAK client connection.
@@ -190,18 +209,26 @@ pub async fn establish_stream(
     target_addr: &str,
     tls_pair: Option<&(Arc<ClientConfig>, TakTlsConfig)>,
 ) -> Result<(AsyncByteReader, AsyncByteWriter), String> {
-    let tcp = TcpStream::connect(target_addr.trim())
+    let timeout_dur = Duration::from_millis(
+        tls_pair
+            .map(|(_, cfg)| cfg.handshake_timeout_ms)
+            .unwrap_or(10_000),
+    );
+
+    let tcp = tokio::time::timeout(timeout_dur, TcpStream::connect(target_addr.trim()))
         .await
+        .map_err(|_| "tcp connect timed out".to_string())?
         .map_err(|e| format!("tcp connect failed: {e}"))?;
+
     if let Some((client_cfg, cfg)) = tls_pair {
         let connector = TlsConnector::from(Arc::clone(client_cfg));
         let sni_str = cfg.sni_hostname.as_deref().unwrap_or(&cfg.server_host);
         let server_name = ServerName::try_from(sni_str)
             .map_err(|e| format!("invalid sni hostname: {e}"))?
             .to_owned();
-        let tls_stream = connector
-            .connect(server_name, tcp)
+        let tls_stream = tokio::time::timeout(timeout_dur, connector.connect(server_name, tcp))
             .await
+            .map_err(|_| "tls handshake timed out".to_string())?
             .map_err(|e| format!("tls handshake failed: {e}"))?;
         let (tr, tw) = tokio::io::split(tls_stream);
         Ok((Box::new(tr), Box::new(tw)))
@@ -258,6 +285,10 @@ pub async fn run_session_stream(
                     Err(_) => break,
                 };
                 carry.push_str(&String::from_utf8_lossy(&buf[..n]));
+                if carry.len() > 1_048_576 && !carry.contains("</event>") {
+                    eprintln!("[XR-TAK] Carry buffer exceeded 1 MiB without closing tag, reconnecting");
+                    break;
+                }
                 while let Some(end_idx) = carry.find("</event>") {
                     let end = end_idx + "</event>".len();
                     let segment = carry[..end].to_string();
@@ -548,5 +579,20 @@ mod tests {
         assert!(status.is_mtls);
 
         handle.abort();
+    }
+
+    #[test]
+    fn test_load_pem_or_string_safety() {
+        // Direct PEM string
+        let pem_str = "-----BEGIN CERTIFICATE-----\nFOOBAR\n-----END CERTIFICATE-----";
+        assert_eq!(load_pem_or_string(pem_str), pem_str);
+
+        // Path traversal must not read files
+        let traversal = "../../etc/passwd";
+        assert_eq!(load_pem_or_string(traversal), traversal);
+
+        // Invalid extension must not read files
+        let not_cert = "/tmp/test.txt";
+        assert_eq!(load_pem_or_string(not_cert), not_cert);
     }
 }
