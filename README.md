@@ -86,16 +86,22 @@ See [`docs/architecture/MBSE_MODEL.md`](docs/architecture/MBSE_MODEL.md) for the
 ### 1. Run the Rust CoT Gateway & WebXR Server
 
 ```bash
+# Plain HTTP mode:
 cargo run -p xrtak-gateway
+
+# Built-in native HTTPS mode with auto-generated self-signed SAN certificate (Quest 3 WebXR ready):
+XRTAK_HTTPS_ADDR=0.0.0.0:8443 XRTAK_HTTPS_SELF_SIGNED=1 cargo run -p xrtak-gateway
 ```
 
-Then open **`http://localhost:8090`** in your browser (or `https://<mac-lan-ip>:8443` via `./scripts/run_https_tls_proxy.py` inside the Meta Quest 3 browser).
+Then open **`http://localhost:8090`** or **`https://localhost:8443`** in your browser (or `https://<lan-ip>:8443` inside the Meta Quest 3 browser).
 
-### 2. Run the Turnkey Multi-Domain Live Demo Showcase
+### 2. Run the Turnkey Multi-Domain Live Demo Showcase & Relay Stack
 
 ```bash
 ./scripts/run_live_demo.sh
 ```
+
+When `airborne-cot-relay` is present on `$PATH` or via `$RELAY_BIN`, the demo director automatically launches the live telemetry pipeline in the background and pipes airborne CoT tracks directly into `xrtak-gateway`'s UDP port (`XRTAK_UDP_PORT`, default `4242`) with clean process lifecycle cleanup upon exit.
 
 This script injects an ATAK `u-d-f` polygonal ROZ (`KILLBOX DELTA`), a **BSI Flex 335 v2.0 SAPIENT** autonomous AI detection (`UAV_ROTARY 97%` with automatic `FALCON-1` EO/IR gimbal SPI lock), a mobile SAM/Radar emitter (`SA-15 GAUNTLET` projecting a 3D Threat Dome), a 3D Point-to-Point Link LOS check, and a Meta Quest 3 spatial laser cue (`b-m-p-c`).
 
