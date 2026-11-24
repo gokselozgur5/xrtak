@@ -16,10 +16,10 @@ pub fn now_ms() -> u64 {
         .as_millis() as u64
 }
 
-pub fn load_pem_or_string(input: &str) -> String {
+pub fn load_pem_or_string(input: &str) -> Result<String, String> {
     let trimmed = input.trim();
     if trimmed.contains("-----BEGIN") {
-        return trimmed.to_string();
+        return Ok(trimmed.to_string());
     }
 
     let path = Path::new(trimmed);
@@ -37,13 +37,15 @@ pub fn load_pem_or_string(input: &str) -> String {
         })
         .unwrap_or(false);
 
-    if !has_traversal && valid_ext {
-        if let Ok(content) = std::fs::read_to_string(path) {
-            return content;
-        }
+    if has_traversal {
+        return Err("path traversal detected in certificate path".to_string());
+    }
+    if !valid_ext {
+        return Err("invalid certificate file extension".to_string());
     }
 
-    trimmed.to_string()
+    std::fs::read_to_string(path)
+        .map_err(|e| format!("failed to read certificate file '{trimmed}': {e}"))
 }
 
 /// Live operational status of the gateway TAK client connection.
@@ -128,6 +130,9 @@ pub fn build_client_config(
         let certs = rustls_pemfile::certs(&mut reader)
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("invalid ca cert pem: {e}"))?;
+        if certs.is_empty() {
+            return Err("no valid CA certificates found in PEM".to_string());
+        }
         for c in certs {
             root_store
                 .add(c)
@@ -147,7 +152,7 @@ pub fn build_client_config(
             .map_err(|e| format!("invalid client cert pem: {e}"))?;
         let key_raw =
             client_key_pem.ok_or_else(|| "missing client key pem for mtls".to_string())?;
-        let key_pem = load_pem_or_string(key_raw);
+        let key_pem = load_pem_or_string(key_raw)?;
         let mut key_reader = Cursor::new(key_pem.as_bytes());
         let key = rustls_pemfile::private_key(&mut key_reader)
             .map_err(|e| format!("invalid client key pem: {e}"))?
@@ -161,6 +166,7 @@ pub fn build_client_config(
 }
 
 use rustls::pki_types::ServerName;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
@@ -172,19 +178,25 @@ pub fn build_tls_context(
     if !options.tls_enabled {
         return Ok(None);
     }
-    let host_port: Vec<&str> = options.target_addr.split(':').collect();
-    let host = host_port.first().copied().unwrap_or("127.0.0.1");
-    let port: u16 = host_port
-        .get(1)
-        .and_then(|p| p.parse().ok())
-        .unwrap_or(8089);
-    let mut builder = TakTlsConfig::builder(host, port);
+    if options.verify_hostname == Some(false) {
+        return Err("disabling TLS hostname verification is not supported".to_string());
+    }
+    let (host, port) = if let Ok(sock_addr) = options.target_addr.parse::<SocketAddr>() {
+        (sock_addr.ip().to_string(), sock_addr.port())
+    } else if let Some((h, p)) = options.target_addr.rsplit_once(':') {
+        let clean_h = h.trim_start_matches('[').trim_end_matches(']');
+        let parsed_port = p.parse::<u16>().unwrap_or(8089);
+        (clean_h.to_string(), parsed_port)
+    } else {
+        ("127.0.0.1".to_string(), 8089)
+    };
+    let mut builder = TakTlsConfig::builder(&host, port);
     if let Some(ca) = &options.ca_cert_pem {
-        let ca_pem = load_pem_or_string(ca);
+        let ca_pem = load_pem_or_string(ca)?;
         builder = builder.ca_cert(TlsCertificate::from_pem(ca_pem.as_bytes().to_vec()));
     }
     if let Some(cert) = &options.client_cert_pem {
-        let cert_pem = load_pem_or_string(cert);
+        let cert_pem = load_pem_or_string(cert)?;
         builder = builder
             .client_cert(TlsCertificate::from_pem(cert_pem.as_bytes().to_vec()))
             .client_auth(ClientAuthMode::Required);
@@ -585,14 +597,49 @@ mod tests {
     fn test_load_pem_or_string_safety() {
         // Direct PEM string
         let pem_str = "-----BEGIN CERTIFICATE-----\nFOOBAR\n-----END CERTIFICATE-----";
-        assert_eq!(load_pem_or_string(pem_str), pem_str);
+        assert_eq!(load_pem_or_string(pem_str), Ok(pem_str.to_string()));
 
-        // Path traversal must not read files
+        // Path traversal must reject
         let traversal = "../../etc/passwd";
-        assert_eq!(load_pem_or_string(traversal), traversal);
+        assert!(load_pem_or_string(traversal).is_err());
 
-        // Invalid extension must not read files
+        // Invalid extension must reject
         let not_cert = "/tmp/test.txt";
-        assert_eq!(load_pem_or_string(not_cert), not_cert);
+        assert!(load_pem_or_string(not_cert).is_err());
+
+        // Missing cert file must reject with explicit Err
+        let missing = "/tmp/nonexistent_cert_12345.pem";
+        assert!(load_pem_or_string(missing).is_err());
+    }
+
+    #[test]
+    fn test_build_tls_context_ca_empty_check_ipv6_and_verify_hostname() {
+        // Missing CA path -> Err
+        let mut opts_missing_ca = TakClientOptions::new_tcp("127.0.0.1:8089");
+        opts_missing_ca.tls_enabled = true;
+        opts_missing_ca.ca_cert_pem = Some("/tmp/nonexistent_ca_cert_98765.pem".to_string());
+        assert!(build_tls_context(&opts_missing_ca).is_err());
+
+        // Empty CA cert PEM -> Err
+        let mut opts_empty_ca = TakClientOptions::new_tcp("127.0.0.1:8089");
+        opts_empty_ca.tls_enabled = true;
+        opts_empty_ca.ca_cert_pem =
+            Some("-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----".to_string());
+        assert!(build_tls_context(&opts_empty_ca).is_err());
+
+        // verify_hostname: false -> explicit Err
+        let mut opts_no_verify = TakClientOptions::new_tcp("127.0.0.1:8089");
+        opts_no_verify.tls_enabled = true;
+        opts_no_verify.verify_hostname = Some(false);
+        let err = build_tls_context(&opts_no_verify).unwrap_err();
+        assert_eq!(err, "disabling TLS hostname verification is not supported");
+
+        // IPv6 host extraction
+        let mut opts_ipv6 = TakClientOptions::new_tcp("[::1]:8089");
+        opts_ipv6.tls_enabled = true;
+        opts_ipv6.verify_hostname = Some(true);
+        let (_, cfg) = build_tls_context(&opts_ipv6).unwrap().unwrap();
+        assert_eq!(cfg.server_host, "::1");
+        assert_eq!(cfg.server_port, 8089);
     }
 }
