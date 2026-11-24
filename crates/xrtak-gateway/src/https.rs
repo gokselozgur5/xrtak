@@ -5,6 +5,7 @@ use std::io::BufReader;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 use tokio_rustls::TlsAcceptor;
@@ -120,14 +121,20 @@ pub(crate) async fn spawn_https_server(
             let state_clone = Arc::clone(&state);
             tokio::spawn(async move {
                 let _permit = permit;
-                match acceptor.accept(stream).await {
-                    Ok(mut tls_stream) => {
+                let accept_res =
+                    tokio::time::timeout(Duration::from_secs(10), acceptor.accept(stream)).await;
+                match accept_res {
+                    Ok(Ok(mut tls_stream)) => {
                         let _ = crate::handle_http_connection(&mut tls_stream, state_clone).await;
                         use tokio::io::AsyncWriteExt;
-                        let _ = tls_stream.shutdown().await;
+                        let _ = tokio::time::timeout(Duration::from_secs(5), tls_stream.shutdown())
+                            .await;
                     }
-                    Err(e) => {
+                    Ok(Err(e)) => {
                         eprintln!("[gateway-https] TLS handshake error: {e}");
+                    }
+                    Err(_) => {
+                        eprintln!("[gateway-https] TLS handshake timed out");
                     }
                 }
             });
@@ -146,5 +153,52 @@ mod tests {
         let extra_sans = vec!["quest3.local".to_string(), "192.168.1.100".to_string()];
         let cfg = generate_self_signed_server_config(&extra_sans);
         assert!(cfg.is_ok());
+    }
+
+    #[tokio::test]
+    async fn idle_tcp_connection_to_https_listener_times_out() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let server_cfg = generate_self_signed_server_config(&[]).unwrap();
+        let world = Arc::new(std::sync::Mutex::new(xrtak_core::TacticalWorld::new(
+            xrtak_core::GeoOrigin::default(),
+        )));
+        let (tx, _rx) = tokio::sync::broadcast::channel(16);
+        let (status_tx, status_rx) =
+            tokio::sync::watch::channel(crate::tak_client::TakClientStatus::default());
+        let state = Arc::new(GatewayState {
+            world,
+            tx,
+            tak_client: Arc::new(std::sync::Mutex::new(None)),
+            tak_status_tx: status_tx,
+            tak_status_rx: status_rx,
+            feedback_sock: None,
+            feedback_addr: "127.0.0.1:4243".to_string(),
+        });
+        let conn_limit = Arc::new(Semaphore::new(256));
+        let bind_addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
+        let actual_addr = spawn_https_server(bind_addr, server_cfg, state, conn_limit.clone())
+            .await
+            .unwrap();
+
+        // Connect raw TCP without TLS handshake
+        let mut stream = tokio::net::TcpStream::connect(actual_addr).await.unwrap();
+        // Give spawned accept task a brief moment to acquire permit
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert_eq!(conn_limit.available_permits(), 255);
+
+        // Keep idle; handshake timeout is 10s. Read until EOF (socket closed by timeout)
+        use tokio::io::AsyncReadExt;
+        let mut buf = [0u8; 1];
+        let read_res = tokio::time::timeout(Duration::from_secs(12), stream.read(&mut buf)).await;
+        assert!(read_res.is_ok(), "read timed out waiting for server close");
+        assert_eq!(
+            read_res.unwrap().unwrap(),
+            0,
+            "expected EOF on idle disconnect"
+        );
+
+        // Wait brief moment for permit drop
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert_eq!(conn_limit.available_permits(), 256);
     }
 }
