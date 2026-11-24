@@ -1,7 +1,6 @@
 use serde::Serialize;
 use std::time::Duration;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::sync::broadcast;
 
 pub type DynError = Box<dyn std::error::Error + Send + Sync>;
@@ -108,7 +107,10 @@ impl HttpResponse {
     }
 }
 
-pub async fn write_response(stream: &mut TcpStream, resp: &HttpResponse) -> Result<(), DynError> {
+pub async fn write_response<S>(stream: &mut S, resp: &HttpResponse) -> Result<(), DynError>
+where
+    S: AsyncWrite + Unpin + Send,
+{
     let ct = resp
         .content_type
         .map(|c| format!("Content-Type: {c}\r\n"))
@@ -132,13 +134,17 @@ pub async fn write_response(stream: &mut TcpStream, resp: &HttpResponse) -> Resu
     if !resp.body.is_empty() {
         stream.write_all(&resp.body).await?;
     }
+    stream.flush().await?;
     Ok(())
 }
 
-pub async fn stream_sse(
-    stream: &mut TcpStream,
+pub async fn stream_sse<S>(
+    stream: &mut S,
     mut rx: broadcast::Receiver<String>,
-) -> Result<(), DynError> {
+) -> Result<(), DynError>
+where
+    S: AsyncWrite + Unpin + Send,
+{
     write_response(stream, &HttpResponse::event_stream()).await?;
     loop {
         match rx.recv().await {
@@ -199,7 +205,10 @@ impl HttpRequest {
     }
 }
 
-async fn read_http_bytes(stream: &mut TcpStream) -> Result<Vec<u8>, DynError> {
+async fn read_http_bytes<S>(stream: &mut S) -> Result<Vec<u8>, DynError>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
     let mut buf = Vec::with_capacity(4096);
     let mut chunk = [0u8; 8192];
     let (hdr_end, content_len) = loop {
@@ -245,12 +254,16 @@ async fn read_http_bytes(stream: &mut TcpStream) -> Result<Vec<u8>, DynError> {
     Ok(buf)
 }
 
-pub async fn read_request(stream: &mut TcpStream) -> Result<Option<HttpRequest>, DynError> {
+pub async fn read_request<S>(stream: &mut S) -> Result<Option<HttpRequest>, DynError>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
     match tokio::time::timeout(Duration::from_secs(10), read_http_bytes(stream)).await {
         Ok(Ok(buf)) => Ok(HttpRequest::parse(&buf)),
         _ => Ok(None),
     }
 }
+
 
 #[cfg(test)]
 mod tests {
