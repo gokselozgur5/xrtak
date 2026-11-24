@@ -85,4 +85,30 @@ fn github_pages_demo_sim_configuration_and_sri_integrity() {
         ROOT_INDEX.contains("zSat") && ROOT_INDEX.contains("zDem"),
         "index.html must decouple satellite imagery zoom (zSat) from elevation zoom (zDem)"
     );
+
+    // Spatial grab ring and SPI reticle orientation regression checks
+    assert!(
+        !ROOT_INDEX.contains("spatialGrabRing.rotation.z"),
+        "spatialGrabRing must not rotate around Z axis"
+    );
+    assert!(
+        ROOT_INDEX.contains("spatialGrabRing.rotation.y"),
+        "spatialGrabRing must rotate around Y axis"
+    );
+    assert!(
+        ROOT_INDEX.contains("spatialGrabRing.visible = false"),
+        "spatialGrabRing must default to hidden on desktop"
+    );
+    assert!(
+        ROOT_INDEX.contains("renderer.xr.isPresenting"),
+        "spatialGrabRing visibility must be gated on XR presentation"
+    );
+    assert!(
+        !ROOT_INDEX.contains("node.iconMesh.rotation.z"),
+        "SPI reticle iconMesh must not rotate around Z axis"
+    );
+    assert!(
+        ROOT_INDEX.contains("node.iconMesh.rotation.y += 0.04"),
+        "SPI reticle iconMesh must rotate around Y axis"
+    );
 }
