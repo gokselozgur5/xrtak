@@ -151,3 +151,23 @@ fn tak_tcp_addr_reconfiguration_replaces_prior_connection() {
     }
     stop(gw);
 }
+
+#[test]
+fn cross_origin_post_mission_export_is_rejected() {
+    let (gw, port) = start();
+    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    let body = r#"{"waypoints_en_agl":[[0.0,0.0,10.0]]}"#;
+    let len = body.len();
+    write!(
+        s,
+        "POST /api/mission/export HTTP/1.1\r\nOrigin: http://evil.example\r\nContent-Type: application/json\r\nContent-Length: {len}\r\n\r\n{body}"
+    )
+    .unwrap();
+    let mut out = String::new();
+    let _ = s.read_to_string(&mut out);
+    stop(gw);
+    assert!(
+        out.starts_with("HTTP/1.1 403 Forbidden"),
+        "expected 403 Forbidden for cross-origin mission export, got: {out}"
+    );
+}

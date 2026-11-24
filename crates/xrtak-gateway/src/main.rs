@@ -62,6 +62,7 @@ fn is_state_changing(method: &str, path: &str) -> bool {
                 | "/api/terrain"
                 | "/api/terrain/geotiff"
                 | "/api/mission/import"
+                | "/api/mission/export"
                 | "/api/tak-config"
         )
 }
