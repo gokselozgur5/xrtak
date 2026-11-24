@@ -1,5 +1,126 @@
-[gd_resource type="OpenXRActionMap" load_steps=2 format=3 uid="uid://xrtakopenxractionmap01"]
+[gd_resource type="OpenXRActionMap" load_steps=27 format=3 uid="uid://xrtakopenxractionmap01"]
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_pose"]
+resource_name = "pose"
+localized_name = "Pose"
+action_type = 3
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_aim_pose"]
+resource_name = "aim_pose"
+localized_name = "Aim pose"
+action_type = 3
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_grip_pose"]
+resource_name = "grip_pose"
+localized_name = "Grip pose"
+action_type = 3
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_grip_click"]
+resource_name = "grip_click"
+localized_name = "Grip click"
+action_type = 0
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_trigger_click"]
+resource_name = "trigger_click"
+localized_name = "Trigger click"
+action_type = 0
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_ax_button"]
+resource_name = "ax_button"
+localized_name = "A/X button"
+action_type = 0
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_by_button"]
+resource_name = "by_button"
+localized_name = "B/Y button"
+action_type = 0
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRAction" id="OpenXRAction_primary_click"]
+resource_name = "primary_click"
+localized_name = "Primary click"
+action_type = 0
+toplevel_paths = PackedStringArray("/user/hand/left", "/user/hand/right")
+
+[sub_resource type="OpenXRActionSet" id="OpenXRActionSet_godot"]
+resource_name = "godot"
+localized_name = "Godot action set"
+actions = [SubResource("OpenXRAction_pose"), SubResource("OpenXRAction_aim_pose"), SubResource("OpenXRAction_grip_pose"), SubResource("OpenXRAction_grip_click"), SubResource("OpenXRAction_trigger_click"), SubResource("OpenXRAction_ax_button"), SubResource("OpenXRAction_by_button"), SubResource("OpenXRAction_primary_click")]
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_pose_l"]
+action = SubResource("OpenXRAction_pose")
+binding_path = "/user/hand/left/input/aim/pose"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_pose_r"]
+action = SubResource("OpenXRAction_pose")
+binding_path = "/user/hand/right/input/aim/pose"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_aim_l"]
+action = SubResource("OpenXRAction_aim_pose")
+binding_path = "/user/hand/left/input/aim/pose"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_aim_r"]
+action = SubResource("OpenXRAction_aim_pose")
+binding_path = "/user/hand/right/input/aim/pose"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_grip_pose_l"]
+action = SubResource("OpenXRAction_grip_pose")
+binding_path = "/user/hand/left/input/grip/pose"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_grip_pose_r"]
+action = SubResource("OpenXRAction_grip_pose")
+binding_path = "/user/hand/right/input/grip/pose"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_grip_click_l"]
+action = SubResource("OpenXRAction_grip_click")
+binding_path = "/user/hand/left/input/squeeze/value"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_grip_click_r"]
+action = SubResource("OpenXRAction_grip_click")
+binding_path = "/user/hand/right/input/squeeze/value"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_trigger_click_l"]
+action = SubResource("OpenXRAction_trigger_click")
+binding_path = "/user/hand/left/input/trigger/value"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_trigger_click_r"]
+action = SubResource("OpenXRAction_trigger_click")
+binding_path = "/user/hand/right/input/trigger/value"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_ax_l"]
+action = SubResource("OpenXRAction_ax_button")
+binding_path = "/user/hand/left/input/x/click"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_ax_r"]
+action = SubResource("OpenXRAction_ax_button")
+binding_path = "/user/hand/right/input/a/click"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_by_l"]
+action = SubResource("OpenXRAction_by_button")
+binding_path = "/user/hand/left/input/y/click"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_by_r"]
+action = SubResource("OpenXRAction_by_button")
+binding_path = "/user/hand/right/input/b/click"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_primary_click_l"]
+action = SubResource("OpenXRAction_primary_click")
+binding_path = "/user/hand/left/input/thumbstick/click"
+
+[sub_resource type="OpenXRIPBinding" id="OpenXRIPBinding_primary_click_r"]
+action = SubResource("OpenXRAction_primary_click")
+binding_path = "/user/hand/right/input/thumbstick/click"
+
+[sub_resource type="OpenXRInteractionProfile" id="OpenXRInteractionProfile_touch"]
+interaction_profile_path = "/interaction_profiles/oculus/touch_controller"
+bindings = [SubResource("OpenXRIPBinding_pose_l"), SubResource("OpenXRIPBinding_pose_r"), SubResource("OpenXRIPBinding_aim_l"), SubResource("OpenXRIPBinding_aim_r"), SubResource("OpenXRIPBinding_grip_pose_l"), SubResource("OpenXRIPBinding_grip_pose_r"), SubResource("OpenXRIPBinding_grip_click_l"), SubResource("OpenXRIPBinding_grip_click_r"), SubResource("OpenXRIPBinding_trigger_click_l"), SubResource("OpenXRIPBinding_trigger_click_r"), SubResource("OpenXRIPBinding_ax_l"), SubResource("OpenXRIPBinding_ax_r"), SubResource("OpenXRIPBinding_by_l"), SubResource("OpenXRIPBinding_by_r"), SubResource("OpenXRIPBinding_primary_click_l"), SubResource("OpenXRIPBinding_primary_click_r")]
 
 [resource]
-action_sets = []
-interaction_profiles = []
+action_sets = [SubResource("OpenXRActionSet_godot")]
+interaction_profiles = [SubResource("OpenXRInteractionProfile_touch")]
