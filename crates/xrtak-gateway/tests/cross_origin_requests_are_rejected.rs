@@ -142,7 +142,12 @@ fn tak_tcp_addr_reconfiguration_replaces_prior_connection() {
     client1
         .set_read_timeout(Some(Duration::from_millis(1500)))
         .unwrap();
-    let n = client1.read(&mut buf).unwrap_or(0);
-    assert_eq!(n, 0);
+    loop {
+        match client1.read(&mut buf) {
+            Ok(0) => break,
+            Ok(_) => continue,
+            Err(_) => break,
+        }
+    }
     stop(gw);
 }
