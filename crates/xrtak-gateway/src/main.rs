@@ -2,9 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
-use tokio::sync::{broadcast, Semaphore};
+use tokio::sync::{broadcast, watch, Semaphore};
 use xrtak_core::{
     build_laser_pointer_cot_xml, escape_cot_attr, evaluate_rf_link, evaluate_theater_deconfliction,
     predict_entity_trajectory_struct, AarSummary, GeoOrigin, OperatorPeer, OpordUnitSummary,
@@ -100,6 +99,8 @@ struct GatewayState {
     world: Arc<Mutex<TacticalWorld>>,
     tx: broadcast::Sender<String>,
     tak_client: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    tak_status_tx: watch::Sender<tak_client::TakClientStatus>,
+    tak_status_rx: watch::Receiver<tak_client::TakClientStatus>,
     feedback_sock: Option<UdpSocket>,
     feedback_addr: String,
 }
@@ -169,6 +170,16 @@ struct TakConfigRequest {
     origin_lon: Option<f64>,
     origin_alt_m: Option<f64>,
     tak_tcp_addr: Option<String>,
+    tls_enabled: Option<bool>,
+    ca_cert_pem: Option<String>,
+    client_cert_pem: Option<String>,
+    client_key_pem: Option<String>,
+    sni_hostname: Option<String>,
+    verify_hostname: Option<bool>,
+    handshake_timeout_ms: Option<u64>,
+    heartbeat_interval_ms: Option<u64>,
+    heartbeat_timeout_ms: Option<u64>,
+    client_uid: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -500,10 +511,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         "0.0.0.0:0"
     };
+    let (tak_status_tx, tak_status_rx) = watch::channel(tak_client::TakClientStatus::default());
     let state = Arc::new(GatewayState {
         world,
         tx,
         tak_client: Arc::new(Mutex::new(None::<tokio::task::JoinHandle<()>>)),
+        tak_status_tx,
+        tak_status_rx,
         feedback_sock: UdpSocket::bind(fb_bind).await.ok(),
         feedback_addr: fb_addr,
     });
@@ -529,29 +543,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn spawn_tak_tcp_client(addr: String, state: &GatewayState) {
-    let world_tcp = Arc::clone(&state.world);
+fn spawn_tak_client(opts: tak_client::TakClientOptions, state: &GatewayState) {
+    let world_client = Arc::clone(&state.world);
+    let status_tx = state.tak_status_tx.clone();
     let handle = tokio::spawn(async move {
-        if let Ok(mut tcp) = TcpStream::connect(addr.trim()).await {
-            println!("[XR-TAK] Connected to Live TAK Server TCP stream at {addr}");
-            let mut buf = vec![0u8; 65535];
-            let mut carry = String::new();
-            while let Ok(n) = tcp.read(&mut buf).await {
-                if n == 0 {
-                    break;
-                }
-                carry.push_str(&String::from_utf8_lossy(&buf[..n]));
-                while let Some(end_idx) = carry.find("</event>") {
-                    let end = end_idx + "</event>".len();
-                    let segment = carry[..end].to_string();
-                    carry = carry[end..].to_string();
-                    if let Some(start) = segment.find("<event") {
-                        let _ =
-                            lock_world(&world_tcp).ingest_cot_xml(&segment[start..], now_unix_ms());
-                    }
-                }
-            }
-        }
+        tak_client::run_tak_client_loop(opts, world_client, status_tx).await;
     });
     let mut lock = state
         .tak_client
@@ -561,6 +557,11 @@ fn spawn_tak_tcp_client(addr: String, state: &GatewayState) {
         prev.abort();
     }
     *lock = Some(handle);
+}
+
+#[allow(dead_code)]
+fn spawn_tak_tcp_client(addr: String, state: &GatewayState) {
+    spawn_tak_client(tak_client::TakClientOptions::new_tcp(addr), state);
 }
 
 async fn handle_http_connection(
