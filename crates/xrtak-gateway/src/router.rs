@@ -61,6 +61,7 @@ pub async fn dispatch(req: &HttpRequest, state: &GatewayState) -> Result<RouteOu
         ("POST", "/api/pointer") => handle_pointer_post(&req.body, state).await?,
         ("POST", "/api/sapient") => handle_sapient_post(&req.body, state).await?,
         ("POST", "/api/collab/sync") => handle_collab_sync_post(&req.body, state),
+        ("GET", "/api/tak-status") => handle_tak_status_get(state),
         ("POST", "/api/tak-config") => handle_tak_config_post(&req.body, state).await,
         _ => HttpResponse::not_found(),
     };
@@ -912,12 +913,34 @@ fn handle_collab_sync_post(body: &str, state: &GatewayState) -> HttpResponse {
     )
 }
 
+fn handle_tak_status_get(state: &GatewayState) -> HttpResponse {
+    let status = state.tak_status_rx.borrow().clone();
+    match serde_json::to_string(&status) {
+        Ok(j) => HttpResponse::json_str(j),
+        Err(_) => HttpResponse::bad_request("failed_to_serialize_tak_status"),
+    }
+}
+
 async fn handle_tak_config_post(body: &str, state: &GatewayState) -> HttpResponse {
     let Ok(cfg) = serde_json::from_str::<TakConfigRequest>(body) else {
         return HttpResponse::bad_request("invalid_tak_config_payload");
     };
     if let Some(addr) = cfg.tak_tcp_addr.filter(|a| !a.trim().is_empty()) {
-        spawn_tak_tcp_client(addr, state);
+        let is_tls = cfg.tls_enabled.unwrap_or(false);
+        let opts = tak_client::TakClientOptions {
+            target_addr: addr,
+            tls_enabled: is_tls,
+            ca_cert_pem: cfg.ca_cert_pem,
+            client_cert_pem: cfg.client_cert_pem,
+            client_key_pem: cfg.client_key_pem,
+            sni_hostname: cfg.sni_hostname,
+            verify_hostname: cfg.verify_hostname,
+            handshake_timeout_ms: cfg.handshake_timeout_ms,
+            heartbeat_interval_ms: cfg.heartbeat_interval_ms,
+            heartbeat_timeout_ms: cfg.heartbeat_timeout_ms,
+            client_uid: cfg.client_uid,
+        };
+        spawn_tak_client(opts, state);
     }
     let (out, pins_json) = {
         let mut guard = lock_world(&state.world);
