@@ -139,3 +139,68 @@ pub fn build_client_config(
         Ok(builder.with_no_client_auth())
     }
 }
+
+use rustls::pki_types::ServerName;
+use std::sync::Arc;
+use tokio::net::TcpStream;
+use tokio_rustls::TlsConnector;
+use xrtak_core::tak_tls::TlsCertificate;
+
+pub fn build_tls_context(
+    options: &TakClientOptions,
+) -> Result<Option<(Arc<ClientConfig>, TakTlsConfig)>, String> {
+    if !options.tls_enabled {
+        return Ok(None);
+    }
+    let host_port: Vec<&str> = options.target_addr.split(':').collect();
+    let host = host_port.first().copied().unwrap_or("127.0.0.1");
+    let port: u16 = host_port.get(1).and_then(|p| p.parse().ok()).unwrap_or(8089);
+    let mut builder = TakTlsConfig::builder(host, port);
+    if let Some(ca) = &options.ca_cert_pem {
+        let ca_pem = load_pem_or_string(ca);
+        builder = builder.ca_cert(TlsCertificate::from_pem(ca_pem.as_bytes().to_vec()));
+    }
+    if let Some(cert) = &options.client_cert_pem {
+        let cert_pem = load_pem_or_string(cert);
+        builder = builder
+            .client_cert(TlsCertificate::from_pem(cert_pem.as_bytes().to_vec()))
+            .client_auth(ClientAuthMode::Required);
+    }
+    if let Some(sni) = &options.sni_hostname {
+        builder = builder.sni_hostname(sni);
+    }
+    if let Some(verify) = options.verify_hostname {
+        builder = builder.verify_server_hostname(verify);
+    }
+    if let Some(to) = options.handshake_timeout_ms {
+        builder = builder.handshake_timeout_ms(to);
+    }
+    let cfg = builder.build().map_err(|e| format!("invalid tls config: {e}"))?;
+    let client_cfg = build_client_config(&cfg, options.client_key_pem.as_deref())?;
+    Ok(Some((Arc::new(client_cfg), cfg)))
+}
+
+pub async fn establish_stream(
+    target_addr: &str,
+    tls_pair: Option<&(Arc<ClientConfig>, TakTlsConfig)>,
+) -> Result<(AsyncByteReader, AsyncByteWriter), String> {
+    let tcp = TcpStream::connect(target_addr.trim())
+        .await
+        .map_err(|e| format!("tcp connect failed: {e}"))?;
+    if let Some((client_cfg, cfg)) = tls_pair {
+        let connector = TlsConnector::from(Arc::clone(client_cfg));
+        let sni_str = cfg.sni_hostname.as_deref().unwrap_or(&cfg.server_host);
+        let server_name = ServerName::try_from(sni_str)
+            .map_err(|e| format!("invalid sni hostname: {e}"))?
+            .to_owned();
+        let tls_stream = connector
+            .connect(server_name, tcp)
+            .await
+            .map_err(|e| format!("tls handshake failed: {e}"))?;
+        let (tr, tw) = tokio::io::split(tls_stream);
+        Ok((Box::new(tr), Box::new(tw)))
+    } else {
+        let (tr, tw) = tokio::io::split(tcp);
+        Ok((Box::new(tr), Box::new(tw)))
+    }
+}
