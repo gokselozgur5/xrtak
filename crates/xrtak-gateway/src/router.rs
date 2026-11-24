@@ -24,7 +24,7 @@ pub async fn dispatch(req: &HttpRequest, state: &GatewayState) -> Result<RouteOu
         ("OPTIONS", _) => HttpResponse::no_content(),
         ("GET", "/" | "/index.html") => HttpResponse::html(INDEX_HTML),
         ("GET", "/api/stream") => return Ok(RouteOutput::SseStream(state.tx.subscribe())),
-        ("GET", "/api/state") => {
+        ("GET", "/api/state" | "/api/world") => {
             let snap = WorldSnapshot::from_world(&lock_world(&state.world));
             HttpResponse::json(&snap)?
         }
