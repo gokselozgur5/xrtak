@@ -92,3 +92,50 @@ impl TakClientOptions {
         }
     }
 }
+
+use rustls::pki_types::CertificateDer;
+use rustls::{ClientConfig, RootCertStore};
+use std::io::Cursor;
+use xrtak_core::tak_tls::{ClientAuthMode, TakTlsConfig};
+
+pub fn build_client_config(
+    config: &TakTlsConfig,
+    client_key_pem: Option<&str>,
+) -> Result<ClientConfig, String> {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let mut root_store = RootCertStore::empty();
+    if let Some(ca) = &config.ca_cert {
+        let mut reader = Cursor::new(&ca.raw_data);
+        let certs = rustls_pemfile::certs(&mut reader)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("invalid ca cert pem: {e}"))?;
+        for c in certs {
+            root_store
+                .add(c)
+                .map_err(|e| format!("failed to add root cert: {e}"))?;
+        }
+    }
+
+    let builder = ClientConfig::builder().with_root_certificates(root_store);
+    if config.client_auth == ClientAuthMode::Required {
+        let client_cert = config
+            .client_cert
+            .as_ref()
+            .ok_or_else(|| "missing client cert for mtls".to_string())?;
+        let mut cert_reader = Cursor::new(&client_cert.raw_data);
+        let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut cert_reader)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("invalid client cert pem: {e}"))?;
+        let key_raw = client_key_pem.ok_or_else(|| "missing client key pem for mtls".to_string())?;
+        let key_pem = load_pem_or_string(key_raw);
+        let mut key_reader = Cursor::new(key_pem.as_bytes());
+        let key = rustls_pemfile::private_key(&mut key_reader)
+            .map_err(|e| format!("invalid client key pem: {e}"))?
+            .ok_or_else(|| "no private key found in client key pem".to_string())?;
+        builder
+            .with_client_auth_cert(certs, key)
+            .map_err(|e| format!("client auth config error: {e}"))
+    } else {
+        Ok(builder.with_no_client_auth())
+    }
+}
