@@ -53,3 +53,39 @@ fn default_descriptor_does_not_carry_a_fixed_calendar_date() {
     );
     assert!(!xml.contains("2026-11-16"), "fixed date in {xml}");
 }
+
+#[test]
+fn link_tag_roundtrip_with_custom_parent_cot_type_and_default_fallback() {
+    let conn = xrtak_core::sensor_stream::VideoStreamConnection::new("rtsp://10.0.0.1/live", "UAS-Cam");
+    let desc = xrtak_core::sensor_stream::SensorStreamDescriptor::new("V-1", "CAM-1", 34.0, -118.0, 100.0, conn)
+        .with_parent_uid("UAS-ALPHA")
+        .with_parent_cot_type("a-u-A-M-F-Q");
+    let xml = desc.to_cot_xml();
+    assert!(xml.contains(r#"<link relation="p-p" uid="UAS-ALPHA" type="a-u-A-M-F-Q"/>"#));
+    let parsed = parse_sensor_stream_cot_xml(&xml).expect("must parse custom parent cot type");
+    assert_eq!(parsed.parent_uid.as_deref(), Some("UAS-ALPHA"));
+    assert_eq!(parsed.parent_cot_type.as_deref(), Some("a-u-A-M-F-Q"));
+
+    let conn2 = xrtak_core::sensor_stream::VideoStreamConnection::new("rtsp://10.0.0.1/live", "UAS-Cam2");
+    let desc_default = xrtak_core::sensor_stream::SensorStreamDescriptor::new("V-2", "CAM-2", 34.0, -118.0, 100.0, conn2)
+        .with_parent_uid("GND-VEHICLE");
+    let xml2 = desc_default.to_cot_xml();
+    assert!(xml2.contains(r#"<link relation="p-p" uid="GND-VEHICLE" type="a-f-G-U-C"/>"#));
+    let parsed2 = parse_sensor_stream_cot_xml(&xml2).expect("must parse default parent cot type");
+    assert_eq!(parsed2.parent_uid.as_deref(), Some("GND-VEHICLE"));
+    assert_eq!(parsed2.parent_cot_type.as_deref(), Some("a-f-G-U-C"));
+}
+
+#[test]
+fn link_tag_escaping_roundtrip() {
+    let conn = xrtak_core::sensor_stream::VideoStreamConnection::new("rtsp://10.0.0.1/live", "Cam");
+    let desc = xrtak_core::sensor_stream::SensorStreamDescriptor::new("V-3", "CAM-3", 34.0, -118.0, 100.0, conn)
+        .with_parent_uid("UAS&HQ<1>")
+        .with_parent_cot_type("a-u&special<test>");
+    let xml = desc.to_cot_xml();
+    assert!(xml.contains(r#"uid="UAS&amp;HQ&lt;1&gt;""#));
+    assert!(xml.contains(r#"type="a-u&amp;special&lt;test&gt;""#));
+    let parsed = parse_sensor_stream_cot_xml(&xml).expect("must parse escaped link tag");
+    assert_eq!(parsed.parent_uid.as_deref(), Some("UAS&HQ<1>"));
+    assert_eq!(parsed.parent_cot_type.as_deref(), Some("a-u&special<test>"));
+}
