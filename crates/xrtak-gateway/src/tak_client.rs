@@ -451,4 +451,81 @@ mod tests {
 
         handle.abort();
     }
+
+    #[tokio::test]
+    async fn test_loopback_mtls_handshake() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
+        let ca_key = rcgen::KeyPair::generate().unwrap();
+        let mut ca_params = rcgen::CertificateParams::default();
+        ca_params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+        ca_params.distinguished_name.push(rcgen::DnType::CommonName, "Test Root CA");
+        let ca_cert = ca_params.self_signed(&ca_key).unwrap();
+        let ca_pem = ca_cert.pem();
+
+        let server_key = rcgen::KeyPair::generate().unwrap();
+        let srv_params = rcgen::CertificateParams::new(vec!["localhost".to_string()]).unwrap();
+        let srv_cert = srv_params.signed_by(&server_key, &ca_cert, &ca_key).unwrap();
+        let srv_cert_der = CertificateDer::from(srv_cert.der().to_vec());
+        let srv_key_der = rustls::pki_types::PrivateKeyDer::Pkcs8(
+            rustls::pki_types::PrivatePkcs8KeyDer::from(server_key.serialize_der()),
+        );
+
+        let client_key = rcgen::KeyPair::generate().unwrap();
+        let client_params = rcgen::CertificateParams::new(vec!["xrtak-client".to_string()]).unwrap();
+        let client_cert = client_params.signed_by(&client_key, &ca_cert, &ca_key).unwrap();
+        let client_cert_pem = client_cert.pem();
+        let client_key_pem = client_key.serialize_pem();
+
+        let mut server_roots = RootCertStore::empty();
+        server_roots.add(CertificateDer::from(ca_cert.der().to_vec())).unwrap();
+        let client_verifier = rustls::server::WebPkiClientVerifier::builder(Arc::new(server_roots))
+            .build()
+            .unwrap();
+        let server_cfg = rustls::ServerConfig::builder()
+            .with_client_cert_verifier(client_verifier)
+            .with_single_cert(vec![srv_cert_der], srv_key_der)
+            .unwrap();
+        let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server_cfg));
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+
+        let world = Arc::new(Mutex::new(TacticalWorld::new(GeoOrigin::default())));
+        let (status_tx, mut status_rx) = watch::channel(TakClientStatus::default());
+
+        let mut options = TakClientOptions::new_tcp(addr);
+        options.tls_enabled = true;
+        options.ca_cert_pem = Some(ca_pem);
+        options.client_cert_pem = Some(client_cert_pem);
+        options.client_key_pem = Some(client_key_pem);
+        options.sni_hostname = Some("localhost".to_string());
+        options.heartbeat_interval_ms = Some(100);
+
+        let client_world = Arc::clone(&world);
+        let client_tx = status_tx.clone();
+        let handle = tokio::spawn(async move {
+            run_tak_client_loop(options, client_world, client_tx).await;
+        });
+
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut tls = acceptor.accept(stream).await.unwrap();
+
+        let cot = r#"<event version="2.0" uid="MTLS-1" type="a-f-G" how="m-g" time="2026-11-24T00:00:00Z" start="2026-11-24T00:00:00Z" stale="2026-11-24T00:05:00Z"><point lat="12.0" lon="34.0" hae="50.0" ce="10.0" le="10.0"/><detail/></event>"#;
+        tls.write_all(cot.as_bytes()).await.unwrap();
+
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        {
+            let guard = world.lock().unwrap();
+            assert!(guard.entities.contains_key("MTLS-1"));
+        }
+
+        status_rx.changed().await.ok();
+        let status = status_rx.borrow().clone();
+        assert!(status.connected);
+        assert!(status.is_tls);
+        assert!(status.is_mtls);
+
+        handle.abort();
+    }
 }
