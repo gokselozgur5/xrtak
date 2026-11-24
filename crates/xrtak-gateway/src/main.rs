@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::net::{TcpListener, TcpStream, UdpSocket};
+use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::{broadcast, watch, Semaphore};
 use xrtak_core::{
     build_laser_pointer_cot_xml, escape_cot_attr, evaluate_rf_link, evaluate_theater_deconfliction,
@@ -15,6 +15,7 @@ mod battery_dto;
 mod ew_dto;
 mod fires_dto;
 mod http;
+pub mod https;
 mod medevac_dto;
 mod router;
 pub mod tak_client;
@@ -95,7 +96,7 @@ fn feedback_addr() -> String {
     std::env::var("XRTAK_FEEDBACK_ADDR").unwrap_or_else(|_| "127.0.0.1:4243".to_string())
 }
 
-struct GatewayState {
+pub(crate) struct GatewayState {
     world: Arc<Mutex<TacticalWorld>>,
     tx: broadcast::Sender<String>,
     tak_client: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
@@ -522,6 +523,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         feedback_addr: fb_addr,
     });
     let conn_limit = Arc::new(Semaphore::new(256));
+
+    if let Ok(https_addr_str) = std::env::var("XRTAK_HTTPS_ADDR") {
+        if let Ok(https_addr) = https_addr_str.parse::<SocketAddr>() {
+            match https::build_https_server_config_from_env() {
+                Ok(Some(server_cfg)) => {
+                    match https::spawn_https_server(
+                        https_addr,
+                        server_cfg,
+                        Arc::clone(&state),
+                        Arc::clone(&conn_limit),
+                    )
+                    .await
+                    {
+                        Ok(bound) => {
+                            println!("  WebXR HTTPS UI     : https://localhost:{}", bound.port());
+                        }
+                        Err(e) => {
+                            eprintln!("[XR-TAK] Failed to bind HTTPS {https_addr}: {e}");
+                        }
+                    }
+                }
+                Ok(None) => {
+                    eprintln!(
+                        "[XR-TAK] XRTAK_HTTPS_ADDR configured, but no certs provided (set XRTAK_HTTPS_SELF_SIGNED=1 or XRTAK_HTTPS_CERT/KEY)"
+                    );
+                }
+                Err(e) => {
+                    eprintln!("[XR-TAK] Failed to configure HTTPS TLS: {e}");
+                }
+            }
+        }
+    }
+
     loop {
         let (stream, _) = match listener.accept().await {
             Ok(conn) => conn,
@@ -564,10 +598,13 @@ fn spawn_tak_tcp_client(addr: String, state: &GatewayState) {
     spawn_tak_client(tak_client::TakClientOptions::new_tcp(addr), state);
 }
 
-async fn handle_http_connection(
-    mut stream: TcpStream,
+async fn handle_http_connection<S>(
+    mut stream: S,
     state: Arc<GatewayState>,
-) -> Result<(), http::DynError> {
+) -> Result<(), http::DynError>
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
+{
     let Some(req) = http::read_request(&mut stream).await? else {
         return Ok(());
     };
