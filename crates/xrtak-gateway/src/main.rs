@@ -580,11 +580,67 @@ async fn handle_http_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tak_client::TakClientStatus;
 
     #[test]
     fn index_html_matches_root_source() {
         let root_index = include_str!("../../../index.html");
         assert!(!INDEX_HTML.trim().is_empty());
         assert_eq!(INDEX_HTML, root_index);
+    }
+
+    #[tokio::test]
+    async fn test_http_tak_config_and_status() {
+        let world = Arc::new(Mutex::new(TacticalWorld::new(GeoOrigin::default())));
+        let (tx, _) = tokio::sync::broadcast::channel(16);
+        let (tak_status_tx, tak_status_rx) = watch::channel(TakClientStatus::default());
+        let state = GatewayState {
+            world,
+            tx,
+            tak_client: Arc::new(Mutex::new(None)),
+            tak_status_tx: tak_status_tx.clone(),
+            tak_status_rx,
+            feedback_sock: None,
+            feedback_addr: "127.0.0.1:4243".to_string(),
+        };
+
+        // Initially status is default (not configured)
+        let get_req = http::HttpRequest {
+            method: "GET".to_string(),
+            target: "/api/tak-status".to_string(),
+            headers: vec![],
+            body: "".to_string(),
+        };
+        match router::dispatch(&get_req, &state).await.unwrap() {
+            router::RouteOutput::Response(resp) => {
+                let body = String::from_utf8_lossy(&resp.body);
+                let status: TakClientStatus = serde_json::from_str(&body).unwrap();
+                assert!(!status.configured);
+                assert!(!status.connected);
+            }
+            _ => panic!("expected response"),
+        }
+
+        // Post tak-config with plaintext addr
+        let config_body = r#"{"tak_tcp_addr":"127.0.0.1:8087","sim_enabled":true}"#;
+        let post_req = http::HttpRequest {
+            method: "POST".to_string(),
+            target: "/api/tak-config".to_string(),
+            headers: vec![],
+            body: config_body.to_string(),
+        };
+        match router::dispatch(&post_req, &state).await.unwrap() {
+            router::RouteOutput::Response(resp) => {
+                let body = String::from_utf8_lossy(&resp.body);
+                assert!(body.contains("sim_enabled"));
+            }
+            _ => panic!("expected response"),
+        }
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let status = state.tak_status_rx.borrow().clone();
+        assert!(status.configured);
+        assert_eq!(status.target_addr.as_deref(), Some("127.0.0.1:8087"));
+        assert!(!status.is_tls);
     }
 }
