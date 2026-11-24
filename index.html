@@ -751,15 +751,16 @@
       tableGroup.add(new THREE.Mesh(ringGeo, ringMat));
 
       // Glowing Amber/Cyan Quest 3 Spatial Grab & Place Pedestal Ring (Jimmy AR style)
-      const grabGeo = new THREE.RingGeometry(TABLE_RADIUS_UNITS * 1.08, TABLE_RADIUS_UNITS * 1.135, 64);
+      const grabGeo = new THREE.RingGeometry(TABLE_RADIUS_UNITS * 1.065, TABLE_RADIUS_UNITS * 1.085, 64);
       grabGeo.rotateX(-Math.PI / 2);
       const grabMat = new THREE.MeshBasicMaterial({
         color: 0xf59e0b,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.82
+        opacity: 0.42
       });
       spatialGrabRing = new THREE.Mesh(grabGeo, grabMat);
+      spatialGrabRing.visible = false;
       spatialGrabRing.position.y = -0.004;
       tableGroup.add(spatialGrabRing);
 
@@ -1531,7 +1532,7 @@
       if (!isSpi) {
         node.iconMesh.rotation.y = -THREE.MathUtils.degToRad(ent.course_deg);
       } else {
-        node.iconMesh.rotation.z += 0.04;
+        node.iconMesh.rotation.y += 0.04;
       }
 
       node.haloMat.opacity = ent.uid === selectedUid ? 0.95 : 0.0;
@@ -5116,9 +5117,14 @@
 
       // 3. Rotate the glowing Quest 3 Spatial Grab Pedestal Ring (Jimmy AR style)
       if (spatialGrabRing) {
-        spatialGrabRing.rotation.z = timeMs * 0.0012;
-        const isGrabbing = gripState.grabCtrlIdx >= 0 || (gripState.active[0] && gripState.active[1]) || !!gripState.panelDrag;
-        spatialGrabRing.material.color.setHex(isGrabbing ? 0x00ff88 : 0xf59e0b);
+        const inXr = !!(renderer && renderer.xr && renderer.xr.isPresenting);
+        spatialGrabRing.visible = inXr;
+        if (inXr) {
+          spatialGrabRing.rotation.y = timeMs * 0.0006;
+          const isGrabbing = gripState.grabCtrlIdx >= 0 || (gripState.active[0] && gripState.active[1]) || !!gripState.panelDrag;
+          spatialGrabRing.material.color.setHex(isGrabbing ? 0x00ff88 : 0xf59e0b);
+          spatialGrabRing.material.opacity = isGrabbing ? 0.78 : 0.42;
+        }
       }
     }
 
