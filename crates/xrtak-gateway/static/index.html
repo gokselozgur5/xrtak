@@ -350,7 +350,6 @@
       color: #020810;
     }
   </style>
-  <link rel="modulepreload" href="https://unpkg.com/three@0.164.1/build/three.module.js" integrity="sha384-wlK04bYFr3nyu6ipQq5N4n7KKGByMS1Yu1T8IrNtEnHiJ5WcGDt9dZBZFpRZjXEE" crossorigin="anonymous">
   <script type="importmap">
     {
       "imports": {
@@ -362,9 +361,32 @@
       }
     }
   </script>
+  <link rel="modulepreload" href="https://unpkg.com/three@0.164.1/build/three.module.js" integrity="sha384-wlK04bYFr3nyu6ipQq5N4n7KKGByMS1Yu1T8IrNtEnHiJ5WcGDt9dZBZFpRZjXEE" crossorigin="anonymous">
 </head>
 <body>
   <div id="canvas-container"></div>
+  <script>
+    window.addEventListener('error', function(e) {
+      var c = document.getElementById('canvas-container');
+      if (c && !c.querySelector('.webgl-err-banner')) {
+        var b = document.createElement('div');
+        b.className = 'webgl-err-banner';
+        b.style.cssText = 'position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(255,23,68,0.9);color:#fff;padding:10px 16px;border-radius:4px;font-family:monospace;font-size:12px;font-weight:bold;pointer-events:none;';
+        b.textContent = 'XR-TAK MODULE/WEBGL INITIALIZATION ERROR: ' + (e.message || 'Check console');
+        c.appendChild(b);
+      }
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var c = document.getElementById('canvas-container');
+      if (c && !c.querySelector('.webgl-err-banner')) {
+        var b = document.createElement('div');
+        b.className = 'webgl-err-banner';
+        b.style.cssText = 'position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(255,23,68,0.9);color:#fff;padding:10px 16px;border-radius:4px;font-family:monospace;font-size:12px;font-weight:bold;pointer-events:none;';
+        b.textContent = 'XR-TAK MODULE/WEBGL INITIALIZATION ERROR: ' + ((e.reason && e.reason.message) || e.reason || 'Unhandled promise rejection');
+        c.appendChild(b);
+      }
+    });
+  </script>
   <canvas id="visor-hud-canvas" style="position:absolute;inset:0;z-index:6;pointer-events:none;display:none;"></canvas>
 
   <div class="top-hud">
