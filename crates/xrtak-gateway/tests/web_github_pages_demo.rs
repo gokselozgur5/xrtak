@@ -52,4 +52,24 @@ fn github_pages_demo_sim_configuration_and_sri_integrity() {
             || ROOT_INDEX.contains("crossorigin='anonymous'"),
         "index.html must specify crossorigin anonymous attribute"
     );
+
+    // Importmap must be declared strictly before modulepreload and module scripts (WHATWG / Safari requirement)
+    let importmap_idx = ROOT_INDEX
+        .find("<script type=\"importmap\">")
+        .expect("index.html must declare importmap");
+    let modulepreload_idx = ROOT_INDEX
+        .find("<link rel=\"modulepreload\"")
+        .expect("index.html must declare modulepreload link");
+    let module_idx = ROOT_INDEX
+        .find("<script type=\"module\">")
+        .expect("index.html must declare module script");
+
+    assert!(
+        importmap_idx < modulepreload_idx,
+        "importmap must precede modulepreload link"
+    );
+    assert!(
+        importmap_idx < module_idx,
+        "importmap must precede module script"
+    );
 }
