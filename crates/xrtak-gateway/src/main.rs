@@ -18,6 +18,7 @@ mod fires_dto;
 mod http;
 mod medevac_dto;
 mod router;
+pub mod tak_client;
 
 const INDEX_HTML: &str = include_str!("../../../index.html");
 
