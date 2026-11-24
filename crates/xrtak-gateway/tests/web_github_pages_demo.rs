@@ -72,4 +72,17 @@ fn github_pages_demo_sim_configuration_and_sri_integrity() {
         importmap_idx < module_idx,
         "importmap must precede module script"
     );
+    // High-resolution satellite imagery configuration decoupled from DEM zoom
+    assert!(
+        ROOT_INDEX.contains("getMaxAnisotropy"),
+        "index.html must configure max anisotropic filtering on terrain satellite texture"
+    );
+    assert!(
+        ROOT_INDEX.contains("2048"),
+        "index.html must crop satellite texture to 2048x2048 canvas for razor-sharp HD rendering"
+    );
+    assert!(
+        ROOT_INDEX.contains("zSat") && ROOT_INDEX.contains("zDem"),
+        "index.html must decouple satellite imagery zoom (zSat) from elevation zoom (zDem)"
+    );
 }
