@@ -58,3 +58,37 @@ impl Default for TakClientStatus {
         }
     }
 }
+
+/// Configuration options for the gateway TAK client session.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TakClientOptions {
+    pub target_addr: String,
+    pub tls_enabled: bool,
+    pub ca_cert_pem: Option<String>,
+    pub client_cert_pem: Option<String>,
+    pub client_key_pem: Option<String>,
+    pub sni_hostname: Option<String>,
+    pub verify_hostname: Option<bool>,
+    pub handshake_timeout_ms: Option<u64>,
+    pub heartbeat_interval_ms: Option<u64>,
+    pub heartbeat_timeout_ms: Option<u64>,
+    pub client_uid: Option<String>,
+}
+
+impl TakClientOptions {
+    pub fn new_tcp(addr: impl Into<String>) -> Self {
+        Self {
+            target_addr: addr.into(),
+            tls_enabled: false,
+            ca_cert_pem: None,
+            client_cert_pem: None,
+            client_key_pem: None,
+            sni_hostname: None,
+            verify_hostname: None,
+            handshake_timeout_ms: None,
+            heartbeat_interval_ms: None,
+            heartbeat_timeout_ms: None,
+            client_uid: None,
+        }
+    }
+}
