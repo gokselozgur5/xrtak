@@ -204,3 +204,85 @@ pub async fn establish_stream(
         Ok((Box::new(tr), Box::new(tw)))
     }
 }
+
+use std::sync::{Mutex, PoisonError};
+use std::time::Duration;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::sync::watch;
+use xrtak_core::cot_heartbeat::{CotHeartbeatConfig, CotHeartbeatManager, HeartbeatAction};
+use xrtak_core::TacticalWorld;
+
+pub async fn run_session_stream(
+    mut reader: AsyncByteReader,
+    mut writer: AsyncByteWriter,
+    world: Arc<Mutex<TacticalWorld>>,
+    status_tx: &watch::Sender<TakClientStatus>,
+    hb_cfg: CotHeartbeatConfig,
+) {
+    let mut hb = CotHeartbeatManager::new(hb_cfg);
+    let mut buf = vec![0u8; 65535];
+    let mut carry = String::new();
+    let tick_interval = Duration::from_millis(500);
+
+    loop {
+        let now = now_ms();
+        if hb.should_send_ping(now) {
+            let (ping_xml, _seq) = hb.generate_ping(now);
+            if writer.write_all(ping_xml.as_bytes()).await.is_err() {
+                break;
+            }
+        }
+        hb.check_timeouts(now);
+        status_tx.send_modify(|s| {
+            s.heartbeat_status = hb.status();
+            s.smoothed_rtt_ms = hb.smoothed_rtt_ms();
+            s.last_rtt_ms = hb.last_rtt_ms();
+            s.consecutive_missed_heartbeats = hb.consecutive_missed();
+        });
+        if !hb.is_connected() && hb.consecutive_missed() >= hb.config.max_missed_pongs {
+            eprintln!("[XR-TAK] Heartbeat timeout exceeded, triggering reconnect");
+            break;
+        }
+
+        tokio::select! {
+            read_res = reader.read(&mut buf) => {
+                let n = match read_res {
+                    Ok(0) => break,
+                    Ok(bytes_read) => bytes_read,
+                    Err(_) => break,
+                };
+                carry.push_str(&String::from_utf8_lossy(&buf[..n]));
+                while let Some(end_idx) = carry.find("</event>") {
+                    let end = end_idx + "</event>".len();
+                    let segment = carry[..end].to_string();
+                    carry = carry[end..].to_string();
+                    if let Some(start) = segment.find("<event") {
+                        let xml = &segment[start..];
+                        let cur_time = now_ms();
+                        let action = hb.process_incoming_cot(xml, cur_time);
+                        match action {
+                            HeartbeatAction::RespondWithPong(pong_xml) => {
+                                if writer.write_all(pong_xml.as_bytes()).await.is_err() {
+                                    return;
+                                }
+                            }
+                            HeartbeatAction::PongAcknowledged { .. } => {
+                                status_tx.send_modify(|s| {
+                                    s.heartbeat_status = hb.status();
+                                    s.smoothed_rtt_ms = hb.smoothed_rtt_ms();
+                                    s.last_rtt_ms = hb.last_rtt_ms();
+                                    s.consecutive_missed_heartbeats = hb.consecutive_missed();
+                                });
+                            }
+                            HeartbeatAction::Ignored => {
+                                let mut guard = world.lock().unwrap_or_else(PoisonError::into_inner);
+                                let _ = guard.ingest_cot_xml(xml, cur_time);
+                            }
+                        }
+                    }
+                }
+            }
+            _ = tokio::time::sleep(tick_interval) => {}
+        }
+    }
+}
