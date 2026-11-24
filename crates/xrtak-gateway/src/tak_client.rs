@@ -286,3 +286,73 @@ pub async fn run_session_stream(
         }
     }
 }
+
+pub async fn run_tak_client_loop(
+    options: TakClientOptions,
+    world: Arc<Mutex<TacticalWorld>>,
+    status_tx: watch::Sender<TakClientStatus>,
+) {
+    let mut reconnect_attempts = 0u64;
+    let mut backoff = Duration::from_millis(500);
+    let max_backoff = Duration::from_secs(10);
+
+    let tls_config = match build_tls_context(&options) {
+        Ok(cfg) => cfg,
+        Err(err) => {
+            eprintln!("[XR-TAK TLS] Failed to initialize TLS context: {err}");
+            return;
+        }
+    };
+
+    let is_tls = tls_config.is_some();
+    let is_mtls = tls_config.as_ref().map(|(_, c)| c.is_mtls()).unwrap_or(false);
+
+    loop {
+        status_tx.send_modify(|s| {
+            s.configured = true;
+            s.connected = false;
+            s.target_addr = Some(options.target_addr.clone());
+            s.is_tls = is_tls;
+            s.is_mtls = is_mtls;
+            s.reconnect_attempts = reconnect_attempts;
+        });
+
+        match establish_stream(&options.target_addr, tls_config.as_ref()).await {
+            Ok((r, w)) => {
+                backoff = Duration::from_millis(500);
+                let hb_cfg = CotHeartbeatConfig {
+                    interval_ms: options.heartbeat_interval_ms.unwrap_or(15_000),
+                    timeout_ms: options.heartbeat_timeout_ms.unwrap_or(5_000),
+                    max_missed_pongs: 3,
+                    client_uid: options
+                        .client_uid
+                        .clone()
+                        .unwrap_or_else(|| "XRTAK-GATEWAY".to_string()),
+                };
+
+                status_tx.send_modify(|s| {
+                    s.connected = true;
+                    s.heartbeat_status = HeartbeatStatus::Connected;
+                });
+
+                run_session_stream(r, w, Arc::clone(&world), &status_tx, hb_cfg).await;
+
+                status_tx.send_modify(|s| {
+                    s.connected = false;
+                    s.heartbeat_status = HeartbeatStatus::Disconnected;
+                });
+            }
+            Err(e) => {
+                eprintln!("[XR-TAK] Connection failed to {}: {e}", options.target_addr);
+            }
+        }
+
+        reconnect_attempts += 1;
+        status_tx.send_modify(|s| {
+            s.connected = false;
+            s.reconnect_attempts = reconnect_attempts;
+        });
+        tokio::time::sleep(backoff).await;
+        backoff = (backoff * 2).min(max_backoff);
+    }
+}
