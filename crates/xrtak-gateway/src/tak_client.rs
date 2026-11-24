@@ -405,4 +405,50 @@ mod tests {
 
         handle.abort();
     }
+
+    #[tokio::test]
+    async fn test_cot_heartbeat_roundtrip_and_rtt() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+
+        let world = Arc::new(Mutex::new(TacticalWorld::new(GeoOrigin::default())));
+        let (status_tx, mut status_rx) = watch::channel(TakClientStatus::default());
+
+        let mut options = TakClientOptions::new_tcp(addr);
+        options.heartbeat_interval_ms = Some(100);
+        options.heartbeat_timeout_ms = Some(500);
+
+        let client_world = Arc::clone(&world);
+        let client_tx = status_tx.clone();
+        let handle = tokio::spawn(async move {
+            run_tak_client_loop(options, client_world, client_tx).await;
+        });
+
+        let (mut server_stream, _) = listener.accept().await.unwrap();
+        let mut buf = vec![0u8; 4096];
+
+        let n = server_stream.read(&mut buf).await.unwrap();
+        let xml = String::from_utf8_lossy(&buf[..n]);
+        assert!(xml.contains("type=\"t-x-c-t\""));
+        assert!(xml.contains("XRTAK-GATEWAY-ping-1"));
+
+        let pong = r#"<event version="2.0" uid="TAK-pong-1" type="t-x-c-t-r" how="m-g" time="2026-11-24T00:00:00Z" start="2026-11-24T00:00:00Z" stale="2026-11-24T00:05:00Z"><point lat="0.0" lon="0.0" hae="0.0" ce="999" le="999"/><detail><pong seq="1" ref_uid="XRTAK-GATEWAY-ping-1"/></detail></event>"#;
+        server_stream.write_all(pong.as_bytes()).await.unwrap();
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        status_rx.changed().await.ok();
+        let status = status_rx.borrow().clone();
+        assert!(status.last_rtt_ms.is_some());
+        assert_eq!(status.heartbeat_status, HeartbeatStatus::Connected);
+
+        let server_ping = r#"<event version="2.0" uid="SERVER-ping-42" type="t-x-c-t" how="m-g" time="2026-11-24T00:00:00Z" start="2026-11-24T00:00:00Z" stale="2026-11-24T00:05:00Z"><point lat="0.0" lon="0.0" hae="0.0" ce="999" le="999"/><detail><ping seq="42" client="SERVER"/></detail></event>"#;
+        server_stream.write_all(server_ping.as_bytes()).await.unwrap();
+
+        let n2 = server_stream.read(&mut buf).await.unwrap();
+        let xml2 = String::from_utf8_lossy(&buf[..n2]);
+        assert!(xml2.contains("type=\"t-x-c-t-r\""));
+        assert!(xml2.contains("ref_uid=\"SERVER-ping-42\""));
+
+        handle.abort();
+    }
 }
