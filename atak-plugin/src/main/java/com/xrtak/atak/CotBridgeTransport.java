@@ -4,6 +4,11 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Transport abstraction for outbound/inbound CoT XML frames (DIP).
@@ -21,6 +26,7 @@ public interface CotBridgeTransport {
         private final String host;
         private final int port;
         private final int inboundPort;
+        private final ExecutorService sendExecutor;
         private volatile boolean running;
         private DatagramSocket inboundSocket;
         private Thread inboundThread;
@@ -33,6 +39,15 @@ public interface CotBridgeTransport {
             this.host = host;
             this.port = port;
             this.inboundPort = inboundPort;
+            this.sendExecutor = Executors.newFixedThreadPool(2, new ThreadFactory() {
+                private final AtomicInteger count = new AtomicInteger(1);
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r, "xrtak-cot-send-" + count.getAndIncrement());
+                    t.setDaemon(true);
+                    return t;
+                }
+            });
         }
 
         public String getHost() { return host; }
@@ -41,7 +56,10 @@ public interface CotBridgeTransport {
 
         @Override
         public void sendCotXml(final String xmlPayload) {
-            new Thread(() -> {
+            if (sendExecutor.isShutdown()) {
+                return;
+            }
+            sendExecutor.submit(() -> {
                 try (DatagramSocket socket = new DatagramSocket()) {
                     byte[] bytes = xmlPayload.getBytes(StandardCharsets.UTF_8);
                     InetAddress addr = InetAddress.getByName(host);
@@ -49,7 +67,7 @@ public interface CotBridgeTransport {
                     socket.send(pkt);
                 } catch (Exception ignored) {
                 }
-            }).start();
+            });
         }
 
         @Override
@@ -70,7 +88,7 @@ public interface CotBridgeTransport {
                     }
                 } catch (Exception ignored) {
                 }
-            });
+            }, "xrtak-cot-inbound");
             inboundThread.setDaemon(true);
             inboundThread.start();
         }
@@ -84,6 +102,16 @@ public interface CotBridgeTransport {
             if (inboundThread != null) {
                 inboundThread.interrupt();
             }
+            sendExecutor.shutdown();
+            try {
+                if (!sendExecutor.awaitTermination(500, TimeUnit.MILLISECONDS)) {
+                    sendExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                sendExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
     }
 }
+
