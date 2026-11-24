@@ -8,6 +8,32 @@ probe_gateway() {
   [ -n "${resp}" ] && printf '%s' "${resp}" | grep -q '"terrain_name"'
 }
 
+RELAY_PID=""
+cleanup() {
+  if [ -n "${RELAY_PID}" ] && kill -0 "${RELAY_PID}" 2>/dev/null; then
+    echo "[XR-TAK] Stopping background airborne-cot-relay (PID: ${RELAY_PID})..."
+    kill "${RELAY_PID}" 2>/dev/null || true
+    wait "${RELAY_PID}" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+RELAY_EXEC="${RELAY_BIN:-}"
+if [ -z "${RELAY_EXEC}" ]; then
+  if command -v airborne-cot-relay >/dev/null 2>&1; then
+    RELAY_EXEC="airborne-cot-relay"
+  fi
+fi
+
+COT_UDP_PORT="${XRTAK_UDP_PORT:-4242}"
+if [ -n "${RELAY_EXEC}" ]; then
+  echo "[XR-TAK] Found airborne-cot-relay at: ${RELAY_EXEC}"
+  echo "[XR-TAK] Starting live airborne-cot-relay piping into UDP :${COT_UDP_PORT}..."
+  "${RELAY_EXEC}" --live >/dev/null 2>&1 &
+  RELAY_PID=$!
+  sleep 1
+fi
+
 BASE_URL="${XRTAK_URL:-}"
 if [ -z "${BASE_URL}" ]; then
   if probe_gateway "http://127.0.0.1:8090"; then
