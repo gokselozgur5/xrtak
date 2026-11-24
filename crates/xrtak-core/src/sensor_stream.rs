@@ -69,7 +69,8 @@ impl SensorType {
 
 impl SensorType {
     pub fn from_str_name(s: &str) -> Self {
-        match s.trim().to_uppercase().as_str() {
+        let trimmed = s.trim();
+        match trimmed.to_uppercase().as_str() {
             "EO" => Self::ElectroOptical,
             "IR" => Self::Infrared,
             "SWIR" => Self::ShortWaveInfrared,
@@ -77,7 +78,7 @@ impl SensorType {
             "LWIR" => Self::LongWaveInfrared,
             "EO/IR" | "EOIR" => Self::DualEoIr,
             "SAR" => Self::SyntheticApertureRadar,
-            other => Self::Other(other.to_string()),
+            _ => Self::Other(trimmed.to_string()),
         }
     }
 }
@@ -528,9 +529,9 @@ pub fn parse_sensor_stream_cot_xml(xml: &str) -> Result<SensorStreamDescriptor, 
                 if in_detail && e.name().as_ref() == b"sensor" =>
             {
                 for a in e.attributes().flatten() {
-                    let val = String::from_utf8_lossy(&a.value);
+                    let val = unescape_attr(&a);
                     match a.key.as_ref() {
-                        b"model" => sensor_gimbal.model = val.into_owned(),
+                        b"model" => sensor_gimbal.model = val,
                         b"type" => sensor_gimbal.sensor_type = SensorType::from_str_name(&val),
                         b"fov" => sensor_gimbal.fov_horizontal_deg = val.parse().unwrap_or(45.0),
                         b"vfov" => sensor_gimbal.fov_vertical_deg = val.parse().unwrap_or(30.0),
